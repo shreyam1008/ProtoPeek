@@ -240,6 +240,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 
 	// make sure we always have a csrf token cookie
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if _, err := r.Cookie(csrfCookieName); err != nil {
 			tokenBytes := make([]byte, 32)
 			if _, err := rand.Read(tokenBytes); err != nil {
