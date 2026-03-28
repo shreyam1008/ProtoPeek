@@ -5,7 +5,16 @@ import { defineConfig } from 'vite';
 
 export function sharedViteConfig() {
   return defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'remove-css-crossorigin',
+        transformIndexHtml(html) {
+          return html.replace(/<link rel="stylesheet" crossorigin/g, '<link rel="stylesheet"');
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
@@ -13,3 +22,4 @@ export function sharedViteConfig() {
     },
   });
 }
+
