@@ -52,12 +52,12 @@ type bootstrapResponse struct {
 	LauncherMode    bool                    `json:"launcherMode"`
 	BasePath        string                  `json:"basePath"`
 	DocsURL         string                  `json:"docsURL"`
+	RepoURL         string                  `json:"repoURL"`
 	LearnURL        string                  `json:"learnURL"`
 	GRPCWebURL      string                  `json:"grpcWebURL"`
 	DebuggingURL    string                  `json:"debuggingURL"`
 	AuthorName      string                  `json:"authorName"`
 	AuthorURL       string                  `json:"authorURL"`
-	UpstreamURL     string                  `json:"upstreamURL"`
 	DefaultMetadata []bootstrapMetadata     `json:"defaultMetadata"`
 	TargetDefaults  bootstrapTargetDefaults `json:"targetDefaults"`
 	GRPCurlOptions  string                  `json:"grpcurlOptions"`
@@ -129,12 +129,12 @@ func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handl
 		LauncherMode:    opts.launcherMode,
 		BasePath:        opts.basePath,
 		DocsURL:         "https://shreyam1008.github.io/ProtoPeek/",
+		RepoURL:         "https://github.com/shreyam1008/ProtoPeek",
 		LearnURL:        "https://shreyam1008.github.io/ProtoPeek/#learn-grpc",
 		GRPCWebURL:      "https://grpc.io/docs/platforms/web/basics/",
 		DebuggingURL:    "https://grpc.io/docs/guides/debugging/",
 		AuthorName:      "Shreyam Adhikari",
 		AuthorURL:       "https://shreyam1008.com.np/",
-		UpstreamURL:     "https://github.com/fullstorydev/grpcui",
 		DefaultMetadata: defaultMetadata,
 		TargetDefaults: bootstrapTargetDefaults{
 			Plaintext:    opts.targetDefaults.Plaintext,

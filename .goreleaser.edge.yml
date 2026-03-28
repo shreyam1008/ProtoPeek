@@ -42,5 +42,10 @@ checksum:
   name_template: checksums.txt
 
 release:
+  prerelease: true
+  make_latest: false
   extra_files:
     - glob: ./install.sh
+
+changelog:
+  disable: true

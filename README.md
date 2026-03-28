@@ -2,8 +2,6 @@
 
 ProtoPeek is a performance-first gRPC workbench for reflection-driven exploration, JSON request authoring, metadata inspection, proto structure visualization, and lightweight load simulation.
 
-It started from `grpcui`, but this repository is now an independent open source project with its own product direction and branding. Small thanks to the original upstream for the starting point.
-
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/).
 
 ## Why ProtoPeek
@@ -21,7 +19,19 @@ ProtoPeek keeps those concerns visible without turning into a generic REST clien
 
 ## Install
 
-Primary binary:
+Fast install, no Go required:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
+```
+
+If your system does not have `curl`:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
+```
+
+Go-based install is still available:
 
 ```sh
 go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest
@@ -83,11 +93,11 @@ When no target is provided, ProtoPeek opens in launcher mode so you can define o
 ## Website and docs
 
 - Site: [https://shreyam1008.github.io/ProtoPeek/](https://shreyam1008.github.io/ProtoPeek/)
-- Learn gRPC: [guides/learn-grpc.md](/vsk/PM/ProtoPeek/guides/learn-grpc.md)
-- Feature roadmap: [guides/feature-roadmap.md](/vsk/PM/ProtoPeek/guides/feature-roadmap.md)
-- VS Code / Open VSX spec: [guides/vscode-extension-spec.md](/vsk/PM/ProtoPeek/guides/vscode-extension-spec.md)
-- Launch post draft: [guides/launch-post.md](/vsk/PM/ProtoPeek/guides/launch-post.md)
-- Contributor rules: [AGENTS.md](/vsk/PM/ProtoPeek/AGENTS.md)
+- Learn gRPC: [guides/learn-grpc.md](guides/learn-grpc.md)
+- Feature roadmap: [guides/feature-roadmap.md](guides/feature-roadmap.md)
+- VS Code / Open VSX spec: [guides/vscode-extension-spec.md](guides/vscode-extension-spec.md)
+- Launch post draft: [guides/launch-post.md](guides/launch-post.md)
+- Contributor rules: [AGENTS.md](AGENTS.md)
 
 ## Development
 
@@ -155,3 +165,9 @@ docker run --rm -p 8080:8080 shreyam1008/protopeek:dev
 - `pp` is the short alias.
 - The legacy `cmd/grpcui` entrypoint remains only for compatibility during transition.
 - New docs, branding, releases, and install paths should center `protopeek`.
+
+## Project origin
+
+ProtoPeek was created on GitHub on March 26, 2026 as a fork of `fullstorydev/grpcui`.
+
+That note stays here only as historical context. The product, docs, branding, release flow, and installer now center ProtoPeek itself.

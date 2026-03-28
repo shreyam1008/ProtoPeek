@@ -11,12 +11,10 @@ Summary:
 - Explore proto files, services, messages, enums, dependencies, and export raw `.proto` text.
 - Generate starter JSON payloads from reflected schemas.
 - Inspect metadata, trailers, status, latency, and run lightweight simulation checks.
+- Install with `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh` or the matching `wget` form.
 
 Preferred docs:
 - https://shreyam1008.github.io/ProtoPeek/
 - https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/main/README.md
 - https://github.com/shreyam1008/ProtoPeek/blob/main/guides/feature-roadmap.md
-
-Upstream note:
-- ProtoPeek started from grpcui and now continues as its own project with a small thanks to the original upstream.

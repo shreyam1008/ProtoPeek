@@ -1,4 +1,6 @@
 dist/
+!internal/resources/app/dist/
+!internal/resources/app/dist/**
 VERSION
 .idea/
 *.iml

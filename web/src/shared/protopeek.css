@@ -142,8 +142,48 @@
   }
 }
 
+@keyframes pp-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pp-flow {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pp-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
 .pp-orb {
   animation: pp-float 14s ease-in-out infinite;
+}
+
+.pp-hero-mesh {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(13, 139, 132, 0.2), transparent 28%),
+    radial-gradient(circle at 84% 18%, rgba(245, 165, 36, 0.18), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08));
+  mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
 }
 
 .pp-skeleton::after {
@@ -157,4 +197,18 @@
     rgba(255, 255, 255, 0) 100%
   );
   animation: pp-shimmer 1.8s linear infinite;
+}
+
+.pp-reveal {
+  animation: pp-rise 0.8s ease both;
+}
+
+.pp-flow-path {
+  stroke-dasharray: 14 12;
+  animation: pp-flow 1.4s linear infinite;
+}
+
+.pp-pulse-dot {
+  transform-origin: center;
+  animation: pp-pulse 1.6s ease-in-out infinite;
 }

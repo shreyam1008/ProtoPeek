@@ -30,5 +30,19 @@ jobs:
       - name: Build site and app assets
         run: bun run build
 
+      - name: Smoke test installer
+        run: |
+          RELEASE_DIR="$(mktemp -d)"
+          ARCHIVE_DIR="$RELEASE_DIR/archive"
+          INSTALL_DIR="$(mktemp -d)"
+          mkdir -p "$ARCHIVE_DIR"
+          GOOS=linux GOARCH=amd64 go build -ldflags '-X main.version=vtest' -o "$ARCHIVE_DIR/protopeek" ./cmd/protopeek
+          tar -C "$ARCHIVE_DIR" -czf "$RELEASE_DIR/protopeek_test_linux_x86_64.tar.gz" protopeek
+          PROTOPEEK_DOWNLOAD_URL="file://$RELEASE_DIR/protopeek_test_linux_x86_64.tar.gz" \
+          PROTOPEEK_INSTALL_DIR="$INSTALL_DIR" \
+          sh ./install.sh
+          "$INSTALL_DIR/protopeek" -version
+          "$INSTALL_DIR/pp" -version
+
       - name: Go test
         run: go test ./...

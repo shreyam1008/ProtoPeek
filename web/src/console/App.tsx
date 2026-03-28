@@ -2576,8 +2576,8 @@ function LauncherShell({
             <section className="pp-panel">
               <PanelHeader
                 icon={SquareArrowOutUpRight}
-                title="Docs and attribution"
-                description="ProtoPeek is now an independent project, with a small thanks to the upstream fork origin."
+                title="Docs and project links"
+                description="ProtoPeek’s public docs, repo, and author links live here."
               />
               <div className="mt-5 space-y-3">
                 <ExternalLink
@@ -2596,9 +2596,9 @@ function LauncherShell({
                   description="Project branding, writing, and public site by Shreyam Adhikari."
                 />
                 <ExternalLink
-                  href={bootstrap.upstreamURL}
-                  title="Upstream thanks"
-                  description="This work started from grpcui before being reshaped into ProtoPeek’s own product direction."
+                  href={bootstrap.repoURL}
+                  title="GitHub repository"
+                  description="Source, issues, release notes, and the install path for ProtoPeek."
                 />
               </div>
             </section>

@@ -4,213 +4,387 @@ import {
   Cable,
   ChartColumnIncreasing,
   CircleDashed,
+  Download,
+  FileCode2,
+  FlaskConical,
   Gauge,
   GraduationCap,
   Layers3,
   SearchCode,
+  Server,
   ShieldCheck,
+  Sparkles,
   SquareArrowOutUpRight,
   WandSparkles,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import type { ComponentType, CSSProperties } from 'react';
 
 import { featureIdeas } from '@/shared/feature-data';
 
-const citations = [
+const installOptions = [
   {
-    label: 'Go 1.26 release',
-    href: 'https://go.dev/blog/go1.26',
-    note: 'Used to justify the baseline Go toolchain for the overhaul.',
+    title: 'Curl install',
+    command:
+      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
+    note: 'The fast path for Linux and macOS when you want `protopeek` and `pp` without installing Go first.',
   },
+  {
+    title: 'Wget install',
+    command:
+      'wget -qO- https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
+    note: 'Same installer path, just using `wget` when `curl` is not available on the system.',
+  },
+  {
+    title: 'Go fallback',
+    command: 'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest',
+    note: 'Useful when you already have a Go toolchain and want the module-native installation path.',
+  },
+];
+
+const tutorialSteps = [
+  {
+    step: '01',
+    title: 'Start with the proto contract',
+    body: 'A `.proto` file defines services, methods, messages, enums, field numbers, and streaming shape. ProtoPeek keeps that contract visible because gRPC tooling only feels intelligent when descriptors stay in view.',
+  },
+  {
+    step: '02',
+    title: 'Use reflection or load descriptors',
+    body: 'If the server exposes reflection, ProtoPeek can discover methods at runtime. If it does not, you can load proto files or protosets and get the same schema-first experience.',
+  },
+  {
+    step: '03',
+    title: 'Ride on HTTP/2, not generic JSON-over-HTTP',
+    body: 'gRPC depends on multiplexed streams, headers, flow control, and trailers. That is why debugging gRPC requires more than a body box and a status badge.',
+  },
+  {
+    step: '04',
+    title: 'End with status and trailers',
+    body: 'The final gRPC status often arrives after message frames. ProtoPeek keeps headers, trailers, latency, and payloads together so the transport story stays visible.',
+  },
+];
+
+const rpcShapes = [
+  {
+    title: 'Unary',
+    rhythm: '1 request → 1 response',
+    body: 'The most familiar shape, but still backed by gRPC metadata, deadlines, and trailers.',
+  },
+  {
+    title: 'Server streaming',
+    rhythm: '1 request → N responses',
+    body: 'Great for feeds, event replay, and progressive reads where the server keeps sending frames.',
+  },
+  {
+    title: 'Client streaming',
+    rhythm: 'N requests → 1 response',
+    body: 'The client sends a batch or live stream of messages before the server answers once.',
+  },
+  {
+    title: 'Bidirectional',
+    rhythm: 'N requests ↔ N responses',
+    body: 'Both sides speak over the same stream, which is why transport-aware tooling matters.',
+  },
+];
+
+const debugPlaybook = [
+  {
+    symptom: 'I cannot discover any RPCs.',
+    inspect: 'Reflection or descriptor source',
+    note: 'If reflection is off, point ProtoPeek at proto files or a protoset instead of guessing method names manually.',
+  },
+  {
+    symptom: 'The request works locally but fails in staging.',
+    inspect: 'Metadata, authority, TLS, and trailers',
+    note: 'Auth headers, host routing, cert mismatch, and server-side status details usually explain that gap.',
+  },
+  {
+    symptom: 'The browser client behaves differently.',
+    inspect: 'gRPC-Web bridge and proxy hop',
+    note: 'A browser issue may actually live in Envoy or another translation layer, not in the backend service.',
+  },
+  {
+    symptom: 'Latency looks fine until load rises.',
+    inspect: 'Simulation studio and concurrency curve',
+    note: 'ProtoPeek gives you a fast p50/p95/p99 and throughput sanity check before you reach for heavier benchmarking gear.',
+  },
+];
+
+const citations = [
   {
     label: 'TypeScript Native Previews',
     href: 'https://devblogs.microsoft.com/typescript/announcing-typescript-native-previews/',
-    note: 'Confirms the `@typescript/native-preview` package, `tsgo`, its speed focus, and current feature gaps.',
+    note: 'Reference for `@typescript/native-preview`, `tsgo`, and the TypeScript toolchain modernization.',
   },
   {
-    label: 'Tailwind CSS blog',
-    href: 'https://tailwindcss.com/blog',
-    note: 'Reference point for the modern utility pipeline and current Tailwind v4 era.',
-  },
-  {
-    label: 'Postman gRPC client interface',
+    label: 'Postman gRPC request interface',
     href: 'https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/',
-    note: 'Reference for method selection, metadata, auth, and request ergonomics expected by users.',
+    note: 'Baseline reference for the gRPC workflow users expect from modern request tooling.',
   },
   {
-    label: 'Postman gRPC test scripts',
-    href: 'https://learning.postman.com/docs/postman/scripts/test_scripts/',
-    note: 'Reference for future test hooks before, during, and after requests.',
-  },
-  {
-    label: 'gRPC guides index',
+    label: 'gRPC guides',
     href: 'https://grpc.io/docs/guides/',
-    note: 'Reference for benchmarking, debugging, metadata, reflection, and performance topics.',
+    note: 'Primary reference for metadata, reflection, performance, debugging, deadlines, and transport behavior.',
   },
   {
     label: 'gRPC-Web basics',
     href: 'https://grpc.io/docs/platforms/web/basics/',
-    note: 'Reference for browser-facing transport behavior and why gRPC-Web exists.',
+    note: 'Primary reference for browser-facing gRPC constraints and why the bridge layer exists.',
   },
   {
     label: 'Envoy gRPC overview',
     href: 'https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html',
-    note: 'Reference for how Envoy bridges gRPC-Web clients to gRPC servers.',
+    note: 'Reference for the translation layer many browser-facing gRPC stacks depend on.',
   },
   {
     label: 'gRPC debugging guide',
     href: 'https://grpc.io/docs/guides/debugging/',
-    note: 'Reference for grpcdebug, admin services, and deeper runtime inspection.',
-  },
-];
-
-const stackHighlights = [
-  'Go 1.26 baseline for the runtime, CLI, and embedded asset delivery.',
-  'React + Vite for the client shell, with `tsgo` from `@typescript/native-preview` for typechecking.',
-  'Tailwind v4-era styling with custom CSS variables and animation, without a heavy component framework.',
-  'Local-first collections, history, and simulations so the tool stays fast and private by default.',
-];
-
-const protocolFacts = [
-  {
-    title: 'Reflection removes blind spots',
-    body: 'gRPC reflection lets tools ask the server for descriptors at runtime. That is why ProtoPeek can generate method rails, starter payloads, and readable schema panels without a hand-built client.',
-  },
-  {
-    title: 'HTTP/2 changes the transport model',
-    body: 'gRPC rides on HTTP/2 framing, multiplexing, headers, and trailers. That gives you bidirectional streams and metadata, but it also means generic REST tooling misses important context.',
-  },
-  {
-    title: 'gRPC-Web is a compatibility layer, not the same transport',
-    body: 'Browsers cannot speak native gRPC directly the same way backend runtimes can, so frontends usually depend on gRPC-Web plus a bridge such as Envoy or Connect-compatible gateways.',
-  },
-  {
-    title: 'Debugging is often about state, not payloads',
-    body: 'By the time a request fails, the real cause can be deadlines, TLS, headers, retries, xDS, or broken service config. That is why ProtoPeek pairs request inspection with simulation and direct links to deeper debug tooling.',
+    note: 'Reference for deeper runtime inspection beyond payloads and request forms.',
   },
 ];
 
 export function App() {
   return (
     <div className="pp-shell">
-      <div className="pp-orb pointer-events-none absolute left-[-140px] top-10 size-96 rounded-full bg-pp-brand/20 blur-3xl" />
-      <div className="pp-orb pointer-events-none absolute right-[-160px] top-[14rem] size-[28rem] rounded-full bg-pp-accent/20 blur-3xl" />
+      <div className="pp-orb pointer-events-none absolute left-[-120px] top-12 size-80 rounded-full bg-pp-brand/18 blur-3xl" />
+      <div className="pp-orb pointer-events-none absolute right-[-80px] top-52 size-72 rounded-full bg-pp-accent/18 blur-3xl" />
 
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="pp-panel-strong overflow-hidden px-6 py-6 lg:px-8 lg:py-8">
-          <nav className="flex flex-wrap items-center justify-between gap-4">
+        <header className="pp-panel-strong relative overflow-hidden px-6 py-6 lg:px-10 lg:py-10">
+          <div className="pp-hero-mesh pointer-events-none absolute inset-0" />
+
+          <nav className="relative flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="pp-label">ProtoPeek</div>
               <div className="mt-2 text-lg font-semibold text-pp-ink">
-                Lightweight gRPC console for the HTTP/2 era
+                Independent gRPC workbench by Shreyam Adhikari
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <AnchorLink href="#features" label="Features" />
               <AnchorLink href="#install" label="Install" />
-              <AnchorLink href="#learn-grpc" label="Learn gRPC" />
+              <AnchorLink href="#learn-grpc" label="How gRPC Works" />
+              <AnchorLink href="#features" label="Features" />
               <AnchorLink href="#citations" label="Sources" />
             </div>
           </nav>
 
-          <div className="mt-10 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="relative mt-10 grid gap-8 xl:grid-cols-[1.02fr_0.98fr]">
             <div className="space-y-5">
               <div className="pp-badge">
                 <WandSparkles className="size-4" />
-                Independent gRPC workbench with thanks to grpcui upstream
+                Launcher-first tooling for transport-first debugging
               </div>
-              <h1 className="pp-heading max-w-4xl text-5xl leading-[1.02] tracking-[-0.05em] md:text-7xl">
-                A fast, modern gRPC workbench that actually understands your transport.
+              <h1 className="pp-heading max-w-5xl text-5xl leading-[0.98] tracking-[-0.06em] md:text-7xl">
+                Beautiful gRPC tooling for humans who need answers fast.
               </h1>
               <p className="max-w-3xl text-lg leading-8 text-pp-muted">
-                ProtoPeek keeps the binary small and the workflow dense: blank-launch target
-                registry, reflected schemas, proto structure explorer/export, JSON starter payloads,
-                response trailers, and a built-in simulation studio for baseline throughput and
-                latency checks.
+                ProtoPeek opens blank, lets you register one or more gRPC targets, visualizes the
+                proto contract, keeps metadata and trailers visible, and explains how the transport
+                actually works with animated tutorial sections instead of vague marketing copy.
               </p>
 
               <div className="flex flex-wrap gap-3">
                 <a className="pp-button-primary" href="#install">
-                  Install and run
-                  <ArrowRight className="size-4" />
+                  Install ProtoPeek
+                  <Download className="size-4" />
                 </a>
                 <a className="pp-button-secondary" href="#learn-grpc">
-                  Learn how gRPC works
+                  Learn gRPC visually
+                  <ArrowRight className="size-4" />
                 </a>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <StatCard label="Shipping model" value="Single Go binary" />
-                <StatCard
-                  label="Primary workflow"
-                  value="Launch first, connect targets from the UI"
-                />
-                <StatCard label="Unique edge" value="Proto explorer plus simulation studio" />
+                <StatCard label="Primary workflow" value="Launch first, attach targets later" />
+                <StatCard label="Install path" value="curl or wget, no Go required" />
+                <StatCard label="Why it stands out" value="Proto explorer plus simulation studio" />
               </div>
             </div>
 
-            <div className="relative grid gap-4 self-start md:grid-cols-2">
-              <FeatureTeaser
-                icon={SearchCode}
-                title="Method rail"
-                body="Search services and methods without hiding the topology behind dropdowns."
-              />
-              <FeatureTeaser
-                icon={BookOpenText}
-                title="Proto explorer"
-                body="Inspect files, services, messages, enums, dependencies, and export raw `.proto` text."
-              />
-              <FeatureTeaser
-                icon={ChartColumnIncreasing}
-                title="Simulation"
-                body="Run lightweight concurrency sweeps before you leave the console."
-              />
-              <FeatureTeaser
-                icon={Gauge}
-                title="Workspace launcher"
-                body="Open ProtoPeek with no target, save endpoints, and reconnect without restarting the CLI."
-              />
-            </div>
+            <HeroStage />
           </div>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]" id="install">
+        <section className="grid gap-6 xl:grid-cols-[0.88fr_1.12fr]" id="install">
           <article className="pp-panel">
-            <div className="pp-label">Quick start</div>
-            <h2 className="pp-heading mt-3 text-3xl">
-              Install, launch blank, or point it directly.
-            </h2>
-            <p className="pp-muted mt-3">
-              The old trigger was `grpcui -plaintext localhost:50051`. The new public entrypoint is
-              `protopeek`, with `pp` as the short alias. You can now launch the workspace first and
-              register targets from the browser UI.
+            <div className="pp-label">Install</div>
+            <h2 className="pp-heading mt-3 text-4xl">One command, no Go toolchain required.</h2>
+            <p className="pp-muted mt-4">
+              The installer fetches the latest ProtoPeek release artifact, installs `protopeek`, and
+              also gives you the `pp` short alias. Use `go install` only if you already want the
+              Go-native path.
             </p>
-            <div className="pp-code mt-5">
-              go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest
+
+            <div className="mt-5 space-y-4">
+              {installOptions.map((option) => (
+                <InstallCard key={option.title} {...option} />
+              ))}
             </div>
-            <div className="pp-code mt-4">protopeek</div>
-            <div className="pp-code mt-4">pp</div>
-            <div className="pp-code mt-4">protopeek -plaintext localhost:50051</div>
-            <div className="pp-code mt-4">pp -plaintext localhost:50051</div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <a className="pp-button-secondary" href="https://github.com/shreyam1008/ProtoPeek">
+                GitHub repo
+                <SquareArrowOutUpRight className="size-4" />
+              </a>
+              <a
+                className="pp-button-secondary"
+                href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md"
+                rel="noreferrer"
+                target="_blank"
+              >
+                Markdown guide
+                <BookOpenText className="size-4" />
+              </a>
+            </div>
+          </article>
+
+          <article className="pp-panel-strong overflow-hidden px-6 py-6">
+            <div className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
+              <div className="space-y-4">
+                <PanelPreamble
+                  icon={Sparkles}
+                  title="What happens after install"
+                  description="ProtoPeek is intentionally compact: a Go binary, embedded web app, local-first workspace state, and no hosted account requirement."
+                />
+
+                <LaunchRail />
+              </div>
+
+              <div className="rounded-[30px] border border-pp-border bg-[#081719] p-5 text-white shadow-[var(--pp-shadow)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="pp-label text-[#86ddd4]">First launch</div>
+                    <div className="mt-2 text-2xl font-semibold tracking-[-0.03em]">
+                      `pp` starts blank on purpose.
+                    </div>
+                  </div>
+                  <Server className="size-7 text-[#f7c66a]" />
+                </div>
+
+                <div className="mt-4 rounded-[24px] border border-white/10 bg-white/5 p-4">
+                  <div className="font-mono text-sm text-[#d6fbf5]">$ pp</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-[#9be8de]">
+                      add target
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-[#9be8de]">
+                      choose reflection
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-[#9be8de]">
+                      inspect proto
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-[#9be8de]">
+                      run simulation
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <HeroTransportDiagram />
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section
+          className="pp-panel-strong overflow-hidden px-6 py-6 lg:px-8 lg:py-8"
+          id="learn-grpc"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="pp-label">How gRPC Works</div>
+              <h2 className="pp-heading mt-3 text-4xl">
+                A transport tutorial, not just another feature list.
+              </h2>
+            </div>
+            <div className="pp-badge">
+              <GraduationCap className="size-4" />
+              Visual protocol walkthrough
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 xl:grid-cols-[0.84fr_1.16fr]">
+            <div className="space-y-4">
+              {tutorialSteps.map((step, index) => (
+                <TutorialCard key={step.step} index={index} {...step} />
+              ))}
+              <a
+                className="pp-button-secondary"
+                href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md"
+                rel="noreferrer"
+                target="_blank"
+              >
+                Read the long-form markdown guide
+                <SquareArrowOutUpRight className="size-4" />
+              </a>
+            </div>
+
+            <div className="space-y-6">
+              <FlowDiagram />
+              <LatencyPanel />
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+            <BridgeDiagram />
+            <div className="pp-panel">
+              <PanelPreamble
+                icon={CircleDashed}
+                title="The four RPC shapes"
+                description="These are not cosmetic labels. They change the request editor, the response surface, and the debugging model."
+              />
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {rpcShapes.map((shape) => (
+                  <ShapeCard key={shape.title} {...shape} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+          <article className="pp-panel">
+            <PanelPreamble
+              icon={Gauge}
+              title="Debug playbook"
+              description="When a gRPC issue appears, the body is usually only a small part of the story."
+            />
+            <div className="mt-5 space-y-3">
+              {debugPlaybook.map((item) => (
+                <PlaybookCard key={item.symptom} {...item} />
+              ))}
+            </div>
           </article>
 
           <article className="pp-panel">
-            <div className="pp-label">Why this exists</div>
-            <h2 className="pp-heading mt-3 text-3xl">
-              Debugging gRPC is not just “send JSON and wait”.
-            </h2>
-            <div className="mt-4 space-y-3">
-              <ProblemPoint
-                title="The transport carries more than bodies"
-                body="Headers, trailers, deadlines, TLS state, and stream modes all matter, and generic API tools usually flatten that away."
+            <PanelPreamble
+              icon={ChartColumnIncreasing}
+              title="What ProtoPeek surfaces"
+              description="ProtoPeek is opinionated about what should stay visible when you are under time pressure."
+            />
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <FeatureTeaser
+                icon={SearchCode}
+                title="Method rail"
+                body="Search services and methods without collapsing the gRPC topology into a stack of dropdowns."
               />
-              <ProblemPoint
-                title="Reflection is underused"
-                body="If a service exposes descriptors, the tool can generate far richer guidance than a blank JSON box."
+              <FeatureTeaser
+                icon={FileCode2}
+                title="Proto explorer"
+                body="Inspect files, messages, enums, dependencies, and raw `.proto` text before sending the first request."
               />
-              <ProblemPoint
-                title="Frontend teams hit gRPC-Web complexity"
-                body="Once browsers enter the picture, Envoy and header semantics become part of the conversation."
+              <FeatureTeaser
+                icon={FlaskConical}
+                title="Simulation studio"
+                body="Measure p50, p95, p99, and throughput with the current request instead of importing generic benchmark numbers."
+              />
+              <FeatureTeaser
+                icon={Cable}
+                title="Transport lens"
+                body="Keep metadata, trailers, gRPC-Web constraints, and discovery paths visible while you debug."
               />
             </div>
           </article>
@@ -220,11 +394,11 @@ export function App() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <div className="pp-label">Feature map</div>
-              <h2 className="pp-heading mt-3 text-4xl">Ten shipped capabilities in ProtoPeek.</h2>
+              <h2 className="pp-heading mt-3 text-4xl">Shipped capabilities.</h2>
             </div>
             <div className="pp-badge">
               <Layers3 className="size-4" />
-              Launcher-first, gRPC-aware workflow
+              Built for production debugging pressure
             </div>
           </div>
 
@@ -236,15 +410,7 @@ export function App() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold text-pp-ink">{feature.name}</h3>
-                  <span
-                    className={
-                      feature.status === 'Shipped'
-                        ? 'pp-badge text-emerald-700'
-                        : 'pp-badge text-amber-700'
-                    }
-                  >
-                    {feature.status}
-                  </span>
+                  <span className="pp-badge text-emerald-700">{feature.status}</span>
                 </div>
                 <p className="pp-muted mt-3">{feature.summary}</p>
                 <p className="mt-3 text-sm leading-6 text-pp-ink">{feature.rationale}</p>
@@ -253,135 +419,9 @@ export function App() {
           </div>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <article className="pp-panel">
-            <div className="pp-label">Stack choices</div>
-            <h2 className="pp-heading mt-3 text-3xl">Built to stay fast without staying old.</h2>
-            <div className="mt-5 space-y-3">
-              {stackHighlights.map((item) => (
-                <div
-                  className="rounded-[24px] border border-pp-border bg-white/75 px-4 py-4"
-                  key={item}
-                >
-                  <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-1 size-5 text-pp-brand" />
-                    <p className="text-sm leading-7 text-pp-ink">{item}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="pp-panel">
-            <div className="pp-label">Benchmarks and performance</div>
-            <h2 className="pp-heading mt-3 text-3xl">
-              Measure locally, don&apos;t cargo-cult headline numbers.
-            </h2>
-            <div className="mt-5 grid gap-3">
-              <BenchmarkCard
-                title="Official guidance favors measured scenarios"
-                body="The gRPC docs provide dedicated benchmarking and performance-best-practice guides because protocol behavior changes with payload size, stream shape, compression, retries, and deployment topology."
-              />
-              <BenchmarkCard
-                title="ProtoPeek ships a baseline simulation studio"
-                body="Instead of copying internet charts into your incident review, you can run quick concurrency sweeps against your own service and inspect p50, p95, p99, success rate, and throughput."
-              />
-              <BenchmarkCard
-                title="The browser path is different"
-                body="Once you add gRPC-Web and Envoy, the performance profile changes again. That is why the site and the console both keep the bridge story explicit."
-              />
-            </div>
-          </article>
-        </section>
-
-        <section className="pp-panel" id="learn-grpc">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="pp-label">Learn gRPC</div>
-              <h2 className="pp-heading mt-3 text-4xl">
-                From protobuf contracts to browser bridges.
-              </h2>
-            </div>
-            <div className="pp-badge">
-              <GraduationCap className="size-4" />
-              Transport-first explanation
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="space-y-4">
-              <ProtocolCard
-                icon={Cable}
-                title="1. Define the contract"
-                body="A `.proto` file describes services, methods, request/response messages, enums, and field numbers. That contract is the source of truth for generated clients, servers, and reflection metadata."
-              />
-              <ProtocolCard
-                icon={CircleDashed}
-                title="2. Serialize efficiently"
-                body="Protocol Buffers turn structured messages into compact binary payloads with field tags instead of repeating full JSON keys on the wire."
-              />
-              <ProtocolCard
-                icon={Layers3}
-                title="3. Send over HTTP/2"
-                body="HTTP/2 gives gRPC multiplexed streams, header compression, and trailers. This transport model is one reason gRPC handles streaming and metadata so naturally."
-              />
-              <ProtocolCard
-                icon={Gauge}
-                title="4. Return status in trailers"
-                body="gRPC status and trailing metadata often arrive after the response body frames, which is why tools need trailer visibility instead of just final body text."
-              />
-            </div>
-
-            <div className="rounded-[32px] border border-pp-border bg-white/75 p-5">
-              <div className="grid gap-3 md:grid-cols-2">
-                <ArchitectureCard
-                  title="Native gRPC path"
-                  items={[
-                    'Client encodes protobuf messages',
-                    'HTTP/2 frames carry metadata and payloads',
-                    'Server replies with messages plus trailers',
-                    'Reflection can expose descriptors for tools',
-                  ]}
-                />
-                <ArchitectureCard
-                  title="Browser-facing gRPC-Web path"
-                  items={[
-                    'Browser client uses gRPC-Web semantics',
-                    'Proxy or gateway terminates browser-friendly request',
-                    'Envoy or equivalent translates to backend gRPC',
-                    'Headers and trailers have to be adapted back to the browser',
-                  ]}
-                />
-              </div>
-
-              <div className="mt-5 rounded-[28px] border border-pp-border bg-[#081719] px-5 py-5 text-[#d8fff2]">
-                <div className="pp-label text-[#7dd8cd]">Why ProtoPeek matters</div>
-                <div className="mt-3 text-sm leading-7">
-                  gRPC is operationally elegant once you internalize the model, but that same model
-                  makes debugging harder when your tool only shows a body and a status code.
-                  ProtoPeek focuses on the parts that usually get lost: reflection visibility,
-                  metadata, trailers, request shape, and baseline performance behavior.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {protocolFacts.map((fact) => (
-              <article
-                className="rounded-[28px] border border-pp-border bg-white/75 p-5"
-                key={fact.title}
-              >
-                <h3 className="text-lg font-semibold text-pp-ink">{fact.title}</h3>
-                <p className="pp-muted mt-3">{fact.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className="pp-panel" id="citations">
-          <div className="pp-label">Research trail</div>
-          <h2 className="pp-heading mt-3 text-4xl">Official docs behind the overhaul.</h2>
+          <div className="pp-label">Sources</div>
+          <h2 className="pp-heading mt-3 text-4xl">Official references behind the product.</h2>
           <div className="mt-6 grid gap-3">
             {citations.map((citation) => (
               <a
@@ -401,46 +441,47 @@ export function App() {
           </div>
         </section>
 
-        <section className="pp-panel">
-          <div className="pp-label">Project identity</div>
-          <h2 className="pp-heading mt-3 text-4xl">
-            Built by Shreyam Adhikari, with upstream thanks.
-          </h2>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-[28px] border border-pp-border bg-white/75 p-5">
-              <div className="font-semibold text-pp-ink">Independent project</div>
-              <p className="pp-muted mt-3">
-                ProtoPeek is the current project identity, release path, and public brand. The site,
-                docs, and GitHub Pages footprint are now built around `protopeek` and `pp`.
+        <footer className="pp-panel">
+          <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+            <div>
+              <div className="pp-label">Project identity</div>
+              <h2 className="pp-heading mt-3 text-4xl">ProtoPeek is its own project now.</h2>
+              <p className="pp-muted mt-4 max-w-3xl">
+                Product branding, installer flow, release automation, website, and public docs now
+                center ProtoPeek directly. The historical origin note stays only for context.
               </p>
-              <a
-                className="pp-button-secondary mt-4 inline-flex"
-                href="https://shreyam1008.com.np/"
-                rel="noreferrer"
-                target="_blank"
-              >
-                Visit shreyam1008.com.np
-                <SquareArrowOutUpRight className="size-4" />
-              </a>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  className="pp-button-secondary"
+                  href="https://github.com/shreyam1008/ProtoPeek"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  GitHub repository
+                  <SquareArrowOutUpRight className="size-4" />
+                </a>
+                <a
+                  className="pp-button-secondary"
+                  href="https://shreyam1008.com.np/"
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  shreyam1008.com.np
+                  <SquareArrowOutUpRight className="size-4" />
+                </a>
+              </div>
             </div>
-            <div className="rounded-[28px] border border-pp-border bg-white/75 p-5">
-              <div className="font-semibold text-pp-ink">Upstream thanks</div>
-              <p className="pp-muted mt-3">
-                This repository started from `grpcui`. ProtoPeek keeps a small thank-you to that
-                upstream while moving forward as its own transport-first gRPC product.
-              </p>
-              <a
-                className="pp-button-secondary mt-4 inline-flex"
-                href="https://github.com/fullstorydev/grpcui"
-                rel="noreferrer"
-                target="_blank"
-              >
-                View grpcui upstream
-                <SquareArrowOutUpRight className="size-4" />
-              </a>
+
+            <div className="rounded-[28px] border border-pp-border bg-[#081719] p-5 text-[#d7fff7]">
+              <div className="pp-label text-[#87ddd4]">Historical note</div>
+              <div className="mt-3 text-sm leading-7">
+                ProtoPeek’s GitHub repository was created on March 26, 2026. It originated from a
+                fork of `fullstorydev/grpcui`, but the current project direction, docs, branding,
+                and release flow are now ProtoPeek’s own.
+              </div>
             </div>
           </div>
-        </section>
+        </footer>
       </div>
     </div>
   );
@@ -463,6 +504,509 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function PanelPreamble({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="flex size-11 items-center justify-center rounded-2xl bg-pp-brand/10 text-pp-brand">
+        <Icon className="size-5" />
+      </div>
+      <div>
+        <h3 className="pp-heading text-2xl">{title}</h3>
+        <p className="pp-muted mt-2">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function InstallCard({ title, command, note }: { title: string; command: string; note: string }) {
+  return (
+    <div className="rounded-[26px] border border-pp-border bg-white/75 p-4">
+      <div className="font-semibold text-pp-ink">{title}</div>
+      <pre className="pp-code mt-3 whitespace-pre-wrap break-words">{command}</pre>
+      <p className="pp-muted mt-3">{note}</p>
+    </div>
+  );
+}
+
+function LaunchRail() {
+  const stages = [
+    'Run `protopeek` or `pp`',
+    'Add one or more targets',
+    'Choose reflection, proto files, or protoset',
+    'Inspect the proto graph before invoking',
+    'Run assertions and simulation',
+  ];
+
+  return (
+    <div className="space-y-3">
+      {stages.map((stage, index) => (
+        <div
+          className="rounded-[24px] border border-pp-border bg-white/75 p-4 pp-reveal"
+          key={stage}
+          style={{ animationDelay: `${index * 120}ms` } as CSSProperties}
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-full bg-pp-brand text-sm font-semibold text-white">
+              {index + 1}
+            </span>
+            <div className="font-semibold text-pp-ink">{stage}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HeroStage() {
+  return (
+    <div className="rounded-[34px] border border-pp-border bg-[#081719] p-5 text-white shadow-[var(--pp-shadow)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="pp-label text-[#86ddd4]">Live install flow</div>
+          <div className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+            Shipping the binary is not enough.
+          </div>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[#cceee8]">
+            ProtoPeek pairs the binary with an install script, GitHub release artifacts, and a
+            visual learn surface so the first-run experience feels intentional instead of
+            improvised.
+          </p>
+        </div>
+        <ShieldCheck className="size-8 text-[#f5bd58]" />
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#87ddd4]">
+            install
+          </div>
+          <pre className="mt-3 whitespace-pre-wrap font-mono text-[0.83rem] leading-6 text-[#d7fff7]">
+            curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh |
+            sh
+          </pre>
+        </div>
+        <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#87ddd4]">
+            launch
+          </div>
+          <pre className="mt-3 whitespace-pre-wrap font-mono text-[0.83rem] leading-6 text-[#d7fff7]">
+            pp
+            {'\n'}protopeek -plaintext localhost:50051
+          </pre>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <StageMetric label="Workspace mode" value="blank-first launcher" />
+        <StageMetric label="Schema view" value="proto explorer + export" />
+        <StageMetric label="Validation" value="tests + simulation" />
+      </div>
+
+      <div className="mt-6">
+        <HeroTransportDiagram />
+      </div>
+    </div>
+  );
+}
+
+function StageMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8adfd6]">
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+function HeroTransportDiagram() {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-white/5 p-4">
+      <svg
+        aria-label="ProtoPeek launcher transport diagram"
+        className="w-full"
+        role="img"
+        viewBox="0 0 720 220"
+      >
+        <title>ProtoPeek launcher transport diagram</title>
+        <path
+          className="pp-flow-path"
+          d="M 110 108 H 610"
+          fill="none"
+          stroke="#62d4c6"
+          strokeWidth="4"
+        />
+        {[0, 1, 2].map((index) => (
+          <circle
+            className="pp-pulse-dot"
+            cx={180 + index * 150}
+            cy="108"
+            fill="#f5bd58"
+            key={index}
+            r="8"
+            style={{ animationDelay: `${index * 220}ms` } as CSSProperties}
+          />
+        ))}
+        <Node x={42} y={62} title="pp" subtitle="workspace" />
+        <Node x={230} y={30} title="reflection" subtitle="or descriptors" />
+        <Node x={432} y={30} title="HTTP/2" subtitle="metadata + frames" />
+        <Node x={588} y={62} title="trailers" subtitle="status lands late" />
+      </svg>
+    </div>
+  );
+}
+
+function FlowDiagram() {
+  return (
+    <div className="rounded-[32px] border border-pp-border bg-[#081719] p-5 text-white shadow-[var(--pp-shadow)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="pp-label text-[#87ddd4]">Animated protocol chart</div>
+          <div className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
+            Contract → discovery → transport → trailers
+          </div>
+        </div>
+        <Cable className="size-7 text-[#f7c66a]" />
+      </div>
+
+      <div className="mt-5 rounded-[28px] border border-white/10 bg-white/5 p-4">
+        <svg aria-label="How gRPC works" className="w-full" role="img" viewBox="0 0 920 280">
+          <title>How gRPC works</title>
+          <path
+            className="pp-flow-path"
+            d="M 135 140 H 790"
+            fill="none"
+            stroke="#62d4c6"
+            strokeWidth="5"
+          />
+          {[0, 1, 2, 3].map((index) => (
+            <circle
+              className="pp-pulse-dot"
+              cx={195 + index * 165}
+              cy="140"
+              fill={index % 2 === 0 ? '#f5bd58' : '#8ef0e0'}
+              key={index}
+              r="10"
+              style={{ animationDelay: `${index * 260}ms` } as CSSProperties}
+            />
+          ))}
+          <Node x={36} y={94} title=".proto" subtitle="schema" />
+          <Node x={214} y={40} title="reflection" subtitle="or protoset" />
+          <Node x={404} y={40} title="request" subtitle="headers + body" />
+          <Node x={588} y={40} title="stream" subtitle="HTTP/2 frames" />
+          <Node x={772} y={94} title="trailers" subtitle="status + metadata" />
+        </svg>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <DarkFact
+          title="Reflection makes the console intelligent"
+          body="Without descriptors, a gRPC client is effectively blind. Reflection or explicit schema files are what let ProtoPeek generate the method rail and request scaffolds."
+        />
+        <DarkFact
+          title="HTTP/2 is the difference"
+          body="The protocol is not just a different content type. It changes connection reuse, framing, trailers, and how streaming works."
+        />
+        <DarkFact
+          title="Trailers carry the ending"
+          body="The final status often arrives after payload frames, so tools must treat trailers as first-class transport data."
+        />
+      </div>
+    </div>
+  );
+}
+
+function Node({
+  x,
+  y,
+  title,
+  subtitle,
+}: {
+  x: number;
+  y: number;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect
+        fill="rgba(255,255,255,0.08)"
+        height="92"
+        rx="22"
+        stroke="rgba(255,255,255,0.12)"
+        width="120"
+      />
+      <text
+        fill="#ffffff"
+        fontFamily="Space Grotesk, sans-serif"
+        fontSize="22"
+        fontWeight="700"
+        x="16"
+        y="38"
+      >
+        {title}
+      </text>
+      <text fill="#98ddd6" fontFamily="JetBrains Mono, monospace" fontSize="15" x="16" y="64">
+        {subtitle}
+      </text>
+    </g>
+  );
+}
+
+function DarkFact({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/6 p-4">
+      <div className="font-semibold text-white">{title}</div>
+      <p className="mt-2 text-sm leading-7 text-[#cfeeea]">{body}</p>
+    </div>
+  );
+}
+
+function TutorialCard({
+  body,
+  index,
+  step,
+  title,
+}: {
+  body: string;
+  index: number;
+  step: string;
+  title: string;
+}) {
+  return (
+    <div
+      className="rounded-[28px] border border-pp-border bg-white/75 p-5 pp-reveal"
+      style={{ animationDelay: `${index * 120}ms` } as CSSProperties}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex size-11 items-center justify-center rounded-full bg-pp-brand text-sm font-semibold text-white">
+          {step}
+        </span>
+        <h3 className="text-xl font-semibold text-pp-ink">{title}</h3>
+      </div>
+      <p className="pp-muted mt-4">{body}</p>
+    </div>
+  );
+}
+
+function BridgeDiagram() {
+  return (
+    <div className="rounded-[32px] border border-pp-border bg-white/85 p-5 shadow-[var(--pp-shadow)]">
+      <PanelPreamble
+        icon={Server}
+        title="Native gRPC vs browser gRPC-Web"
+        description="Browsers change the transport shape. That is why ProtoPeek keeps the bridge layer explicit instead of pretending every client path is identical."
+      />
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <LaneCard
+          title="Native gRPC lane"
+          accent="bg-pp-brand"
+          items={[
+            'Client speaks protobuf over HTTP/2 directly',
+            'Headers and trailers stay native',
+            'Unary and streaming semantics map directly',
+            'Reflection can be queried from the same connection model',
+          ]}
+        />
+        <LaneCard
+          title="Browser-facing lane"
+          accent="bg-pp-accent"
+          items={[
+            'The browser speaks gRPC-Web semantics',
+            'Envoy or another bridge translates to backend gRPC',
+            'Header and trailer behavior is adapted for browser limits',
+            'A visible browser issue may actually be a proxy or gateway issue',
+          ]}
+        />
+      </div>
+
+      <div className="mt-5 rounded-[28px] border border-pp-border bg-[#f8fcfc] p-4">
+        <svg aria-label="gRPC-Web bridge" className="w-full" role="img" viewBox="0 0 860 180">
+          <title>gRPC-Web bridge</title>
+          <path
+            className="pp-flow-path"
+            d="M 120 70 H 740"
+            fill="none"
+            stroke="#0d8b84"
+            strokeWidth="4"
+          />
+          <path
+            className="pp-flow-path"
+            d="M 120 120 H 740"
+            fill="none"
+            stroke="#f5a524"
+            strokeWidth="4"
+          />
+          <circle className="pp-pulse-dot" cx="280" cy="70" fill="#0d8b84" r="8" />
+          <circle
+            className="pp-pulse-dot"
+            cx="510"
+            cy="120"
+            fill="#f5a524"
+            r="8"
+            style={{ animationDelay: '240ms' }}
+          />
+          <LightNode x={34} y={38} title="browser" subtitle="gRPC-Web" />
+          <LightNode x={324} y={20} title="Envoy" subtitle="bridge" />
+          <LightNode x={628} y={38} title="server" subtitle="native gRPC" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function LaneCard({ accent, items, title }: { accent: string; items: string[]; title: string }) {
+  return (
+    <div className="rounded-[24px] border border-pp-border bg-white/80 p-4">
+      <div className="flex items-center gap-3">
+        <span className={`size-3 rounded-full ${accent}`} />
+        <div className="font-semibold text-pp-ink">{title}</div>
+      </div>
+      <div className="mt-4 space-y-3">
+        {items.map((item) => (
+          <div className="flex items-start gap-3 text-sm leading-7 text-pp-ink" key={item}>
+            <ArrowRight className="mt-1 size-4 shrink-0 text-pp-brand" />
+            <span>{item}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LightNode({
+  x,
+  y,
+  title,
+  subtitle,
+}: {
+  x: number;
+  y: number;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect
+        fill="rgba(255,255,255,0.9)"
+        height="72"
+        rx="18"
+        stroke="rgba(13,46,47,0.08)"
+        width="164"
+      />
+      <text
+        fill="#0f2f31"
+        fontFamily="Space Grotesk, sans-serif"
+        fontSize="20"
+        fontWeight="700"
+        x="18"
+        y="32"
+      >
+        {title}
+      </text>
+      <text fill="#5f7d7f" fontFamily="JetBrains Mono, monospace" fontSize="14" x="18" y="54">
+        {subtitle}
+      </text>
+    </g>
+  );
+}
+
+function LatencyPanel() {
+  return (
+    <div className="rounded-[32px] border border-pp-border bg-white/85 p-5 shadow-[var(--pp-shadow)]">
+      <PanelPreamble
+        icon={ChartColumnIncreasing}
+        title="Latency and transport visibility"
+        description="ProtoPeek ships a lightweight simulation surface because benchmarks should come from your service, not from a screenshot on the internet."
+      />
+
+      <div className="mt-5 rounded-[28px] border border-pp-border bg-[#081719] p-4">
+        <svg aria-label="Latency chart" className="w-full" role="img" viewBox="0 0 760 220">
+          <title>Latency chart</title>
+          <path d="M 40 184 H 720" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="2" />
+          <path d="M 40 34 V 184" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="2" />
+          <path
+            d="M 42 164 C 128 154, 178 132, 240 122 S 360 114, 430 98 S 564 68, 640 72 S 704 86, 718 92"
+            fill="none"
+            stroke="#62d4c6"
+            strokeWidth="5"
+          />
+          <path
+            d="M 42 178 C 136 176, 206 170, 276 165 S 420 154, 492 138 S 612 108, 718 112"
+            fill="none"
+            stroke="#f5bd58"
+            strokeWidth="4"
+            opacity="0.8"
+          />
+          <circle className="pp-pulse-dot" cx="640" cy="72" fill="#62d4c6" r="8" />
+          <circle
+            className="pp-pulse-dot"
+            cx="718"
+            cy="112"
+            fill="#f5bd58"
+            r="7"
+            style={{ animationDelay: '300ms' }}
+          />
+          <text fill="#8fded5" fontFamily="JetBrains Mono, monospace" fontSize="14" x="56" y="48">
+            p95 curve
+          </text>
+          <text fill="#f8cb75" fontFamily="JetBrains Mono, monospace" fontSize="14" x="56" y="72">
+            throughput ceiling
+          </text>
+        </svg>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <StatCard label="What you measure" value="p50 p95 p99 throughput" />
+        <StatCard label="What you keep visible" value="headers trailers latency" />
+        <StatCard label="Why it matters" value="benchmark your own topology" />
+      </div>
+    </div>
+  );
+}
+
+function ShapeCard({ body, rhythm, title }: { body: string; rhythm: string; title: string }) {
+  return (
+    <div className="rounded-[24px] border border-pp-border bg-white/80 p-4">
+      <div className="font-semibold text-pp-ink">{title}</div>
+      <div className="mt-2 font-mono text-xs uppercase tracking-[0.16em] text-pp-brand">
+        {rhythm}
+      </div>
+      <p className="pp-muted mt-3">{body}</p>
+    </div>
+  );
+}
+
+function PlaybookCard({
+  inspect,
+  note,
+  symptom,
+}: {
+  inspect: string;
+  note: string;
+  symptom: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-pp-border bg-white/75 p-4">
+      <div className="text-sm font-semibold uppercase tracking-[0.16em] text-pp-brand">
+        {inspect}
+      </div>
+      <div className="mt-2 text-lg font-semibold text-pp-ink">{symptom}</div>
+      <p className="pp-muted mt-3">{note}</p>
+    </div>
+  );
+}
+
 function FeatureTeaser({
   icon: Icon,
   title,
@@ -479,60 +1023,6 @@ function FeatureTeaser({
       </div>
       <div className="mt-4 text-lg font-semibold text-pp-ink">{title}</div>
       <p className="pp-muted mt-3">{body}</p>
-    </div>
-  );
-}
-
-function ProblemPoint({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-[24px] border border-pp-border bg-white/75 p-4">
-      <div className="font-semibold text-pp-ink">{title}</div>
-      <p className="pp-muted mt-2">{body}</p>
-    </div>
-  );
-}
-
-function BenchmarkCard({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-[24px] border border-pp-border bg-white/75 p-4">
-      <div className="font-semibold text-pp-ink">{title}</div>
-      <p className="pp-muted mt-2">{body}</p>
-    </div>
-  );
-}
-
-function ProtocolCard({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-[28px] border border-pp-border bg-white/75 p-5">
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-pp-brand/10 text-pp-brand">
-        <Icon className="size-5" />
-      </div>
-      <div className="mt-4 text-lg font-semibold text-pp-ink">{title}</div>
-      <p className="pp-muted mt-3">{body}</p>
-    </div>
-  );
-}
-
-function ArchitectureCard({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-[24px] border border-pp-border bg-[#f6fbfb] p-4">
-      <div className="font-semibold text-pp-ink">{title}</div>
-      <ul className="mt-3 space-y-3 text-sm leading-7 text-pp-ink">
-        {items.map((item) => (
-          <li className="flex items-start gap-3" key={item}>
-            <ArrowRight className="mt-1 size-4 shrink-0 text-pp-brand" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

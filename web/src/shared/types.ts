@@ -26,12 +26,12 @@ export type BootstrapResponse = {
   launcherMode: boolean;
   basePath: string;
   docsURL: string;
+  repoURL: string;
   learnURL: string;
   grpcWebURL: string;
   debuggingURL: string;
   authorName: string;
   authorURL: string;
-  upstreamURL: string;
   defaultMetadata: MetadataEntry[];
   targetDefaults: WorkspaceTargetConfig;
   grpcurlOptions: string;

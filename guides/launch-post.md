@@ -1,8 +1,8 @@
 # Launch Post Draft
 
-Title: ProtoPeek: a modern gRPC console rebuilt from grpcui for today’s workflows
+Title: ProtoPeek: a modern gRPC workbench for today’s debugging workflows
 
-ProtoPeek started as a fork of grpcui, then turned into a full overhaul focused on the parts modern teams actually need when debugging gRPC services:
+ProtoPeek is an independent gRPC workbench focused on the parts modern teams actually need when debugging gRPC services:
 
 - A responsive, search-first method rail
 - Reflected schema visibility
@@ -27,6 +27,10 @@ Project links:
 
 - Repo: https://github.com/shreyam1008/ProtoPeek
 - Site: https://shreyam1008.github.io/ProtoPeek/
+
+Historical note:
+
+- The GitHub repository was created on March 26, 2026 from a fork of `fullstorydev/grpcui`, but the current project direction, branding, and release flow are now ProtoPeek’s own.
 
 Notes:
 
