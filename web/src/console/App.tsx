@@ -1554,10 +1554,8 @@ export function App() {
                   </div>
                   <div className="space-y-3">
                     {metadata.map((entry, index) => (
-                      <div
-                        className="grid gap-3 md:grid-cols-[1fr_1fr_44px]"
-                        key={`${entry.name}-${entry.value}`}
-                      >
+                      // biome-ignore lint/suspicious/noArrayIndexKey: metadata rows are edited in-place, never reordered
+                      <div className="grid gap-3 md:grid-cols-[1fr_1fr_44px]" key={index}>
                         <input
                           className="pp-input"
                           value={entry.name}
@@ -3437,10 +3435,11 @@ function ResponseMetadata({ title, values }: { title: string; values: MetadataEn
         {values.length === 0 ? (
           <div className="pp-muted">None.</div>
         ) : (
-          values.map((entry) => (
+          values.map((entry, index) => (
             <div
               className="grid gap-2 rounded-[18px] border border-pp-border bg-white/80 px-3 py-3 md:grid-cols-[180px_1fr]"
-              key={`${entry.name}-${entry.value}`}
+              // biome-ignore lint/suspicious/noArrayIndexKey: read-only response metadata, never reordered
+              key={index}
             >
               <span className="font-mono text-xs font-semibold text-pp-ink">{entry.name}</span>
               <span className="break-all font-mono text-xs text-pp-muted">{entry.value}</span>
@@ -3460,8 +3459,9 @@ function ResponseData({ title, values }: { title: string; values: unknown[] }) {
         {values.length === 0 ? (
           <div className="pp-muted">No payloads received yet.</div>
         ) : (
-          values.map((value) => (
-            <pre className="pp-code" key={`${title}-${prettyJson(value)}`}>
+          values.map((value, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only response payload list, never reordered
+            <pre className="pp-code" key={index}>
               {prettyJson(value)}
             </pre>
           ))

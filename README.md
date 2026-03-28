@@ -1,182 +1,73 @@
 # ProtoPeek
 
-ProtoPeek is a performance-first gRPC workbench for reflection-driven exploration, JSON request authoring, metadata inspection, proto structure visualization, and lightweight load simulation.
+Performance-first gRPC workbench with reflection-driven exploration, proto structure visualization, metadata inspection, and lightweight load simulation.
 
-Built by [Shreyam Adhikari](https://shreyam1008.com.np/).
-
-## Why ProtoPeek
-
-Most API tools flatten gRPC into “pick a method, send JSON, read a response”. That misses the parts that usually matter during real debugging:
-
-- reflection and descriptor visibility
-- request metadata and response trailers
-- unary versus streaming mode
-- proto-aware request generation
-- browser-facing gRPC-Web constraints
-- quick throughput and latency checks against the real service
-
-ProtoPeek keeps those concerns visible without turning into a generic REST client.
+Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://shreyam1008.github.io/ProtoPeek/) · [Docs](https://shreyam1008.github.io/ProtoPeek/docs/) · [Learn gRPC](https://shreyam1008.github.io/ProtoPeek/learn-grpc/)
 
 ## Install
-
-Fast install, no Go required:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
 ```
 
-If your system does not have `curl`:
+Or with `wget`:
 
 ```sh
 wget -qO- https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
 ```
 
-Go-based install is still available:
+Go fallback:
 
 ```sh
 go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest
-```
-
-Short alias:
-
-```sh
 go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 ```
 
-## Run
-
-Launch the blank workspace first:
+## Usage
 
 ```sh
-protopeek
+pp                                # blank launcher — add targets from the browser UI
+pp -plaintext localhost:50051     # direct single-target mode
 ```
 
-Short alias:
+In launcher mode each saved target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths.
 
-```sh
-pp
-```
+## Capabilities
 
-Direct single-target mode:
-
-```sh
-protopeek -plaintext localhost:50051
-```
-
-Or:
-
-```sh
-pp -plaintext localhost:50051
-```
-
-When no target is provided, ProtoPeek opens in launcher mode so you can define one or more saved gRPC targets from the browser UI. Each target can keep its own:
-
-- plaintext or TLS settings
-- authority override
-- reflection mode
-- proto file inputs
-- protoset inputs
-
-## Shipped capabilities
-
-1. Schema-first command rail for services and methods.
-2. Blank-launch workspace mode with a saved multi-target registry.
-3. Starter JSON payload generation from reflected request schemas.
-4. Proto structure explorer and exporter for files, messages, enums, and raw `.proto` text.
-5. Editable metadata plus reusable environment presets.
-6. Local collections, history, and workspace import/export.
-7. Response lab for headers, trailers, payloads, status, and latency.
-8. Local assertion rules for validation without a hosted scripting sandbox.
-9. Lightweight simulation studio with concurrency, throughput, and p50/p95/p99 latency.
-10. Embedded transport guidance for gRPC, gRPC-Web, Envoy, and debugging context.
-
-## Website and docs
-
-- Site: [https://shreyam1008.github.io/ProtoPeek/](https://shreyam1008.github.io/ProtoPeek/)
-- Docs hub: [https://shreyam1008.github.io/ProtoPeek/docs/](https://shreyam1008.github.io/ProtoPeek/docs/)
-- Learn gRPC: [https://shreyam1008.github.io/ProtoPeek/learn-grpc/](https://shreyam1008.github.io/ProtoPeek/learn-grpc/)
-- Feature roadmap: [https://shreyam1008.github.io/ProtoPeek/feature-roadmap/](https://shreyam1008.github.io/ProtoPeek/feature-roadmap/)
-- VS Code / Open VSX spec: [https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/](https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/)
-- Launch post draft: [https://shreyam1008.github.io/ProtoPeek/launch-post/](https://shreyam1008.github.io/ProtoPeek/launch-post/)
-- Contributor rules: [https://shreyam1008.github.io/ProtoPeek/contributor-rules/](https://shreyam1008.github.io/ProtoPeek/contributor-rules/)
-
-Repo markdown sources:
-
-- Learn gRPC source: [guides/learn-grpc.md](guides/learn-grpc.md)
-- Feature roadmap source: [guides/feature-roadmap.md](guides/feature-roadmap.md)
-- VS Code / Open VSX spec source: [guides/vscode-extension-spec.md](guides/vscode-extension-spec.md)
-- Launch post source: [guides/launch-post.md](guides/launch-post.md)
-- Contributor rules source: [AGENTS.md](AGENTS.md)
+| Surface | What it does |
+|---|---|
+| **Method rail** | Search services and methods with streaming badges |
+| **Target registry** | Save and switch gRPC endpoints without restarting |
+| **Payload generator** | Scaffold JSON from reflected protobuf schemas |
+| **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
+| **Metadata presets** | Editable auth headers and reusable environment profiles |
+| **Collections** | Save request recipes with notes; import/export as JSON |
+| **Response lab** | Headers, trailers, payloads, status, and latency in one surface |
+| **Assertions** | Validate status, latency, metadata, and payload text locally |
+| **Simulation** | Concurrency sweeps with p50/p95/p99 latency and throughput |
+| **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
 
 ## Development
 
-Install frontend tooling:
+Requires [Bun](https://bun.sh/) ≥ 1.3.10 and [Go](https://go.dev/).
 
 ```sh
-bun install --frozen-lockfile
-```
-
-Run the frontend gate:
-
-```sh
-bun run test
-```
-
-Build the embedded console and the public GitHub Pages site:
-
-```sh
-bun run build
-```
-
-Run the Go test suite:
-
-```sh
-go test ./...
-```
-
-Install the local binaries:
-
-```sh
-make install
+bun install --frozen-lockfile     # install frontend deps
+bun run test                      # tsgo typecheck + Biome lint + Vitest
+bun run build                     # build console + GitHub Pages site
+go test ./...                     # Go test suite
+make install                      # install protopeek and pp locally
 ```
 
 ## Docker
 
-The container build stays minimal and scratch-compatible:
-
-- Bun builds the embedded console and public site.
-- Go builds the static `protopeek` binary.
-- The runtime image contains only the binary, CA certs, and a non-root user.
-
-Build:
-
 ```sh
 make docker
-```
-
-Run:
-
-```sh
 docker run --rm -p 8080:8080 shreyam1008/protopeek:dev
 ```
 
-## CI and release flow
-
-- `bun run test` runs `tsgo`, Biome, and Vitest.
-- `bun run build` produces the embedded app and `docs/` GitHub Pages output.
-- `go test ./...` validates the Go runtime and CLI.
-- `.husky/pre-commit` runs the combined frontend and Go checks locally.
-- GitHub Actions in `.github/workflows/ci.yml` run the same validation on pushes and pull requests.
-
-## Naming and compatibility
-
-- `protopeek` is the primary binary name.
-- `pp` is the short alias.
-- The legacy `cmd/grpcui` entrypoint remains only for compatibility during transition.
-- New docs, branding, releases, and install paths should center `protopeek`.
+Scratch-compatible image: static Go binary, embedded web app, CA certs, non-root user.
 
 ## Project origin
 
-ProtoPeek was created on GitHub on March 26, 2026 as a fork of `fullstorydev/grpcui`.
-
-That note stays here only as historical context. The product, docs, branding, release flow, and installer now center ProtoPeek itself.
+ProtoPeek originated from a fork of `fullstorydev/grpcui`. The product, docs, branding, and release flow are now ProtoPeek's own.

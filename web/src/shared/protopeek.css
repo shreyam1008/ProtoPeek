@@ -103,10 +103,6 @@
     @apply w-full rounded-2xl border border-pp-border bg-white/80 px-4 py-3 text-sm text-pp-ink outline-none transition duration-150 placeholder:text-pp-muted/70 focus:border-pp-brand focus:ring-4 focus:ring-pp-brand/10;
   }
 
-  .pp-button {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition duration-150;
-  }
-
   .pp-button-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-pp-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pp-brand/20 transition duration-150 hover:bg-pp-brand-strong;
   }
