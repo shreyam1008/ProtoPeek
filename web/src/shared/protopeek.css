@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../";
 
 :root {
   --pp-bg: #f3f8f7;
