@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learn gRPC | ProtoPeek</title>
+    <meta name="description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
+    <link rel="canonical" href="https://shreyam1008.github.io/ProtoPeek/learn-grpc/" />
+    <link rel="icon" type="image/svg+xml" href="/ProtoPeek/favicon.svg" />
+    <link rel="stylesheet" href="/ProtoPeek/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Learn gRPC | ProtoPeek" />
+    <meta property="og:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
+    <meta property="og:url" content="https://shreyam1008.github.io/ProtoPeek/learn-grpc/" />
+    <meta property="og:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Learn gRPC | ProtoPeek" />
+    <meta name="twitter:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
+    <meta name="twitter:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/ProtoPeek/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/ProtoPeek/">Home</a>
+            <a href="/ProtoPeek/docs/">Docs</a>
+            <a href="/ProtoPeek/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Guide</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Learn gRPC</h1>
+              <p>A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points.</p>
+              <div class="pp-doc-chip-row">
+                <span>Proto contract</span><span>Reflection paths</span><span>HTTP/2 and trailers</span>
+              </div>
+            </div>
+            
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">Learn gRPC</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+        
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Proto contract</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Reflection paths</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>HTTP/2 and trailers</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+      
+      </div>
+    </div>
+  
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>This page is the long-form technical companion to the public site.</p>
+<h2 id="1-the-contract-comes-first">1. The contract comes first</h2>
+<p>gRPC starts with a <code>.proto</code> schema. The schema defines:</p>
+<ul><li>Services</li><li>Methods</li><li>Request and response message types</li><li>Enums</li><li>Field numbers and optional/repeated structure</li></ul>
+<p>That schema matters operationally, not just for code generation. ProtoPeek relies on it to:</p>
+<ul><li>Build the method rail</li><li>Generate starter payloads</li><li>Render request schema details</li><li>Decode protobuf <code>Any</code> values and response messages</li></ul>
+<p>If the server exposes reflection, the tool can discover that schema at runtime. If it does not, the same information can come from proto source files or protoset files.</p>
+<h2 id="2-why-protocol-buffers-change-the-ergonomics">2. Why Protocol Buffers change the ergonomics</h2>
+<p>Compared with JSON over REST, Protocol Buffers are compact, strongly typed, and schema-driven. Field tags and binary encoding reduce payload size and parsing overhead, but the tradeoff is obvious:</p>
+<ul><li>Humans cannot inspect the wire format directly the way they can inspect JSON.</li><li>Tooling must understand descriptors to stay usable.</li></ul>
+<p>That is one of the core reasons ProtoPeek exists.</p>
+<h2 id="3-http-2-is-not-a-side-detail">3. HTTP/2 is not a side detail</h2>
+<p>gRPC uses HTTP/2 as the transport foundation. That gives it:</p>
+<ul><li>Multiplexed streams over a single connection</li><li>Header compression</li><li>Bidirectional streaming</li><li>Response trailers</li><li>Better fit for request/response plus stream semantics</li></ul>
+<p>This also means gRPC clients and tools need to expose more than just a body and a status code. Headers, trailers, deadlines, stream shape, and connection behavior matter.</p>
+<h2 id="4-the-four-rpc-shapes">4. The four RPC shapes</h2>
+<p>Unary:</p>
+<ul><li>One request, one response.</li></ul>
+<p>Server streaming:</p>
+<ul><li>One request, many responses.</li></ul>
+<p>Client streaming:</p>
+<ul><li>Many requests, one response.</li></ul>
+<p>Bidirectional streaming:</p>
+<ul><li>Many requests, many responses.</li></ul>
+<p>ProtoPeek currently treats the request side as JSON-first and handles streaming workflows as message batches. That is a pragmatic first step, but live interactive bidi tooling remains a future expansion area.</p>
+<h2 id="5-metadata-and-trailers-are-first-class">5. Metadata and trailers are first-class</h2>
+<p>In gRPC, metadata is not an afterthought.</p>
+<p>Request headers:</p>
+<ul><li>Auth</li><li>Tenant routing</li><li>Tracing</li><li>Feature flags</li></ul>
+<p>Response headers:</p>
+<ul><li>Early server context</li></ul>
+<p>Response trailers:</p>
+<ul><li>Final status</li><li>Additional server-supplied metadata</li></ul>
+<p>Many generic tools flatten or hide this. ProtoPeek keeps it visible because real debugging often lives there.</p>
+<h2 id="6-reflection-is-what-makes-a-console-feel-intelligent">6. Reflection is what makes a console feel intelligent</h2>
+<p>Reflection allows a client to ask the server for:</p>
+<ul><li>Service names</li><li>Methods</li><li>Message descriptors</li><li>Enum descriptors</li></ul>
+<p>Without reflection, a UI either needs explicit schema files from the user or it becomes blind. ProtoPeek keeps both paths:</p>
+<ul><li>Reflection for the happy path</li><li>Proto source / protoset loading for locked-down services</li></ul>
+<h2 id="7-why-grpc-web-exists">7. Why gRPC-Web exists</h2>
+<p>Native gRPC assumes capabilities that browsers do not expose the same way backend runtimes do. Browser environments need a bridge layer, which is why gRPC-Web exists.</p>
+<p>Typical browser path:</p>
+<ol><li><div class="pp-doc-list-title">Browser speaks gRPC-Web-compatible semantics.</div></li><li><div class="pp-doc-list-title">A proxy such as Envoy receives the request.</div></li><li><div class="pp-doc-list-title">The proxy translates it into backend-native gRPC.</div></li><li><div class="pp-doc-list-title">Response headers and trailers are adapted back to browser constraints.</div></li></ol>
+<p>That architecture changes debugging and performance conversations. A problem seen in the browser may live:</p>
+<ul><li>In the browser client</li><li>In the gRPC-Web bridge</li><li>In Envoy config</li><li>In the backend gRPC server</li></ul>
+<p>ProtoPeek’s site keeps this explicit so frontend teams are not left guessing.</p>
+<h2 id="8-benchmarking-responsibly">8. Benchmarking responsibly</h2>
+<p>There is no universal “gRPC is X times faster” number worth trusting outside a specific test setup. Performance changes with:</p>
+<ul><li>Payload size</li><li>Compression</li><li>Streaming vs unary traffic</li><li>Proxy layers</li><li>TLS</li><li>Retries</li><li>Deadlines</li><li>Client and server implementation</li></ul>
+<p>The official gRPC docs maintain dedicated performance and benchmarking guidance for exactly this reason. ProtoPeek adds value by giving you a fast way to measure your own service locally with the simulation studio instead of importing generic benchmark claims into a production discussion.</p>
+<h2 id="9-why-debugging-gets-hard-fast">9. Why debugging gets hard fast</h2>
+<p>The painful gRPC bugs are often not serialization bugs. They are:</p>
+<ul><li>Missing reflection</li><li>Incorrect metadata</li><li>TLS mismatch</li><li>Deadline exceeded</li><li>Wrong authority / host routing</li><li>Proxy translation issues</li><li>Streaming assumptions</li><li>Service config or xDS surprises</li></ul>
+<p>That is why ProtoPeek combines:</p>
+<ul><li>Request authoring</li><li>Response inspection</li><li>Metadata visibility</li><li>Lightweight load probing</li><li>Links to deeper runtime diagnostics</li></ul>
+<h2 id="10-further-reading">10. Further reading</h2>
+<ul><li>gRPC guides: <a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">https://grpc.io/docs/guides/</a></li><li>gRPC-Web basics: <a href="https://grpc.io/docs/platforms/web/basics/" rel="noreferrer" target="_blank">https://grpc.io/docs/platforms/web/basics/</a></li><li>Envoy gRPC overview: <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html" rel="noreferrer" target="_blank">https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html</a></li><li>Debugging guide: <a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">https://grpc.io/docs/guides/debugging/</a></li><li>ProtoPeek site: <a href="https://shreyam1008.github.io/ProtoPeek/" rel="noreferrer" target="_blank">https://shreyam1008.github.io/ProtoPeek/</a></li></ul>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#1-the-contract-comes-first">1. The contract comes first</a><a class="level-2" href="#2-why-protocol-buffers-change-the-ergonomics">2. Why Protocol Buffers change the ergonomics</a><a class="level-2" href="#3-http-2-is-not-a-side-detail">3. HTTP/2 is not a side detail</a><a class="level-2" href="#4-the-four-rpc-shapes">4. The four RPC shapes</a><a class="level-2" href="#5-metadata-and-trailers-are-first-class">5. Metadata and trailers are first-class</a><a class="level-2" href="#6-reflection-is-what-makes-a-console-feel-intelligent">6. Reflection is what makes a console feel intelligent</a><a class="level-2" href="#7-why-grpc-web-exists">7. Why gRPC-Web exists</a><a class="level-2" href="#8-benchmarking-responsibly">8. Benchmarking responsibly</a><a class="level-2" href="#9-why-debugging-gets-hard-fast">9. Why debugging gets hard fast</a><a class="level-2" href="#10-further-reading">10. Further reading</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/learn-grpc.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/ProtoPeek/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/ProtoPeek/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/ProtoPeek/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/ProtoPeek/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

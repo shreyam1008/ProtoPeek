@@ -15,6 +15,12 @@ Summary:
 
 Preferred docs:
 - https://shreyam1008.github.io/ProtoPeek/
+- https://shreyam1008.github.io/ProtoPeek/docs/
+- https://shreyam1008.github.io/ProtoPeek/learn-grpc/
+- https://shreyam1008.github.io/ProtoPeek/feature-roadmap/
+- https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/
+- https://shreyam1008.github.io/ProtoPeek/launch-post/
+- https://shreyam1008.github.io/ProtoPeek/contributor-rules/
 - https://github.com/shreyam1008/ProtoPeek
-- https://github.com/shreyam1008/ProtoPeek/blob/main/README.md
-- https://github.com/shreyam1008/ProtoPeek/blob/main/guides/feature-roadmap.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md

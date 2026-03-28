@@ -143,6 +143,51 @@ const citations = [
   },
 ];
 
+const docsHubUrl = '/ProtoPeek/docs/';
+const learnGrpcUrl = '/ProtoPeek/learn-grpc/';
+
+const publishedDocs = [
+  {
+    title: 'Learn gRPC',
+    badge: 'Guide',
+    href: learnGrpcUrl,
+    icon: GraduationCap,
+    summary:
+      'The long-form transport tutorial with reflection, metadata, trailers, gRPC-Web, and debugging context.',
+  },
+  {
+    title: 'Feature roadmap',
+    badge: 'Roadmap',
+    href: '/ProtoPeek/feature-roadmap/',
+    icon: Layers3,
+    summary:
+      'The shipped surface, the reasoning behind it, and the next wave of transport-aware expansion.',
+  },
+  {
+    title: 'VS Code / Open VSX spec',
+    badge: 'Extension',
+    href: '/ProtoPeek/vscode-extension-spec/',
+    icon: FileCode2,
+    summary: 'A lean launcher extension plan that stays small and avoids duplicating the runtime.',
+  },
+  {
+    title: 'Launch post draft',
+    badge: 'Launch',
+    href: '/ProtoPeek/launch-post/',
+    icon: Sparkles,
+    summary:
+      'The narrative and positioning copy for announcing ProtoPeek as an independent project.',
+  },
+  {
+    title: 'Contributor rules',
+    badge: 'Rules',
+    href: '/ProtoPeek/contributor-rules/',
+    icon: ShieldCheck,
+    summary:
+      'The product and engineering constraints that keep ProtoPeek lightweight and explicitly gRPC-aware.',
+  },
+];
+
 export function App() {
   return (
     <div className="pp-shell">
@@ -163,6 +208,7 @@ export function App() {
             <div className="flex flex-wrap gap-2">
               <AnchorLink href="#install" label="Install" />
               <AnchorLink href="#learn-grpc" label="How gRPC Works" />
+              <AnchorLink href="#docs" label="Docs" />
               <AnchorLink href="#features" label="Features" />
               <AnchorLink href="#citations" label="Sources" />
             </div>
@@ -226,13 +272,8 @@ export function App() {
                 GitHub repo
                 <SquareArrowOutUpRight className="size-4" />
               </a>
-              <a
-                className="pp-button-secondary"
-                href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md"
-                rel="noreferrer"
-                target="_blank"
-              >
-                Markdown guide
+              <a className="pp-button-secondary" href={docsHubUrl}>
+                Docs hub
                 <BookOpenText className="size-4" />
               </a>
             </div>
@@ -309,14 +350,9 @@ export function App() {
               {tutorialSteps.map((step, index) => (
                 <TutorialCard key={step.step} index={index} {...step} />
               ))}
-              <a
-                className="pp-button-secondary"
-                href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md"
-                rel="noreferrer"
-                target="_blank"
-              >
-                Read the long-form markdown guide
-                <SquareArrowOutUpRight className="size-4" />
+              <a className="pp-button-secondary" href={learnGrpcUrl}>
+                Read the long-form guide
+                <ArrowRight className="size-4" />
               </a>
             </div>
 
@@ -388,6 +424,50 @@ export function App() {
               />
             </div>
           </article>
+        </section>
+
+        <section className="pp-panel" id="docs">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <div className="pp-label">Docs</div>
+              <h2 className="pp-heading mt-3 text-4xl">
+                Published reading paths, not dead markdown links.
+              </h2>
+            </div>
+            <a className="pp-button-secondary" href={docsHubUrl}>
+              Open docs hub
+              <ArrowRight className="size-4" />
+            </a>
+          </div>
+
+          <div className="mt-4 max-w-3xl text-sm leading-7 text-pp-muted">
+            The site now publishes the learn guide, roadmap, extension plan, launch draft, and
+            contributor rules as first-class pages for GitHub Pages, SEO, and AI-friendly crawling.
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {publishedDocs.map((doc) => (
+              <article
+                className="rounded-[28px] border border-pp-border bg-white/75 p-5"
+                key={doc.title}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-pp-brand/10 text-pp-brand">
+                    <doc.icon className="size-5" />
+                  </div>
+                  <span className="pp-badge">{doc.badge}</span>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold tracking-[-0.03em] text-pp-ink">
+                  {doc.title}
+                </h3>
+                <p className="pp-muted mt-3">{doc.summary}</p>
+                <a className="pp-button-secondary mt-5" href={doc.href}>
+                  Open page
+                  <ArrowRight className="size-4" />
+                </a>
+              </article>
+            ))}
+          </div>
         </section>
 
         <section className="pp-panel" id="features">

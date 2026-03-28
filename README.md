@@ -93,11 +93,20 @@ When no target is provided, ProtoPeek opens in launcher mode so you can define o
 ## Website and docs
 
 - Site: [https://shreyam1008.github.io/ProtoPeek/](https://shreyam1008.github.io/ProtoPeek/)
-- Learn gRPC: [guides/learn-grpc.md](guides/learn-grpc.md)
-- Feature roadmap: [guides/feature-roadmap.md](guides/feature-roadmap.md)
-- VS Code / Open VSX spec: [guides/vscode-extension-spec.md](guides/vscode-extension-spec.md)
-- Launch post draft: [guides/launch-post.md](guides/launch-post.md)
-- Contributor rules: [AGENTS.md](AGENTS.md)
+- Docs hub: [https://shreyam1008.github.io/ProtoPeek/docs/](https://shreyam1008.github.io/ProtoPeek/docs/)
+- Learn gRPC: [https://shreyam1008.github.io/ProtoPeek/learn-grpc/](https://shreyam1008.github.io/ProtoPeek/learn-grpc/)
+- Feature roadmap: [https://shreyam1008.github.io/ProtoPeek/feature-roadmap/](https://shreyam1008.github.io/ProtoPeek/feature-roadmap/)
+- VS Code / Open VSX spec: [https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/](https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/)
+- Launch post draft: [https://shreyam1008.github.io/ProtoPeek/launch-post/](https://shreyam1008.github.io/ProtoPeek/launch-post/)
+- Contributor rules: [https://shreyam1008.github.io/ProtoPeek/contributor-rules/](https://shreyam1008.github.io/ProtoPeek/contributor-rules/)
+
+Repo markdown sources:
+
+- Learn gRPC source: [guides/learn-grpc.md](guides/learn-grpc.md)
+- Feature roadmap source: [guides/feature-roadmap.md](guides/feature-roadmap.md)
+- VS Code / Open VSX spec source: [guides/vscode-extension-spec.md](guides/vscode-extension-spec.md)
+- Launch post source: [guides/launch-post.md](guides/launch-post.md)
+- Contributor rules source: [AGENTS.md](AGENTS.md)
 
 ## Development
 

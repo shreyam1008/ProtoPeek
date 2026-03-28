@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contributor rules | ProtoPeek</title>
+    <meta name="description" content="The engineering and product constraints that keep ProtoPeek lightweight, transport-aware, and reliable under production debugging pressure." />
+    <link rel="canonical" href="https://shreyam1008.github.io/ProtoPeek/contributor-rules/" />
+    <link rel="icon" type="image/svg+xml" href="/ProtoPeek/favicon.svg" />
+    <link rel="stylesheet" href="/ProtoPeek/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Contributor rules | ProtoPeek" />
+    <meta property="og:description" content="The engineering and product constraints that keep ProtoPeek lightweight, transport-aware, and reliable under production debugging pressure." />
+    <meta property="og:url" content="https://shreyam1008.github.io/ProtoPeek/contributor-rules/" />
+    <meta property="og:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Contributor rules | ProtoPeek" />
+    <meta name="twitter:description" content="The engineering and product constraints that keep ProtoPeek lightweight, transport-aware, and reliable under production debugging pressure." />
+    <meta name="twitter:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/ProtoPeek/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/ProtoPeek/">Home</a>
+            <a href="/ProtoPeek/docs/">Docs</a>
+            <a href="/ProtoPeek/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Rules</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Contributor rules</h1>
+              <p>The engineering and product constraints that keep ProtoPeek lightweight, transport-aware, and reliable under production debugging pressure.</p>
+              <div class="pp-doc-chip-row">
+                <span>Lightweight runtime</span><span>gRPC-aware UX</span><span>Docs stay aligned</span>
+              </div>
+            </div>
+            
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">ProtoPeek Agent Rules</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+        
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Lightweight runtime</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>gRPC-aware UX</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>Docs stay aligned</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+      
+      </div>
+    </div>
+  
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>ProtoPeek is a performance-first gRPC console. Treat every change as if it ships to users debugging a production service under time pressure.</p>
+<h2 id="product-priorities">Product priorities</h2>
+<ol><li><div class="pp-doc-list-title">Keep the runtime lightweight.</div></li><li><div class="pp-doc-list-title">Prefer clarity over feature count if a tradeoff is required.</div></li><li><div class="pp-doc-list-title">Preserve transport-specific visibility: headers, trailers, stream mode, reflection, deadlines.</div></li><li><div class="pp-doc-list-title">Avoid “generic API client” drift. ProtoPeek should feel explicitly gRPC-aware.</div></li></ol>
+<h2 id="frontend-rules">Frontend rules</h2>
+<ul><li>Default to the console being fast on low-end hardware.</li><li>Prefer custom SVG/CSS charts over large charting libraries.</li><li>Avoid adding state libraries unless React state becomes an actual bottleneck.</li><li>Keep the embedded console responsive under narrow widths; the sidebar must degrade cleanly on smaller screens.</li><li>Any new feature should explain its gRPC relevance, not just mirror a REST tool habit.</li></ul>
+<h2 id="backend-rules">Backend rules</h2>
+<ul><li>Keep the CLI and standalone handler operational without an external database.</li><li>Reflection and descriptor loading paths must stay reliable; do not regress proto/protoset workflows.</li><li>Prefer adding JSON API endpoints around the existing invocation core instead of rewriting the RPC execution layer gratuitously.</li><li>Preserve scratch-compatible container builds whenever possible.</li></ul>
+<h2 id="performance-rules">Performance rules</h2>
+<ul><li>Measure before adding heavy dependencies.</li><li>Avoid long-running background polling in the browser.</li><li>If a feature increases the binary or bundle size materially, document the reason in the PR or commit message.</li></ul>
+<h2 id="docs-rules">Docs rules</h2>
+<ul><li>The README is the fast path.</li><li>The website is the narrative path.</li><li><code>guides/</code> is the detailed path.</li><li>Keep all three aligned whenever product behavior changes.</li></ul>
+<h2 id="release-rules">Release rules</h2>
+<ul><li><code>protopeek</code> is the primary binary name.</li><li><code>pp</code> is the short alias.</li><li><code>grpcui</code> compatibility can exist temporarily, but all new docs and release flows should center <code>protopeek</code>.</li></ul>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#product-priorities">Product priorities</a><a class="level-2" href="#frontend-rules">Frontend rules</a><a class="level-2" href="#backend-rules">Backend rules</a><a class="level-2" href="#performance-rules">Performance rules</a><a class="level-2" href="#docs-rules">Docs rules</a><a class="level-2" href="#release-rules">Release rules</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">AGENTS.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/AGENTS.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/ProtoPeek/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/ProtoPeek/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/ProtoPeek/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/ProtoPeek/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

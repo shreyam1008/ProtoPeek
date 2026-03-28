@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feature roadmap | ProtoPeek</title>
+    <meta name="description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
+    <link rel="canonical" href="https://shreyam1008.github.io/ProtoPeek/feature-roadmap/" />
+    <link rel="icon" type="image/svg+xml" href="/ProtoPeek/favicon.svg" />
+    <link rel="stylesheet" href="/ProtoPeek/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Feature roadmap | ProtoPeek" />
+    <meta property="og:description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
+    <meta property="og:url" content="https://shreyam1008.github.io/ProtoPeek/feature-roadmap/" />
+    <meta property="og:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Feature roadmap | ProtoPeek" />
+    <meta name="twitter:description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
+    <meta name="twitter:image" content="https://shreyam1008.github.io/ProtoPeek/protopeek-social.svg" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/ProtoPeek/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/ProtoPeek/">Home</a>
+            <a href="/ProtoPeek/docs/">Docs</a>
+            <a href="/ProtoPeek/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Roadmap</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Feature roadmap</h1>
+              <p>The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features.</p>
+              <div class="pp-doc-chip-row">
+                <span>10 shipped capabilities</span><span>Why they matter</span><span>Next wave</span>
+              </div>
+            </div>
+            
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">ProtoPeek Feature Roadmap</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+        
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>10 shipped capabilities</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Why they matter</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+      
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>Next wave</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+      
+      </div>
+    </div>
+  
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>This file records the current product shape after the ProtoPeek overhaul and the next areas that are still worth building.</p>
+<h2 id="ten-shipped-capabilities">Ten shipped capabilities</h2>
+<ol><li><div class="pp-doc-list-title">Schema-first command rail</div><p>ProtoPeek keeps services and methods visible in a searchable sidebar instead of stacking discovery behind generic dropdowns.</p></li><li><div class="pp-doc-list-title">Workspace launcher and target registry</div><p><code>protopeek</code> and <code>pp</code> can now start with no target argument. The launcher stores one or more transport-aware gRPC targets and reconnects to them from the browser UI.</p></li><li><div class="pp-doc-list-title">Starter payload generation</div><p>ProtoPeek turns reflected protobuf request schemas into ready-to-edit JSON scaffolds, including nested messages and enums.</p></li><li><div class="pp-doc-list-title">Proto structure explorer and exporter</div><p>The console now exposes file-level proto topology, nested messages, enums, dependencies, raw <code>.proto</code> text, and exportable catalog JSON.</p></li><li><div class="pp-doc-list-title">Metadata presets</div><p>Default metadata and session-edited headers stay visible, editable, and portable.</p></li><li><div class="pp-doc-list-title">Collections and team handoff</div><p>Requests can be saved locally with notes, replayed without rebuilding payloads, and moved between teammates as JSON.</p></li><li><div class="pp-doc-list-title">Response lab</div><p>Headers, trailers, payloads, status, and latency are shown together.</p></li><li><div class="pp-doc-list-title">Assertions and validation</div><p>ProtoPeek runs local assertion rules against status, latency, metadata, and payload text without adding a heavyweight scripting sandbox.</p></li><li><div class="pp-doc-list-title">Simulation studio</div><p>A lightweight concurrency runner estimates success rate, throughput, and p50/p95/p99 latency for unary request flows.</p></li><li><div class="pp-doc-list-title">gRPC-Web topology lens</div><p>The site and the embedded console explain browser limits, Envoy bridging, debugging pain points, and why gRPC-Web changes the operational story.</p></li></ol>
+<h2 id="why-these-features-matter">Why these features matter</h2>
+<ul><li>Postman’s gRPC interface sets the baseline for discoverable method selection, metadata handling, and reusable request flows.</li><li>The gRPC docs emphasize reflection, metadata, debugging, and benchmarking as first-class workflow concerns.</li><li>ProtoPeek’s differentiator is staying explicitly gRPC-aware instead of acting like a transport-agnostic API shell.</li><li>The launcher, structure explorer, and simulation surface matter because incident debugging usually starts with contract discovery and endpoint switching, not with an already-perfect request body.</li></ul>
+<h2 id="next-wave">Next wave</h2>
+<ol><li><div class="pp-doc-list-title">Flow-level hooks for streaming RPCs</div><p>The current assertion model is intentionally lightweight. The next step is pre-invoke setup, on-message checks, and reusable streaming flow validation.</p></li><li><div class="pp-doc-list-title">Channelz and grpcdebug bridge</div><p>ProtoPeek should become the front door from request inspection into runtime inspection when the real problem is transport state rather than payload content.</p></li><li><div class="pp-doc-list-title">Shareable benchmark reports</div><p>The simulation studio already produces useful local data. The next step is exportable reports for incident reviews and performance baselines.</p></li></ol>
+<h2 id="research-trail">Research trail</h2>
+<ul><li>TypeScript native preview: <a href="https://devblogs.microsoft.com/typescript/announcing-typescript-native-previews/" rel="noreferrer" target="_blank">https://devblogs.microsoft.com/typescript/announcing-typescript-native-previews/</a></li><li>Tailwind docs/blog: <a href="https://tailwindcss.com/blog" rel="noreferrer" target="_blank">https://tailwindcss.com/blog</a></li><li>Postman gRPC interface: <a href="https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/" rel="noreferrer" target="_blank">https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/</a></li><li>Postman test scripts: <a href="https://learning.postman.com/docs/postman/scripts/test_scripts/" rel="noreferrer" target="_blank">https://learning.postman.com/docs/postman/scripts/test_scripts/</a></li><li>gRPC guides index: <a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">https://grpc.io/docs/guides/</a></li><li>gRPC-Web basics: <a href="https://grpc.io/docs/platforms/web/basics/" rel="noreferrer" target="_blank">https://grpc.io/docs/platforms/web/basics/</a></li><li>Envoy gRPC overview: <a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html" rel="noreferrer" target="_blank">https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html</a></li><li>gRPC debugging guide: <a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">https://grpc.io/docs/guides/debugging/</a></li></ul>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#ten-shipped-capabilities">Ten shipped capabilities</a><a class="level-2" href="#why-these-features-matter">Why these features matter</a><a class="level-2" href="#next-wave">Next wave</a><a class="level-2" href="#research-trail">Research trail</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/feature-roadmap.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/ProtoPeek/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/ProtoPeek/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/ProtoPeek/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/ProtoPeek/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
