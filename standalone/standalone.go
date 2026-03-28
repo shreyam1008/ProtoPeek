@@ -26,6 +26,16 @@ import (
 	appassets "github.com/shreyam1008/ProtoPeek/internal/resources/app"
 )
 
+func init() {
+	// Explicitly register critical web MIME types so the embedded console
+	// isn't broken on minimal OS images missing /etc/mime.types.
+	_ = mime.AddExtensionType(".css", "text/css; charset=utf-8")
+	_ = mime.AddExtensionType(".js", "application/javascript")
+	_ = mime.AddExtensionType(".svg", "image/svg+xml")
+	_ = mime.AddExtensionType(".html", "text/html; charset=utf-8")
+	_ = mime.AddExtensionType(".json", "application/json")
+}
+
 const csrfCookieName = "_protopeek_csrf_token"
 
 const csrfHeaderName = "x-protopeek-csrf-token"
