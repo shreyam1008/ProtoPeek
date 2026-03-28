@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/fullstorydev/grpcui/internal"
+	"github.com/shreyam1008/ProtoPeek/internal"
 	"github.com/fullstorydev/grpcurl"
 )
 

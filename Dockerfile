@@ -1,30 +1,44 @@
-FROM golang:1.23-alpine as builder
-MAINTAINER Fullstory Engineering
+# syntax=docker/dockerfile:1.7
 
-# create non-privileged group and user
-RUN addgroup -S grpcui && adduser -S grpcui -G grpcui
+FROM oven/bun:1.3.10-alpine AS web-builder
+WORKDIR /src
+COPY package.json bun.lock biome.json ./
+COPY web/console ./web/console
+COPY web/src/console ./web/src/console
+COPY web/src/shared ./web/src/shared
+COPY web/src/vite-env.d.ts ./web/src/vite-env.d.ts
+COPY web/tsconfig.json ./web/tsconfig.json
+COPY web/vite.console.config.ts ./web/vite.console.config.ts
+COPY web/vite.shared.ts ./web/vite.shared.ts
+RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
+RUN bun run build:app
 
-WORKDIR /tmp/fullstorydev/grpcui
-# copy just the files/sources we need to build grpcui
-COPY VERSION *.go go.* /tmp/fullstorydev/grpcui/
-COPY cmd /tmp/fullstorydev/grpcui/cmd
-COPY internal /tmp/fullstorydev/grpcui/internal
-COPY standalone /tmp/fullstorydev/grpcui/standalone
-# and build a completely static binary (so we can use
-# scratch as basis for the final image)
+FROM golang:1.26-alpine AS go-builder
+WORKDIR /src
+RUN addgroup -S protopeek && adduser -S -D -u 10001 protopeek -G protopeek
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
+COPY *.go ./
+COPY cmd ./cmd
+COPY internal ./internal
+COPY standalone ./standalone
+COPY --from=web-builder /src/internal/resources/app/dist ./internal/resources/app/dist
+
 ENV CGO_ENABLED=0
-ENV GO111MODULE=on
-RUN go build -o /grpcui \
-    -ldflags "-w -extldflags \"-static\" -X \"main.version=$(cat VERSION)\"" \
-    ./cmd/grpcui
+ENV GOFLAGS="-trimpath -buildvcs=false"
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build -ldflags "-s -w -buildid= -X main.version=${VERSION:-docker}" -o /out/protopeek ./cmd/protopeek
 
-# New FROM so we have a nice'n'tiny image
 FROM scratch
 WORKDIR /
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=builder /etc/passwd /etc/passwd
-COPY --from=builder /grpcui /bin/grpcui
-USER grpcui
+COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=go-builder /etc/passwd /etc/passwd
+COPY --from=go-builder /out/protopeek /bin/protopeek
+COPY --from=go-builder /out/protopeek /bin/pp
+USER protopeek
 EXPOSE 8080
 
-ENTRYPOINT ["/bin/grpcui", "-bind=0.0.0.0", "-port=8080", "-open-browser=false"]
+ENTRYPOINT ["/bin/protopeek", "-bind=0.0.0.0", "-port=8080", "-open-browser=false"]

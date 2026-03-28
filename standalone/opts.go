@@ -225,6 +225,28 @@ func WithGRPCOptions(options []string) HandlerOption {
 	})
 }
 
+func WithVersion(version string) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.version = version
+	})
+}
+
+func WithBasePath(basePath string) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.basePath = basePath
+	})
+}
+
+func WithWorkspaceManager(manager *WorkspaceManager) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.workspaceManager = manager
+		opts.launcherMode = manager != nil
+		if manager != nil {
+			opts.targetDefaults = manager.opts.TargetDefaults
+		}
+	})
+}
+
 // optFunc implements HandlerOption
 type optFunc func(opts *handlerOptions)
 
@@ -246,6 +268,11 @@ type handlerOptions struct {
 	invokeVerbosity     int
 	debug               *bool
 	gRPCurlOptions      []string
+	version             string
+	basePath            string
+	workspaceManager    *WorkspaceManager
+	launcherMode        bool
+	targetDefaults      WorkspaceTargetConfig
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

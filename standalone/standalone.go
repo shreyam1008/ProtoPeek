@@ -6,9 +6,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"html/template"
 	"io"
+	"io/fs"
 	"mime"
 	"net/http"
 	"os"
@@ -21,13 +22,13 @@ import (
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 
-	"github.com/fullstorydev/grpcui"
-	"github.com/fullstorydev/grpcui/internal/resources/standalone"
+	"github.com/shreyam1008/ProtoPeek"
+	appassets "github.com/shreyam1008/ProtoPeek/internal/resources/app"
 )
 
-const csrfCookieName = "_grpcui_csrf_token"
+const csrfCookieName = "_protopeek_csrf_token"
 
-const csrfHeaderName = "x-grpcui-csrf-token"
+const csrfHeaderName = "x-protopeek-csrf-token"
 
 // Handler returns an HTTP handler that provides a fully-functional gRPC web
 // UI, including the main index (with the HTML form), all needed CSS and JS
@@ -45,52 +46,63 @@ const csrfHeaderName = "x-grpcui-csrf-token"
 // be handling a sub-path (e.g. handling "/rpc-ui/") then use http.StripPrefix.
 func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescriptor, files []*desc.FileDescriptor, opts ...HandlerOption) http.Handler {
 	uiOpts := &handlerOptions{
-		indexTmpl:      defaultIndexTemplate,
-		css:            grpcui.WebFormSampleCSS(),
-		cssPublic:      true,
 		gRPCurlOptions: nil,
+		version:        "dev",
+		basePath:       "/",
+		targetDefaults: WorkspaceTargetConfig{
+			SchemaSource: defaultWorkspaceSchemaSource,
+		},
 	}
 	for _, o := range opts {
 		o.apply(uiOpts)
 	}
 
-	var mux http.ServeMux
-
-	// Add embedded resources bundled in standalone package TOC
-	for _, assetName := range standalone.AssetNames() {
-		// the index file will be handled separately
-		if assetName == standalone.IndexTemplateName {
-			continue
-		}
-		resourcePath := "/" + assetName
-		handle(&mux, newResource(resourcePath, standalone.MustAsset(assetName), "", true))
+	displayTarget := target
+	if uiOpts.launcherMode && strings.TrimSpace(displayTarget) == "" {
+		displayTarget = "Choose a gRPC target"
 	}
 
-	// Add resources from WebFormPackage
-	handle(&mux, newResource("/grpc-web-form.js", grpcui.WebFormScript(), "text/javascript; charset=UTF-8", true))
-	handle(&mux, newResource("/grpc-web-form.css", uiOpts.css, "text/css; charset=UTF-8", uiOpts.cssPublic))
+	bootstrapJSON, err := buildBootstrap(displayTarget, methods, uiOpts)
+	if err != nil {
+		panic(err)
+	}
+	protoCatalogJSON, err := buildProtoCatalog(files)
+	if err != nil {
+		panic(err)
+	}
+
+	staticFS, err := fs.Sub(appassets.Files(), "dist")
+	if err != nil {
+		panic(err)
+	}
+	indexContents, err := fs.ReadFile(staticFS, "index.html")
+	if err != nil {
+		panic(err)
+	}
+	indexContents = injectHeadResources(indexContents, uiOpts.tmplResources)
+	indexResource := newResource("/", indexContents, "text/html; charset=utf-8", false)
+	indexResource.MustRevalidate = true
+	staticServer := http.FileServer(http.FS(staticFS))
+
+	var mux http.ServeMux
 
 	// Add optional resources to mux
 	for _, res := range uiOpts.addlServedResources() {
 		handle(&mux, res)
 	}
 
-	// Add the index page (not bundled in standalone)
-	formOpts := grpcui.WebFormOptions{
-		DefaultMetadata: uiOpts.defaultMetadata,
-		Debug:           uiOpts.debug,
-		GRPCurlOptions:  uiOpts.gRPCurlOptions,
-	}
-	webFormHTML := grpcui.WebFormContentsWithOptions("invoke", "metadata", target, methods, formOpts)
-	indexContents := getIndexContents(uiOpts.indexTmpl, target, webFormHTML, uiOpts.tmplResources)
-	indexResource := newResource("/", indexContents, "text/html; charset=utf-8", false)
-	indexResource.MustRevalidate = true
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			indexResource.ServeHTTP(w, r)
-		} else {
-			http.NotFound(w, r)
+	mux.HandleFunc("/api/bootstrap", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(bootstrapJSON)
+	})
+	mux.HandleFunc("/api/protos", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", http.MethodGet)
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
 		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(protoCatalogJSON)
 	})
 
 	invokeOpts := grpcui.InvokeOptions{
@@ -124,6 +136,98 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 	})
 
+	if uiOpts.workspaceManager != nil {
+		mux.HandleFunc("/api/workspace/connect", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodPost {
+				w.Header().Set("Allow", http.MethodPost)
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			if !validCSRF(r) {
+				http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+				return
+			}
+
+			var payload struct {
+				Target WorkspaceTargetConfig `json:"target"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				http.Error(w, "Failed to decode target payload", http.StatusBadRequest)
+				return
+			}
+
+			session, err := uiOpts.workspaceManager.Connect(r.Context(), payload.Target)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(struct {
+				SessionID string          `json:"sessionId"`
+				Bootstrap json.RawMessage `json:"bootstrap"`
+			}{
+				SessionID: session.id,
+				Bootstrap: json.RawMessage(session.bootstrapJSON),
+			})
+		})
+
+		mux.HandleFunc("/api/workspace/metadata", func(w http.ResponseWriter, r *http.Request) {
+			session := uiOpts.workspaceManager.sessionFromRequest(r)
+			if session == nil {
+				http.Error(w, "Unknown workspace session", http.StatusNotFound)
+				return
+			}
+			grpcui.RPCMetadataHandler(session.methods, session.files).ServeHTTP(w, r)
+		})
+
+		mux.HandleFunc("/api/workspace/protos", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet {
+				w.Header().Set("Allow", http.MethodGet)
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			session := uiOpts.workspaceManager.sessionFromRequest(r)
+			if session == nil {
+				http.Error(w, "Unknown workspace session", http.StatusNotFound)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write(session.protoCatalogJSON)
+		})
+
+		mux.HandleFunc("/api/workspace/invoke/", func(w http.ResponseWriter, r *http.Request) {
+			if !validCSRF(r) {
+				http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+				return
+			}
+			session := uiOpts.workspaceManager.sessionFromRequest(r)
+			if session == nil {
+				http.Error(w, "Unknown workspace session", http.StatusNotFound)
+				return
+			}
+			http.StripPrefix("/api/workspace/invoke", grpcui.RPCInvokeHandlerWithOptions(session.cc, session.methods, invokeOpts)).ServeHTTP(w, r)
+		})
+	}
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			indexResource.ServeHTTP(w, r)
+			return
+		}
+
+		cleanPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if cleanPath == "." || cleanPath == "" {
+			indexResource.ServeHTTP(w, r)
+			return
+		}
+		if _, err := fs.Stat(staticFS, cleanPath); err == nil {
+			staticServer.ServeHTTP(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
 	// make sure we always have a csrf token cookie
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := r.Cookie(csrfCookieName); err != nil {
@@ -143,27 +247,31 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	})
 }
 
-var defaultIndexTemplate = template.Must(template.New("index.html").Parse(string(standalone.IndexTemplate())))
+func validCSRF(r *http.Request) bool {
+	c, _ := r.Cookie(csrfCookieName)
+	h := r.Header.Get(csrfHeaderName)
+	return c != nil && c.Value != "" && c.Value == h
+}
 
-func getIndexContents(tmpl *template.Template, target string, webFormHTML []byte, addlResources []*resource) []byte {
-	addlHTML := make([]template.HTML, 0, len(addlResources))
+func injectHeadResources(indexContents []byte, addlResources []*resource) []byte {
+	if len(addlResources) == 0 {
+		return indexContents
+	}
+
+	var builder strings.Builder
 	for _, res := range addlResources {
 		tag := res.AsHTMLTag()
 		if tag != "" {
-			addlHTML = append(addlHTML, template.HTML(tag))
+			builder.WriteString("    ")
+			builder.WriteString(tag)
+			builder.WriteString("\n")
 		}
 	}
-	data := WebFormContainerTemplateData{
-		Target:          target,
-		WebFormContents: template.HTML(webFormHTML),
-		AddlResources:   addlHTML,
+	if builder.Len() == 0 {
+		return indexContents
 	}
 
-	var indexBuf bytes.Buffer
-	if err := tmpl.Execute(&indexBuf, data); err != nil {
-		panic(err)
-	}
-	return indexBuf.Bytes()
+	return bytes.Replace(indexContents, []byte("</head>"), []byte(builder.String()+"  </head>"), 1)
 }
 
 type resource struct {

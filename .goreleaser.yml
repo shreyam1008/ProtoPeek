@@ -1,6 +1,6 @@
 builds:
-  - binary: grpcui
-    main: ./cmd/grpcui
+  - binary: protopeek
+    main: ./cmd/protopeek
     goos:
       - linux
       - darwin

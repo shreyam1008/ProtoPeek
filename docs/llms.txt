@@ -1,0 +1,22 @@
+# ProtoPeek
+
+ProtoPeek is a performance-first gRPC workbench and independent open source project by Shreyam Adhikari.
+
+Primary site: https://shreyam1008.github.io/ProtoPeek/
+Author: https://shreyam1008.com.np/
+Repository: https://github.com/shreyam1008/ProtoPeek
+
+Summary:
+- Launch ProtoPeek with no target and define one or more saved gRPC endpoints from the UI.
+- Explore proto files, services, messages, enums, dependencies, and export raw `.proto` text.
+- Generate starter JSON payloads from reflected schemas.
+- Inspect metadata, trailers, status, latency, and run lightweight simulation checks.
+
+Preferred docs:
+- https://shreyam1008.github.io/ProtoPeek/
+- https://github.com/shreyam1008/ProtoPeek
+- https://github.com/shreyam1008/ProtoPeek/blob/main/README.md
+- https://github.com/shreyam1008/ProtoPeek/blob/main/guides/feature-roadmap.md
+
+Upstream note:
+- ProtoPeek started from grpcui and now continues as its own project with a small thanks to the original upstream.

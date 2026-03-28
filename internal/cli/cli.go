@@ -1,8 +1,8 @@
-// Command grpcui starts a simple web server that provides a web form for making gRPC requests.
-// Command line parameters control how grpcui connects to the gRPC backend which actually services
+// Package cli exposes the shared ProtoPeek CLI entrypoint.
+// Command line parameters control how ProtoPeek connects to the gRPC backend which actually services
 // the requests. It can use a supplied descriptor file, proto source files, or service reflection
 // for discovering the schema to expose.
-package main
+package cli
 
 import (
 	"bytes"
@@ -46,7 +46,7 @@ import (
 	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
-var version = "dev build <no version set>"
+var Version = "dev build <no version set>"
 
 var (
 	grpcCurlFlags = []string{
@@ -112,7 +112,7 @@ var (
 	connectFailFast = flags.Bool("connect-fail-fast", true, prettify(`
 		If true, non-temporary errors (such as "connection refused" during
 		initial connection will cause the program to immediately abort. This
-		is the default and is appropriate for interactive uses of grpcui. But
+		is the default and is appropriate for interactive uses of ProtoPeek. But
 		long-lived server use (like as a sidecar to a gRPC server) will prefer
 		to set this to false for more robust startup.`))
 	keepaliveTime = flags.Float64("keepalive-time", 0, prettify(`
@@ -124,7 +124,7 @@ var (
 		The maximum total time a single RPC invocation is allowed to take, in
 		seconds.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
-		The maximum encoded size of a message that grpcui will accept. If not
+		The maximum encoded size of a message that ProtoPeek will accept. If not
 		specified, defaults to 4mb.`))
 	emitDefaults = flags.Bool("emit-defaults", true, prettify(`
 		Emit default values for JSON-encoded responses.`))
@@ -144,8 +144,8 @@ var (
 		permitted if they are both set to the same value, to increase backwards
 		compatibility with earlier releases that allowed both to be set).`))
 	openBrowser = flags.Bool("open-browser", false, prettify(`
-		When true, grpcui will try to open a browser pointed at the UI's URL.
-		This defaults to true when grpcui is used in an interactive mode; e.g.
+		When true, ProtoPeek will try to open a browser pointed at the UI's URL.
+		This defaults to true when ProtoPeek is used in an interactive mode; e.g.
 		when the tool detects that stdin is a terminal/tty. Otherwise, this
 		defaults to false.`))
 	examplesFile = flags.String("examples", "", prettify(`
@@ -164,7 +164,7 @@ var (
 	basePath = flags.String("base-path", "/", prettify(`
 		The path on which the web UI is exposed.
 		Defaults to slash ("/"), which is the root of the server.
-		Example: "/debug/grpcui".`))
+		Example: "/debug/protopeek".`))
 	services multiString
 	methods  multiString
 
@@ -227,7 +227,7 @@ func init() {
 		for use with -proto flags. Multiple import paths can be configured by
 		specifying multiple -import-path flags. Paths will be searched in the
 		order given. If no import paths are given, all files (including all
-		imports) must be provided as -proto flags, and grpcui will attempt to
+		imports) must be provided as -proto flags, and ProtoPeek will attempt to
 		resolve all import statements from the set of file names given.`))
 	flags.Var(&services, "service", prettify(`
 		The services to expose through the web UI. If no -service and no -method
@@ -353,7 +353,7 @@ func (cs compositeSource) AllExtensionsForType(typeName string) ([]*desc.FieldDe
 	return exts, nil
 }
 
-func main() {
+func Run() {
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		*openBrowser = true
 	}
@@ -378,7 +378,7 @@ func main() {
 		os.Exit(0)
 	}
 	if *printVersion {
-		fmt.Fprintf(os.Stderr, "%s %s\n", os.Args[0], version)
+		fmt.Fprintf(os.Stderr, "%s %s\n", os.Args[0], Version)
 		os.Exit(0)
 	}
 
@@ -408,10 +408,14 @@ func main() {
 		fail(nil, "The -cert and -key arguments must be used together and both be present.")
 	}
 
-	if flags.NArg() != 1 {
-		fail(nil, "This program requires exactly one arg: the host:port of gRPC server.")
+	if flags.NArg() > 1 {
+		fail(nil, "This program accepts at most one positional arg: the host:port of a gRPC server.")
 	}
-	target := flags.Arg(0)
+	launcherMode := flags.NArg() == 0
+	target := ""
+	if !launcherMode {
+		target = flags.Arg(0)
+	}
 
 	if len(protoset) > 0 && len(reflHeaders) > 0 {
 		warn("The -reflect-header argument is not used when -protoset files are used.")
@@ -442,6 +446,9 @@ func main() {
 	configs, err := computeSvcConfigs()
 	if err != nil {
 		fail(err, "Invalid services/methods indicated")
+	}
+	if launcherMode && len(configs) > 0 {
+		fail(nil, "The -service and -method flags are only supported when a target address is provided on the command line.")
 	}
 
 	var verbosity int
@@ -493,24 +500,6 @@ func main() {
 	}
 
 	ctx := context.Background()
-	dialTime := 10 * time.Second
-	if *connectTimeout > 0 {
-		dialTime = floatSecondsToDuration(*connectTimeout)
-	}
-	dialCtx, cancel := context.WithTimeout(ctx, dialTime)
-	defer cancel()
-	var opts []grpc.DialOption
-	if *keepaliveTime > 0 {
-		timeout := floatSecondsToDuration(*keepaliveTime)
-		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:    timeout,
-			Timeout: timeout,
-		}))
-	}
-	if *maxMsgSz > 0 {
-		opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
-	}
-
 	if *expandHeaders {
 		var err error
 		addlHeaders, err = grpcurl.ExpandHeaders(addlHeaders)
@@ -531,139 +520,229 @@ func main() {
 		}
 	}
 
-	var creds credentials.TransportCredentials
-	if !*plaintext {
-		tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
-		if err != nil {
-			fail(err, "Failed to create TLS config")
-		}
-		creds = credentials.NewTLS(tlsConf)
+	connectTimeoutDuration := 10 * time.Second
+	if *connectTimeout > 0 {
+		connectTimeoutDuration = floatSecondsToDuration(*connectTimeout)
+	}
+	keepaliveDuration := time.Duration(0)
+	if *keepaliveTime > 0 {
+		keepaliveDuration = floatSecondsToDuration(*keepaliveTime)
+	}
 
-		// can use either -servername or -authority; but not both
-		if *serverName != "" && *authority != "" {
-			if *serverName == *authority {
-				warn("Both -servername and -authority are present; prefer only -authority.")
-			} else {
-				fail(nil, "Cannot specify different values for -servername and -authority.")
+	launcherSchemaSource := "reflection"
+	switch {
+	case len(protoset) > 0:
+		launcherSchemaSource = "protoset"
+	case len(protoFiles) > 0:
+		launcherSchemaSource = "proto-files"
+	}
+
+	launcherTargetDefaults := standalone.WorkspaceTargetConfig{
+		Plaintext:    *plaintext,
+		Insecure:     *insecure,
+		Authority:    *authority,
+		CACertPath:   *cacert,
+		CertPath:     *cert,
+		KeyPath:      *key,
+		SchemaSource: launcherSchemaSource,
+		ProtoFiles:   append([]string(nil), protoFiles...),
+		ImportPaths:  append([]string(nil), importPaths...),
+		Protosets:    append([]string(nil), protoset...),
+	}
+
+	var handler http.Handler
+	if launcherMode {
+		manager := standalone.NewWorkspaceManager(standalone.WorkspaceManagerOptions{
+			Version:         Version,
+			BasePath:        *basePath,
+			DefaultHeaders:  defHeaders,
+			ConnectTimeout:  connectTimeoutDuration,
+			ConnectFailFast: *connectFailFast,
+			KeepaliveTime:   keepaliveDuration,
+			MaxMsgSize:      *maxMsgSz,
+			TargetDefaults:  launcherTargetDefaults,
+		})
+		defer func() {
+			_ = manager.Close()
+		}()
+
+		var handlerOpts []standalone.HandlerOption
+		if len(defHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithDefaultMetadata(defHeaders))
+		}
+		if len(addlHeaders) > 0 || len(rpcHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithMetadata(append(addlHeaders, rpcHeaders...)))
+		}
+		if len(prsvHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.PreserveHeaders(prsvHeaders))
+		}
+		if verbosity > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithInvokeVerbosity(verbosity))
+		}
+		if debug.set {
+			handlerOpts = append(handlerOpts, standalone.WithClientDebug(debug.val))
+		}
+		if examplesOpt != nil {
+			handlerOpts = append(handlerOpts, examplesOpt)
+		}
+		handlerOpts = append(handlerOpts, standalone.EmitDefaults(*emitDefaults))
+		handlerOpts = append(handlerOpts, configureJSandCSS(extraJS, standalone.AddJSFile)...)
+		handlerOpts = append(handlerOpts, configureJSandCSS(extraCSS, standalone.AddCSSFile)...)
+		handlerOpts = append(handlerOpts, configureAssets(otherAssets)...)
+		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
+		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
+		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
+		handler = standalone.Handler(nil, "", nil, nil, handlerOpts...)
+	} else {
+		dialCtx, cancel := context.WithTimeout(ctx, connectTimeoutDuration)
+		defer cancel()
+		var opts []grpc.DialOption
+		if keepaliveDuration > 0 {
+			opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
+				Time:    keepaliveDuration,
+				Timeout: keepaliveDuration,
+			}))
+		}
+		if *maxMsgSz > 0 {
+			opts = append(opts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(*maxMsgSz)))
+		}
+
+		var creds credentials.TransportCredentials
+		if !*plaintext {
+			tlsConf, err := grpcurl.ClientTLSConfig(*insecure, *cacert, *cert, *key)
+			if err != nil {
+				fail(err, "Failed to create TLS config")
+			}
+			creds = credentials.NewTLS(tlsConf)
+
+			// can use either -servername or -authority; but not both
+			if *serverName != "" && *authority != "" {
+				if *serverName == *authority {
+					warn("Both -servername and -authority are present; prefer only -authority.")
+				} else {
+					fail(nil, "Cannot specify different values for -servername and -authority.")
+				}
+			}
+			overrideName := *serverName
+			if overrideName == "" {
+				overrideName = *authority
+			}
+
+			if overrideName != "" {
+				opts = append(opts, grpc.WithAuthority(overrideName))
+			}
+		} else if *authority != "" {
+			opts = append(opts, grpc.WithAuthority(*authority))
+		}
+		network := "tcp"
+		if isUnixSocket != nil && isUnixSocket() {
+			network = "unix"
+		}
+		cc, err := dial(dialCtx, network, target, creds, *connectFailFast, opts...)
+		if err != nil {
+			fail(err, "Failed to dial target host %q", target)
+		}
+
+		var descSource grpcurl.DescriptorSource
+		var refClient *grpcreflect.Client
+		var fileSource grpcurl.DescriptorSource
+		if len(protoset) > 0 {
+			var err error
+			fileSource, err = grpcurl.DescriptorSourceFromProtoSets(protoset...)
+			if err != nil {
+				fail(err, "Failed to process proto descriptor sets.")
+			}
+		} else if len(protoFiles) > 0 {
+			var err error
+			fileSource, err = grpcurl.DescriptorSourceFromProtoFiles(importPaths, protoFiles...)
+			if err != nil {
+				fail(err, "Failed to process proto source files.")
 			}
 		}
-		overrideName := *serverName
-		if overrideName == "" {
-			overrideName = *authority
-		}
-
-		if overrideName != "" {
-			opts = append(opts, grpc.WithAuthority(overrideName))
-		}
-	} else if *authority != "" {
-		opts = append(opts, grpc.WithAuthority(*authority))
-	}
-	network := "tcp"
-	if isUnixSocket != nil && isUnixSocket() {
-		network = "unix"
-	}
-	cc, err := dial(dialCtx, network, target, creds, *connectFailFast, opts...)
-	if err != nil {
-		fail(err, "Failed to dial target host %q", target)
-	}
-
-	var descSource grpcurl.DescriptorSource
-	var refClient *grpcreflect.Client
-	var fileSource grpcurl.DescriptorSource
-	if len(protoset) > 0 {
-		var err error
-		fileSource, err = grpcurl.DescriptorSourceFromProtoSets(protoset...)
-		if err != nil {
-			fail(err, "Failed to process proto descriptor sets.")
-		}
-	} else if len(protoFiles) > 0 {
-		var err error
-		fileSource, err = grpcurl.DescriptorSourceFromProtoFiles(importPaths, protoFiles...)
-		if err != nil {
-			fail(err, "Failed to process proto source files.")
-		}
-	}
-	if reflection.val {
-		md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
-		refCtx := metadata.NewOutgoingContext(ctx, md)
-		refClient = grpcreflect.NewClientAuto(refCtx, cc)
-		refClient.AllowMissingFileDescriptors()
-		reflSource := grpcurl.DescriptorSourceFromServer(ctx, refClient)
-		if fileSource != nil {
-			descSource = compositeSource{reflSource, fileSource}
+		if reflection.val {
+			md := grpcurl.MetadataFromHeaders(append(addlHeaders, reflHeaders...))
+			refCtx := metadata.NewOutgoingContext(ctx, md)
+			refClient = grpcreflect.NewClientAuto(refCtx, cc)
+			refClient.AllowMissingFileDescriptors()
+			reflSource := grpcurl.DescriptorSourceFromServer(ctx, refClient)
+			if fileSource != nil {
+				descSource = compositeSource{reflSource, fileSource}
+			} else {
+				descSource = reflSource
+			}
 		} else {
-			descSource = reflSource
+			descSource = fileSource
 		}
-	} else {
-		descSource = fileSource
-	}
 
-	// arrange for the RPCs to be cleanly shutdown
-	reset := func() {
+		// arrange for the RPCs to be cleanly shutdown
+		reset := func() {
+			if refClient != nil {
+				refClient.Reset()
+				refClient = nil
+			}
+			if cc != nil {
+				cc.Close()
+				cc = nil
+			}
+		}
+		defer reset()
+		exit = func(code int) {
+			// since defers aren't run by os.Exit...
+			reset()
+			os.Exit(code)
+		}
+
+		methods, err := getMethods(descSource, configs)
+		if err != nil {
+			fail(err, "Failed to compute set of methods to expose")
+		}
+		allFiles, err := grpcurl.GetAllFiles(descSource)
+		if err != nil {
+			fail(err, "Failed to enumerate all proto files")
+		}
+
+		// can go ahead and close reflection client now
 		if refClient != nil {
 			refClient.Reset()
 			refClient = nil
 		}
-		if cc != nil {
-			cc.Close()
-			cc = nil
+
+		var handlerOpts []standalone.HandlerOption
+		if len(defHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithDefaultMetadata(defHeaders))
 		}
-	}
-	defer reset()
-	exit = func(code int) {
-		// since defers aren't run by os.Exit...
-		reset()
-		os.Exit(code)
-	}
+		if len(addlHeaders) > 0 || len(rpcHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithMetadata(append(addlHeaders, rpcHeaders...)))
+		}
+		if len(prsvHeaders) > 0 {
+			handlerOpts = append(handlerOpts, standalone.PreserveHeaders(prsvHeaders))
+		}
+		if verbosity > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithInvokeVerbosity(verbosity))
+		}
+		if debug.set {
+			handlerOpts = append(handlerOpts, standalone.WithClientDebug(debug.val))
+		}
+		if examplesOpt != nil {
+			handlerOpts = append(handlerOpts, examplesOpt)
+		}
+		handlerOpts = append(handlerOpts, standalone.EmitDefaults(*emitDefaults))
+		handlerOpts = append(handlerOpts, configureJSandCSS(extraJS, standalone.AddJSFile)...)
+		handlerOpts = append(handlerOpts, configureJSandCSS(extraCSS, standalone.AddCSSFile)...)
+		handlerOpts = append(handlerOpts, configureAssets(otherAssets)...)
+		handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
+		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
+		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 
-	methods, err := getMethods(descSource, configs)
-	if err != nil {
-		fail(err, "Failed to compute set of methods to expose")
+		handler = standalone.Handler(cc, target, methods, allFiles, handlerOpts...)
 	}
-	allFiles, err := grpcurl.GetAllFiles(descSource)
-	if err != nil {
-		fail(err, "Failed to enumerate all proto files")
-	}
-
-	// can go ahead and close reflection client now
-	if refClient != nil {
-		refClient.Reset()
-		refClient = nil
-	}
-
-	var handlerOpts []standalone.HandlerOption
-	if len(defHeaders) > 0 {
-		handlerOpts = append(handlerOpts, standalone.WithDefaultMetadata(defHeaders))
-	}
-	if len(addlHeaders) > 0 || len(rpcHeaders) > 0 {
-		handlerOpts = append(handlerOpts, standalone.WithMetadata(append(addlHeaders, rpcHeaders...)))
-	}
-	if len(prsvHeaders) > 0 {
-		handlerOpts = append(handlerOpts, standalone.PreserveHeaders(prsvHeaders))
-	}
-	if verbosity > 0 {
-		handlerOpts = append(handlerOpts, standalone.WithInvokeVerbosity(verbosity))
-	}
-	if debug.set {
-		handlerOpts = append(handlerOpts, standalone.WithClientDebug(debug.val))
-	}
-	if examplesOpt != nil {
-		handlerOpts = append(handlerOpts, examplesOpt)
-	}
-	handlerOpts = append(handlerOpts, standalone.EmitDefaults(*emitDefaults))
-	handlerOpts = append(handlerOpts, configureJSandCSS(extraJS, standalone.AddJSFile)...)
-	handlerOpts = append(handlerOpts, configureJSandCSS(extraCSS, standalone.AddCSSFile)...)
-	handlerOpts = append(handlerOpts, configureAssets(otherAssets)...)
-	handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
-
-	handler := standalone.Handler(cc, target, methods, allFiles, handlerOpts...)
 	if *maxTime > 0 {
 		timeout := floatSecondsToDuration(*maxTime)
 		// enforce the timeout by wrapping the handler and inserting a
 		// context timeout for invocation calls
 		orig := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/invoke/") {
+			if strings.HasPrefix(r.URL.Path, "/invoke/") || strings.HasPrefix(r.URL.Path, "/api/workspace/invoke/") {
 				ctx, cancel := context.WithTimeout(r.Context(), timeout)
 				defer cancel()
 				r = r.WithContext(ctx)
@@ -730,7 +809,7 @@ func main() {
 		path += "/"
 	}
 	url := fmt.Sprintf("http://%s:%d%s", *bind, listener.Addr().(*net.TCPAddr).Port, path)
-	fmt.Printf("gRPC Web UI available at %s\n", url)
+	printLaunchBanner(url, target)
 
 	if *openBrowser {
 		go func() {
@@ -740,15 +819,38 @@ func main() {
 		}()
 	}
 	if err := http.Serve(listener, handler); err != nil {
-		fail(err, "Failed to serve web UI")
+		fail(err, "Failed to serve ProtoPeek")
 	}
+}
+
+func printLaunchBanner(url, target string) {
+	targetLabel := target
+	if strings.TrimSpace(targetLabel) == "" {
+		targetLabel = "workspace launcher"
+	}
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		fmt.Printf(
+			"\n\033[1;36mProtoPeek\033[0m is live\n  \033[1mConsole:\033[0m %s\n  \033[1mTarget:\033[0m  %s\n  \033[1mDocs:\033[0m    https://shreyam1008.github.io/ProtoPeek/\n\n",
+			url,
+			targetLabel,
+		)
+		return
+	}
+
+	fmt.Printf("ProtoPeek available at %s (target: %s)\n", url, targetLabel)
 }
 
 func usage() {
 	fmt.Fprintf(os.Stderr, `Usage:
 	%s [flags] [address]
 
-Starts a web server that hosts a web UI for sending RPCs to the given address.
+Starts the ProtoPeek web console.
+
+If an address is provided, ProtoPeek connects directly to that target and opens
+the console in single-target mode.
+
+If no address is provided, ProtoPeek opens in workspace launcher mode so you can
+define and switch between one or more gRPC targets from the UI.
 
 The address will typically be in the form "host:port" where host can be an IP
 address or a hostname and port is a numeric port or service name. If an IPv6
@@ -757,7 +859,7 @@ Unix variants, if a -unix=true flag is present, then the address must be the
 path to the domain socket.
 
 Most flags control how the connection to the gRPC server is established. The
-web server will always bind only to localhost, without TLS, so only the port
+ProtoPeek web server will always bind only to localhost, without TLS, so only the port
 can be controlled via command-line flags.
 
 Available flags:

@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+set -eu
+
+bun run format
+bun run test
+go test ./...

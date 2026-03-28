@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install web dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Frontend quality gate
+        run: bun run test
+
+      - name: Build site and app assets
+        run: bun run build
+
+      - name: Go test
+        run: go test ./...

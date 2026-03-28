@@ -3,3 +3,5 @@ VERSION
 .idea/
 *.iml
 .tmp/
+node_modules/
+.DS_Store

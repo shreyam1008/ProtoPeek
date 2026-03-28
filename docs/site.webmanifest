@@ -1,0 +1,16 @@
+{
+  "name": "ProtoPeek",
+  "short_name": "ProtoPeek",
+  "start_url": "/ProtoPeek/",
+  "display": "standalone",
+  "background_color": "#f4fbfa",
+  "theme_color": "#0b6d6d",
+  "description": "Launcher-first gRPC workbench with target registry, proto explorer, metadata debugging, and lightweight simulation.",
+  "icons": [
+    {
+      "src": "/ProtoPeek/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shreyam1008.github.io/ProtoPeek/sitemap.xml
