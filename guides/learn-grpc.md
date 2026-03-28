@@ -1,156 +1,363 @@
 # Learn gRPC
 
-This page is the long-form technical companion to the public site.
+This page is the long-form technical companion to the ProtoPeek console. It explains the transport concepts that actually matter when you are debugging a gRPC service under pressure.
 
 ## 1. The contract comes first
 
-gRPC starts with a `.proto` schema. The schema defines:
+gRPC starts with a `.proto` schema. Everything else — code generation, reflection, request tooling — flows from it.
 
-- Services
-- Methods
-- Request and response message types
-- Enums
-- Field numbers and optional/repeated structure
+```protobuf
+syntax = "proto3";
+
+package bookstore.v1;
+
+service BookService {
+  rpc GetBook    (GetBookRequest)    returns (Book);
+  rpc ListBooks  (ListBooksRequest)  returns (stream Book);
+  rpc UploadBooks(stream Book)       returns (UploadSummary);
+  rpc ChatBooks  (stream ChatMsg)    returns (stream ChatMsg);
+}
+
+message GetBookRequest {
+  string id = 1;
+}
+
+message Book {
+  string   id     = 1;
+  string   title  = 2;
+  string   author = 3;
+  int32    year   = 4;
+  repeated string tags = 5;
+}
+
+message ListBooksRequest {
+  int32  page_size  = 1;
+  string page_token = 2;
+}
+
+message UploadSummary {
+  int32 accepted = 1;
+  int32 rejected = 2;
+}
+
+message ChatMsg {
+  string sender  = 1;
+  string content = 2;
+}
+
+enum BookStatus {
+  BOOK_STATUS_UNSPECIFIED = 0;
+  BOOK_STATUS_AVAILABLE   = 1;
+  BOOK_STATUS_CHECKED_OUT = 2;
+  BOOK_STATUS_RESERVED    = 3;
+}
+```
 
 That schema matters operationally, not just for code generation. ProtoPeek relies on it to:
 
-- Build the method rail
-- Generate starter payloads
-- Render request schema details
+- Build the method rail with streaming badges
+- Generate starter JSON payloads from reflected message types
+- Render nested request schema details
 - Decode protobuf `Any` values and response messages
+- Power the proto structure explorer and exporter
 
-If the server exposes reflection, the tool can discover that schema at runtime. If it does not, the same information can come from proto source files or protoset files.
+If the server exposes reflection, ProtoPeek discovers services at runtime. If it does not, the same information can come from proto source files or protoset files.
 
 ## 2. Why Protocol Buffers change the ergonomics
 
-Compared with JSON over REST, Protocol Buffers are compact, strongly typed, and schema-driven. Field tags and binary encoding reduce payload size and parsing overhead, but the tradeoff is obvious:
+Compared with JSON over REST, Protocol Buffers are compact, strongly typed, and schema-driven. Field tags and binary encoding reduce payload size and parsing overhead, but the tradeoff is visible:
 
-- Humans cannot inspect the wire format directly the way they can inspect JSON.
-- Tooling must understand descriptors to stay usable.
+- Humans **cannot** inspect the wire format directly the way they inspect JSON.
+- Tooling **must** understand descriptors to stay usable.
+- Field numbers, not field names, are the stable API surface.
 
-That is one of the core reasons ProtoPeek exists.
+That is one of the core reasons ProtoPeek exists: it translates binary descriptors back into a navigable, human-readable contract surface.
 
 ## 3. HTTP/2 is not a side detail
 
-gRPC uses HTTP/2 as the transport foundation. That gives it:
+gRPC uses HTTP/2 as the transport foundation. A single gRPC call translates into HTTP/2 frames like this:
 
-- Multiplexed streams over a single connection
-- Header compression
-- Bidirectional streaming
-- Response trailers
-- Better fit for request/response plus stream semantics
+```
+┌─────────────────────────────────────────────────────┐
+│ Client                              Server          │
+│                                                     │
+│  HEADERS frame ──────────────────►                  │
+│    :method POST                                     │
+│    :path /bookstore.v1.BookService/GetBook           │
+│    content-type application/grpc                    │
+│    te trailers                                      │
+│    grpc-timeout 15S                                 │
+│    authorization Bearer <token>                     │
+│                                                     │
+│  DATA frame ─────────────────────►                  │
+│    [5-byte header][protobuf payload]                │
+│                                                     │
+│                  ◄────────────────  HEADERS frame    │
+│                                     :status 200     │
+│                                     content-type    │
+│                                     application/grpc│
+│                                                     │
+│                  ◄────────────────  DATA frame       │
+│                                     [protobuf resp] │
+│                                                     │
+│                  ◄────────────────  HEADERS frame    │
+│                                     (trailers)      │
+│                                     grpc-status 0   │
+│                                     grpc-message OK │
+└─────────────────────────────────────────────────────┘
+```
 
-This also means gRPC clients and tools need to expose more than just a body and a status code. Headers, trailers, deadlines, stream shape, and connection behavior matter.
+HTTP/2 provides:
+
+- **Multiplexed streams** over a single TCP connection
+- **Header compression** (HPACK) to reduce repeated metadata overhead
+- **Bidirectional streaming** — both client and server can send frames independently
+- **Response trailers** — metadata that arrives after the body, carrying the final gRPC status
+- **Flow control** — per-stream and per-connection backpressure
+
+This means gRPC clients and tools need to expose more than just a body and a status code. Headers, trailers, deadlines, stream shape, and connection behavior all matter during real debugging.
 
 ## 4. The four RPC shapes
 
-Unary:
-- One request, one response.
+Every gRPC method is one of four streaming shapes. Here is what each looks like on the wire:
 
-Server streaming:
-- One request, many responses.
+### Unary (1 request → 1 response)
 
-Client streaming:
-- Many requests, one response.
+```
+Client ──── Request ────► Server
+Client ◄─── Response ──── Server
+Client ◄─── Trailers ──── Server
+```
 
-Bidirectional streaming:
-- Many requests, many responses.
+The most familiar shape. One request message, one response message, then trailers with the gRPC status. Still backed by HTTP/2 metadata, deadlines, and trailers.
 
-ProtoPeek currently treats the request side as JSON-first and handles streaming workflows as message batches. That is a pragmatic first step, but live interactive bidi tooling remains a future expansion area.
+### Server streaming (1 request → N responses)
+
+```
+Client ──── Request ────────────► Server
+Client ◄─── Response 1 ────────── Server
+Client ◄─── Response 2 ────────── Server
+Client ◄─── Response 3 ────────── Server
+Client ◄─── Trailers ──────────── Server
+```
+
+The client sends one message, the server replies with a stream. Great for feeds, event replay, progressive reads, and paginated result sets where the server keeps sending frames until done.
+
+### Client streaming (N requests → 1 response)
+
+```
+Client ──── Request 1 ──────────► Server
+Client ──── Request 2 ──────────► Server
+Client ──── Request 3 ──────────► Server
+Client ──── END_STREAM ─────────► Server
+Client ◄─── Response ──────────── Server
+Client ◄─── Trailers ──────────── Server
+```
+
+The client sends a batch or live stream of messages before the server answers once. Common for file uploads, batch ingestion, and aggregation workflows.
+
+### Bidirectional streaming (N requests ↔ N responses)
+
+```
+Client ──── Request 1 ──────────► Server
+Client ◄─── Response 1 ────────── Server
+Client ──── Request 2 ──────────► Server
+Client ◄─── Response 2 ────────── Server
+Client ──── Request 3 ──────────► Server
+Client ◄─── Response 3 ────────── Server
+Client ──── END_STREAM ─────────► Server
+Client ◄─── Trailers ──────────── Server
+```
+
+Both sides speak freely over the same HTTP/2 stream. This is the shape that breaks most "one request, one response" tooling assumptions, and why transport-aware tooling matters.
+
+> [!TIP]
+> ProtoPeek shows streaming badges on every method in the sidebar rail, so you always know which shape you are working with before authoring a request.
 
 ## 5. Metadata and trailers are first-class
 
-In gRPC, metadata is not an afterthought.
+In gRPC, metadata is not an afterthought — it is part of the protocol definition.
 
-Request headers:
-- Auth
-- Tenant routing
-- Tracing
-- Feature flags
+### Request metadata (headers)
 
-Response headers:
-- Early server context
+| Header | Purpose | Example |
+|--------|---------|---------|
+| `authorization` | Auth token | `Bearer eyJhbGci...` |
+| `x-request-id` | Distributed tracing | `req-7f3a-b2c1` |
+| `grpc-timeout` | Deadline propagation | `15S` |
+| `x-tenant-id` | Multi-tenant routing | `tenant-acme-prod` |
+| `x-feature-flag` | Feature gating | `new-scoring-v2` |
 
-Response trailers:
-- Final status
-- Additional server-supplied metadata
+### Response headers
 
-Many generic tools flatten or hide this. ProtoPeek keeps it visible because real debugging often lives there.
+Arrive before data frames. Carry early server context like server version, rate limit state, or cache status.
+
+### Response trailers
+
+Arrive **after** all data frames. This is where the final gRPC status lives:
+
+| Trailer | Purpose |
+|---------|---------|
+| `grpc-status` | Numeric status code (0 = OK, 14 = UNAVAILABLE, etc.) |
+| `grpc-message` | Human-readable error description |
+| `grpc-status-details-bin` | Binary-encoded error details (rich error model) |
+
+> [!WARNING]
+> Many generic API tools flatten or hide trailer metadata. ProtoPeek keeps it visible because real debugging often lives in the trailers, not the response body.
 
 ## 6. Reflection is what makes a console feel intelligent
 
-Reflection allows a client to ask the server for:
+Reflection allows a client to ask the server for its own schema at runtime:
 
-- Service names
-- Methods
-- Message descriptors
-- Enum descriptors
+```bash
+# Discover all services
+grpcurl -plaintext localhost:50051 list
+
+# Result:
+# bookstore.v1.BookService
+# grpc.reflection.v1.ServerReflection
+# grpc.reflection.v1alpha.ServerReflection
+
+# Describe a service
+grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
+
+# Result:
+# bookstore.v1.BookService is a service:
+# service BookService {
+#   rpc GetBook ( .bookstore.v1.GetBookRequest ) returns ( .bookstore.v1.Book );
+#   rpc ListBooks ( .bookstore.v1.ListBooksRequest ) returns ( stream .bookstore.v1.Book );
+#   ...
+# }
+```
 
 Without reflection, a UI either needs explicit schema files from the user or it becomes blind. ProtoPeek keeps both paths:
 
-- Reflection for the happy path
-- Proto source / protoset loading for locked-down services
+- **Reflection** for the happy path where the server cooperates
+- **Proto source files** for locked-down services that disable reflection
+- **Protoset files** for pre-compiled descriptor sets from build pipelines
 
-## 7. Why gRPC-Web exists
+## 7. gRPC status codes
 
-Native gRPC assumes capabilities that browsers do not expose the same way backend runtimes do. Browser environments need a bridge layer, which is why gRPC-Web exists.
+Every gRPC call ends with a status code. Knowing which code maps to which situation saves time:
 
-Typical browser path:
+| Code | Name | When it appears |
+|------|------|-----------------|
+| 0 | OK | Success |
+| 1 | CANCELLED | Client cancelled the call |
+| 2 | UNKNOWN | Server threw an exception without a status |
+| 3 | INVALID_ARGUMENT | Client sent a bad request |
+| 4 | DEADLINE_EXCEEDED | Timeout before server responded |
+| 5 | NOT_FOUND | Requested entity does not exist |
+| 6 | ALREADY_EXISTS | Create conflict |
+| 7 | PERMISSION_DENIED | Auth succeeded but the caller lacks permission |
+| 8 | RESOURCE_EXHAUSTED | Rate limit or quota hit |
+| 9 | FAILED_PRECONDITION | System not in valid state for the request |
+| 10 | ABORTED | Concurrency conflict (optimistic lock failure) |
+| 11 | OUT_OF_RANGE | Operation outside valid range |
+| 12 | UNIMPLEMENTED | Method exists in the proto but server has no handler |
+| 13 | INTERNAL | Server-side bug |
+| 14 | UNAVAILABLE | Server not ready — often transient, retry is appropriate |
+| 15 | DATA_LOSS | Unrecoverable data issue |
+| 16 | UNAUTHENTICATED | Missing or invalid auth credentials |
 
-1. Browser speaks gRPC-Web-compatible semantics.
-2. A proxy such as Envoy receives the request.
-3. The proxy translates it into backend-native gRPC.
-4. Response headers and trailers are adapted back to browser constraints.
+> [!NOTE]
+> `UNAUTHENTICATED` (16) means "who are you?" — provide credentials. `PERMISSION_DENIED` (7) means "I know who you are, but you cannot do this." Confusing the two is a common source of debugging frustration.
 
-That architecture changes debugging and performance conversations. A problem seen in the browser may live:
+## 8. Why gRPC-Web exists
 
-- In the browser client
-- In the gRPC-Web bridge
-- In Envoy config
-- In the backend gRPC server
+Native gRPC assumes capabilities that browsers do not expose: raw HTTP/2 framing, response trailers, and bidirectional streaming. Browser environments need a bridge, which is why gRPC-Web exists.
 
-ProtoPeek’s site keeps this explicit so frontend teams are not left guessing.
+```
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│  Browser (gRPC-Web)                                     │
+│    │                                                    │
+│    │  HTTP/1.1 or HTTP/2 (browser-compatible)           │
+│    ▼                                                    │
+│  Envoy / gRPC-Web proxy                                 │
+│    │                                                    │
+│    │  Native gRPC over HTTP/2                           │
+│    ▼                                                    │
+│  Backend gRPC server                                    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
 
-## 8. Benchmarking responsibly
+**What changes across the bridge:**
 
-There is no universal “gRPC is X times faster” number worth trusting outside a specific test setup. Performance changes with:
+- Trailers get packed into the response body instead of arriving as HTTP trailers
+- Only unary and server-streaming are supported — no client streaming or bidi
+- The proxy translates between wire formats, which adds latency and a failure point
+- CORS headers must be configured correctly on the proxy, not the backend
 
-- Payload size
-- Compression
-- Streaming vs unary traffic
-- Proxy layers
-- TLS
-- Retries
-- Deadlines
-- Client and server implementation
+**Where a problem might actually live:**
 
-The official gRPC docs maintain dedicated performance and benchmarking guidance for exactly this reason. ProtoPeek adds value by giving you a fast way to measure your own service locally with the simulation studio instead of importing generic benchmark claims into a production discussion.
+| Symptom | Likely culprit |
+|---------|---------------|
+| CORS errors | Proxy config, not the gRPC service |
+| Trailers missing | Proxy not forwarding, or client library not extracting |
+| Client streaming fails | gRPC-Web does not support it — use a native client |
+| Latency spike | Proxy translation overhead, not the backend |
 
-## 9. Why debugging gets hard fast
+ProtoPeek's site keeps this explicit so frontend teams are not left guessing about where in the chain their bug lives.
 
-The painful gRPC bugs are often not serialization bugs. They are:
+## 9. Benchmarking responsibly
 
-- Missing reflection
-- Incorrect metadata
-- TLS mismatch
-- Deadline exceeded
-- Wrong authority / host routing
-- Proxy translation issues
-- Streaming assumptions
-- Service config or xDS surprises
+There is no universal "gRPC is X times faster" number worth trusting outside a specific test setup. Performance depends on too many variables:
 
-That is why ProtoPeek combines:
+- **Payload size** — protobuf encoding is fast for small messages but the advantage narrows for large blobs
+- **Compression** — gzip vs zstd vs none changes throughput curves significantly
+- **Streaming vs unary** — stream setup cost amortizes differently under batch workloads
+- **Proxy layers** — each hop adds latency variance
+- **TLS** — handshake cost matters for short-lived connections
+- **Retries and deadlines** — retry storms can mask the real throughput ceiling
+- **Client and server implementation** — Go, Java, Rust, and C++ gRPC runtimes have different performance profiles
 
-- Request authoring
-- Response inspection
-- Metadata visibility
-- Lightweight load probing
-- Links to deeper runtime diagnostics
+ProtoPeek adds value by giving you a fast way to measure **your own service** locally with the simulation studio. Configure runs, concurrency, and think time, then see p50, p95, p99 latency and throughput with your actual payloads. That is more useful than importing generic benchmark claims into a production discussion.
 
-## 10. Further reading
+> [!TIP]
+> Start with ProtoPeek's "Quick pulse" preset (12 runs, 3 concurrent) for a fast sanity check, then use "Burst probe" (60 runs, 12 concurrent) to expose tail latency before real load testing.
 
-- gRPC guides: https://grpc.io/docs/guides/
-- gRPC-Web basics: https://grpc.io/docs/platforms/web/basics/
-- Envoy gRPC overview: https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html
-- Debugging guide: https://grpc.io/docs/guides/debugging/
-- ProtoPeek site: https://shreyam1008.github.io/ProtoPeek/
+## 10. Why debugging gets hard fast
+
+The painful gRPC bugs are rarely serialization bugs. They are transport and configuration issues:
+
+### Debugging checklist
+
+| Symptom | What to check | ProtoPeek tool |
+|---------|--------------|----------------|
+| No RPCs discovered | Server reflection disabled, or proto files not loaded | Proto structure explorer |
+| `UNAUTHENTICATED` on every call | Missing or malformed auth header | Metadata editor |
+| `UNAVAILABLE` after deployment | TLS cert mismatch, wrong port, DNS resolution | Target registry settings |
+| `DEADLINE_EXCEEDED` under load | Server too slow, or deadline set too aggressively | Simulation studio |
+| Works locally, fails in staging | Authority override needed, or different TLS config | Target registry per-environment |
+| Browser client behaves differently | gRPC-Web proxy issue, not backend | Transport lens |
+| Streaming closes unexpectedly | Keepalive timeout, proxy idle timeout | Response lab trailers |
+| Latency spikes at p99 | Concurrency bottleneck, connection pool exhaustion | Simulation sparkline chart |
+
+That is why ProtoPeek combines request authoring, response inspection, metadata visibility, lightweight load probing, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
+
+## 11. Further reading
+
+**Official gRPC documentation:**
+
+- [gRPC core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/) — services, messages, deadlines, metadata
+- [gRPC guides](https://grpc.io/docs/guides/) — auth, error handling, performance, benchmarking, keepalive
+- [gRPC debugging guide](https://grpc.io/docs/guides/debugging/) — admin services, channelz, `grpcdebug`
+- [gRPC status codes](https://grpc.io/docs/guides/status-codes/) — canonical error code semantics
+
+**gRPC-Web and browser integration:**
+
+- [gRPC-Web basics](https://grpc.io/docs/platforms/web/basics/) — browser transport constraints
+- [Envoy gRPC bridging](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html) — proxy translation layer
+
+**Protocol Buffers:**
+
+- [Protocol Buffers language guide (proto3)](https://protobuf.dev/programming-guides/proto3/) — syntax, field types, defaults
+- [Protocol Buffers encoding](https://protobuf.dev/programming-guides/encoding/) — wire format, varints, field tags
+
+**ProtoPeek:**
+
+- [ProtoPeek website](https://shreyam1008.github.io/ProtoPeek/) — product site and visual tutorial
+- [ProtoPeek GitHub repository](https://github.com/shreyam1008/ProtoPeek) — source, issues, releases
+- [ProtoPeek feature roadmap](https://shreyam1008.github.io/ProtoPeek/feature-roadmap/) — shipped capabilities and next wave

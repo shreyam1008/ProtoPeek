@@ -237,6 +237,69 @@ function renderMarkdownPage(markdown, page) {
       continue;
     }
 
+    // Callout blocks: > [!NOTE], > [!TIP], > [!WARNING], > [!IMPORTANT], > [!CAUTION]
+    const calloutMatch = trimmed.match(/^>\s*\[!(NOTE|TIP|WARNING|IMPORTANT|CAUTION)\]/i);
+    if (calloutMatch) {
+      flushParagraph();
+      const kind = calloutMatch[1].toLowerCase();
+      const calloutLabels = {
+        note: 'Note',
+        tip: 'Tip',
+        warning: 'Warning',
+        important: 'Important',
+        caution: 'Caution',
+      };
+      const calloutLines = [];
+      index += 1;
+      while (index < lines.length) {
+        const nextLine = lines[index].trim();
+        if (nextLine.startsWith('> ')) {
+          calloutLines.push(nextLine.slice(2));
+          index += 1;
+        } else if (nextLine === '>') {
+          calloutLines.push('');
+          index += 1;
+        } else {
+          break;
+        }
+      }
+      html.push(
+        `<div class="pp-doc-callout pp-doc-callout-${kind}">` +
+          `<div class="pp-doc-callout-label">${calloutLabels[kind]}</div>` +
+          `<div>${renderInline(calloutLines.join(' ').trim())}</div>` +
+          `</div>`,
+      );
+      continue;
+    }
+
+    // Markdown tables: lines starting with |
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      flushParagraph();
+      const tableLines = [];
+      while (index < lines.length && lines[index].trim().startsWith('|') && lines[index].trim().endsWith('|')) {
+        tableLines.push(lines[index].trim());
+        index += 1;
+      }
+      if (tableLines.length >= 2) {
+        const parseRow = (row) =>
+          row
+            .slice(1, -1)
+            .split('|')
+            .map((cell) => cell.trim());
+        const headerCells = parseRow(tableLines[0]);
+        // Skip separator row (line with dashes/colons)
+        const bodyStart = /^[\s|:-]+$/.test(tableLines[1]) ? 2 : 1;
+        const bodyRows = tableLines.slice(bodyStart);
+        const thead = `<thead><tr>${headerCells.map((c) => `<th>${renderInline(c)}</th>`).join('')}</tr></thead>`;
+        const tbody =
+          bodyRows.length > 0
+            ? `<tbody>${bodyRows.map((row) => `<tr>${parseRow(row).map((c) => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
+            : '';
+        html.push(`<table>${thead}${tbody}</table>`);
+      }
+      continue;
+    }
+
     if (/^-\s+/.test(trimmed)) {
       flushParagraph();
       const items = [];
@@ -320,6 +383,9 @@ function renderPageTemplate({
     <meta name="description" content="${escapeAttr(description)}" />
     <link rel="canonical" href="${canonicalURL}" />
     <link rel="icon" type="image/svg+xml" href="${siteBase}/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="${siteBase}/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:title" content="${escapeAttr(documentTitle)}" />
