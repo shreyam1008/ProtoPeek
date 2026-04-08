@@ -79,7 +79,11 @@ export function safeParseJson(text: string) {
   }
 }
 
-export function defaultValueForField(field: FieldDefinition, schema: SchemaResponse): unknown {
+export function defaultValueForField(
+  field: FieldDefinition,
+  schema: SchemaResponse,
+  seen: Set<string> = new Set()
+): unknown {
   if (field.type === 'oneof') {
     return {};
   }
@@ -98,11 +102,16 @@ export function defaultValueForField(field: FieldDefinition, schema: SchemaRespo
   }
 
   if (field.isMessage) {
+    if (seen.has(field.type)) {
+      return {};
+    }
+    const nextSeen = new Set(seen);
+    nextSeen.add(field.type);
     const messageFields = schema.messageTypes[field.type] ?? [];
     return Object.fromEntries(
       messageFields
         .filter((nestedField) => nestedField.type !== 'oneof')
-        .map((nestedField) => [nestedField.name, defaultValueForField(nestedField, schema)])
+        .map((nestedField) => [nestedField.name, defaultValueForField(nestedField, schema, nextSeen)])
     );
   }
 

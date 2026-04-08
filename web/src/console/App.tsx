@@ -2592,7 +2592,7 @@ function SchemaField({
       {field.description ? (
         <div className="mt-1 text-[0.65rem] text-pp-muted">{field.description}</div>
       ) : null}
-      {field.isMessage && schema.messageTypes[field.type]?.length ? (
+      {field.isMessage && depth < 6 && schema.messageTypes[field.type]?.length ? (
         <div className="mt-1 space-y-1">
           {schema.messageTypes[field.type].map((nf) => (
             <SchemaField
