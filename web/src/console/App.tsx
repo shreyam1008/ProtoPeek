@@ -90,6 +90,8 @@ import {
   fetchWorkspaceSchema,
   invokeMethod,
   invokeWorkspaceMethod,
+  type ScanResult,
+  scanAddresses,
 } from './api';
 
 type ActiveView =
@@ -889,17 +891,22 @@ export function App() {
   return (
     <div className="pp-shell">
       <aside className="pp-sidebar">
-        <div className="border-b border-pp-border px-4 py-3">
+        <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-pp-brand">ProtoPeek</span>
-            <span className="text-xs text-pp-muted">{bootstrap.version}</span>
+            <span className="text-sm font-bold text-white">ProtoPeek</span>
+            <span className="text-[0.65rem] text-[var(--pp-sidebar-muted)]">
+              {bootstrap.version}
+            </span>
           </div>
-          <div className="mt-1 truncate text-xs text-pp-muted" title={bootstrap.target}>
+          <div
+            className="mt-1 truncate text-[0.7rem] text-[var(--pp-sidebar-muted)]"
+            title={bootstrap.target}
+          >
             {bootstrap.target}
           </div>
         </div>
 
-        <nav className="space-y-0.5 border-b border-pp-border px-2 py-2">
+        <nav className="space-y-0.5 border-b border-white/10 px-2 py-2">
           {navTabs.map((tab) => (
             <button
               key={tab.key}
@@ -917,11 +924,11 @@ export function App() {
         </nav>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="space-y-2 border-b border-pp-border px-3 py-2">
+          <div className="space-y-2 border-b border-white/10 px-3 py-2">
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-pp-muted" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pp-sidebar-muted)]" />
               <input
-                className="pp-input py-1.5 pl-8 text-xs"
+                className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 text-xs text-white outline-none placeholder:text-[var(--pp-sidebar-muted)] focus:border-[var(--pp-sidebar-active)] focus:ring-1 focus:ring-[var(--pp-sidebar-active)]/30"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Search methods..."
@@ -936,8 +943,8 @@ export function App() {
                   className={classNames(
                     'rounded px-2 py-0.5 text-[0.65rem] font-medium transition',
                     methodFilter === o.value
-                      ? 'bg-pp-brand text-white'
-                      : 'text-pp-muted hover:bg-pp-bg-strong'
+                      ? 'bg-[var(--pp-sidebar-active)] text-white'
+                      : 'text-[var(--pp-sidebar-muted)] hover:bg-white/10 hover:text-white'
                   )}
                 >
                   {o.label}
@@ -958,8 +965,8 @@ export function App() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-pp-border px-3 py-2">
-          <span className="text-[0.65rem] text-pp-muted">Workspace</span>
+        <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
+          <span className="text-[0.65rem] text-[var(--pp-sidebar-muted)]">Workspace</span>
           <div className="flex gap-1">
             <button
               className="pp-button-ghost px-1.5 py-1"
@@ -1179,23 +1186,23 @@ function SidebarService({
       <button
         type="button"
         onClick={() => setOpen((x) => !x)}
-        className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs font-semibold text-pp-ink hover:bg-pp-bg-strong"
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold text-[var(--pp-sidebar-ink)] hover:bg-white/5"
       >
         <span className="truncate">{service.name.split('.').pop()}</span>
-        <span className="text-[0.6rem] text-pp-muted">{open ? '−' : '+'}</span>
+        <span className="text-[0.6rem] text-[var(--pp-sidebar-muted)]">{open ? '−' : '+'}</span>
       </button>
       {open ? (
-        <div className="ml-2 space-y-0.5 border-l border-pp-border pl-2">
+        <div className="ml-2 space-y-0.5 border-l border-white/10 pl-2">
           {service.methods.map((m) => (
             <button
               key={m.fullName}
               type="button"
               onClick={() => onSelect(m.fullName)}
               className={classNames(
-                'block w-full truncate rounded px-2 py-1 text-left text-xs transition',
+                'block w-full truncate rounded-md px-2 py-1 text-left text-xs transition',
                 m.fullName === selectedMethod
-                  ? 'bg-pp-brand font-semibold text-white'
-                  : 'text-pp-muted hover:bg-pp-bg-strong hover:text-pp-ink'
+                  ? 'bg-[var(--pp-sidebar-active)] font-semibold text-white'
+                  : 'text-[var(--pp-sidebar-muted)] hover:bg-white/5 hover:text-white'
               )}
             >
               {m.name}
@@ -2098,81 +2105,211 @@ function WorkspaceView({
   onReset: () => void;
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="space-y-4">
-        <h3 className="pp-heading text-base">Target connection</h3>
-        {error ? <StatusBanner tone="danger" title="Error" description={error} /> : null}
-        <TargetForm
-          draft={draft}
-          busy={busy}
-          onChange={onChangeDraft}
-          onSave={onSave}
-          onSaveAndConnect={onSaveAndConnect}
-        />
-      </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="pp-heading text-base">Saved targets</h3>
-          {rootBootstrap?.launcherMode ? (
-            <button className="pp-button-ghost text-xs" type="button" onClick={onReset}>
-              Launcher
-            </button>
-          ) : null}
+    <div className="space-y-6">
+      <ScanPanel onUseAddress={(addr) => onChangeDraft({ address: addr })} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-4">
+          <h3 className="pp-heading text-base">Target connection</h3>
+          {error ? <StatusBanner tone="danger" title="Error" description={error} /> : null}
+          <TargetForm
+            draft={draft}
+            busy={busy}
+            onChange={onChangeDraft}
+            onSave={onSave}
+            onSaveAndConnect={onSaveAndConnect}
+          />
         </div>
-        {targets.length === 0 ? (
-          <div className="text-sm text-pp-muted">No saved targets.</div>
-        ) : (
-          <div className="space-y-2">
-            {targets.map((t) => (
-              <div key={t.id} className="rounded-lg border border-pp-border p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
-                    <div className="text-xs text-pp-muted">{t.address}</div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="pp-heading text-base">Saved targets</h3>
+            {rootBootstrap?.launcherMode ? (
+              <button className="pp-button-ghost text-xs" type="button" onClick={onReset}>
+                Launcher
+              </button>
+            ) : null}
+          </div>
+          {targets.length === 0 ? (
+            <div className="text-sm text-pp-muted">No saved targets.</div>
+          ) : (
+            <div className="space-y-2">
+              {targets.map((t) => (
+                <div key={t.id} className="rounded-lg border border-pp-border p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
+                      <div className="text-xs text-pp-muted">{t.address}</div>
+                    </div>
+                    {t.id === activeTargetId ? (
+                      <span className="pp-badge text-pp-ok">Active</span>
+                    ) : null}
                   </div>
-                  {t.id === activeTargetId ? (
-                    <span className="pp-badge text-pp-ok">Active</span>
-                  ) : null}
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
+                    {t.insecure ? (
+                      <span className="pp-badge text-amber-600">Skip verify</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="pp-button-primary py-1 text-xs"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onConnect(t)}
+                    >
+                      {busy ? (
+                        <LoaderCircle className="size-3 animate-spin" />
+                      ) : (
+                        <Play className="size-3" />
+                      )}
+                      Connect
+                    </button>
+                    <button
+                      className="pp-button-secondary py-1 text-xs"
+                      type="button"
+                      onClick={() => onEdit(t)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="pp-button-ghost py-1 text-xs"
+                      type="button"
+                      onClick={() => onDelete(t.id)}
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
-                  <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
-                  {t.insecure ? <span className="pp-badge text-amber-600">Skip verify</span> : null}
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Scan panel ────────────────────────────────────────────────
+
+function ScanPanel({ onUseAddress }: { onUseAddress: (addr: string) => void }) {
+  const [scanInput, setScanInput] = useState('localhost:50051');
+  const [scanning, setScanning] = useState(false);
+  const [results, setResults] = useState<ScanResult[]>([]);
+
+  const handleScan = async () => {
+    const addrs = scanInput
+      .split(/[,\n]+/)
+      .map((a) => a.trim())
+      .filter(Boolean);
+    if (addrs.length === 0) return;
+    setScanning(true);
+    setResults([]);
+    try {
+      const res = await scanAddresses(addrs);
+      setResults(res);
+    } catch {
+      setResults([
+        {
+          address: addrs[0],
+          alive: false,
+          grpc: false,
+          services: null,
+          error: 'Scan request failed',
+          latencyMs: 0,
+        },
+      ]);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  return (
+    <div className="pp-panel">
+      <div className="flex items-center gap-2">
+        <Search className="size-4 text-pp-brand" />
+        <h3 className="pp-heading text-base">Scan for gRPC services</h3>
+      </div>
+      <p className="pp-muted mt-1">
+        Enter one or more host:port addresses (comma or newline separated). ProtoPeek will probe
+        each for gRPC reflection and list discovered services.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <input
+          className="pp-input"
+          value={scanInput}
+          onChange={(e) => setScanInput(e.target.value)}
+          placeholder="host:port, host:port, ..."
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void handleScan();
+          }}
+        />
+        <button
+          className="pp-button-primary shrink-0"
+          type="button"
+          disabled={scanning}
+          onClick={() => void handleScan()}
+        >
+          {scanning ? (
+            <LoaderCircle className="size-4 animate-spin" />
+          ) : (
+            <Search className="size-4" />
+          )}
+          Scan
+        </button>
+      </div>
+      {results.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {results.map((r) => (
+            <div
+              key={r.address}
+              className={classNames(
+                'rounded-lg border p-3',
+                r.grpc
+                  ? 'border-pp-ok/30 bg-emerald-50'
+                  : r.alive
+                    ? 'border-pp-accent/30 bg-amber-50'
+                    : 'border-pp-border bg-pp-bg'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={classNames(
+                      'size-2.5 rounded-full',
+                      r.grpc ? 'bg-pp-ok' : r.alive ? 'bg-pp-accent' : 'bg-pp-muted'
+                    )}
+                  />
+                  <span className="font-mono text-sm font-semibold text-pp-ink">{r.address}</span>
+                  <span className="text-xs text-pp-muted">{r.latencyMs}ms</span>
                 </div>
-                <div className="mt-2 flex gap-2">
+                {r.grpc ? (
                   <button
                     className="pp-button-primary py-1 text-xs"
                     type="button"
-                    disabled={busy}
-                    onClick={() => onConnect(t)}
+                    onClick={() => onUseAddress(r.address)}
                   >
-                    {busy ? (
-                      <LoaderCircle className="size-3 animate-spin" />
-                    ) : (
-                      <Play className="size-3" />
-                    )}
-                    Connect
+                    Use
                   </button>
-                  <button
-                    className="pp-button-secondary py-1 text-xs"
-                    type="button"
-                    onClick={() => onEdit(t)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="pp-button-ghost py-1 text-xs"
-                    type="button"
-                    onClick={() => onDelete(t.id)}
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                </div>
+                ) : null}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              {r.services && r.services.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {r.services.map((svc) => (
+                    <span key={svc} className="pp-badge text-xs">
+                      {svc}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {r.error ? <div className="mt-1 text-xs text-pp-muted">{r.error}</div> : null}
+              {!r.alive ? <div className="mt-1 text-xs text-pp-muted">Not reachable</div> : null}
+              {r.alive && !r.grpc ? (
+                <div className="mt-1 text-xs text-pp-muted">Port open but no gRPC detected</div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

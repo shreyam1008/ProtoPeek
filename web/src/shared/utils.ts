@@ -111,7 +111,10 @@ export function defaultValueForField(
     return Object.fromEntries(
       messageFields
         .filter((nestedField) => nestedField.type !== 'oneof')
-        .map((nestedField) => [nestedField.name, defaultValueForField(nestedField, schema, nextSeen)])
+        .map((nestedField) => [
+          nestedField.name,
+          defaultValueForField(nestedField, schema, nextSeen),
+        ])
     );
   }
 

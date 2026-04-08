@@ -2,18 +2,23 @@
 @source "../";
 
 :root {
-  --pp-bg: #f7f8fa;
-  --pp-bg-strong: #eef0f4;
+  --pp-bg: #f8f9fb;
+  --pp-bg-strong: #f0f1f5;
+  --pp-sidebar-bg: #111827;
+  --pp-sidebar-ink: #e5e7eb;
+  --pp-sidebar-muted: #9ca3af;
+  --pp-sidebar-hover: #1f2937;
+  --pp-sidebar-active: #3b82f6;
   --pp-panel: #ffffff;
   --pp-panel-strong: #ffffff;
-  --pp-border: #d9dde3;
-  --pp-ink: #1a1d23;
+  --pp-border: #e2e5ea;
+  --pp-ink: #111827;
   --pp-muted: #6b7280;
-  --pp-brand: #0d8b84;
-  --pp-brand-strong: #0a6e68;
-  --pp-accent: #e4a216;
-  --pp-danger: #c7414f;
-  --pp-ok: #15803d;
+  --pp-brand: #3b82f6;
+  --pp-brand-strong: #2563eb;
+  --pp-accent: #f59e0b;
+  --pp-danger: #ef4444;
+  --pp-ok: #10b981;
 }
 
 @theme {
@@ -29,13 +34,14 @@
   --color-pp-accent: var(--pp-accent);
   --color-pp-danger: var(--pp-danger);
   --color-pp-ok: var(--pp-ok);
-  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "Inter", "SF Pro Display", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
   }
 
   body {
@@ -45,7 +51,7 @@
   }
 
   ::selection {
-    background: rgba(13, 139, 132, 0.18);
+    background: rgba(59, 130, 246, 0.2);
   }
 
   button,
@@ -62,7 +68,9 @@
   }
 
   .pp-sidebar {
-    @apply flex h-full w-64 shrink-0 flex-col border-r border-pp-border bg-pp-panel;
+    @apply flex h-full w-56 shrink-0 flex-col;
+    background: var(--pp-sidebar-bg);
+    color: var(--pp-sidebar-ink);
   }
 
   .pp-main {
@@ -70,19 +78,19 @@
   }
 
   .pp-panel {
-    @apply rounded-lg border border-pp-border bg-pp-panel p-4;
+    @apply rounded-xl border border-pp-border bg-pp-panel p-4 shadow-sm;
   }
 
   .pp-panel-strong {
-    @apply rounded-lg border border-pp-border bg-pp-panel-strong p-4;
+    @apply rounded-xl border border-pp-border bg-pp-panel-strong p-4 shadow-sm;
   }
 
   .pp-heading {
-    @apply font-semibold text-pp-ink;
+    @apply font-semibold tracking-tight text-pp-ink;
   }
 
   .pp-label {
-    @apply text-[0.7rem] font-semibold uppercase tracking-wider text-pp-muted;
+    @apply text-[0.68rem] font-semibold uppercase tracking-widest text-pp-muted;
   }
 
   .pp-muted {
@@ -90,38 +98,46 @@
   }
 
   .pp-badge {
-    @apply inline-flex items-center gap-1.5 rounded border border-pp-border bg-pp-bg px-2 py-0.5 text-xs font-medium text-pp-ink;
+    @apply inline-flex items-center gap-1.5 rounded-md bg-pp-bg px-2 py-0.5 text-[0.7rem] font-medium text-pp-muted;
   }
 
   .pp-input {
-    @apply w-full rounded-lg border border-pp-border bg-white px-3 py-2 text-sm text-pp-ink outline-none transition placeholder:text-pp-muted/60 focus:border-pp-brand focus:ring-2 focus:ring-pp-brand/15;
+    @apply w-full rounded-lg border border-pp-border bg-white px-3 py-2 text-sm text-pp-ink outline-none transition placeholder:text-pp-muted/50 focus:border-pp-brand focus:ring-2 focus:ring-pp-brand/20;
   }
 
   .pp-button-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-pp-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-pp-brand-strong;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-pp-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-pp-brand-strong active:scale-[0.98];
   }
 
   .pp-button-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-pp-border bg-white px-3 py-2 text-sm font-semibold text-pp-ink transition hover:bg-pp-bg;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-pp-border bg-white px-3.5 py-2 text-sm font-medium text-pp-ink shadow-sm transition hover:bg-pp-bg active:scale-[0.98];
   }
 
   .pp-button-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-transparent px-3 py-2 text-sm font-medium text-pp-muted transition hover:bg-pp-bg hover:text-pp-ink;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-transparent px-2.5 py-1.5 text-sm font-medium text-pp-muted transition hover:bg-pp-bg-strong hover:text-pp-ink;
   }
 
   .pp-code {
-    @apply overflow-auto rounded-lg border border-pp-border bg-[#0f1419] px-3 py-3 font-mono text-[0.8rem] leading-relaxed text-[#d0f0e0];
+    @apply overflow-auto rounded-lg border border-neutral-800 bg-[#0d1117] px-3 py-3 font-mono text-[0.78rem] leading-relaxed text-emerald-300;
   }
 
   .pp-tab {
-    @apply flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition;
+    @apply flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[0.82rem] transition;
   }
 
   .pp-tab-active {
-    @apply bg-pp-brand font-semibold text-white;
+    @apply bg-white/10 font-semibold text-white;
   }
 
   .pp-tab-inactive {
-    @apply text-pp-muted hover:bg-pp-bg-strong hover:text-pp-ink;
+    @apply text-[var(--pp-sidebar-muted)] hover:bg-[var(--pp-sidebar-hover)] hover:text-white;
+  }
+
+  .pp-sidebar-section {
+    @apply px-3 py-2;
+  }
+
+  .pp-sidebar-heading {
+    @apply text-[0.6rem] font-semibold uppercase tracking-widest text-[var(--pp-sidebar-muted)] px-3 mb-1;
   }
 }

@@ -90,6 +90,23 @@ export function invokeWorkspaceMethod(sessionId: string, method: string, payload
   );
 }
 
+export type ScanResult = {
+  address: string;
+  alive: boolean;
+  grpc: boolean;
+  services: string[] | null;
+  error: string | null;
+  latencyMs: number;
+};
+
+export function scanAddresses(addresses: string[]) {
+  return fetchJSON<ScanResult[]>('api/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ addresses }),
+  });
+}
+
 export function fetchWorkspaceProtoCatalog(sessionId: string) {
   return fetchJSON<ProtoCatalogResponse>(
     `api/workspace/protos?session_id=${encodeURIComponent(sessionId)}`

@@ -146,6 +146,14 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 	})
 
+	mux.HandleFunc("/api/scan", func(w http.ResponseWriter, r *http.Request) {
+		if !validCSRF(r) {
+			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+			return
+		}
+		ScanHandler().ServeHTTP(w, r)
+	})
+
 	if uiOpts.workspaceManager != nil {
 		mux.HandleFunc("/api/workspace/connect", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodPost {
