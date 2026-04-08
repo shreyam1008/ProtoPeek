@@ -2,18 +2,18 @@
 @source "../";
 
 :root {
-  --pp-bg: #f3f8f7;
-  --pp-bg-strong: #e4f0ee;
-  --pp-panel: rgba(255, 255, 255, 0.8);
-  --pp-panel-strong: rgba(255, 255, 255, 0.96);
-  --pp-border: rgba(11, 46, 46, 0.1);
-  --pp-ink: #0f2f31;
-  --pp-muted: #5f7d7f;
+  --pp-bg: #f7f8fa;
+  --pp-bg-strong: #eef0f4;
+  --pp-panel: #ffffff;
+  --pp-panel-strong: #ffffff;
+  --pp-border: #d9dde3;
+  --pp-ink: #1a1d23;
+  --pp-muted: #6b7280;
   --pp-brand: #0d8b84;
-  --pp-brand-strong: #0d6662;
-  --pp-accent: #f5a524;
+  --pp-brand-strong: #0a6e68;
+  --pp-accent: #e4a216;
   --pp-danger: #c7414f;
-  --pp-shadow: 0 24px 80px rgba(13, 46, 47, 0.12);
+  --pp-ok: #15803d;
 }
 
 @theme {
@@ -28,8 +28,9 @@
   --color-pp-brand-strong: var(--pp-brand-strong);
   --color-pp-accent: var(--pp-accent);
   --color-pp-danger: var(--pp-danger);
-  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --color-pp-ok: var(--pp-ok);
+  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
 }
 
 @layer base {
@@ -40,26 +41,11 @@
   body {
     min-height: 100vh;
     color: var(--pp-ink);
-    background:
-      radial-gradient(circle at top left, rgba(13, 139, 132, 0.18), transparent 30%),
-      radial-gradient(circle at top right, rgba(245, 165, 36, 0.12), transparent 25%),
-      linear-gradient(180deg, #f8fbfb 0%, #f1f8f6 42%, #edf5f5 100%);
-  }
-
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-      linear-gradient(rgba(13, 46, 47, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(13, 46, 47, 0.02) 1px, transparent 1px);
-    background-size: 36px 36px;
-    mask-image: radial-gradient(circle at center, black 50%, transparent 90%);
+    background: var(--pp-bg);
   }
 
   ::selection {
-    background: rgba(13, 139, 132, 0.2);
+    background: rgba(13, 139, 132, 0.18);
   }
 
   button,
@@ -72,140 +58,70 @@
 
 @layer components {
   .pp-shell {
-    @apply relative min-h-screen overflow-hidden px-4 py-5 md:px-6 lg:px-8;
+    @apply flex h-screen overflow-hidden;
+  }
+
+  .pp-sidebar {
+    @apply flex h-full w-64 shrink-0 flex-col border-r border-pp-border bg-pp-panel;
+  }
+
+  .pp-main {
+    @apply flex min-w-0 flex-1 flex-col overflow-hidden bg-pp-bg;
   }
 
   .pp-panel {
-    @apply rounded-[28px] border border-pp-border bg-pp-panel p-5 shadow-[var(--pp-shadow)] backdrop-blur-xl;
+    @apply rounded-lg border border-pp-border bg-pp-panel p-4;
   }
 
   .pp-panel-strong {
-    @apply rounded-[32px] border border-pp-border bg-pp-panel-strong shadow-[var(--pp-shadow)] backdrop-blur-xl;
+    @apply rounded-lg border border-pp-border bg-pp-panel-strong p-4;
   }
 
   .pp-heading {
-    @apply font-semibold tracking-[-0.03em] text-pp-ink;
+    @apply font-semibold text-pp-ink;
   }
 
   .pp-label {
-    @apply text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-pp-muted;
+    @apply text-[0.7rem] font-semibold uppercase tracking-wider text-pp-muted;
   }
 
   .pp-muted {
-    @apply text-sm leading-6 text-pp-muted;
+    @apply text-sm leading-relaxed text-pp-muted;
   }
 
   .pp-badge {
-    @apply inline-flex items-center gap-2 rounded-full border border-pp-border bg-white/80 px-3 py-1 text-xs font-semibold text-pp-ink;
+    @apply inline-flex items-center gap-1.5 rounded border border-pp-border bg-pp-bg px-2 py-0.5 text-xs font-medium text-pp-ink;
   }
 
   .pp-input {
-    @apply w-full rounded-2xl border border-pp-border bg-white/80 px-4 py-3 text-sm text-pp-ink outline-none transition duration-150 placeholder:text-pp-muted/70 focus:border-pp-brand focus:ring-4 focus:ring-pp-brand/10;
+    @apply w-full rounded-lg border border-pp-border bg-white px-3 py-2 text-sm text-pp-ink outline-none transition placeholder:text-pp-muted/60 focus:border-pp-brand focus:ring-2 focus:ring-pp-brand/15;
   }
 
   .pp-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-pp-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-pp-brand/20 transition duration-150 hover:bg-pp-brand-strong;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-pp-brand px-3 py-2 text-sm font-semibold text-white transition hover:bg-pp-brand-strong;
   }
 
   .pp-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-pp-border bg-white/80 px-4 py-3 text-sm font-semibold text-pp-ink transition duration-150 hover:bg-white;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-pp-border bg-white px-3 py-2 text-sm font-semibold text-pp-ink transition hover:bg-pp-bg;
   }
 
   .pp-button-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-transparent px-4 py-3 text-sm font-semibold text-pp-muted transition duration-150 hover:bg-white/60 hover:text-pp-ink;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-transparent px-3 py-2 text-sm font-medium text-pp-muted transition hover:bg-pp-bg hover:text-pp-ink;
   }
 
   .pp-code {
-    @apply overflow-auto rounded-[24px] border border-pp-border bg-[#081719] px-4 py-4 font-mono text-[0.84rem] leading-6 text-[#d8fff2];
+    @apply overflow-auto rounded-lg border border-pp-border bg-[#0f1419] px-3 py-3 font-mono text-[0.8rem] leading-relaxed text-[#d0f0e0];
   }
-}
 
-@keyframes pp-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
+  .pp-tab {
+    @apply flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition;
   }
-  50% {
-    transform: translate3d(0, -16px, 0) scale(1.04);
+
+  .pp-tab-active {
+    @apply bg-pp-brand font-semibold text-white;
   }
-}
 
-@keyframes pp-shimmer {
-  0% {
-    transform: translateX(-120%);
+  .pp-tab-inactive {
+    @apply text-pp-muted hover:bg-pp-bg-strong hover:text-pp-ink;
   }
-  100% {
-    transform: translateX(120%);
-  }
-}
-
-@keyframes pp-rise {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 24px, 0);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes pp-flow {
-  0% {
-    stroke-dashoffset: 48;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes pp-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: scale(0.92);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-}
-
-.pp-orb {
-  animation: pp-float 14s ease-in-out infinite;
-}
-
-.pp-hero-mesh {
-  background:
-    radial-gradient(circle at 18% 20%, rgba(13, 139, 132, 0.2), transparent 28%),
-    radial-gradient(circle at 84% 18%, rgba(245, 165, 36, 0.18), transparent 24%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08));
-  mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
-}
-
-.pp-skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.45) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  animation: pp-shimmer 1.8s linear infinite;
-}
-
-.pp-reveal {
-  animation: pp-rise 0.8s ease both;
-}
-
-.pp-flow-path {
-  stroke-dasharray: 14 12;
-  animation: pp-flow 1.4s linear infinite;
-}
-
-.pp-pulse-dot {
-  transform-origin: center;
-  animation: pp-pulse 1.6s ease-in-out infinite;
 }

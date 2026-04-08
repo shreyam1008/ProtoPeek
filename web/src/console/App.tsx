@@ -1,8 +1,6 @@
 import {
   Activity,
-  BadgeHelp,
   BookMarked,
-  BookOpenText,
   Cable,
   CheckCircle2,
   CircleAlert,
@@ -12,20 +10,21 @@ import {
   FileCode2,
   FlaskConical,
   History,
-  Library,
   LoaderCircle,
   Play,
+  Plus,
+  RefreshCw,
   Save,
   Search,
   Server,
-  Sparkles,
-  SquareArrowOutUpRight,
+  Settings,
+  Trash2,
   Upload,
+  X,
 } from 'lucide-react';
 import {
   type ChangeEvent,
   type ComponentType,
-  Fragment,
   startTransition,
   useDeferredValue,
   useEffect,
@@ -34,7 +33,6 @@ import {
   useState,
 } from 'react';
 
-import { featureIdeas } from '@/shared/feature-data';
 import type {
   AssertionResult,
   AssertionRule,
@@ -94,13 +92,16 @@ import {
   invokeWorkspaceMethod,
 } from './api';
 
-type ActiveView = 'compose' | 'response' | 'history' | 'tests' | 'transport' | 'structure';
+type ActiveView =
+  | 'compose'
+  | 'response'
+  | 'history'
+  | 'tests'
+  | 'transport'
+  | 'structure'
+  | 'workspace';
 
-const defaultSimulation: SimulationConfig = {
-  runs: 25,
-  concurrency: 5,
-  thinkTimeMs: 0,
-};
+const defaultSimulation: SimulationConfig = { runs: 25, concurrency: 5, thinkTimeMs: 0 };
 
 const defaultAssertions: AssertionRule[] = [
   {
@@ -113,7 +114,7 @@ const defaultAssertions: AssertionRule[] = [
   },
   {
     id: uid('assert'),
-    name: 'Latency stays under 800 ms',
+    name: 'Latency under 800ms',
     kind: 'latency_ms',
     comparator: 'lte',
     target: '',
@@ -124,72 +125,45 @@ const defaultAssertions: AssertionRule[] = [
 const methodFilterOptions: Array<{ value: MethodFilter; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'unary', label: 'Unary' },
-  { value: 'client-streaming', label: 'Client stream' },
-  { value: 'server-streaming', label: 'Server stream' },
+  { value: 'client-streaming', label: 'Client' },
+  { value: 'server-streaming', label: 'Server' },
   { value: 'bidirectional', label: 'Bidi' },
 ];
 
-const simulationPresets: Array<{
-  label: string;
-  description: string;
-  config: SimulationConfig;
-}> = [
-  {
-    label: 'Quick pulse',
-    description: 'Fast sanity check for local iteration.',
-    config: { runs: 12, concurrency: 3, thinkTimeMs: 0 },
-  },
-  {
-    label: 'Burst probe',
-    description: 'Short concurrency spike to expose tail latency.',
-    config: { runs: 60, concurrency: 12, thinkTimeMs: 0 },
-  },
-  {
-    label: 'Steady soak',
-    description: 'Longer run with think time to mimic paced traffic.',
-    config: { runs: 120, concurrency: 8, thinkTimeMs: 120 },
-  },
+const simulationPresets: Array<{ label: string; config: SimulationConfig }> = [
+  { label: 'Quick', config: { runs: 12, concurrency: 3, thinkTimeMs: 0 } },
+  { label: 'Burst', config: { runs: 60, concurrency: 12, thinkTimeMs: 0 } },
+  { label: 'Soak', config: { runs: 120, concurrency: 8, thinkTimeMs: 120 } },
 ];
 
-const assertionKindOptions: Array<{
-  value: AssertionRule['kind'];
-  label: string;
-}> = [
+const assertionKindOptions: Array<{ value: AssertionRule['kind']; label: string }> = [
   { value: 'status', label: 'Status' },
   { value: 'latency_ms', label: 'Latency' },
   { value: 'header', label: 'Header' },
   { value: 'trailer', label: 'Trailer' },
-  { value: 'response_count', label: 'Response count' },
+  { value: 'response_count', label: 'Resp count' },
   { value: 'body_text', label: 'Body text' },
 ];
 
-const assertionComparatorOptions: Array<{
-  value: AssertionRule['comparator'];
-  label: string;
-}> = [
-  { value: 'equals', label: 'equals' },
+const assertionComparatorOptions: Array<{ value: AssertionRule['comparator']; label: string }> = [
+  { value: 'equals', label: '=' },
   { value: 'contains', label: 'contains' },
   { value: 'lte', label: '<=' },
   { value: 'gte', label: '>=' },
 ];
 
-const transportMoments = [
-  {
-    title: 'Contract and reflection',
-    body: 'Proto files define the contract, and reflection lets ProtoPeek discover services, methods, messages, and enums at runtime.',
-  },
-  {
-    title: 'Metadata before payloads',
-    body: 'Headers are part of the request path, not an afterthought. Auth, trace IDs, deadlines, and feature flags travel here.',
-  },
-  {
-    title: 'Messages can stream both ways',
-    body: 'Unary is only one mode. gRPC also supports client streaming, server streaming, and full bidi sessions over the same transport.',
-  },
-  {
-    title: 'Status lands with trailers',
-    body: 'The final status and trailing metadata often arrive after the response messages, which is why trailer visibility is essential.',
-  },
+const navTabs: Array<{
+  key: ActiveView;
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+}> = [
+  { key: 'compose', icon: FileCode2, label: 'Compose' },
+  { key: 'response', icon: Activity, label: 'Response' },
+  { key: 'history', icon: History, label: 'History' },
+  { key: 'tests', icon: FlaskConical, label: 'Tests' },
+  { key: 'transport', icon: Cable, label: 'Transport' },
+  { key: 'structure', icon: BookMarked, label: 'Structure' },
+  { key: 'workspace', icon: Settings, label: 'Workspace' },
 ];
 
 function newTargetDraft(defaults?: WorkspaceTargetConfig): WorkspaceTargetProfile {
@@ -212,6 +186,25 @@ function newTargetDraft(defaults?: WorkspaceTargetConfig): WorkspaceTargetProfil
   });
 }
 
+function parseMultilineValues(value: string) {
+  return value
+    .split('\n')
+    .map((e) => e.trim())
+    .filter(Boolean);
+}
+
+function schemaSourceLabel(value: WorkspaceTargetProfile['schemaSource']) {
+  return value === 'proto-files' ? 'Proto files' : value === 'protoset' ? 'Protoset' : 'Reflection';
+}
+
+function countMessages(msgs: ProtoMessageSummary[]): number {
+  return msgs.reduce((t, m) => t + 1 + countMessages(m.messages), 0);
+}
+
+function countEnums(msgs: ProtoMessageSummary[], enums: ProtoEnumSummary[]): number {
+  return enums.length + msgs.reduce((t, m) => t + countEnums(m.messages, m.enums), 0);
+}
+
 export function App() {
   const [rootBootstrap, setRootBootstrap] = useState<BootstrapResponse | null>(null);
   const [bootstrap, setBootstrap] = useState<BootstrapResponse | null>(null);
@@ -219,7 +212,7 @@ export function App() {
   const [schema, setSchema] = useState<SchemaResponse | null>(null);
   const [workspaceSessionId, setWorkspaceSessionId] = useState('');
   const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(
-    loadStoredValue<WorkspaceTargetProfile[]>(appStorageKeys.targets, [])
+    loadStoredValue(appStorageKeys.targets, [])
   );
   const [activeTargetId, setActiveTargetId] = useState(
     loadStoredValue<string>(appStorageKeys.activeTargetId, '')
@@ -236,27 +229,27 @@ export function App() {
   );
   const [searchText, setSearchText] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>(
-    loadStoredValue<MethodFilter>(appStorageKeys.methodFilter, 'all')
+    loadStoredValue(appStorageKeys.methodFilter, 'all')
   );
   const [activeView, setActiveView] = useState<ActiveView>('compose');
   const [requestText, setRequestText] = useState('{}');
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [metadata, setMetadata] = useState<MetadataEntry[]>([]);
   const [collections, setCollections] = useState<SavedCollection[]>(
-    loadStoredValue<SavedCollection[]>(appStorageKeys.collections, [])
+    loadStoredValue(appStorageKeys.collections, [])
   );
   const [environments, setEnvironments] = useState<EnvironmentPreset[]>(
-    loadStoredValue<EnvironmentPreset[]>(appStorageKeys.environments, [])
+    loadStoredValue(appStorageKeys.environments, [])
   );
   const [history, setHistory] = useState<RequestHistoryEntry[]>(
-    loadStoredValue<RequestHistoryEntry[]>(appStorageKeys.history, [])
+    loadStoredValue(appStorageKeys.history, [])
   );
   const [collectionName, setCollectionName] = useState('');
   const [collectionNotes, setCollectionNotes] = useState('');
   const [environmentName, setEnvironmentName] = useState('');
   const [environmentNotes, setEnvironmentNotes] = useState('');
   const [assertionRules, setAssertionRules] = useState<AssertionRule[]>(
-    loadStoredValue<AssertionRule[]>(appStorageKeys.assertions, defaultAssertions)
+    loadStoredValue(appStorageKeys.assertions, defaultAssertions)
   );
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const [invokeState, setInvokeState] = useState<{
@@ -264,14 +257,9 @@ export function App() {
     error: string | null;
     result: InvokeResponse | null;
     latencyMs: number;
-  }>({
-    loading: false,
-    error: null,
-    result: null,
-    latencyMs: 0,
-  });
+  }>({ loading: false, error: null, result: null, latencyMs: 0 });
   const [simulationConfig, setSimulationConfig] = useState(
-    loadStoredValue<SimulationConfig>(appStorageKeys.simulation, defaultSimulation)
+    loadStoredValue(appStorageKeys.simulation, defaultSimulation)
   );
   const [simulationRun, setSimulationRun] = useState<SimulationRun | null>(null);
   const [simulationBusy, setSimulationBusy] = useState(false);
@@ -286,131 +274,80 @@ export function App() {
   } | null>(null);
   const deferredSearchText = useDeferredValue(searchText);
 
-  function applyBootstrap(nextBootstrap: BootstrapResponse, rememberRoot = false) {
-    const availableMethods = nextBootstrap.services.flatMap((service) => service.methods);
-    const storedMethod = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
-    const initialMethod = availableMethods.some((method) => method.fullName === storedMethod)
-      ? storedMethod
-      : (availableMethods[0]?.fullName ?? '');
-
-    if (rememberRoot) {
-      setRootBootstrap(nextBootstrap);
-    }
-
-    setBootstrap(nextBootstrap);
+  function applyBootstrap(next: BootstrapResponse, rememberRoot = false) {
+    const methods = next.services.flatMap((s) => s.methods);
+    const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
+    const initial = methods.some((m) => m.fullName === stored)
+      ? stored
+      : (methods[0]?.fullName ?? '');
+    if (rememberRoot) setRootBootstrap(next);
+    setBootstrap(next);
     setBootError(null);
     setWorkspaceError(null);
     setSchema(null);
     setProtoCatalog(null);
     setSelectedProtoFile('');
-    setMetadata(nextBootstrap.defaultMetadata);
-    setInvokeState({
-      loading: false,
-      error: null,
-      result: null,
-      latencyMs: 0,
-    });
+    setMetadata(next.defaultMetadata);
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
     setAssertionResults([]);
-
-    if (initialMethod) {
-      startTransition(() => {
-        setSelectedMethod(initialMethod);
-      });
-    } else {
-      setSelectedMethod('');
-    }
+    if (initial) startTransition(() => setSelectedMethod(initial));
+    else setSelectedMethod('');
   }
 
-  const applyBootstrapEffect = useEffectEvent(
-    (nextBootstrap: BootstrapResponse, rememberRoot = false) => {
-      applyBootstrap(nextBootstrap, rememberRoot);
-    }
+  const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse, root = false) =>
+    applyBootstrap(next, root)
   );
-
-  const connectTargetEffect = useEffectEvent((target: WorkspaceTargetProfile) => {
-    void handleConnectTarget(target, true);
+  const connectTargetEffect = useEffectEvent((t: WorkspaceTargetProfile) => {
+    void handleConnectTarget(t, true);
   });
 
   useEffect(() => {
     let cancelled = false;
-
     async function load() {
       try {
-        const [bootstrapResponse, exampleResponse] = await Promise.all([
-          fetchBootstrap(),
-          fetchExamples(),
-        ]);
-        if (cancelled) {
-          return;
-        }
-
-        applyBootstrapEffect(bootstrapResponse, true);
-        setExamples(exampleResponse);
-        setTargetDraft((existing) =>
-          existing.address || targets.length > 0
-            ? existing
-            : newTargetDraft(bootstrapResponse.targetDefaults)
+        const [b, e] = await Promise.all([fetchBootstrap(), fetchExamples()]);
+        if (cancelled) return;
+        applyBootstrapEffect(b, true);
+        setExamples(e);
+        setTargetDraft((x) =>
+          x.address || targets.length > 0 ? x : newTargetDraft(b.targetDefaults)
         );
-      } catch (error) {
-        if (!cancelled) {
-          setBootError(error instanceof Error ? error.message : 'Failed to load ProtoPeek.');
-        }
+      } catch (err) {
+        if (!cancelled)
+          setBootError(err instanceof Error ? err.message : 'Failed to load ProtoPeek.');
       }
     }
-
     void load();
-
     return () => {
       cancelled = true;
     };
   }, [targets.length]);
 
   useEffect(() => {
-    if (!bootstrap || !selectedMethod) {
-      return;
-    }
-
+    if (!bootstrap || !selectedMethod) return;
     let cancelled = false;
-
-    async function loadMethodSchema() {
+    async function loadSchema() {
       try {
-        const nextSchema = workspaceSessionId
+        const s = workspaceSessionId
           ? await fetchWorkspaceSchema(workspaceSessionId, selectedMethod)
           : await fetchSchema(selectedMethod);
-        if (cancelled) {
-          return;
-        }
-
-        setSchema(nextSchema);
-        const pendingDraft =
-          pendingDraftRef.current && pendingDraftRef.current.method === selectedMethod
-            ? pendingDraftRef.current
-            : null;
-        const nextTemplate = prettyJson(generateRequestTemplate(nextSchema));
-        setRequestText(pendingDraft?.requestText ?? nextTemplate);
-        if (pendingDraft) {
-          setMetadata(pendingDraft.metadata);
-          setTimeoutSeconds(pendingDraft.timeoutSeconds);
+        if (cancelled) return;
+        setSchema(s);
+        const pending =
+          pendingDraftRef.current?.method === selectedMethod ? pendingDraftRef.current : null;
+        setRequestText(pending?.requestText ?? prettyJson(generateRequestTemplate(s)));
+        if (pending) {
+          setMetadata(pending.metadata);
+          setTimeoutSeconds(pending.timeoutSeconds);
           pendingDraftRef.current = null;
         }
-        setInvokeState({
-          loading: false,
-          error: null,
-          result: null,
-          latencyMs: 0,
-        });
-      } catch (error) {
-        if (!cancelled) {
-          setBootError(
-            error instanceof Error ? error.message : 'Failed to load the method schema.'
-          );
-        }
+        setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+      } catch (err) {
+        if (!cancelled) setBootError(err instanceof Error ? err.message : 'Failed to load schema.');
       }
     }
-
     storeValue(appStorageKeys.selectedMethod, selectedMethod);
-    void loadMethodSchema();
-
+    void loadSchema();
     return () => {
       cancelled = true;
     };
@@ -419,160 +356,93 @@ export function App() {
   useEffect(() => {
     storeValue(appStorageKeys.collections, collections);
   }, [collections]);
-
   useEffect(() => {
     storeValue(appStorageKeys.environments, environments);
   }, [environments]);
-
   useEffect(() => {
     storeValue(appStorageKeys.history, history);
   }, [history]);
-
   useEffect(() => {
     storeValue(appStorageKeys.assertions, assertionRules);
   }, [assertionRules]);
-
   useEffect(() => {
     storeValue(appStorageKeys.simulation, simulationConfig);
   }, [simulationConfig]);
-
   useEffect(() => {
     storeValue(appStorageKeys.methodFilter, methodFilter);
   }, [methodFilter]);
-
   useEffect(() => {
     storeValue(appStorageKeys.targets, targets);
   }, [targets]);
-
   useEffect(() => {
     storeValue(appStorageKeys.activeTargetId, activeTargetId);
   }, [activeTargetId]);
 
   useEffect(() => {
-    if (!rootBootstrap?.launcherMode || !activeTargetId || workspaceSessionId || !bootstrap) {
-      return;
-    }
-
-    const target = targets.find((entry) => entry.id === activeTargetId);
-    if (!target) {
-      return;
-    }
-
-    connectTargetEffect(target);
+    if (!rootBootstrap?.launcherMode || !activeTargetId || workspaceSessionId || !bootstrap) return;
+    const t = targets.find((e) => e.id === activeTargetId);
+    if (t) connectTargetEffect(t);
   }, [activeTargetId, bootstrap, rootBootstrap, targets, workspaceSessionId]);
 
   useEffect(() => {
-    if (!bootstrap || bootstrap.services.length === 0) {
-      return;
-    }
-
+    if (!bootstrap || bootstrap.services.length === 0) return;
     let cancelled = false;
-
-    async function loadProtoData() {
+    async function loadProto() {
       try {
-        const nextCatalog = workspaceSessionId
+        const cat = workspaceSessionId
           ? await fetchWorkspaceProtoCatalog(workspaceSessionId)
           : await fetchProtoCatalog();
-        if (cancelled) {
-          return;
-        }
-        setProtoCatalog(nextCatalog);
-        const availableFiles = nextCatalog.files.filter(
-          (file) => showWellKnownProto || !file.wellKnown
-        );
-        setSelectedProtoFile((existing) =>
-          availableFiles.some((file) => file.name === existing)
-            ? existing
-            : (availableFiles[0]?.name ?? '')
-        );
-      } catch (error) {
-        if (!cancelled) {
-          setWorkspaceError(
-            error instanceof Error ? error.message : 'Failed to load the proto explorer.'
-          );
-        }
+        if (cancelled) return;
+        setProtoCatalog(cat);
+        const files = cat.files.filter((f) => showWellKnownProto || !f.wellKnown);
+        setSelectedProtoFile((x) => (files.some((f) => f.name === x) ? x : (files[0]?.name ?? '')));
+      } catch (err) {
+        if (!cancelled)
+          setWorkspaceError(err instanceof Error ? err.message : 'Failed to load protos.');
       }
     }
-
-    void loadProtoData();
-
+    void loadProto();
     return () => {
       cancelled = true;
     };
   }, [bootstrap, showWellKnownProto, workspaceSessionId]);
 
   const currentService =
-    bootstrap?.services.find((service) =>
-      service.methods.some((method) => method.fullName === selectedMethod)
-    ) ?? null;
-  const currentMethod =
-    currentService?.methods.find((method) => method.fullName === selectedMethod) ?? null;
+    bootstrap?.services.find((s) => s.methods.some((m) => m.fullName === selectedMethod)) ?? null;
+  const currentMethod = currentService?.methods.find((m) => m.fullName === selectedMethod) ?? null;
   const matchingExamples = examples.filter(
-    (example) =>
-      `${example.service}.${example.method}` === selectedMethod ||
-      `${example.service}/${example.method}` === selectedMethod
+    (e) =>
+      `${e.service}.${e.method}` === selectedMethod || `${e.service}/${e.method}` === selectedMethod
   );
-
-  const methodInventory = bootstrap?.services.flatMap((service) => service.methods) ?? [];
-  const query = deferredSearchText.trim().toLowerCase();
+  const q = deferredSearchText.trim().toLowerCase();
   const visibleServices = (bootstrap?.services ?? [])
-    .map((service) => {
-      const serviceMatches = !query || service.name.toLowerCase().includes(query);
+    .map((s) => {
+      const sMatch = !q || s.name.toLowerCase().includes(q);
       return {
-        ...service,
-        methods: service.methods.filter((method) => {
-          if (!matchesMethodFilter(method, methodFilter)) {
-            return false;
-          }
-
-          if (serviceMatches || !query) {
-            return true;
-          }
-
-          return (
-            method.name.toLowerCase().includes(query) ||
-            method.fullName.toLowerCase().includes(query)
-          );
-        }),
+        ...s,
+        methods: s.methods.filter(
+          (m) =>
+            matchesMethodFilter(m, methodFilter) &&
+            (sMatch ||
+              !q ||
+              m.name.toLowerCase().includes(q) ||
+              m.fullName.toLowerCase().includes(q))
+        ),
       };
     })
-    .filter((service) => service.methods.length > 0);
-
-  const methodCounts: Record<MethodFilter, number> = {
-    all: methodInventory.length,
-    unary: methodInventory.filter((method) => matchesMethodFilter(method, 'unary')).length,
-    'client-streaming': methodInventory.filter((method) =>
-      matchesMethodFilter(method, 'client-streaming')
-    ).length,
-    'server-streaming': methodInventory.filter((method) =>
-      matchesMethodFilter(method, 'server-streaming')
-    ).length,
-    bidirectional: methodInventory.filter((method) => matchesMethodFilter(method, 'bidirectional'))
-      .length,
-  };
-  const activeTargetProfile =
-    targets.find((target) => target.id === activeTargetId) ??
-    targets.find((target) => target.address === bootstrap?.target) ??
-    null;
-  const filteredProtoFiles = (protoCatalog?.files ?? []).filter((file) => {
-    if (!showWellKnownProto && file.wellKnown) {
-      return false;
-    }
-
-    const queryText = protoSearchText.trim().toLowerCase();
-    if (!queryText) {
-      return true;
-    }
-
+    .filter((s) => s.methods.length > 0);
+  const filteredProtoFiles = (protoCatalog?.files ?? []).filter((f) => {
+    if (!showWellKnownProto && f.wellKnown) return false;
+    const pq = protoSearchText.trim().toLowerCase();
+    if (!pq) return true;
     return (
-      file.name.toLowerCase().includes(queryText) ||
-      file.package.toLowerCase().includes(queryText) ||
-      file.services.some((service) => service.fullName.toLowerCase().includes(queryText)) ||
-      file.messages.some((message) => message.fullName.toLowerCase().includes(queryText))
+      f.name.toLowerCase().includes(pq) ||
+      f.package.toLowerCase().includes(pq) ||
+      f.services.some((s) => s.fullName.toLowerCase().includes(pq)) ||
+      f.messages.some((m) => m.fullName.toLowerCase().includes(pq))
     );
   });
-  const selectedProto = filteredProtoFiles.find((file) => file.name === selectedProtoFile) ?? null;
-
+  const selectedProto = filteredProtoFiles.find((f) => f.name === selectedProtoFile) ?? null;
   const grpcCommand =
     bootstrap && currentMethod
       ? commandPreview({
@@ -584,15 +454,15 @@ export function App() {
           grpcurlOptions: bootstrap.grpcurlOptions,
         })
       : '';
+  const responsePayload = invokeState.result?.responses.map((e) => e.message) ?? [];
+  const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 200, 48);
+  const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
   async function handleConnectTarget(target: WorkspaceTargetProfile, silent = false) {
     setWorkspaceBusy(true);
-    if (!silent) {
-      setWorkspaceError(null);
-    }
-
+    if (!silent) setWorkspaceError(null);
     try {
-      const response = await connectWorkspaceTarget({
+      const r = await connectWorkspaceTarget({
         address: target.address,
         plaintext: target.plaintext,
         insecure: target.insecure,
@@ -605,80 +475,70 @@ export function App() {
         importPaths: target.importPaths,
         protosets: target.protosets,
       });
-
-      setWorkspaceSessionId(response.sessionId);
+      setWorkspaceSessionId(r.sessionId);
       setActiveTargetId(target.id);
-      applyBootstrap(response.bootstrap);
+      applyBootstrap(r.bootstrap);
       setTargetDraft(target);
-    } catch (error) {
-      setWorkspaceError(
-        error instanceof Error ? error.message : 'Failed to connect to the selected target.'
-      );
+    } catch (err) {
+      setWorkspaceError(err instanceof Error ? err.message : 'Connection failed.');
     } finally {
       setWorkspaceBusy(false);
     }
   }
 
-  function materializeTarget(profile: WorkspaceTargetProfile) {
+  function materializeTarget(p: WorkspaceTargetProfile) {
     return toWorkspaceTargetProfile({
-      id: profile.id,
-      name: profile.name.trim() || profile.address || 'Untitled target',
-      notes: profile.notes,
+      id: p.id,
+      name: p.name.trim() || p.address || 'Untitled',
+      notes: p.notes,
       config: {
-        address: profile.address.trim(),
-        plaintext: profile.plaintext,
-        insecure: profile.insecure,
-        authority: profile.authority.trim(),
-        cacertPath: profile.cacertPath.trim(),
-        certPath: profile.certPath.trim(),
-        keyPath: profile.keyPath.trim(),
-        schemaSource: profile.schemaSource,
-        protoFiles: profile.protoFiles,
-        importPaths: profile.importPaths,
-        protosets: profile.protosets,
+        address: p.address.trim(),
+        plaintext: p.plaintext,
+        insecure: p.insecure,
+        authority: p.authority.trim(),
+        cacertPath: p.cacertPath.trim(),
+        certPath: p.certPath.trim(),
+        keyPath: p.keyPath.trim(),
+        schemaSource: p.schemaSource,
+        protoFiles: p.protoFiles,
+        importPaths: p.importPaths,
+        protosets: p.protosets,
       },
     });
   }
 
-  function persistTarget(nextTarget: WorkspaceTargetProfile) {
-    setTargets((existing) => [
-      nextTarget,
-      ...existing.filter((entry) => entry.id !== nextTarget.id),
-    ]);
-    setActiveTargetId(nextTarget.id);
+  function persistTarget(t: WorkspaceTargetProfile) {
+    setTargets((x) => [t, ...x.filter((e) => e.id !== t.id)]);
+    setActiveTargetId(t.id);
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
   function handleSaveTarget() {
     if (!targetDraft.address.trim()) {
-      setWorkspaceError('Target address is required before saving a workspace target.');
+      setWorkspaceError('Address required.');
       return;
     }
     persistTarget(materializeTarget(targetDraft));
   }
 
-  async function handleSaveAndConnectTarget() {
+  async function handleSaveAndConnect() {
     if (!targetDraft.address.trim()) {
-      setWorkspaceError('Target address is required before connecting to a workspace target.');
+      setWorkspaceError('Address required.');
       return;
     }
-    const nextTarget = materializeTarget(targetDraft);
-    persistTarget(nextTarget);
-    await handleConnectTarget(nextTarget);
+    const t = materializeTarget(targetDraft);
+    persistTarget(t);
+    await handleConnectTarget(t);
   }
 
   function handleDeleteTarget(id: string) {
-    setTargets((existing) => existing.filter((entry) => entry.id !== id));
+    setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
       setActiveTargetId('');
       setWorkspaceSessionId('');
-      if (rootBootstrap) {
-        applyBootstrap(rootBootstrap);
-      }
+      if (rootBootstrap) applyBootstrap(rootBootstrap);
     }
-    if (targetDraft.id === id) {
-      setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
-    }
+    if (targetDraft.id === id) setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
   function handleResetToLauncher() {
@@ -691,122 +551,86 @@ export function App() {
     }
   }
 
-  function updateTargetDraft(next: Partial<WorkspaceTargetProfile>) {
-    setTargetDraft((existing) => ({
-      ...existing,
-      ...next,
-    }));
+  function updateDraft(next: Partial<WorkspaceTargetProfile>) {
+    setTargetDraft((x) => ({ ...x, ...next }));
   }
 
-  function downloadTextFile(filename: string, contents: string, type = 'text/plain') {
-    const blob = new Blob([contents], { type });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    window.URL.revokeObjectURL(url);
+  function downloadFile(name: string, content: string, type = 'text/plain') {
+    const b = new Blob([content], { type });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(u);
   }
 
   async function handleInvoke() {
-    if (!schema || !currentService || !currentMethod) {
-      return;
-    }
-
+    if (!schema || !currentService || !currentMethod) return;
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
       setAssertionResults([]);
-      setInvokeState({
-        loading: false,
-        error: parsed.error,
-        result: null,
-        latencyMs: 0,
-      });
+      setInvokeState({ loading: false, error: parsed.error, result: null, latencyMs: 0 });
       setActiveView('response');
       return;
     }
-
     if (schema.requestStream && !Array.isArray(parsed.value)) {
       setAssertionResults([]);
       setInvokeState({
         loading: false,
-        error: 'Streaming RPCs expect the request editor to contain a JSON array of messages.',
+        error: 'Streaming RPCs need a JSON array.',
         result: null,
         latencyMs: 0,
       });
       setActiveView('response');
       return;
     }
-
     if (!schema.requestStream && Array.isArray(parsed.value)) {
       setAssertionResults([]);
       setInvokeState({
         loading: false,
-        error: 'Unary RPCs expect a single JSON object, not an array.',
+        error: 'Unary RPCs need a single object.',
         result: null,
         latencyMs: 0,
       });
       setActiveView('response');
       return;
     }
-
     const payload: InvokeRequest = {
       timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((entry) => entry.name.trim()),
+      metadata: metadata.filter((e) => e.name.trim()),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
-
-    setInvokeState({
-      loading: true,
-      error: null,
-      result: null,
-      latencyMs: 0,
-    });
+    setInvokeState({ loading: true, error: null, result: null, latencyMs: 0 });
     setActiveView('response');
-
-    const startedAt = performance.now();
-
+    const t0 = performance.now();
     try {
       const result = workspaceSessionId
         ? await invokeWorkspaceMethod(workspaceSessionId, currentMethod.fullName, payload)
         : await invokeMethod(currentMethod.fullName, payload);
-      const latencyMs = performance.now() - startedAt;
-
-      setInvokeState({
-        loading: false,
-        error: null,
-        result,
-        latencyMs,
-      });
-      setAssertionResults(
-        evaluateAssertions({
-          rules: assertionRules,
-          result,
-          latencyMs,
-        })
-      );
-
-      const firstResponse = result.responses[0]?.message ?? result.error ?? null;
-      setHistory((existing) =>
+      const lat = performance.now() - t0;
+      setInvokeState({ loading: false, error: null, result, latencyMs: lat });
+      setAssertionResults(evaluateAssertions({ rules: assertionRules, result, latencyMs: lat }));
+      setHistory((x) =>
         [
           toHistoryEntry({
             service: currentService.name,
             method: currentMethod.fullName,
-            latencyMs,
+            latencyMs: lat,
             success: !result.error,
             requestText,
-            response: firstResponse,
+            response: result.responses[0]?.message ?? result.error ?? null,
             metadata,
             timeoutSeconds,
           }),
-          ...existing,
+          ...x,
         ].slice(0, 50)
       );
-    } catch (error) {
+    } catch (err) {
       setAssertionResults([]);
       setInvokeState({
         loading: false,
-        error: error instanceof Error ? error.message : 'Invocation failed.',
+        error: err instanceof Error ? err.message : 'Invocation failed.',
         result: null,
         latencyMs: 0,
       });
@@ -814,117 +638,80 @@ export function App() {
   }
 
   async function handleSimulation() {
-    if (!schema || !currentMethod) {
-      return;
-    }
-
+    if (!schema || !currentMethod) return;
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
       setSimulationError(parsed.error);
       return;
     }
-
     if (schema.requestStream && !Array.isArray(parsed.value)) {
-      setSimulationError('Streaming RPCs expect the request editor to contain a JSON array.');
+      setSimulationError('Need JSON array for streaming.');
       return;
     }
-
     if (!schema.requestStream && Array.isArray(parsed.value)) {
-      setSimulationError('Unary RPCs expect a single JSON object.');
+      setSimulationError('Need single object for unary.');
       return;
     }
-
-    const normalized = clampSimulationConfig(simulationConfig);
+    const norm = clampSimulationConfig(simulationConfig);
     setSimulationBusy(true);
     setSimulationError(null);
-
     const payload: InvokeRequest = {
       timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((entry) => entry.name.trim()),
+      metadata: metadata.filter((e) => e.name.trim()),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
-    const methodFullName = currentMethod.fullName;
-
-    const latencies: number[] = [];
-    let successCount = 0;
-    let errorCount = 0;
-    let index = 0;
-
-    const startedAt = performance.now();
-
+    const mName = currentMethod.fullName;
+    const lats: number[] = [];
+    let ok = 0;
+    let fail = 0;
+    let idx = 0;
+    const t0 = performance.now();
     async function worker() {
-      while (index < normalized.runs) {
-        const currentIndex = index;
-        index += 1;
-
-        const runStartedAt = performance.now();
+      while (idx < norm.runs) {
+        const ci = idx;
+        idx++;
+        const rt = performance.now();
         try {
-          const result = workspaceSessionId
-            ? await invokeWorkspaceMethod(workspaceSessionId, methodFullName, payload)
-            : await invokeMethod(methodFullName, payload);
-          const latency = performance.now() - runStartedAt;
-          latencies[currentIndex] = latency;
-          if (result.error) {
-            errorCount += 1;
-          } else {
-            successCount += 1;
-          }
+          const r = workspaceSessionId
+            ? await invokeWorkspaceMethod(workspaceSessionId, mName, payload)
+            : await invokeMethod(mName, payload);
+          lats[ci] = performance.now() - rt;
+          if (r.error) fail++;
+          else ok++;
         } catch {
-          latencies[currentIndex] = performance.now() - runStartedAt;
-          errorCount += 1;
+          lats[ci] = performance.now() - rt;
+          fail++;
         }
-
-        if (normalized.thinkTimeMs > 0) {
-          await new Promise((resolve) => {
-            window.setTimeout(resolve, normalized.thinkTimeMs);
-          });
-        }
+        if (norm.thinkTimeMs > 0) await new Promise((r) => setTimeout(r, norm.thinkTimeMs));
       }
     }
-
     try {
       await Promise.all(
-        Array.from({ length: Math.min(normalized.concurrency, normalized.runs) }, () => worker())
+        Array.from({ length: Math.min(norm.concurrency, norm.runs) }, () => worker())
       );
-      const totalMs = performance.now() - startedAt;
-      setSimulationRun(
-        simulationSummary(methodFullName, normalized, latencies, successCount, errorCount, totalMs)
-      );
-    } catch (error) {
-      setSimulationError(error instanceof Error ? error.message : 'Simulation failed.');
+      setSimulationRun(simulationSummary(mName, norm, lats, ok, fail, performance.now() - t0));
+    } catch (err) {
+      setSimulationError(err instanceof Error ? err.message : 'Simulation failed.');
     } finally {
       setSimulationBusy(false);
       setActiveView('tests');
     }
   }
 
-  async function handleRunAssertions() {
-    await handleInvoke();
-    setActiveView('tests');
+  function handleMetadataChange(i: number, next: MetadataEntry) {
+    setMetadata((x) => x.map((e, j) => (j === i ? next : e)));
   }
-
-  function handleMetadataChange(index: number, nextField: MetadataEntry) {
-    setMetadata((existing) =>
-      existing.map((entry, entryIndex) => (entryIndex === index ? nextField : entry))
-    );
-  }
-
   function handleAddMetadata() {
-    setMetadata((existing) => [...existing, { name: '', value: '' }]);
+    setMetadata((x) => [...x, { name: '', value: '' }]);
   }
-
-  function handleRemoveMetadata(index: number) {
-    setMetadata((existing) => existing.filter((_, entryIndex) => entryIndex !== index));
+  function handleRemoveMetadata(i: number) {
+    setMetadata((x) => x.filter((_, j) => j !== i));
   }
 
   function handleSaveCollection() {
-    if (!currentService || !currentMethod) {
-      return;
-    }
-
-    const name = collectionName.trim() || `${currentMethod.name} snapshot`;
-    const collection = toCollection({
-      name,
+    if (!currentService || !currentMethod) return;
+    const c = toCollection({
+      name: collectionName.trim() || `${currentMethod.name} snapshot`,
       notes: collectionNotes,
       service: currentService.name,
       method: currentMethod.fullName,
@@ -932,47 +719,36 @@ export function App() {
       timeoutSeconds,
       requestText,
     });
-
-    setCollections((existing) => [
-      collection,
-      ...existing.filter((item) => item.id !== collection.id),
-    ]);
+    setCollections((x) => [c, ...x.filter((e) => e.id !== c.id)]);
     setCollectionName('');
     setCollectionNotes('');
   }
 
   function handleSaveEnvironment() {
-    const name =
-      environmentName.trim() || `${currentService?.name.split('.').pop() ?? 'default'} env`;
-    const nextEnvironment = toEnvironmentPreset({
-      name,
+    const e = toEnvironmentPreset({
+      name: environmentName.trim() || `${currentService?.name.split('.').pop() ?? 'default'} env`,
       notes: environmentNotes,
-      metadata: metadata.filter((entry) => entry.name.trim()),
+      metadata: metadata.filter((e) => e.name.trim()),
       timeoutSeconds,
     });
-
-    setEnvironments((existing) => [
-      nextEnvironment,
-      ...existing.filter((entry) => entry.id !== nextEnvironment.id),
-    ]);
+    setEnvironments((x) => [e, ...x.filter((i) => i.id !== e.id)]);
     setEnvironmentName('');
     setEnvironmentNotes('');
   }
 
-  function applyEnvironment(environment: EnvironmentPreset) {
-    setMetadata(environment.metadata);
-    setTimeoutSeconds(environment.timeoutSeconds);
-    setEnvironmentName(environment.name);
-    setEnvironmentNotes(environment.notes);
+  function applyEnvironment(e: EnvironmentPreset) {
+    setMetadata(e.metadata);
+    setTimeoutSeconds(e.timeoutSeconds);
+    setEnvironmentName(e.name);
+    setEnvironmentNotes(e.notes);
   }
 
-  function handleAssertionChange(id: string, nextRule: AssertionRule) {
-    setAssertionRules((existing) => existing.map((rule) => (rule.id === id ? nextRule : rule)));
+  function handleAssertionChange(id: string, next: AssertionRule) {
+    setAssertionRules((x) => x.map((r) => (r.id === id ? next : r)));
   }
-
   function handleAddAssertion() {
-    setAssertionRules((existing) => [
-      ...existing,
+    setAssertionRules((x) => [
+      ...x,
       {
         id: uid('assert'),
         name: 'Response count >= 1',
@@ -983,2310 +759,403 @@ export function App() {
       },
     ]);
   }
-
   function handleRemoveAssertion(id: string) {
-    setAssertionRules((existing) => existing.filter((rule) => rule.id !== id));
+    setAssertionRules((x) => x.filter((r) => r.id !== id));
   }
 
-  function applyCollection(collection: SavedCollection) {
+  function applyCollection(c: SavedCollection) {
     pendingDraftRef.current = {
-      method: collection.method,
-      metadata: collection.metadata,
-      timeoutSeconds: collection.timeoutSeconds,
-      requestText: collection.requestText,
+      method: c.method,
+      metadata: c.metadata,
+      timeoutSeconds: c.timeoutSeconds,
+      requestText: c.requestText,
     };
     startTransition(() => {
-      setSelectedMethod(collection.method);
-      setCollectionName(collection.name);
-      setCollectionNotes(collection.notes);
+      setSelectedMethod(c.method);
+      setCollectionName(c.name);
+      setCollectionNotes(c.notes);
       setActiveView('compose');
     });
   }
 
-  function applyHistory(entry: RequestHistoryEntry) {
+  function applyHistory(e: RequestHistoryEntry) {
     pendingDraftRef.current = {
-      method: entry.method,
-      metadata: entry.metadata,
-      timeoutSeconds: entry.timeoutSeconds,
-      requestText: entry.requestText,
+      method: e.method,
+      metadata: e.metadata,
+      timeoutSeconds: e.timeoutSeconds,
+      requestText: e.requestText,
     };
     startTransition(() => {
-      setSelectedMethod(entry.method);
+      setSelectedMethod(e.method);
       setActiveView('compose');
     });
   }
 
   function handleExportWorkspace() {
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            exportedAt: new Date().toISOString(),
-            assertions: assertionRules,
-            collections,
-            environments,
-            history,
-            targets,
-          },
-          null,
-          2
-        ),
-      ],
-      { type: 'application/json' }
+    downloadFile(
+      'protopeek-workspace.json',
+      JSON.stringify(
+        {
+          exportedAt: new Date().toISOString(),
+          assertions: assertionRules,
+          collections,
+          environments,
+          history,
+          targets,
+        },
+        null,
+        2
+      ),
+      'application/json'
     );
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'protopeek-workspace.json';
-    link.click();
-    window.URL.revokeObjectURL(url);
   }
 
   async function handleImportWorkspace(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
+    const f = event.target.files?.[0];
+    if (!f) return;
+    const parsed = safeParseJson(await f.text());
+    if (parsed.error || typeof parsed.value !== 'object' || !parsed.value) {
+      setBootError('Invalid workspace JSON.');
       return;
     }
-
-    const contents = await file.text();
-    const parsed = safeParseJson(contents);
-    if (parsed.error || typeof parsed.value !== 'object' || parsed.value === null) {
-      setBootError('Imported workspace is not valid JSON.');
-      return;
-    }
-
-    const imported = parsed.value as {
+    const d = parsed.value as {
       assertions?: AssertionRule[];
       collections?: SavedCollection[];
       environments?: EnvironmentPreset[];
       history?: RequestHistoryEntry[];
       targets?: WorkspaceTargetProfile[];
     };
-
-    if (imported.assertions) {
-      setAssertionRules(imported.assertions);
-    }
-    if (imported.collections) {
-      setCollections(imported.collections);
-    }
-    if (imported.environments) {
-      setEnvironments(imported.environments);
-    }
-    if (imported.history) {
-      setHistory(imported.history);
-    }
-    if (imported.targets) {
-      setTargets(imported.targets);
-    }
+    if (d.assertions) setAssertionRules(d.assertions);
+    if (d.collections) setCollections(d.collections);
+    if (d.environments) setEnvironments(d.environments);
+    if (d.history) setHistory(d.history);
+    if (d.targets) setTargets(d.targets);
   }
 
-  const responsePayload = invokeState.result?.responses.map((entry) => entry.message) ?? [];
-  const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 220, 56);
-  const passingAssertions = assertionResults.filter((result) => result.passed).length;
-  const latestStatus = invokeState.result?.error?.name ?? (invokeState.result ? 'OK' : 'Not run');
-  const latestHeaderCount = invokeState.result?.headers.length ?? 0;
-  const latestTrailerCount = invokeState.result?.trailers.length ?? 0;
-
-  if (bootError) {
+  // boot/loading states
+  if (bootError)
     return (
-      <div className="pp-shell flex items-center justify-center">
-        <div className="pp-panel max-w-xl text-center">
-          <CircleAlert className="mx-auto mb-4 size-10 text-pp-danger" />
-          <h1 className="pp-heading text-3xl">ProtoPeek couldn&apos;t boot.</h1>
-          <p className="pp-muted mt-4">{bootError}</p>
+      <div className="flex h-screen items-center justify-center bg-pp-bg">
+        <div className="pp-panel max-w-md text-center">
+          <CircleAlert className="mx-auto mb-3 size-8 text-pp-danger" />
+          <h1 className="pp-heading text-xl">ProtoPeek couldn&apos;t start</h1>
+          <p className="pp-muted mt-2">{bootError}</p>
         </div>
       </div>
     );
-  }
 
-  if (!bootstrap) {
+  if (!bootstrap)
     return (
-      <div className="pp-shell">
-        <div className="mx-auto max-w-7xl">
-          <div className="pp-panel relative overflow-hidden">
-            <div className="pp-skeleton absolute inset-0" />
-            <div className="relative flex items-center gap-4">
-              <LoaderCircle className="size-6 animate-spin text-pp-brand" />
-              <div>
-                <div className="pp-label">Booting</div>
-                <div className="pp-heading text-2xl">Loading the ProtoPeek console...</div>
-              </div>
-            </div>
-          </div>
+      <div className="flex h-screen items-center justify-center bg-pp-bg">
+        <div className="flex items-center gap-3">
+          <LoaderCircle className="size-5 animate-spin text-pp-brand" />
+          <span className="text-sm text-pp-muted">Loading ProtoPeek...</span>
         </div>
       </div>
     );
-  }
 
-  if (bootstrap.launcherMode && bootstrap.services.length === 0) {
+  if (bootstrap.launcherMode && bootstrap.services.length === 0)
     return (
-      <LauncherShell
-        activeTargetId={activeTargetId}
+      <LauncherView
         bootstrap={bootstrap}
+        targets={targets}
+        activeTargetId={activeTargetId}
+        draft={targetDraft}
         busy={workspaceBusy}
         error={workspaceError}
-        onChangeDraft={updateTargetDraft}
-        onConnectTarget={(target) => {
-          void handleConnectTarget(target);
+        onChangeDraft={updateDraft}
+        onSave={handleSaveTarget}
+        onSaveAndConnect={() => {
+          void handleSaveAndConnect();
         }}
-        onDeleteTarget={handleDeleteTarget}
-        onEditTarget={setTargetDraft}
-        onSaveTarget={handleSaveTarget}
-        onSaveAndConnectTarget={() => {
-          void handleSaveAndConnectTarget();
+        onConnect={(t) => {
+          void handleConnectTarget(t);
         }}
-        targetDraft={targetDraft}
-        targets={targets}
+        onEdit={setTargetDraft}
+        onDelete={handleDeleteTarget}
       />
     );
-  }
 
-  if (!schema || !currentMethod || !currentService) {
+  if (!schema || !currentMethod || !currentService)
     return (
-      <div className="pp-shell">
-        <div className="mx-auto max-w-7xl">
-          <div className="pp-panel relative overflow-hidden">
-            <div className="pp-skeleton absolute inset-0" />
-            <div className="relative flex items-center gap-4">
-              <LoaderCircle className="size-6 animate-spin text-pp-brand" />
-              <div>
-                <div className="pp-label">Booting</div>
-                <div className="pp-heading text-2xl">Loading the ProtoPeek console...</div>
-              </div>
-            </div>
-          </div>
+      <div className="flex h-screen items-center justify-center bg-pp-bg">
+        <div className="flex items-center gap-3">
+          <LoaderCircle className="size-5 animate-spin text-pp-brand" />
+          <span className="text-sm text-pp-muted">Loading schema...</span>
         </div>
       </div>
     );
-  }
 
   return (
     <div className="pp-shell">
-      <div className="pp-orb pointer-events-none absolute left-[-120px] top-24 size-72 rounded-full bg-pp-brand/15 blur-3xl" />
-      <div className="pp-orb pointer-events-none absolute right-[-80px] top-40 size-64 rounded-full bg-pp-accent/20 blur-3xl" />
+      <aside className="pp-sidebar">
+        <div className="border-b border-pp-border px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-pp-brand">ProtoPeek</span>
+            <span className="text-xs text-pp-muted">{bootstrap.version}</span>
+          </div>
+          <div className="mt-1 truncate text-xs text-pp-muted" title={bootstrap.target}>
+            {bootstrap.target}
+          </div>
+        </div>
 
-      <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-5">
-          <section className="pp-panel">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="pp-label">ProtoPeek</div>
-                <h1 className="pp-heading mt-2 text-3xl">Modern gRPC workbench</h1>
-                <p className="pp-muted mt-3">
-                  JSON-first request authoring, grpcurl parity, local test assertions, and
-                  lightweight load simulation in one responsive console.
-                </p>
-              </div>
-              <Sparkles className="size-8 text-pp-accent" />
-            </div>
+        <nav className="space-y-0.5 border-b border-pp-border px-2 py-2">
+          {navTabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveView(tab.key)}
+              className={classNames(
+                'pp-tab',
+                activeView === tab.key ? 'pp-tab-active' : 'pp-tab-inactive'
+              )}
+            >
+              <tab.icon className="size-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-            <div className="mt-5 space-y-3">
-              <InfoRow icon={Server} label="Target" value={bootstrap.target} />
-              <InfoRow icon={Cable} label="Method" value={currentMethod.fullName} />
-              <InfoRow icon={Activity} label="Version" value={bootstrap.version} />
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <a
-                className="pp-button-secondary"
-                href={bootstrap.docsURL}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <BookOpenText className="size-4" />
-                Website
-              </a>
-              <a
-                className="pp-button-secondary"
-                href={bootstrap.learnURL}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <BadgeHelp className="size-4" />
-                Learn gRPC
-              </a>
-            </div>
-          </section>
-
-          <section className="pp-panel">
-            <div className="pp-label">Navigate</div>
-            <div className="mt-4 grid gap-2">
-              <ViewButton
-                active={activeView === 'compose'}
-                icon={FileCode2}
-                label="Compose"
-                onClick={() => setActiveView('compose')}
-              />
-              <ViewButton
-                active={activeView === 'response'}
-                icon={Activity}
-                label="Response Lab"
-                onClick={() => setActiveView('response')}
-              />
-              <ViewButton
-                active={activeView === 'history'}
-                icon={History}
-                label="History"
-                onClick={() => setActiveView('history')}
-              />
-              <ViewButton
-                active={activeView === 'tests'}
-                icon={FlaskConical}
-                label="Tests & Sim"
-                onClick={() => setActiveView('tests')}
-              />
-              <ViewButton
-                active={activeView === 'transport'}
-                icon={Cable}
-                label="Transport Lens"
-                onClick={() => setActiveView('transport')}
-              />
-              <ViewButton
-                active={activeView === 'structure'}
-                icon={BookMarked}
-                label="Structure"
-                onClick={() => setActiveView('structure')}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="space-y-2 border-b border-pp-border px-3 py-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-pp-muted" />
+              <input
+                className="pp-input py-1.5 pl-8 text-xs"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search methods..."
               />
             </div>
-          </section>
-
-          {rootBootstrap?.launcherMode ? (
-            <section className="pp-panel">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="pp-label">Target registry</div>
-                  <div className="mt-2 text-sm font-semibold text-pp-ink">
-                    {activeTargetProfile
-                      ? `Connected to ${activeTargetProfile.name || activeTargetProfile.address}`
-                      : 'No active target selected'}
-                  </div>
-                  <div className="pp-muted mt-2">
-                    Save local and remote gRPC endpoints with transport settings, then switch
-                    without restarting `pp`.
-                  </div>
-                </div>
+            <div className="flex flex-wrap gap-1">
+              {methodFilterOptions.map((o) => (
                 <button
-                  className="pp-button-ghost px-3 py-2"
-                  onClick={handleResetToLauncher}
+                  key={o.value}
                   type="button"
+                  onClick={() => setMethodFilter(o.value)}
+                  className={classNames(
+                    'rounded px-2 py-0.5 text-[0.65rem] font-medium transition',
+                    methodFilter === o.value
+                      ? 'bg-pp-brand text-white'
+                      : 'text-pp-muted hover:bg-pp-bg-strong'
+                  )}
                 >
-                  Launcher
+                  {o.label}
                 </button>
-              </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-2">
+            {visibleServices.map((svc) => (
+              <SidebarService
+                key={svc.name}
+                service={svc}
+                selectedMethod={selectedMethod}
+                searchText={deferredSearchText}
+                onSelect={setSelectedMethod}
+              />
+            ))}
+          </div>
+        </div>
 
-              {workspaceError ? (
-                <div className="mt-4">
-                  <StatusBanner
-                    tone="danger"
-                    title="Target action failed"
-                    description={workspaceError}
-                  />
-                </div>
-              ) : null}
+        <div className="flex items-center justify-between border-t border-pp-border px-3 py-2">
+          <span className="text-[0.65rem] text-pp-muted">Workspace</span>
+          <div className="flex gap-1">
+            <button
+              className="pp-button-ghost px-1.5 py-1"
+              type="button"
+              onClick={handleExportWorkspace}
+              title="Export"
+            >
+              <Download className="size-3.5" />
+            </button>
+            <button
+              className="pp-button-ghost px-1.5 py-1"
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              title="Import"
+            >
+              <Upload className="size-3.5" />
+            </button>
+            <input
+              ref={importInputRef}
+              className="hidden"
+              type="file"
+              accept="application/json"
+              onChange={handleImportWorkspace}
+            />
+            {rootBootstrap?.launcherMode ? (
+              <button
+                className="pp-button-ghost px-1.5 py-1"
+                type="button"
+                onClick={handleResetToLauncher}
+                title="Back to launcher"
+              >
+                <Server className="size-3.5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </aside>
 
-              <div className="mt-4 space-y-3">
-                {targets.length === 0 ? (
-                  <div className="rounded-[22px] border border-dashed border-pp-border px-4 py-5 text-sm text-pp-muted">
-                    No saved targets yet. Use the launcher to add local services, remote staging
-                    clusters, or proto-backed descriptor sessions.
-                  </div>
-                ) : (
-                  targets.slice(0, 4).map((target) => (
-                    <div
-                      className="rounded-[22px] border border-pp-border bg-white/80 p-4"
-                      key={target.id}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-pp-ink">{target.name}</div>
-                          <div className="pp-muted mt-1 break-all">{target.address}</div>
-                        </div>
-                        {target.id === activeTargetId ? (
-                          <span className="pp-badge text-emerald-700">Active</span>
-                        ) : null}
-                      </div>
+      <div className="pp-main">
+        <header className="flex items-center gap-3 border-b border-pp-border bg-white px-4 py-2">
+          <span className="pp-badge">
+            <Server className="size-3" />
+            {currentService.name}
+          </span>
+          <span className="pp-heading text-base">{currentMethod.name}</span>
+          <MethodBadge method={currentMethod} />
+          <div className="ml-auto flex items-center gap-2">
+            <button className="pp-button-primary py-1.5" type="button" onClick={handleInvoke}>
+              {invokeState.loading ? (
+                <LoaderCircle className="size-3.5 animate-spin" />
+              ) : (
+                <Play className="size-3.5" />
+              )}
+              Invoke
+            </button>
+          </div>
+        </header>
 
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="pp-badge">{schemaSourceLabel(target.schemaSource)}</span>
-                        <span className="pp-badge">{target.plaintext ? 'Plaintext' : 'TLS'}</span>
-                        {target.insecure ? (
-                          <span className="pp-badge text-amber-700">Skip verify</span>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          className="pp-button-secondary px-3 py-2"
-                          onClick={() => {
-                            void handleConnectTarget(target);
-                          }}
-                          type="button"
-                        >
-                          <Play className="size-4" />
-                          Connect
-                        </button>
-                        <button
-                          className="pp-button-ghost px-3 py-2"
-                          onClick={() => setTargetDraft(target)}
-                          type="button"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
+        <div className="flex-1 overflow-y-auto p-4">
+          {activeView === 'compose' ? (
+            <ComposeView
+              schema={schema}
+              requestText={requestText}
+              setRequestText={setRequestText}
+              timeoutSeconds={timeoutSeconds}
+              setTimeoutSeconds={setTimeoutSeconds}
+              metadata={metadata}
+              onAddMeta={handleAddMetadata}
+              onRemoveMeta={handleRemoveMetadata}
+              onChangeMeta={handleMetadataChange}
+              grpcCommand={grpcCommand}
+              onInvoke={handleInvoke}
+              onSimulate={() => {
+                void handleSimulation();
+              }}
+              invokeLoading={invokeState.loading}
+              simulationBusy={simulationBusy}
+              onResetFromSchema={() => setRequestText(prettyJson(generateRequestTemplate(schema)))}
+              matchingExamples={matchingExamples}
+              setRequestFromExample={(ex) => {
+                setRequestText(prettyJson(ex.request.data));
+                setMetadata(ex.request.metadata);
+                setTimeoutSeconds(ex.request.timeout_secs);
+              }}
+              collectionName={collectionName}
+              setCollectionName={setCollectionName}
+              collectionNotes={collectionNotes}
+              setCollectionNotes={setCollectionNotes}
+              onSaveCollection={handleSaveCollection}
+              environmentName={environmentName}
+              setEnvironmentName={setEnvironmentName}
+              environmentNotes={environmentNotes}
+              setEnvironmentNotes={setEnvironmentNotes}
+              onSaveEnvironment={handleSaveEnvironment}
+              environments={environments}
+              onApplyEnvironment={applyEnvironment}
+              collections={collections}
+              onApplyCollection={applyCollection}
+            />
           ) : null}
 
-          <section className="pp-panel">
-            <div className="flex items-center justify-between gap-3">
-              <div className="pp-label">Method rail</div>
-              <span className="pp-badge">{methodCounts[methodFilter]} visible</span>
-            </div>
-            <div className="mt-4">
-              <label className="relative block">
-                <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-pp-muted" />
-                <input
-                  className="pp-input pl-11"
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                  placeholder="Search methods"
-                />
-              </label>
-            </div>
+          {activeView === 'response' ? (
+            <ResponseView invokeState={invokeState} responsePayload={responsePayload} />
+          ) : null}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {methodFilterOptions.map((option) => (
-                <button
-                  className={classNames(
-                    'rounded-full px-3 py-2 text-xs font-semibold transition',
-                    methodFilter === option.value
-                      ? 'bg-pp-brand text-white shadow-lg shadow-pp-brand/20'
-                      : 'border border-pp-border bg-white/75 text-pp-ink hover:bg-white'
-                  )}
-                  key={option.value}
-                  onClick={() => setMethodFilter(option.value)}
-                  type="button"
-                >
-                  {option.label} · {methodCounts[option.value]}
-                </button>
-              ))}
-            </div>
+          {activeView === 'history' ? (
+            <HistoryView history={history} onApply={applyHistory} />
+          ) : null}
 
-            <div className="mt-4 max-h-[48vh] space-y-3 overflow-auto pr-1">
-              {visibleServices.map((service) => (
-                <ServiceTree
-                  key={service.name}
-                  service={service}
-                  selectedMethod={selectedMethod}
-                  searchText={deferredSearchText}
-                  onSelect={setSelectedMethod}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="pp-panel">
-            <div className="flex items-center justify-between gap-3">
-              <div className="pp-label">Workspace</div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="pp-button-ghost px-3 py-2"
-                  onClick={handleExportWorkspace}
-                  type="button"
-                >
-                  <Download className="size-4" />
-                </button>
-                <button
-                  className="pp-button-ghost px-3 py-2"
-                  onClick={() => importInputRef.current?.click()}
-                  type="button"
-                >
-                  <Upload className="size-4" />
-                </button>
-                <input
-                  ref={importInputRef}
-                  className="hidden"
-                  type="file"
-                  accept="application/json"
-                  onChange={handleImportWorkspace}
-                />
-              </div>
-            </div>
-            <div className="mt-4 rounded-3xl border border-pp-border bg-white/70 p-4">
-              <div className="flex items-center gap-3">
-                <Library className="size-5 text-pp-brand" />
-                <div>
-                  <div className="text-sm font-semibold text-pp-ink">
-                    Recipes, environments, and tests stay local
-                  </div>
-                  <div className="pp-muted">
-                    Portable JSON export, no hosted account, no background sync.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </aside>
-
-        <main className="space-y-5">
-          <section className="pp-panel-strong overflow-hidden">
-            <div className="grid gap-6 border-b border-pp-border px-6 py-6 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="pp-badge">
-                    <Server className="size-3.5" />
-                    {currentService.name}
-                  </span>
-                  <MethodModeBadge method={currentMethod} />
-                </div>
-                <div>
-                  <div className="pp-label">Selected RPC</div>
-                  <h2 className="pp-heading mt-2 text-4xl">{currentMethod.name}</h2>
-                </div>
-                <pre className="rounded-[24px] border border-pp-border bg-white/70 px-4 py-4 font-mono text-xs leading-6 text-pp-ink">
-                  {currentMethod.description}
-                </pre>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <MetricCard
-                  label="Request shape"
-                  value={schema.requestStream ? 'Stream batch' : 'Unary JSON'}
-                />
-                <MetricCard
-                  label="Response mode"
-                  value={currentMethod.serverStreaming ? 'Server stream' : 'Unary'}
-                />
-                <MetricCard label="Environments" value={String(environments.length)} />
-                <MetricCard label="Assertions" value={String(assertionRules.length)} />
-                <MetricCard label="Collections" value={String(collections.length)} />
-                <MetricCard label="History" value={String(history.length)} />
-              </div>
-            </div>
-
-            <div className="grid gap-5 px-6 py-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-5">
-                <PanelHeader
-                  icon={FileCode2}
-                  title="Request studio"
-                  description="Author JSON payloads, carry metadata, keep reusable environments, and keep a grpcurl command ready for copy."
-                />
-
-                <div className="grid gap-4 md:grid-cols-[1fr_160px]">
-                  <div className="space-y-2">
-                    <label className="pp-label" htmlFor="request-payload">
-                      Request payload
-                    </label>
-                    <textarea
-                      id="request-payload"
-                      className="pp-input min-h-[360px] font-mono text-[0.84rem] leading-6"
-                      value={requestText}
-                      onChange={(event) => setRequestText(event.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="pp-label" htmlFor="request-timeout">
-                        Timeout
-                      </label>
-                      <input
-                        id="request-timeout"
-                        className="pp-input mt-2"
-                        min={0}
-                        step={1}
-                        type="number"
-                        value={timeoutSeconds}
-                        onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
-                      />
-                    </div>
-                    <button
-                      className="pp-button-secondary w-full"
-                      onClick={() => setRequestText(prettyJson(generateRequestTemplate(schema)))}
-                      type="button"
-                    >
-                      <Sparkles className="size-4" />
-                      Reset from schema
-                    </button>
-                    <button
-                      className="pp-button-primary w-full"
-                      onClick={handleInvoke}
-                      type="button"
-                    >
-                      {invokeState.loading ? (
-                        <LoaderCircle className="size-4 animate-spin" />
-                      ) : (
-                        <Play className="size-4" />
-                      )}
-                      Invoke
-                    </button>
-                    <button
-                      className="pp-button-secondary w-full"
-                      onClick={() => {
-                        void handleSimulation();
-                      }}
-                      type="button"
-                    >
-                      {simulationBusy ? (
-                        <LoaderCircle className="size-4 animate-spin" />
-                      ) : (
-                        <FlaskConical className="size-4" />
-                      )}
-                      Simulate
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="pp-label">Metadata</div>
-                    <button
-                      className="pp-button-ghost px-3 py-2"
-                      onClick={handleAddMetadata}
-                      type="button"
-                    >
-                      <Save className="size-4" />
-                      Add row
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {metadata.map((entry, index) => (
-                      // biome-ignore lint/suspicious/noArrayIndexKey: metadata rows are edited in-place, never reordered
-                      <div className="grid gap-3 md:grid-cols-[1fr_1fr_44px]" key={index}>
-                        <input
-                          className="pp-input"
-                          value={entry.name}
-                          onChange={(event) =>
-                            handleMetadataChange(index, {
-                              ...entry,
-                              name: event.target.value,
-                            })
-                          }
-                          placeholder="header-name"
-                        />
-                        <input
-                          className="pp-input"
-                          value={entry.value}
-                          onChange={(event) =>
-                            handleMetadataChange(index, {
-                              ...entry,
-                              value: event.target.value,
-                            })
-                          }
-                          placeholder="header value"
-                        />
-                        <button
-                          className="pp-button-secondary h-full px-0"
-                          onClick={() => handleRemoveMetadata(index)}
-                          type="button"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    {metadata.length === 0 ? (
-                      <div className="rounded-[24px] border border-dashed border-pp-border px-4 py-5 text-sm text-pp-muted">
-                        No metadata rows yet. Add auth headers or tracing tags here.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="pp-label">grpcurl preview</div>
-                    <button
-                      className="pp-button-ghost px-3 py-2"
-                      onClick={() => void navigator.clipboard.writeText(grpcCommand)}
-                      type="button"
-                    >
-                      <Copy className="size-4" />
-                      Copy
-                    </button>
-                  </div>
-                  <pre className="pp-code mt-3">{grpcCommand}</pre>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <PanelHeader
-                  icon={BookMarked}
-                  title="Schema and recipes"
-                  description="Keep structure visible while you work, then turn useful payloads into repeatable recipes."
-                />
-
-                <section className="rounded-[28px] border border-pp-border bg-white/70 p-4">
-                  <div className="pp-label">Request schema</div>
-                  <div className="mt-3 space-y-3">
-                    {(schema.messageTypes[schema.requestType] ?? []).map((field) => (
-                      <SchemaField key={field.name} field={field} schema={schema} depth={0} />
-                    ))}
-                  </div>
-                </section>
-
-                <section className="rounded-[28px] border border-pp-border bg-white/70 p-4">
-                  <div className="pp-label">Save recipe</div>
-                  <div className="mt-3 grid gap-3">
-                    <input
-                      className="pp-input"
-                      value={collectionName}
-                      onChange={(event) => setCollectionName(event.target.value)}
-                      placeholder="Friendly recipe name"
-                    />
-                    <textarea
-                      className="pp-input min-h-[110px]"
-                      value={collectionNotes}
-                      onChange={(event) => setCollectionNotes(event.target.value)}
-                      placeholder="What this request validates, where it is useful, or any environment notes."
-                    />
-                    <button
-                      className="pp-button-primary"
-                      onClick={handleSaveCollection}
-                      type="button"
-                    >
-                      <Save className="size-4" />
-                      Save to local workspace
-                    </button>
-                  </div>
-                </section>
-
-                <section className="rounded-[28px] border border-pp-border bg-white/70 p-4">
-                  <div className="pp-label">Environment preset</div>
-                  <div className="mt-2 text-sm leading-6 text-pp-muted">
-                    Save auth metadata, trace headers, and timeout defaults as a reusable profile.
-                  </div>
-                  <div className="mt-3 grid gap-3">
-                    <input
-                      className="pp-input"
-                      value={environmentName}
-                      onChange={(event) => setEnvironmentName(event.target.value)}
-                      placeholder="Frontend staging token"
-                    />
-                    <textarea
-                      className="pp-input min-h-[96px]"
-                      value={environmentNotes}
-                      onChange={(event) => setEnvironmentNotes(event.target.value)}
-                      placeholder="Who uses this profile, where it points, and any auth caveats."
-                    />
-                    <button
-                      className="pp-button-secondary"
-                      onClick={handleSaveEnvironment}
-                      type="button"
-                    >
-                      <Save className="size-4" />
-                      Save environment
-                    </button>
-                  </div>
-
-                  <div className="mt-4 space-y-3">
-                    {environments.length === 0 ? (
-                      <div className="rounded-[22px] border border-dashed border-pp-border px-4 py-5 text-sm text-pp-muted">
-                        Save a preset to reuse metadata and timeout defaults across services.
-                      </div>
-                    ) : (
-                      environments.slice(0, 4).map((environment) => (
-                        <button
-                          className="block w-full rounded-[22px] border border-pp-border bg-white/80 p-4 text-left transition hover:border-pp-brand/35 hover:bg-white"
-                          key={environment.id}
-                          onClick={() => applyEnvironment(environment)}
-                          type="button"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="font-semibold text-pp-ink">{environment.name}</div>
-                            <span className="pp-badge">{environment.timeoutSeconds}s timeout</span>
-                          </div>
-                          <div className="pp-muted mt-2">
-                            {environment.notes || 'Reusable auth and metadata profile.'}
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </section>
-
-                {matchingExamples.length > 0 ? (
-                  <section className="rounded-[28px] border border-pp-border bg-white/70 p-4">
-                    <div className="pp-label">Built-in examples</div>
-                    <div className="mt-3 space-y-3">
-                      {matchingExamples.map((example) => (
-                        <button
-                          className="block w-full rounded-[22px] border border-pp-border bg-white/80 p-4 text-left transition hover:border-pp-brand/40 hover:bg-white"
-                          key={example.name}
-                          onClick={() => {
-                            setRequestText(prettyJson(example.request.data));
-                            setMetadata(example.request.metadata);
-                            setTimeoutSeconds(example.request.timeout_secs);
-                          }}
-                          type="button"
-                        >
-                          <div className="font-semibold text-pp-ink">{example.name}</div>
-                          <div className="pp-muted mt-2">{example.description}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          <section className="grid gap-5 2xl:grid-cols-[1.2fr_0.8fr]">
-            <div className="pp-panel">
-              <PanelHeader
-                icon={
-                  activeView === 'tests'
-                    ? FlaskConical
-                    : activeView === 'transport'
-                      ? Cable
-                      : activeView === 'structure'
-                        ? BookMarked
-                        : activeView === 'history'
-                          ? History
-                          : Activity
-                }
-                title={
-                  activeView === 'tests'
-                    ? 'Tests and simulation'
-                    : activeView === 'transport'
-                      ? 'Transport lens'
-                      : activeView === 'structure'
-                        ? 'Proto structure explorer'
-                        : activeView === 'history'
-                          ? 'Request history'
-                          : 'Response lab'
-                }
-                description={
-                  activeView === 'tests'
-                    ? 'Run lightweight assertions and controlled request sweeps without leaving the console.'
-                    : activeView === 'transport'
-                      ? 'Understand how reflection, metadata, gRPC-Web, and trailers shape the current RPC.'
-                      : activeView === 'structure'
-                        ? 'Explore file topology, nested messages, enums, and raw proto text, then export the contract you are debugging.'
-                        : activeView === 'history'
-                          ? 'Replay previous requests without rebuilding payloads.'
-                          : 'Headers, trailers, payloads, and errors stay visible together.'
-                }
-              />
-
-              {activeView === 'response' ? (
-                <div className="mt-5 space-y-4">
-                  {invokeState.error ? (
-                    <StatusBanner
-                      tone="danger"
-                      title="Invocation failed"
-                      description={invokeState.error}
-                    />
-                  ) : null}
-
-                  {invokeState.loading ? (
-                    <StatusBanner
-                      tone="info"
-                      title="Request in flight"
-                      description="ProtoPeek is waiting for the server response."
-                    />
-                  ) : null}
-
-                  {invokeState.result ? (
-                    <Fragment>
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <MetricCard label="Latency" value={durationLabel(invokeState.latencyMs)} />
-                        <MetricCard
-                          label="Messages"
-                          value={String(invokeState.result.responses.length)}
-                        />
-                        <MetricCard
-                          label="Status"
-                          value={invokeState.result.error ? invokeState.result.error.name : 'OK'}
-                        />
-                        <MetricCard
-                          label="Sent"
-                          value={
-                            invokeState.result.requests
-                              ? `${invokeState.result.requests.sent}/${invokeState.result.requests.total}`
-                              : '0'
-                          }
-                        />
-                      </div>
-
-                      <ResponseMetadata title="Headers" values={invokeState.result.headers} />
-                      <ResponseData title="Responses" values={responsePayload} />
-                      {invokeState.result.error ? (
-                        <div className="rounded-[28px] border border-pp-danger/20 bg-pp-danger/5 p-4">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-pp-danger">
-                            <CircleAlert className="size-4" />
-                            {invokeState.result.error.name} ({invokeState.result.error.code})
-                          </div>
-                          <p className="mt-2 text-sm leading-6 text-pp-ink">
-                            {invokeState.result.error.message}
-                          </p>
-                          {invokeState.result.error.details.length > 0 ? (
-                            <ResponseData
-                              title="Error details"
-                              values={invokeState.result.error.details.map(
-                                (entry) => entry.message
-                              )}
-                            />
-                          ) : null}
-                        </div>
-                      ) : null}
-                      <ResponseMetadata title="Trailers" values={invokeState.result.trailers} />
-                    </Fragment>
-                  ) : (
-                    <div className="rounded-[24px] border border-dashed border-pp-border px-4 py-6 text-sm text-pp-muted">
-                      Invoke a method to populate the response lab.
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              {activeView === 'history' ? (
-                <div className="mt-5 space-y-3">
-                  {history.length === 0 ? (
-                    <EmptyState
-                      icon={History}
-                      title="No history yet"
-                      description="Run an RPC and ProtoPeek will capture the request snapshot and response preview here."
-                    />
-                  ) : (
-                    history.map((entry) => (
-                      <button
-                        className="block w-full rounded-[24px] border border-pp-border bg-white/75 p-4 text-left transition hover:border-pp-brand/35 hover:bg-white"
-                        key={entry.id}
-                        onClick={() => applyHistory(entry)}
-                        type="button"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-pp-ink">{entry.method}</div>
-                            <div className="pp-muted">{compactDate(entry.createdAt)}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="pp-badge">{durationLabel(entry.latencyMs)}</span>
-                            <span
-                              className={classNames(
-                                'pp-badge',
-                                entry.success ? 'text-emerald-700' : 'text-pp-danger'
-                              )}
-                            >
-                              {entry.success ? (
-                                <CheckCircle2 className="size-3.5" />
-                              ) : (
-                                <CircleAlert className="size-3.5" />
-                              )}
-                              {entry.success ? 'OK' : 'Error'}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="pp-muted mt-3">{entry.responsePreview}</p>
-                      </button>
-                    ))
-                  )}
-                </div>
-              ) : null}
-
-              {activeView === 'tests' ? (
-                <div className="mt-5 space-y-5">
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <MetricCard label="Rules" value={String(assertionRules.length)} />
-                    <MetricCard
-                      label="Passing"
-                      value={
-                        assertionResults.length > 0
-                          ? `${passingAssertions}/${assertionResults.length}`
-                          : 'Not run'
-                      }
-                    />
-                    <MetricCard label="Last status" value={latestStatus} />
-                    <MetricCard
-                      label="Last latency"
-                      value={invokeState.result ? durationLabel(invokeState.latencyMs) : 'Not run'}
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      className="pp-button-primary"
-                      onClick={() => {
-                        void handleRunAssertions();
-                      }}
-                      type="button"
-                    >
-                      <CheckCircle2 className="size-4" />
-                      Run assertions
-                    </button>
-                    <button
-                      className="pp-button-secondary"
-                      onClick={handleAddAssertion}
-                      type="button"
-                    >
-                      <Save className="size-4" />
-                      Add assertion
-                    </button>
-                    <p className="pp-muted">
-                      Assertions evaluate gRPC status, headers, trailers, latency, and payload text
-                      against the current request.
-                    </p>
-                  </div>
-
-                  <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="pp-label">Assertion rules</div>
-                      <span className="pp-badge">{assertionRules.length} configured</span>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {assertionRules.map((rule) => (
-                        <div
-                          className="rounded-[24px] border border-pp-border bg-white/85 p-4"
-                          key={rule.id}
-                        >
-                          <div className="grid gap-3 xl:grid-cols-[1.2fr_180px_180px]">
-                            <input
-                              className="pp-input"
-                              value={rule.name}
-                              onChange={(event) =>
-                                handleAssertionChange(rule.id, {
-                                  ...rule,
-                                  name: event.target.value,
-                                })
-                              }
-                              placeholder="Readable rule name"
-                            />
-                            <select
-                              className="pp-input"
-                              value={rule.kind}
-                              onChange={(event) =>
-                                handleAssertionChange(rule.id, {
-                                  ...rule,
-                                  kind: event.target.value as AssertionRule['kind'],
-                                  target:
-                                    event.target.value === 'header' ||
-                                    event.target.value === 'trailer'
-                                      ? rule.target
-                                      : '',
-                                })
-                              }
-                            >
-                              {assertionKindOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="flex gap-3">
-                              <select
-                                className="pp-input flex-1"
-                                value={rule.comparator}
-                                onChange={(event) =>
-                                  handleAssertionChange(rule.id, {
-                                    ...rule,
-                                    comparator: event.target.value as AssertionRule['comparator'],
-                                  })
-                                }
-                              >
-                                {assertionComparatorOptions.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                className="pp-button-secondary px-4"
-                                onClick={() => handleRemoveAssertion(rule.id)}
-                                type="button"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                          <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <input
-                              className="pp-input"
-                              value={rule.target}
-                              onChange={(event) =>
-                                handleAssertionChange(rule.id, {
-                                  ...rule,
-                                  target: event.target.value,
-                                })
-                              }
-                              placeholder={
-                                rule.kind === 'header' || rule.kind === 'trailer'
-                                  ? 'metadata key, for example x-request-id'
-                                  : 'Optional target'
-                              }
-                            />
-                            <input
-                              className="pp-input"
-                              value={rule.value}
-                              onChange={(event) =>
-                                handleAssertionChange(rule.id, {
-                                  ...rule,
-                                  value: event.target.value,
-                                })
-                              }
-                              placeholder="Expected value"
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="pp-label">Assertion results</div>
-                      <span className="pp-badge">
-                        {assertionResults.length > 0
-                          ? `${passingAssertions} passing`
-                          : 'Awaiting run'}
-                      </span>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      {!invokeState.result ? (
-                        <EmptyState
-                          icon={CheckCircle2}
-                          title="No assertion run yet"
-                          description="Invoke the current RPC with assertions enabled to capture status, latency, headers, trailers, and payload checks."
-                        />
-                      ) : assertionResults.length === 0 ? (
-                        <div className="rounded-[22px] border border-dashed border-pp-border px-4 py-5 text-sm text-pp-muted">
-                          The last invocation completed, but no assertion results were recorded.
-                        </div>
-                      ) : (
-                        assertionResults.map((result) => (
-                          <div
-                            className="rounded-[22px] border border-pp-border bg-white/85 p-4"
-                            key={result.id}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="font-semibold text-pp-ink">{result.name}</div>
-                              <span
-                                className={classNames(
-                                  'pp-badge',
-                                  result.passed ? 'text-emerald-700' : 'text-pp-danger'
-                                )}
-                              >
-                                {result.passed ? (
-                                  <CheckCircle2 className="size-3.5" />
-                                ) : (
-                                  <CircleAlert className="size-3.5" />
-                                )}
-                                {result.passed ? 'Pass' : 'Fail'}
-                              </span>
-                            </div>
-                            <div className="pp-muted mt-2">{result.message}</div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </section>
-
-                  <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="pp-label">Simulation studio</div>
-                        <div className="pp-muted mt-2">
-                          Run small concurrency sweeps to estimate throughput and tail latency for
-                          the current unary request.
-                        </div>
-                      </div>
-                      <button
-                        className="pp-button-primary"
-                        onClick={() => void handleSimulation()}
-                        type="button"
-                      >
-                        {simulationBusy ? (
-                          <LoaderCircle className="size-4 animate-spin" />
-                        ) : (
-                          <FlaskConical className="size-4" />
-                        )}
-                        Run simulation
-                      </button>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      {simulationPresets.map((preset) => (
-                        <button
-                          className="rounded-[20px] border border-pp-border bg-white/85 px-4 py-3 text-left transition hover:border-pp-brand/35 hover:bg-white"
-                          key={preset.label}
-                          onClick={() => setSimulationConfig(clampSimulationConfig(preset.config))}
-                          type="button"
-                        >
-                          <div className="font-semibold text-pp-ink">{preset.label}</div>
-                          <div className="pp-muted mt-1">{preset.description}</div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
-                      <LabeledInput
-                        label="Runs"
-                        type="number"
-                        value={simulationConfig.runs}
-                        onChange={(value) =>
-                          setSimulationConfig((existing) => ({ ...existing, runs: Number(value) }))
-                        }
-                      />
-                      <LabeledInput
-                        label="Concurrency"
-                        type="number"
-                        value={simulationConfig.concurrency}
-                        onChange={(value) =>
-                          setSimulationConfig((existing) => ({
-                            ...existing,
-                            concurrency: Number(value),
-                          }))
-                        }
-                      />
-                      <LabeledInput
-                        label="Think time (ms)"
-                        type="number"
-                        value={simulationConfig.thinkTimeMs}
-                        onChange={(value) =>
-                          setSimulationConfig((existing) => ({
-                            ...existing,
-                            thinkTimeMs: Number(value),
-                          }))
-                        }
-                      />
-                    </div>
-
-                    {simulationError ? (
-                      <div className="mt-4">
-                        <StatusBanner
-                          tone="danger"
-                          title="Simulation failed"
-                          description={simulationError}
-                        />
-                      </div>
-                    ) : null}
-
-                    <div className="mt-5">
-                      {simulationRun ? (
-                        <Fragment>
-                          <div className="grid gap-3 md:grid-cols-4">
-                            <MetricCard
-                              label="Success"
-                              value={String(simulationRun.successCount)}
-                            />
-                            <MetricCard label="Errors" value={String(simulationRun.errorCount)} />
-                            <MetricCard
-                              label="Throughput"
-                              value={`${simulationRun.throughputRps.toFixed(2)} req/s`}
-                            />
-                            <MetricCard
-                              label="Total time"
-                              value={durationLabel(simulationRun.totalMs)}
-                            />
-                          </div>
-
-                          <div className="mt-4 rounded-[28px] border border-pp-border bg-white/85 p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div>
-                                <div className="pp-label">Latency sparkline</div>
-                                <div className="mt-2 text-sm font-semibold text-pp-ink">
-                                  p50 {durationLabel(simulationRun.p50)} · p95{' '}
-                                  {durationLabel(simulationRun.p95)} · p99{' '}
-                                  {durationLabel(simulationRun.p99)}
-                                </div>
-                              </div>
-                              <svg
-                                aria-label="Latency sparkline"
-                                height="56"
-                                role="img"
-                                viewBox="0 0 220 56"
-                                width="220"
-                              >
-                                <title>Latency sparkline</title>
-                                <path
-                                  className="text-pp-brand"
-                                  d={latencySparkline}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="3"
-                                />
-                              </svg>
-                            </div>
-                          </div>
-                        </Fragment>
-                      ) : (
-                        <EmptyState
-                          icon={FlaskConical}
-                          title="No simulation data yet"
-                          description="Run a sweep to see throughput, p50, p95, and p99 latency against the current request."
-                        />
-                      )}
-                    </div>
-                  </section>
-                </div>
-              ) : null}
-
-              {activeView === 'transport' ? (
-                <div className="mt-5 space-y-5">
-                  <div className="grid gap-3 md:grid-cols-4">
-                    <MetricCard
-                      label="Discovery"
-                      value={bootstrap.services.length > 0 ? 'Schema loaded' : 'Unavailable'}
-                    />
-                    <MetricCard
-                      label="Request mode"
-                      value={schema.requestStream ? 'Client stream' : 'Unary'}
-                    />
-                    <MetricCard label="Headers seen" value={String(latestHeaderCount)} />
-                    <MetricCard label="Trailers seen" value={String(latestTrailerCount)} />
-                  </div>
-
-                  <div className="grid gap-4 xl:grid-cols-2">
-                    {transportMoments.map((moment) => (
-                      <div
-                        className="rounded-[28px] border border-pp-border bg-white/75 p-4"
-                        key={moment.title}
-                      >
-                        <div className="font-semibold text-pp-ink">{moment.title}</div>
-                        <div className="pp-muted mt-2">{moment.body}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-                    <div className="pp-label">Latest call anatomy</div>
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[22px] border border-pp-border bg-white/85 p-4">
-                        <div className="font-semibold text-pp-ink">Current transport snapshot</div>
-                        <div className="pp-muted mt-2">
-                          Target {bootstrap.target} is mounted at {bootstrap.basePath} with{' '}
-                          {currentMethod.clientStreaming || currentMethod.serverStreaming
-                            ? 'stream-aware'
-                            : 'unary'}{' '}
-                          request handling.
-                        </div>
-                      </div>
-                      <div className="rounded-[22px] border border-pp-border bg-white/85 p-4">
-                        <div className="font-semibold text-pp-ink">Observed response state</div>
-                        <div className="pp-muted mt-2">
-                          Status {latestStatus}, {responsePayload.length} message
-                          {responsePayload.length === 1 ? '' : 's'}, {latestHeaderCount} header
-                          value{latestHeaderCount === 1 ? '' : 's'}, and {latestTrailerCount}{' '}
-                          trailer value{latestTrailerCount === 1 ? '' : 's'} on the latest call.
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              ) : null}
-
-              {activeView === 'structure' ? (
-                <div className="mt-5">
-                  <ProtoStructurePanel
-                    catalog={protoCatalog}
-                    searchText={protoSearchText}
-                    selectedFile={selectedProtoFile}
-                    selectedProto={selectedProto}
-                    showWellKnown={showWellKnownProto}
-                    visibleFiles={filteredProtoFiles}
-                    onJumpToCompose={() => setActiveView('compose')}
-                    onSearchChange={setProtoSearchText}
-                    onSelectFile={setSelectedProtoFile}
-                    onToggleWellKnown={setShowWellKnownProto}
-                    onExportCatalog={() => {
-                      downloadTextFile(
-                        'protopeek-proto-catalog.json',
-                        prettyJson(protoCatalog ?? { files: [] }),
-                        'application/json'
-                      );
-                    }}
-                    onExportProto={(file) => {
-                      downloadTextFile(
-                        file.name.split('/').pop() || 'schema.proto',
-                        file.protoText,
-                        'text/plain'
-                      );
-                    }}
-                  />
-                </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-5">
-              <section className="pp-panel">
-                <PanelHeader
-                  icon={Library}
-                  title="Saved recipes"
-                  description="Compact snapshots for repeatable debug flows."
-                />
-                <div className="mt-5 space-y-3">
-                  {collections.length === 0 ? (
-                    <EmptyState
-                      icon={Save}
-                      title="No recipes saved"
-                      description="Store the current payload and metadata as a recipe to make repeat work one click away."
-                    />
-                  ) : (
-                    collections.slice(0, 6).map((collection) => (
-                      <button
-                        className="block w-full rounded-[24px] border border-pp-border bg-white/75 p-4 text-left transition hover:border-pp-brand/35 hover:bg-white"
-                        key={collection.id}
-                        onClick={() => applyCollection(collection)}
-                        type="button"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="font-semibold text-pp-ink">{collection.name}</div>
-                          <span className="pp-badge">{collection.method.split('.').pop()}</span>
-                        </div>
-                        <div className="pp-muted mt-2">{collection.notes || 'No notes yet.'}</div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="pp-panel">
-                <PanelHeader
-                  icon={BookOpenText}
-                  title="Core capabilities"
-                  description="Ten shipped surfaces defining the current ProtoPeek workbench."
-                />
-                <div className="mt-5 space-y-3">
-                  {featureIdeas.map((feature) => (
-                    <div
-                      className="rounded-[24px] border border-pp-border bg-white/75 p-4"
-                      key={feature.name}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-semibold text-pp-ink">{feature.name}</div>
-                        <span
-                          className={classNames(
-                            'pp-badge',
-                            feature.status === 'Shipped' ? 'text-emerald-700' : 'text-amber-700'
-                          )}
-                        >
-                          {feature.status}
-                        </span>
-                      </div>
-                      <div className="pp-muted mt-2">{feature.summary}</div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="pp-panel">
-                <PanelHeader
-                  icon={SquareArrowOutUpRight}
-                  title="Protocol learning links"
-                  description="Use the console, then jump into the deeper transport context."
-                />
-                <div className="mt-5 space-y-3">
-                  <ExternalLink
-                    href={bootstrap.learnURL}
-                    title="Learn gRPC with charts and transport diagrams"
-                    description="ProtoPeek’s public learn page explains reflection, metadata, streaming, and browser transport tradeoffs."
-                  />
-                  <ExternalLink
-                    href={bootstrap.grpcWebURL}
-                    title="Why gRPC-Web still needs a bridge"
-                    description="The official gRPC-Web and Envoy guidance matters when your consumers live in browsers."
-                  />
-                  <ExternalLink
-                    href={bootstrap.debuggingURL}
-                    title="gRPC debugging beyond request payloads"
-                    description="grpcdebug and admin services become essential when the problem is transport state, not request JSON."
-                  />
-                </div>
-              </section>
-            </div>
-          </section>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function schemaSourceLabel(value: WorkspaceTargetProfile['schemaSource']) {
-  switch (value) {
-    case 'proto-files':
-      return 'Proto files';
-    case 'protoset':
-      return 'Protoset';
-    default:
-      return 'Reflection';
-  }
-}
-
-function parseMultilineValues(value: string) {
-  return value
-    .split('\n')
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
-function countProtoMessages(messages: ProtoMessageSummary[]): number {
-  return messages.reduce((total, message) => total + 1 + countProtoMessages(message.messages), 0);
-}
-
-function countProtoEnums(messages: ProtoMessageSummary[], enums: ProtoEnumSummary[]): number {
-  return (
-    enums.length +
-    messages.reduce((total, message) => total + countProtoEnums(message.messages, message.enums), 0)
-  );
-}
-
-function LauncherShell({
-  activeTargetId,
-  bootstrap,
-  busy,
-  error,
-  onChangeDraft,
-  onConnectTarget,
-  onDeleteTarget,
-  onEditTarget,
-  onSaveAndConnectTarget,
-  onSaveTarget,
-  targetDraft,
-  targets,
-}: {
-  activeTargetId: string;
-  bootstrap: BootstrapResponse;
-  busy: boolean;
-  error: string | null;
-  onChangeDraft: (next: Partial<WorkspaceTargetProfile>) => void;
-  onConnectTarget: (target: WorkspaceTargetProfile) => void;
-  onDeleteTarget: (id: string) => void;
-  onEditTarget: (target: WorkspaceTargetProfile) => void;
-  onSaveAndConnectTarget: () => void;
-  onSaveTarget: () => void;
-  targetDraft: WorkspaceTargetProfile;
-  targets: WorkspaceTargetProfile[];
-}) {
-  return (
-    <div className="pp-shell">
-      <div className="pp-orb pointer-events-none absolute left-[-120px] top-24 size-72 rounded-full bg-pp-brand/15 blur-3xl" />
-      <div className="pp-orb pointer-events-none absolute right-[-80px] top-40 size-64 rounded-full bg-pp-accent/20 blur-3xl" />
-
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="pp-panel-strong overflow-hidden px-6 py-6 lg:px-8 lg:py-8">
-          <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-5">
-              <div className="pp-badge">
-                <Sparkles className="size-4" />
-                `pp` can boot without a bound target
-              </div>
-              <h1 className="pp-heading max-w-4xl text-5xl leading-[1.02] tracking-[-0.05em] md:text-7xl">
-                Launch ProtoPeek first, then attach any gRPC server you need.
-              </h1>
-              <p className="max-w-3xl text-lg leading-8 text-pp-muted">
-                Save local, staging, or internet-reachable gRPC targets with transport-aware
-                settings. Reflection, proto files, and protosets stay explicit so the tool remains
-                unmistakably gRPC-focused instead of drifting into a generic API client.
-              </p>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <MetricCard label="Saved targets" value={String(targets.length)} />
-                <MetricCard
-                  label="Active mode"
-                  value={busy ? 'Connecting' : 'Workspace launcher'}
-                />
-                <MetricCard label="Binary path" value="protopeek / pp" />
-              </div>
-            </div>
-
-            <div className="grid gap-4 self-start md:grid-cols-2">
-              <FeatureTeaser
-                icon={Server}
-                title="Multi-target registry"
-                body="Keep separate local, staging, and remote endpoints without restarting the console."
-              />
-              <FeatureTeaser
-                icon={FileCode2}
-                title="Descriptor-aware launch"
-                body="Choose reflection, proto files, or protosets per target instead of forcing a single global mode."
-              />
-              <FeatureTeaser
-                icon={FlaskConical}
-                title="Test and simulate"
-                body="Once connected, run assertions and lightweight load sweeps from the same workspace."
-              />
-              <FeatureTeaser
-                icon={BookOpenText}
-                title="Learn the transport"
-                body="Use the embedded gRPC learning links while you debug trailers, metadata, and browser-facing topologies."
-              />
-            </div>
-          </div>
-        </section>
-
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-          <section className="pp-panel">
-            <PanelHeader
-              icon={Server}
-              title="Connect a gRPC target"
-              description="Define one target profile or edit an existing one, then connect into the full ProtoPeek console."
+          {activeView === 'tests' ? (
+            <TestsView
+              rules={assertionRules}
+              results={assertionResults}
+              onChangeRule={handleAssertionChange}
+              onAddRule={handleAddAssertion}
+              onRemoveRule={handleRemoveAssertion}
+              onRunAssertions={() => {
+                void handleInvoke().then(() => setActiveView('tests'));
+              }}
+              simulationConfig={simulationConfig}
+              setSimulationConfig={setSimulationConfig}
+              simulationRun={simulationRun}
+              simulationBusy={simulationBusy}
+              simulationError={simulationError}
+              onSimulate={() => {
+                void handleSimulation();
+              }}
+              latencySparkline={latencySparkline}
+              passingAssertions={passingAssertions}
             />
+          ) : null}
 
-            {error ? (
-              <div className="mt-5">
-                <StatusBanner tone="danger" title="Connection failed" description={error} />
-              </div>
-            ) : null}
+          {activeView === 'transport' ? (
+            <TransportView
+              bootstrap={bootstrap}
+              schema={schema}
+              method={currentMethod}
+              invokeResult={invokeState.result}
+              responsePayload={responsePayload}
+            />
+          ) : null}
 
-            <TargetDraftForm
-              busy={busy}
+          {activeView === 'structure' ? (
+            <StructureView
+              catalog={protoCatalog}
+              searchText={protoSearchText}
+              onSearchChange={setProtoSearchText}
+              selectedFile={selectedProtoFile}
+              onSelectFile={setSelectedProtoFile}
+              selectedProto={selectedProto}
+              showWellKnown={showWellKnownProto}
+              onToggleWellKnown={setShowWellKnownProto}
+              visibleFiles={filteredProtoFiles}
+              onExportCatalog={() =>
+                downloadFile(
+                  'protopeek-catalog.json',
+                  prettyJson(protoCatalog ?? { files: [] }),
+                  'application/json'
+                )
+              }
+              onExportProto={(f) =>
+                downloadFile(f.name.split('/').pop() || 'schema.proto', f.protoText)
+              }
+            />
+          ) : null}
+
+          {activeView === 'workspace' ? (
+            <WorkspaceView
+              targets={targets}
+              activeTargetId={activeTargetId}
               draft={targetDraft}
-              onChange={onChangeDraft}
-              onSave={onSaveTarget}
-              onSaveAndConnect={onSaveAndConnectTarget}
+              busy={workspaceBusy}
+              error={workspaceError}
+              rootBootstrap={rootBootstrap}
+              onChangeDraft={updateDraft}
+              onSave={handleSaveTarget}
+              onSaveAndConnect={() => {
+                void handleSaveAndConnect();
+              }}
+              onConnect={(t) => {
+                void handleConnectTarget(t);
+              }}
+              onEdit={setTargetDraft}
+              onDelete={handleDeleteTarget}
+              onReset={handleResetToLauncher}
             />
-          </section>
-
-          <div className="space-y-6">
-            <section className="pp-panel">
-              <PanelHeader
-                icon={Library}
-                title="Saved targets"
-                description="Persist transport-aware endpoints locally and jump between them from the launcher or inside the console."
-              />
-              <div className="mt-5 space-y-3">
-                {targets.length === 0 ? (
-                  <EmptyState
-                    icon={Server}
-                    title="No targets saved yet"
-                    description="Create a launcher target for localhost, staging, or a remote gRPC endpoint and it will appear here."
-                  />
-                ) : (
-                  targets.map((target) => (
-                    <TargetCard
-                      active={target.id === activeTargetId}
-                      busy={busy}
-                      key={target.id}
-                      target={target}
-                      onConnect={onConnectTarget}
-                      onDelete={onDeleteTarget}
-                      onEdit={onEditTarget}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
-
-            <section className="pp-panel">
-              <PanelHeader
-                icon={SquareArrowOutUpRight}
-                title="Docs and project links"
-                description="ProtoPeek’s public docs, repo, and author links live here."
-              />
-              <div className="mt-5 space-y-3">
-                <ExternalLink
-                  href={bootstrap.docsURL}
-                  title="ProtoPeek website"
-                  description="Narrative docs, learn pages, and launch material for the new branded project."
-                />
-                <ExternalLink
-                  href={bootstrap.learnURL}
-                  title="Learn gRPC visually"
-                  description="Use the public learn page while you explore reflection, metadata, streaming, and gRPC-Web."
-                />
-                <ExternalLink
-                  href={bootstrap.authorURL}
-                  title={`By ${bootstrap.authorName}`}
-                  description="Project branding, writing, and public site by Shreyam Adhikari."
-                />
-                <ExternalLink
-                  href={bootstrap.repoURL}
-                  title="GitHub repository"
-                  description="Source, issues, release notes, and the install path for ProtoPeek."
-                />
-              </div>
-            </section>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function TargetDraftForm({
-  busy,
-  draft,
-  onChange,
-  onSave,
-  onSaveAndConnect,
-}: {
-  busy: boolean;
-  draft: WorkspaceTargetProfile;
-  onChange: (next: Partial<WorkspaceTargetProfile>) => void;
-  onSave: () => void;
-  onSaveAndConnect: () => void;
-}) {
-  return (
-    <div className="mt-5 space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block">
-          <span className="pp-label">Target name</span>
-          <input
-            className="pp-input mt-2"
-            value={draft.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            placeholder="Local dev gateway"
-          />
-        </label>
-        <label className="block">
-          <span className="pp-label">Address</span>
-          <input
-            className="pp-input mt-2"
-            value={draft.address}
-            onChange={(event) => onChange({ address: event.target.value })}
-            placeholder="localhost:50051"
-          />
-        </label>
-      </div>
+// ─── Sidebar service tree ──────────────────────────────────────
 
-      <label className="block">
-        <span className="pp-label">Notes</span>
-        <textarea
-          className="pp-input mt-2 min-h-[96px]"
-          value={draft.notes}
-          onChange={(event) => onChange({ notes: event.target.value })}
-          placeholder="Why this target exists, expected auth, or when to use it."
-        />
-      </label>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className="block">
-          <span className="pp-label">Schema source</span>
-          <select
-            className="pp-input mt-2"
-            value={draft.schemaSource}
-            onChange={(event) =>
-              onChange({
-                schemaSource: event.target.value as WorkspaceTargetProfile['schemaSource'],
-              })
-            }
-          >
-            <option value="reflection">Reflection</option>
-            <option value="proto-files">Proto files</option>
-            <option value="protoset">Protoset</option>
-          </select>
-        </label>
-        <label className="block">
-          <span className="pp-label">Authority override</span>
-          <input
-            className="pp-input mt-2"
-            value={draft.authority}
-            onChange={(event) => onChange({ authority: event.target.value })}
-            placeholder="grpc.example.internal"
-          />
-        </label>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex items-center gap-3 rounded-[22px] border border-pp-border bg-white/75 px-4 py-3">
-            <input
-              checked={draft.plaintext}
-              onChange={(event) =>
-                onChange({
-                  plaintext: event.target.checked,
-                  insecure: event.target.checked ? false : draft.insecure,
-                })
-              }
-              type="checkbox"
-            />
-            <span className="text-sm font-semibold text-pp-ink">Plaintext</span>
-          </label>
-          <label className="flex items-center gap-3 rounded-[22px] border border-pp-border bg-white/75 px-4 py-3">
-            <input
-              checked={draft.insecure}
-              disabled={draft.plaintext}
-              onChange={(event) => onChange({ insecure: event.target.checked })}
-              type="checkbox"
-            />
-            <span className="text-sm font-semibold text-pp-ink">Skip verify</span>
-          </label>
-        </div>
-      </div>
-
-      {!draft.plaintext ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          <label className="block">
-            <span className="pp-label">CA cert path</span>
-            <input
-              className="pp-input mt-2"
-              value={draft.cacertPath}
-              onChange={(event) => onChange({ cacertPath: event.target.value })}
-              placeholder="/certs/ca.pem"
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Client cert path</span>
-            <input
-              className="pp-input mt-2"
-              value={draft.certPath}
-              onChange={(event) => onChange({ certPath: event.target.value })}
-              placeholder="/certs/client.pem"
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Client key path</span>
-            <input
-              className="pp-input mt-2"
-              value={draft.keyPath}
-              onChange={(event) => onChange({ keyPath: event.target.value })}
-              placeholder="/certs/client-key.pem"
-            />
-          </label>
-        </div>
-      ) : null}
-
-      {draft.schemaSource === 'proto-files' ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <label className="block">
-            <span className="pp-label">Proto files</span>
-            <textarea
-              className="pp-input mt-2 min-h-[120px] font-mono text-sm"
-              value={draft.protoFiles.join('\n')}
-              onChange={(event) =>
-                onChange({ protoFiles: parseMultilineValues(event.target.value) })
-              }
-              placeholder={'api/service.proto\napi/types.proto'}
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Import paths</span>
-            <textarea
-              className="pp-input mt-2 min-h-[120px] font-mono text-sm"
-              value={draft.importPaths.join('\n')}
-              onChange={(event) =>
-                onChange({ importPaths: parseMultilineValues(event.target.value) })
-              }
-              placeholder={'proto\nthird_party'}
-            />
-          </label>
-        </div>
-      ) : null}
-
-      {draft.schemaSource === 'protoset' ? (
-        <label className="block">
-          <span className="pp-label">Protoset files</span>
-          <textarea
-            className="pp-input mt-2 min-h-[120px] font-mono text-sm"
-            value={draft.protosets.join('\n')}
-            onChange={(event) => onChange({ protosets: parseMultilineValues(event.target.value) })}
-            placeholder={'dist/service.protoset\nartifacts/types.protoset'}
-          />
-        </label>
-      ) : null}
-
-      <div className="flex flex-wrap gap-3">
-        <button className="pp-button-secondary" disabled={busy} onClick={onSave} type="button">
-          <Save className="size-4" />
-          Save target
-        </button>
-        <button
-          className="pp-button-primary"
-          disabled={busy}
-          onClick={onSaveAndConnect}
-          type="button"
-        >
-          {busy ? <LoaderCircle className="size-4 animate-spin" /> : <Play className="size-4" />}
-          Save and connect
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function TargetCard({
-  active,
-  busy,
-  onConnect,
-  onDelete,
-  onEdit,
-  target,
-}: {
-  active: boolean;
-  busy: boolean;
-  onConnect: (target: WorkspaceTargetProfile) => void;
-  onDelete: (id: string) => void;
-  onEdit: (target: WorkspaceTargetProfile) => void;
-  target: WorkspaceTargetProfile;
-}) {
-  return (
-    <div className="rounded-[24px] border border-pp-border bg-white/75 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="font-semibold text-pp-ink">{target.name}</div>
-          <div className="pp-muted mt-1 break-all">{target.address}</div>
-        </div>
-        {active ? <span className="pp-badge text-emerald-700">Active</span> : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="pp-badge">{schemaSourceLabel(target.schemaSource)}</span>
-        <span className="pp-badge">{target.plaintext ? 'Plaintext' : 'TLS'}</span>
-        {target.insecure ? <span className="pp-badge text-amber-700">Skip verify</span> : null}
-      </div>
-
-      <div className="pp-muted mt-3">{target.notes || 'No notes yet.'}</div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          className="pp-button-primary"
-          disabled={busy}
-          onClick={() => onConnect(target)}
-          type="button"
-        >
-          {busy ? <LoaderCircle className="size-4 animate-spin" /> : <Play className="size-4" />}
-          Connect
-        </button>
-        <button className="pp-button-secondary" onClick={() => onEdit(target)} type="button">
-          Edit
-        </button>
-        <button
-          className="pp-button-ghost px-3 py-2"
-          onClick={() => onDelete(target.id)}
-          type="button"
-        >
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ProtoStructurePanel({
-  catalog,
-  onExportCatalog,
-  onExportProto,
-  onJumpToCompose,
-  onSearchChange,
-  onSelectFile,
-  onToggleWellKnown,
-  searchText,
-  selectedFile,
-  selectedProto,
-  showWellKnown,
-  visibleFiles,
-}: {
-  catalog: ProtoCatalogResponse | null;
-  onExportCatalog: () => void;
-  onExportProto: (file: ProtoFileSummary) => void;
-  onJumpToCompose: () => void;
-  onSearchChange: (value: string) => void;
-  onSelectFile: (value: string) => void;
-  onToggleWellKnown: (value: boolean) => void;
-  searchText: string;
-  selectedFile: string;
-  selectedProto: ProtoFileSummary | null;
-  showWellKnown: boolean;
-  visibleFiles: ProtoFileSummary[];
-}) {
-  const fileCount = catalog?.files.length ?? 0;
-  const serviceCount = catalog?.files.reduce((total, file) => total + file.services.length, 0) ?? 0;
-  const messageCount =
-    catalog?.files.reduce((total, file) => total + countProtoMessages(file.messages), 0) ?? 0;
-  const enumCount =
-    catalog?.files.reduce((total, file) => total + countProtoEnums(file.messages, file.enums), 0) ??
-    0;
-
-  if (!catalog) {
-    return (
-      <EmptyState
-        icon={BookMarked}
-        title="Proto explorer is loading"
-        description="ProtoPeek is pulling the available descriptors so it can render file topology and exportable schema views."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-3 md:grid-cols-4">
-        <MetricCard label="Files" value={String(fileCount)} />
-        <MetricCard label="Services" value={String(serviceCount)} />
-        <MetricCard label="Messages" value={String(messageCount)} />
-        <MetricCard label="Enums" value={String(enumCount)} />
-      </div>
-
-      <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="pp-label">Explorer, generator, exporter</div>
-            <div className="pp-muted mt-2">
-              Browse the full proto contract here, export the raw `.proto` text, and jump back to
-              Compose when you want ProtoPeek to generate a starter request body from the selected
-              RPC schema.
-            </div>
-          </div>
-          <button className="pp-button-secondary" onClick={onJumpToCompose} type="button">
-            <Sparkles className="size-4" />
-            Open request generator
-          </button>
-        </div>
-      </section>
-
-      <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="relative min-w-[240px] flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-pp-muted" />
-            <input
-              className="pp-input pl-11"
-              value={searchText}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search proto files, packages, services, or messages"
-            />
-          </label>
-          <label className="flex items-center gap-3 rounded-[22px] border border-pp-border bg-white/85 px-4 py-3">
-            <input
-              checked={showWellKnown}
-              onChange={(event) => onToggleWellKnown(event.target.checked)}
-              type="checkbox"
-            />
-            <span className="text-sm font-semibold text-pp-ink">Show well-known types</span>
-          </label>
-          <button className="pp-button-secondary" onClick={onExportCatalog} type="button">
-            <Download className="size-4" />
-            Export catalog JSON
-          </button>
-        </div>
-
-        <div className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <div className="space-y-3">
-            {visibleFiles.length === 0 ? (
-              <EmptyState
-                icon={FileCode2}
-                title="No proto files matched"
-                description="Adjust the search or include well-known protobuf types to widen the explorer scope."
-              />
-            ) : (
-              visibleFiles.map((file) => (
-                <button
-                  className={classNames(
-                    'block w-full rounded-[22px] border p-4 text-left transition',
-                    file.name === selectedFile
-                      ? 'border-pp-brand bg-pp-brand/5'
-                      : 'border-pp-border bg-white/85 hover:border-pp-brand/35 hover:bg-white'
-                  )}
-                  key={file.name}
-                  onClick={() => onSelectFile(file.name)}
-                  type="button"
-                >
-                  <div className="font-semibold text-pp-ink">{file.name}</div>
-                  <div className="pp-muted mt-2">
-                    {file.package || 'No package'} · {file.services.length} services ·{' '}
-                    {countProtoMessages(file.messages)} messages
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-
-          {selectedProto ? (
-            <div className="space-y-5">
-              <section className="rounded-[24px] border border-pp-border bg-white/85 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="pp-label">Selected proto file</div>
-                    <h4 className="mt-2 text-2xl font-semibold text-pp-ink">
-                      {selectedProto.name}
-                    </h4>
-                    <div className="pp-muted mt-2">
-                      Package {selectedProto.package || 'none'} ·{' '}
-                      {selectedProto.dependencies.length} imports
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="pp-button-secondary"
-                      onClick={() => onExportProto(selectedProto)}
-                      type="button"
-                    >
-                      <Download className="size-4" />
-                      Export `.proto`
-                    </button>
-                    <button
-                      className="pp-button-ghost px-3 py-2"
-                      onClick={() => void navigator.clipboard.writeText(selectedProto.protoText)}
-                      type="button"
-                    >
-                      <Copy className="size-4" />
-                      Copy text
-                    </button>
-                  </div>
-                </div>
-
-                {selectedProto.dependencies.length > 0 ? (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selectedProto.dependencies.map((dependency) => (
-                      <span className="pp-badge" key={dependency}>
-                        {dependency}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </section>
-
-              <section className="rounded-[24px] border border-pp-border bg-white/85 p-4">
-                <div className="pp-label">Service flow</div>
-                <div className="mt-4 space-y-4">
-                  {selectedProto.services.length === 0 ? (
-                    <div className="pp-muted">No services are declared in this file.</div>
-                  ) : (
-                    selectedProto.services.map((service) => (
-                      <div
-                        className="rounded-[22px] border border-pp-border bg-white/80 p-4"
-                        key={service.fullName}
-                      >
-                        <div className="font-semibold text-pp-ink">{service.fullName}</div>
-                        <div className="mt-3 space-y-3">
-                          {service.methods.map((method) => (
-                            <div
-                              className="rounded-[18px] border border-pp-border bg-[#f8fcfc] p-3"
-                              key={method.fullName}
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="font-semibold text-pp-ink">{method.name}</div>
-                                <span className="pp-badge">
-                                  {method.clientStreaming ? 'client stream' : 'unary'} to{' '}
-                                  {method.serverStreaming ? 'server stream' : 'unary'}
-                                </span>
-                              </div>
-                              <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-pp-muted">
-                                <span className="rounded-full border border-pp-border bg-white px-3 py-1 font-mono">
-                                  {method.requestType}
-                                </span>
-                                <span>→</span>
-                                <span className="rounded-full border border-pp-border bg-white px-3 py-1 font-mono">
-                                  {method.responseType}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[24px] border border-pp-border bg-white/85 p-4">
-                <div className="pp-label">Message structure</div>
-                <div className="mt-4 space-y-4">
-                  {selectedProto.messages.length === 0 ? (
-                    <div className="pp-muted">No top-level messages are declared in this file.</div>
-                  ) : (
-                    selectedProto.messages.map((message) => (
-                      <ProtoMessageCard key={message.fullName} message={message} />
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[24px] border border-pp-border bg-white/85 p-4">
-                <div className="pp-label">Enums</div>
-                <div className="mt-4 space-y-4">
-                  {selectedProto.enums.length === 0 ? (
-                    <div className="pp-muted">
-                      Top-level enums are nested inside message cards for this file.
-                    </div>
-                  ) : (
-                    selectedProto.enums.map((entry) => (
-                      <ProtoEnumCard entry={entry} key={entry.fullName} />
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[24px] border border-pp-border bg-white/85 p-4">
-                <div className="pp-label">Raw proto text</div>
-                <pre className="pp-code mt-4 max-h-[420px] overflow-auto">
-                  {selectedProto.protoText}
-                </pre>
-              </section>
-            </div>
-          ) : (
-            <EmptyState
-              icon={BookMarked}
-              title="Pick a proto file"
-              description="Select a file from the explorer rail to inspect service flow, nested messages, enums, and exportable raw proto text."
-            />
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function ProtoMessageCard({ message }: { message: ProtoMessageSummary }) {
-  return (
-    <div className="rounded-[22px] border border-pp-border bg-white/80 p-4">
-      <div className="font-semibold text-pp-ink">{message.fullName}</div>
-
-      <div className="mt-4 space-y-2">
-        {message.fields.length === 0 ? (
-          <div className="pp-muted">No fields in this message.</div>
-        ) : (
-          message.fields.map((field) => (
-            <div
-              className="rounded-[18px] border border-pp-border bg-[#f8fcfc] px-3 py-3"
-              key={`${message.fullName}-${field.name}`}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-pp-ink">{field.name}</span>
-                <span className="pp-badge">{field.type}</span>
-                <span className="pp-badge">{field.label}</span>
-                {field.oneOf ? <span className="pp-badge">oneof {field.oneOf}</span> : null}
-                {field.map ? <span className="pp-badge">map</span> : null}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {message.enums.length > 0 ? (
-        <div className="mt-4 space-y-3">
-          <div className="pp-label">Nested enums</div>
-          {message.enums.map((entry) => (
-            <ProtoEnumCard entry={entry} key={entry.fullName} />
-          ))}
-        </div>
-      ) : null}
-
-      {message.messages.length > 0 ? (
-        <div className="mt-4 space-y-3">
-          <div className="pp-label">Nested messages</div>
-          {message.messages.map((entry) => (
-            <ProtoMessageCard key={entry.fullName} message={entry} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ProtoEnumCard({ entry }: { entry: ProtoEnumSummary }) {
-  return (
-    <div className="rounded-[22px] border border-pp-border bg-white/80 p-4">
-      <div className="font-semibold text-pp-ink">{entry.fullName}</div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {entry.values.map((value) => (
-          <span className="pp-badge" key={`${entry.fullName}-${value.name}`}>
-            {value.name} = {value.number}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FeatureTeaser({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="rounded-[28px] border border-pp-border bg-white/75 p-5 shadow-[var(--pp-shadow)]">
-      <div className="flex size-11 items-center justify-center rounded-2xl bg-pp-brand/10 text-pp-brand">
-        <Icon className="size-5" />
-      </div>
-      <div className="mt-4 text-lg font-semibold text-pp-ink">{title}</div>
-      <p className="pp-muted mt-3">{body}</p>
-    </div>
-  );
-}
-
-function InfoRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 rounded-[22px] border border-pp-border bg-white/75 p-3">
-      <Icon className="mt-0.5 size-4 text-pp-brand" />
-      <div className="min-w-0">
-        <div className="pp-label">{label}</div>
-        <div className="truncate text-sm font-semibold text-pp-ink">{value}</div>
-      </div>
-    </div>
-  );
-}
-
-function ViewButton({
-  active,
-  icon: Icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className={classNames(
-        'flex items-center justify-between rounded-[22px] px-4 py-3 text-left text-sm font-semibold transition',
-        active
-          ? 'bg-pp-brand text-white shadow-lg shadow-pp-brand/20'
-          : 'border border-pp-border bg-white/75 text-pp-ink hover:bg-white'
-      )}
-      onClick={onClick}
-      type="button"
-    >
-      <span className="flex items-center gap-3">
-        <Icon className="size-4" />
-        {label}
-      </span>
-    </button>
-  );
-}
-
-function MethodModeBadge({ method }: { method: BootstrapMethod }) {
-  const mode = `${method.clientStreaming ? 'client stream' : 'unary'} → ${
-    method.serverStreaming ? 'server stream' : 'unary'
-  }`;
-  return <span className="pp-badge">{mode}</span>;
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[24px] border border-pp-border bg-white/75 p-4">
-      <div className="pp-label">{label}</div>
-      <div className="mt-2 text-lg font-semibold text-pp-ink">{value}</div>
-    </div>
-  );
-}
-
-function PanelHeader({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="flex size-11 items-center justify-center rounded-2xl bg-pp-brand/10 text-pp-brand">
-        <Icon className="size-5" />
-      </div>
-      <div>
-        <h3 className="pp-heading text-2xl">{title}</h3>
-        <p className="pp-muted mt-2">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function ServiceTree({
+function SidebarService({
   service,
   selectedMethod,
   searchText,
@@ -3295,76 +1164,44 @@ function ServiceTree({
   service: BootstrapService;
   selectedMethod: string;
   searchText: string;
-  onSelect: (method: string) => void;
+  onSelect: (m: string) => void;
 }) {
   const autoOpen = Boolean(searchText.trim());
   const [open, setOpen] = useState(
-    autoOpen || service.methods.some((method) => method.fullName === selectedMethod)
+    autoOpen || service.methods.some((m) => m.fullName === selectedMethod)
   );
-
   useEffect(() => {
-    if (autoOpen) {
-      setOpen(true);
-    }
+    if (autoOpen) setOpen(true);
   }, [autoOpen]);
 
-  const visibleMethods = service.methods.filter((method) => {
-    if (!searchText.trim()) {
-      return true;
-    }
-
-    const query = searchText.toLowerCase();
-    return (
-      method.name.toLowerCase().includes(query) || method.fullName.toLowerCase().includes(query)
-    );
-  });
-
-  if (visibleMethods.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="rounded-[24px] border border-pp-border bg-white/75 p-3">
+    <div className="mb-1">
       <button
-        className="flex w-full items-center justify-between gap-3 text-left"
-        onClick={() => setOpen((current) => !current)}
         type="button"
+        onClick={() => setOpen((x) => !x)}
+        className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-xs font-semibold text-pp-ink hover:bg-pp-bg-strong"
       >
-        <div>
-          <div className="font-semibold text-pp-ink">{service.name}</div>
-          <div className="pp-muted">{visibleMethods.length} methods</div>
-        </div>
-        <span
-          className={classNames(
-            'rounded-full border border-pp-border p-2 transition',
-            open ? 'rotate-90 bg-pp-brand/10 text-pp-brand' : 'bg-white text-pp-muted'
-          )}
-        >
-          <SquareArrowOutUpRight className="size-3.5" />
-        </span>
+        <span className="truncate">{service.name.split('.').pop()}</span>
+        <span className="text-[0.6rem] text-pp-muted">{open ? '−' : '+'}</span>
       </button>
-
       {open ? (
-        <div className="mt-3 space-y-2">
-          {visibleMethods.map((method) => (
+        <div className="ml-2 space-y-0.5 border-l border-pp-border pl-2">
+          {service.methods.map((m) => (
             <button
-              className={classNames(
-                'block w-full rounded-[18px] px-3 py-3 text-left transition',
-                method.fullName === selectedMethod
-                  ? 'bg-pp-brand text-white shadow-lg shadow-pp-brand/20'
-                  : 'border border-transparent bg-white/70 text-pp-ink hover:border-pp-brand/30 hover:bg-white'
-              )}
-              key={method.fullName}
-              onClick={() => onSelect(method.fullName)}
+              key={m.fullName}
               type="button"
+              onClick={() => onSelect(m.fullName)}
+              className={classNames(
+                'block w-full truncate rounded px-2 py-1 text-left text-xs transition',
+                m.fullName === selectedMethod
+                  ? 'bg-pp-brand font-semibold text-white'
+                  : 'text-pp-muted hover:bg-pp-bg-strong hover:text-pp-ink'
+              )}
             >
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-semibold">{method.name}</span>
-                <span className="text-[0.7rem] uppercase tracking-[0.16em] opacity-70">
-                  {method.serverStreaming || method.clientStreaming ? 'stream' : 'rpc'}
-                </span>
-              </div>
-              <div className="mt-2 line-clamp-2 text-xs opacity-80">{method.requestType}</div>
+              {m.name}
+              {m.clientStreaming || m.serverStreaming ? (
+                <span className="ml-1 text-[0.6rem] opacity-60">stream</span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -3373,101 +1210,1291 @@ function ServiceTree({
   );
 }
 
-function SchemaField({
-  field,
+// ─── Compose view ──────────────────────────────────────────────
+
+function ComposeView({
   schema,
-  depth,
+  requestText,
+  setRequestText,
+  timeoutSeconds,
+  setTimeoutSeconds,
+  metadata,
+  onAddMeta,
+  onRemoveMeta,
+  onChangeMeta,
+  grpcCommand,
+  onInvoke,
+  onSimulate,
+  invokeLoading,
+  simulationBusy,
+  onResetFromSchema,
+  matchingExamples,
+  setRequestFromExample,
+  collectionName,
+  setCollectionName,
+  collectionNotes,
+  setCollectionNotes,
+  onSaveCollection,
+  environmentName,
+  setEnvironmentName,
+  environmentNotes,
+  setEnvironmentNotes,
+  onSaveEnvironment,
+  environments,
+  onApplyEnvironment,
+  collections,
+  onApplyCollection,
 }: {
-  field: SchemaResponse['messageTypes'][string][number];
   schema: SchemaResponse;
-  depth: number;
+  requestText: string;
+  setRequestText: (v: string) => void;
+  timeoutSeconds: number;
+  setTimeoutSeconds: (v: number) => void;
+  metadata: MetadataEntry[];
+  onAddMeta: () => void;
+  onRemoveMeta: (i: number) => void;
+  onChangeMeta: (i: number, v: MetadataEntry) => void;
+  grpcCommand: string;
+  onInvoke: () => void;
+  onSimulate: () => void;
+  invokeLoading: boolean;
+  simulationBusy: boolean;
+  onResetFromSchema: () => void;
+  matchingExamples: ExampleResponse[];
+  setRequestFromExample: (e: ExampleResponse) => void;
+  collectionName: string;
+  setCollectionName: (v: string) => void;
+  collectionNotes: string;
+  setCollectionNotes: (v: string) => void;
+  onSaveCollection: () => void;
+  environmentName: string;
+  setEnvironmentName: (v: string) => void;
+  environmentNotes: string;
+  setEnvironmentNotes: (v: string) => void;
+  onSaveEnvironment: () => void;
+  environments: EnvironmentPreset[];
+  onApplyEnvironment: (e: EnvironmentPreset) => void;
+  collections: SavedCollection[];
+  onApplyCollection: (c: SavedCollection) => void;
 }) {
   return (
-    <div
-      className="rounded-[20px] border border-pp-border bg-white/80 p-3"
-      style={{ marginLeft: depth * 10 }}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-pp-ink">{field.name}</span>
-        <span className="pp-badge">{field.type}</span>
-        {field.isRequired ? <span className="pp-badge text-amber-700">required</span> : null}
-        {field.isArray ? <span className="pp-badge">array</span> : null}
-        {field.isMap ? <span className="pp-badge">map</span> : null}
+    <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="pp-label" htmlFor="req-body">
+              Request body
+            </label>
+            <button
+              className="pp-button-ghost py-1 text-xs"
+              type="button"
+              onClick={onResetFromSchema}
+            >
+              <RefreshCw className="size-3" />
+              Reset
+            </button>
+          </div>
+          <textarea
+            id="req-body"
+            className="pp-input min-h-[280px] font-mono text-xs leading-relaxed"
+            value={requestText}
+            onChange={(e) => setRequestText(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-end gap-3">
+          <div>
+            <label className="pp-label" htmlFor="timeout">
+              Timeout (s)
+            </label>
+            <input
+              id="timeout"
+              className="pp-input mt-1 w-24"
+              type="number"
+              min={0}
+              value={timeoutSeconds}
+              onChange={(e) => setTimeoutSeconds(Number(e.target.value))}
+            />
+          </div>
+          <button className="pp-button-primary" type="button" onClick={onInvoke}>
+            {invokeLoading ? (
+              <LoaderCircle className="size-3.5 animate-spin" />
+            ) : (
+              <Play className="size-3.5" />
+            )}
+            Invoke
+          </button>
+          <button className="pp-button-secondary" type="button" onClick={onSimulate}>
+            {simulationBusy ? (
+              <LoaderCircle className="size-3.5 animate-spin" />
+            ) : (
+              <FlaskConical className="size-3.5" />
+            )}
+            Simulate
+          </button>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="pp-label">Metadata</span>
+            <button className="pp-button-ghost py-1 text-xs" type="button" onClick={onAddMeta}>
+              <Plus className="size-3" />
+              Add
+            </button>
+          </div>
+          <div className="mt-2 space-y-2">
+            {metadata.map((entry, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: metadata rows are edited in-place, never reordered
+              <div className="flex gap-2" key={i}>
+                <input
+                  className="pp-input flex-1"
+                  value={entry.name}
+                  onChange={(e) => onChangeMeta(i, { ...entry, name: e.target.value })}
+                  placeholder="key"
+                />
+                <input
+                  className="pp-input flex-1"
+                  value={entry.value}
+                  onChange={(e) => onChangeMeta(i, { ...entry, value: e.target.value })}
+                  placeholder="value"
+                />
+                <button
+                  className="pp-button-ghost px-2"
+                  type="button"
+                  onClick={() => onRemoveMeta(i)}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ))}
+            {metadata.length === 0 ? (
+              <div className="text-xs text-pp-muted">
+                No metadata. Add headers, auth tokens, or trace IDs.
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="pp-label">grpcurl</span>
+            <button
+              className="pp-button-ghost py-1 text-xs"
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(grpcCommand)}
+            >
+              <Copy className="size-3" />
+              Copy
+            </button>
+          </div>
+          <pre className="pp-code mt-1 text-xs">{grpcCommand}</pre>
+        </div>
       </div>
-      <pre className="mt-3 whitespace-pre-wrap rounded-[18px] border border-pp-border bg-[#f6fbfb] px-3 py-3 font-mono text-[0.72rem] leading-6 text-pp-muted">
-        {field.description}
-      </pre>
 
-      {field.isMessage && schema.messageTypes[field.type]?.length ? (
-        <div className="mt-3 space-y-3">
-          {schema.messageTypes[field.type].map((nestedField) => (
-            <SchemaField
-              key={`${field.name}-${nestedField.name}`}
-              field={nestedField}
-              schema={schema}
-              depth={depth + 1}
-            />
-          ))}
+      <div className="space-y-4">
+        <div className="pp-panel">
+          <span className="pp-label">Request schema</span>
+          <div className="mt-2 space-y-1.5">
+            {(schema.messageTypes[schema.requestType] ?? []).map((f) => (
+              <SchemaField key={f.name} field={f} schema={schema} depth={0} />
+            ))}
+          </div>
         </div>
-      ) : null}
 
-      {field.type === 'oneof' && field.oneOfFields.length > 0 ? (
-        <div className="mt-3 space-y-3">
-          {field.oneOfFields.map((choice) => (
-            <SchemaField
-              key={`${field.name}-${choice.name}`}
-              field={choice}
-              schema={schema}
-              depth={depth + 1}
+        {matchingExamples.length > 0 ? (
+          <div className="pp-panel">
+            <span className="pp-label">Examples</span>
+            <div className="mt-2 space-y-1">
+              {matchingExamples.map((ex) => (
+                <button
+                  key={ex.name}
+                  type="button"
+                  onClick={() => setRequestFromExample(ex)}
+                  className="block w-full rounded-md border border-pp-border p-2 text-left text-xs hover:bg-pp-bg"
+                >
+                  <div className="font-semibold text-pp-ink">{ex.name}</div>
+                  {ex.description ? <div className="text-pp-muted">{ex.description}</div> : null}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="pp-panel">
+          <span className="pp-label">Recipes</span>
+          <div className="mt-2 space-y-2">
+            <input
+              className="pp-input text-xs"
+              value={collectionName}
+              onChange={(e) => setCollectionName(e.target.value)}
+              placeholder="Recipe name"
             />
-          ))}
+            <textarea
+              className="pp-input text-xs"
+              rows={2}
+              value={collectionNotes}
+              onChange={(e) => setCollectionNotes(e.target.value)}
+              placeholder="Notes"
+            />
+            <button
+              className="pp-button-secondary w-full text-xs"
+              type="button"
+              onClick={onSaveCollection}
+            >
+              <Save className="size-3" />
+              Save recipe
+            </button>
+          </div>
+          {collections.length > 0 ? (
+            <div className="mt-3 space-y-1">
+              {collections.slice(0, 5).map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => onApplyCollection(c)}
+                  className="block w-full rounded-md border border-pp-border p-2 text-left text-xs hover:bg-pp-bg"
+                >
+                  <div className="font-semibold text-pp-ink">{c.name}</div>
+                  <div className="text-pp-muted">{c.method.split('.').pop()}</div>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
-      ) : null}
+
+        <div className="pp-panel">
+          <span className="pp-label">Environments</span>
+          <div className="mt-2 space-y-2">
+            <input
+              className="pp-input text-xs"
+              value={environmentName}
+              onChange={(e) => setEnvironmentName(e.target.value)}
+              placeholder="Env name"
+            />
+            <textarea
+              className="pp-input text-xs"
+              rows={2}
+              value={environmentNotes}
+              onChange={(e) => setEnvironmentNotes(e.target.value)}
+              placeholder="Notes"
+            />
+            <button
+              className="pp-button-secondary w-full text-xs"
+              type="button"
+              onClick={onSaveEnvironment}
+            >
+              <Save className="size-3" />
+              Save env
+            </button>
+          </div>
+          {environments.length > 0 ? (
+            <div className="mt-3 space-y-1">
+              {environments.slice(0, 4).map((env) => (
+                <button
+                  key={env.id}
+                  type="button"
+                  onClick={() => onApplyEnvironment(env)}
+                  className="block w-full rounded-md border border-pp-border p-2 text-left text-xs hover:bg-pp-bg"
+                >
+                  <div className="font-semibold text-pp-ink">{env.name}</div>
+                  <div className="text-pp-muted">{env.timeoutSeconds}s timeout</div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
 
-function ResponseMetadata({ title, values }: { title: string; values: MetadataEntry[] }) {
+// ─── Response view ─────────────────────────────────────────────
+
+function ResponseView({
+  invokeState,
+  responsePayload,
+}: {
+  invokeState: {
+    loading: boolean;
+    error: string | null;
+    result: InvokeResponse | null;
+    latencyMs: number;
+  };
+  responsePayload: unknown[];
+}) {
+  if (invokeState.loading)
+    return (
+      <StatusBanner tone="info" title="In flight" description="Waiting for server response..." />
+    );
+  if (invokeState.error)
+    return <StatusBanner tone="danger" title="Error" description={invokeState.error} />;
+  if (!invokeState.result)
+    return <div className="text-sm text-pp-muted">Invoke a method to see the response.</div>;
+
+  const r = invokeState.result;
   return (
-    <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-      <div className="pp-label">{title}</div>
-      <div className="mt-3 space-y-2">
-        {values.length === 0 ? (
-          <div className="pp-muted">None.</div>
-        ) : (
-          values.map((entry, index) => (
-            <div
-              className="grid gap-2 rounded-[18px] border border-pp-border bg-white/80 px-3 py-3 md:grid-cols-[180px_1fr]"
-              // biome-ignore lint/suspicious/noArrayIndexKey: read-only response metadata, never reordered
-              key={index}
-            >
-              <span className="font-mono text-xs font-semibold text-pp-ink">{entry.name}</span>
-              <span className="break-all font-mono text-xs text-pp-muted">{entry.value}</span>
-            </div>
-          ))
-        )}
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Metric label="Latency" value={durationLabel(invokeState.latencyMs)} />
+        <Metric label="Messages" value={String(r.responses.length)} />
+        <Metric label="Status" value={r.error ? r.error.name : 'OK'} />
+        <Metric label="Sent" value={r.requests ? `${r.requests.sent}/${r.requests.total}` : '—'} />
       </div>
-    </section>
+      <MetadataTable title="Headers" values={r.headers} />
+      <PayloadBlock title="Responses" values={responsePayload} />
+      {r.error ? (
+        <div className="rounded-lg border border-pp-danger/30 bg-red-50 p-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-pp-danger">
+            <CircleAlert className="size-4" />
+            {r.error.name} ({r.error.code})
+          </div>
+          <p className="mt-1 text-sm text-pp-ink">{r.error.message}</p>
+          {r.error.details.length > 0 ? (
+            <PayloadBlock title="Details" values={r.error.details.map((d) => d.message)} />
+          ) : null}
+        </div>
+      ) : null}
+      <MetadataTable title="Trailers" values={r.trailers} />
+    </div>
   );
 }
 
-function ResponseData({ title, values }: { title: string; values: unknown[] }) {
+// ─── History view ──────────────────────────────────────────────
+
+function HistoryView({
+  history,
+  onApply,
+}: {
+  history: RequestHistoryEntry[];
+  onApply: (e: RequestHistoryEntry) => void;
+}) {
+  if (history.length === 0)
+    return <div className="text-sm text-pp-muted">No history yet. Run an RPC first.</div>;
   return (
-    <section className="rounded-[28px] border border-pp-border bg-white/75 p-4">
-      <div className="pp-label">{title}</div>
-      <div className="mt-3 space-y-3">
-        {values.length === 0 ? (
-          <div className="pp-muted">No payloads received yet.</div>
+    <div className="space-y-2">
+      {history.map((e) => (
+        <button
+          key={e.id}
+          type="button"
+          onClick={() => onApply(e)}
+          className="block w-full rounded-lg border border-pp-border p-3 text-left transition hover:bg-pp-bg"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <span className="text-sm font-semibold text-pp-ink">
+                {e.method.split('/').pop() || e.method}
+              </span>
+              <span className="ml-2 text-xs text-pp-muted">{compactDate(e.createdAt)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="pp-badge">{durationLabel(e.latencyMs)}</span>
+              <span className={classNames('pp-badge', e.success ? 'text-pp-ok' : 'text-pp-danger')}>
+                {e.success ? 'OK' : 'ERR'}
+              </span>
+            </div>
+          </div>
+          <p className="mt-1 truncate text-xs text-pp-muted">{e.responsePreview}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Tests view ────────────────────────────────────────────────
+
+function TestsView({
+  rules,
+  results,
+  onChangeRule,
+  onAddRule,
+  onRemoveRule,
+  onRunAssertions,
+  simulationConfig,
+  setSimulationConfig,
+  simulationRun,
+  simulationBusy,
+  simulationError,
+  onSimulate,
+  latencySparkline,
+  passingAssertions,
+}: {
+  rules: AssertionRule[];
+  results: AssertionResult[];
+  onChangeRule: (id: string, r: AssertionRule) => void;
+  onAddRule: () => void;
+  onRemoveRule: (id: string) => void;
+  onRunAssertions: () => void;
+  simulationConfig: SimulationConfig;
+  setSimulationConfig: (fn: (c: SimulationConfig) => SimulationConfig) => void;
+  simulationRun: SimulationRun | null;
+  simulationBusy: boolean;
+  simulationError: string | null;
+  onSimulate: () => void;
+  latencySparkline: string;
+  passingAssertions: number;
+}) {
+  return (
+    <div className="space-y-6">
+      <section>
+        <div className="flex items-center justify-between">
+          <h3 className="pp-heading text-base">Assertions</h3>
+          <div className="flex gap-2">
+            <button
+              className="pp-button-primary py-1.5 text-xs"
+              type="button"
+              onClick={onRunAssertions}
+            >
+              <CheckCircle2 className="size-3" />
+              Run
+            </button>
+            <button
+              className="pp-button-secondary py-1.5 text-xs"
+              type="button"
+              onClick={onAddRule}
+            >
+              <Plus className="size-3" />
+              Add
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 space-y-2">
+          {rules.map((rule) => (
+            <div key={rule.id} className="rounded-lg border border-pp-border bg-white p-3">
+              <div className="flex gap-2">
+                <input
+                  className="pp-input flex-1 text-xs"
+                  value={rule.name}
+                  onChange={(e) => onChangeRule(rule.id, { ...rule, name: e.target.value })}
+                  placeholder="Rule name"
+                />
+                <select
+                  className="pp-input w-28 text-xs"
+                  value={rule.kind}
+                  onChange={(e) =>
+                    onChangeRule(rule.id, {
+                      ...rule,
+                      kind: e.target.value as AssertionRule['kind'],
+                      target:
+                        e.target.value === 'header' || e.target.value === 'trailer'
+                          ? rule.target
+                          : '',
+                    })
+                  }
+                >
+                  {assertionKindOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="pp-input w-20 text-xs"
+                  value={rule.comparator}
+                  onChange={(e) =>
+                    onChangeRule(rule.id, {
+                      ...rule,
+                      comparator: e.target.value as AssertionRule['comparator'],
+                    })
+                  }
+                >
+                  {assertionComparatorOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="pp-button-ghost px-2"
+                  type="button"
+                  onClick={() => onRemoveRule(rule.id)}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="pp-input flex-1 text-xs"
+                  value={rule.target}
+                  onChange={(e) => onChangeRule(rule.id, { ...rule, target: e.target.value })}
+                  placeholder={
+                    rule.kind === 'header' || rule.kind === 'trailer' ? 'metadata key' : 'target'
+                  }
+                />
+                <input
+                  className="pp-input flex-1 text-xs"
+                  value={rule.value}
+                  onChange={(e) => onChangeRule(rule.id, { ...rule, value: e.target.value })}
+                  placeholder="expected"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        {results.length > 0 ? (
+          <div className="mt-3 space-y-1">
+            <span className="pp-label">
+              {passingAssertions}/{results.length} passing
+            </span>
+            {results.map((r) => (
+              <div
+                key={r.id}
+                className={classNames(
+                  'rounded-lg border p-2 text-xs',
+                  r.passed ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                )}
+              >
+                <span
+                  className={classNames(
+                    'font-semibold',
+                    r.passed ? 'text-pp-ok' : 'text-pp-danger'
+                  )}
+                >
+                  {r.passed ? 'PASS' : 'FAIL'}
+                </span>{' '}
+                <span className="text-pp-ink">{r.name}</span>
+                <div className="text-pp-muted">{r.message}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between">
+          <h3 className="pp-heading text-base">Simulation</h3>
+          <button className="pp-button-primary py-1.5 text-xs" type="button" onClick={onSimulate}>
+            {simulationBusy ? (
+              <LoaderCircle className="size-3 animate-spin" />
+            ) : (
+              <FlaskConical className="size-3" />
+            )}
+            Run
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {simulationPresets.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => setSimulationConfig(() => clampSimulationConfig(p.config))}
+              className="rounded-lg border border-pp-border px-3 py-1.5 text-xs font-medium hover:bg-pp-bg"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          <label className="block">
+            <span className="pp-label">Runs</span>
+            <input
+              className="pp-input mt-1 text-xs"
+              type="number"
+              value={simulationConfig.runs}
+              onChange={(e) => setSimulationConfig((c) => ({ ...c, runs: Number(e.target.value) }))}
+            />
+          </label>
+          <label className="block">
+            <span className="pp-label">Concurrency</span>
+            <input
+              className="pp-input mt-1 text-xs"
+              type="number"
+              value={simulationConfig.concurrency}
+              onChange={(e) =>
+                setSimulationConfig((c) => ({ ...c, concurrency: Number(e.target.value) }))
+              }
+            />
+          </label>
+          <label className="block">
+            <span className="pp-label">Think (ms)</span>
+            <input
+              className="pp-input mt-1 text-xs"
+              type="number"
+              value={simulationConfig.thinkTimeMs}
+              onChange={(e) =>
+                setSimulationConfig((c) => ({ ...c, thinkTimeMs: Number(e.target.value) }))
+              }
+            />
+          </label>
+        </div>
+        {simulationError ? (
+          <div className="mt-3">
+            <StatusBanner tone="danger" title="Simulation failed" description={simulationError} />
+          </div>
+        ) : null}
+        {simulationRun ? (
+          <div className="mt-4 space-y-3">
+            <div className="grid grid-cols-4 gap-3">
+              <Metric label="Success" value={String(simulationRun.successCount)} />
+              <Metric label="Errors" value={String(simulationRun.errorCount)} />
+              <Metric label="RPS" value={simulationRun.throughputRps.toFixed(1)} />
+              <Metric label="Total" value={durationLabel(simulationRun.totalMs)} />
+            </div>
+            <div className="rounded-lg border border-pp-border bg-white p-3">
+              <span className="text-xs font-semibold text-pp-ink">
+                p50 {durationLabel(simulationRun.p50)} · p95 {durationLabel(simulationRun.p95)} ·
+                p99 {durationLabel(simulationRun.p99)}
+              </span>
+              <svg
+                aria-label="Latency sparkline"
+                role="img"
+                viewBox="0 0 200 48"
+                className="mt-2 h-12 w-full"
+              >
+                <title>Latency sparkline</title>
+                <path
+                  d={latencySparkline}
+                  fill="none"
+                  stroke="var(--pp-brand)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
+// ─── Transport view ────────────────────────────────────────────
+
+function TransportView({
+  bootstrap,
+  schema,
+  method,
+  invokeResult,
+  responsePayload,
+}: {
+  bootstrap: BootstrapResponse;
+  schema: SchemaResponse;
+  method: BootstrapMethod;
+  invokeResult: InvokeResponse | null;
+  responsePayload: unknown[];
+}) {
+  const headerCount = invokeResult?.headers.length ?? 0;
+  const trailerCount = invokeResult?.trailers.length ?? 0;
+  const status = invokeResult?.error?.name ?? (invokeResult ? 'OK' : '—');
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Metric label="Discovery" value={bootstrap.services.length > 0 ? 'Loaded' : 'N/A'} />
+        <Metric label="Request" value={schema.requestStream ? 'Client stream' : 'Unary'} />
+        <Metric label="Headers" value={String(headerCount)} />
+        <Metric label="Trailers" value={String(trailerCount)} />
+      </div>
+      <div className="pp-panel text-sm">
+        <p>
+          <strong>Target:</strong> {bootstrap.target} at {bootstrap.basePath}
+        </p>
+        <p>
+          <strong>Mode:</strong>{' '}
+          {method.clientStreaming || method.serverStreaming ? 'Stream-aware' : 'Unary'}
+        </p>
+        <p>
+          <strong>Last status:</strong> {status}, {responsePayload.length} message
+          {responsePayload.length !== 1 ? 's' : ''}
+        </p>
+      </div>
+      <div className="pp-panel text-xs text-pp-muted">
+        <p className="font-semibold text-pp-ink">gRPC transport notes</p>
+        <ul className="mt-2 list-inside list-disc space-y-1">
+          <li>Proto files define the contract; reflection discovers services at runtime.</li>
+          <li>Metadata (headers) carry auth, trace IDs, deadlines before payloads.</li>
+          <li>Unary, client stream, server stream, and bidi are all supported.</li>
+          <li>Final status and trailing metadata arrive after response messages.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ─── Structure view ────────────────────────────────────────────
+
+function StructureView({
+  catalog,
+  searchText,
+  onSearchChange,
+  selectedFile,
+  onSelectFile,
+  selectedProto,
+  showWellKnown,
+  onToggleWellKnown,
+  visibleFiles,
+  onExportCatalog,
+  onExportProto,
+}: {
+  catalog: ProtoCatalogResponse | null;
+  searchText: string;
+  onSearchChange: (v: string) => void;
+  selectedFile: string;
+  onSelectFile: (v: string) => void;
+  selectedProto: ProtoFileSummary | null;
+  showWellKnown: boolean;
+  onToggleWellKnown: (v: boolean) => void;
+  visibleFiles: ProtoFileSummary[];
+  onExportCatalog: () => void;
+  onExportProto: (f: ProtoFileSummary) => void;
+}) {
+  if (!catalog) return <div className="text-sm text-pp-muted">Loading proto catalog...</div>;
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Metric label="Files" value={String(catalog.files.length)} />
+        <Metric
+          label="Services"
+          value={String(catalog.files.reduce((t, f) => t + f.services.length, 0))}
+        />
+        <Metric
+          label="Messages"
+          value={String(catalog.files.reduce((t, f) => t + countMessages(f.messages), 0))}
+        />
+        <Metric
+          label="Enums"
+          value={String(catalog.files.reduce((t, f) => t + countEnums(f.messages, f.enums), 0))}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-pp-muted" />
+          <input
+            className="pp-input pl-8 text-xs"
+            value={searchText}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search protos..."
+          />
+        </div>
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={showWellKnown}
+            onChange={(e) => onToggleWellKnown(e.target.checked)}
+          />
+          Well-known
+        </label>
+        <button className="pp-button-secondary text-xs" type="button" onClick={onExportCatalog}>
+          <Download className="size-3" />
+          Export JSON
+        </button>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+        <div className="space-y-1 overflow-y-auto" style={{ maxHeight: '60vh' }}>
+          {visibleFiles.map((f) => (
+            <button
+              key={f.name}
+              type="button"
+              onClick={() => onSelectFile(f.name)}
+              className={classNames(
+                'block w-full rounded-md border p-2 text-left text-xs transition',
+                f.name === selectedFile
+                  ? 'border-pp-brand bg-pp-brand/5 font-semibold'
+                  : 'border-pp-border hover:bg-pp-bg'
+              )}
+            >
+              <div className="truncate text-pp-ink">{f.name}</div>
+              <div className="text-pp-muted">
+                {f.package || 'no pkg'} · {f.services.length}s · {countMessages(f.messages)}m
+              </div>
+            </button>
+          ))}
+        </div>
+        {selectedProto ? (
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="pp-heading text-base">{selectedProto.name}</h4>
+                <div className="text-xs text-pp-muted">
+                  pkg {selectedProto.package || 'none'} · {selectedProto.dependencies.length} deps
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="pp-button-secondary text-xs"
+                  type="button"
+                  onClick={() => onExportProto(selectedProto)}
+                >
+                  <Download className="size-3" />
+                  .proto
+                </button>
+                <button
+                  className="pp-button-ghost text-xs"
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(selectedProto.protoText)}
+                >
+                  <Copy className="size-3" />
+                  Copy
+                </button>
+              </div>
+            </div>
+            {selectedProto.services.map((svc) => (
+              <div key={svc.fullName} className="pp-panel">
+                <div className="text-sm font-semibold text-pp-ink">{svc.fullName}</div>
+                <div className="mt-2 space-y-1">
+                  {svc.methods.map((m) => (
+                    <div
+                      key={m.fullName}
+                      className="flex items-center justify-between rounded border border-pp-border bg-pp-bg px-2 py-1 text-xs"
+                    >
+                      <span className="font-medium">{m.name}</span>
+                      <span className="font-mono text-pp-muted">
+                        {m.requestType} → {m.responseType}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {selectedProto.messages.map((m) => (
+              <ProtoMsg key={m.fullName} message={m} />
+            ))}
+            {selectedProto.enums.map((e) => (
+              <ProtoEnum key={e.fullName} entry={e} />
+            ))}
+            <div>
+              <span className="pp-label">Raw proto</span>
+              <pre className="pp-code mt-1 max-h-80 overflow-auto text-xs">
+                {selectedProto.protoText}
+              </pre>
+            </div>
+          </div>
         ) : (
-          values.map((value, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: read-only response payload list, never reordered
-            <pre className="pp-code" key={index}>
-              {prettyJson(value)}
-            </pre>
-          ))
+          <div className="text-sm text-pp-muted">Select a file to inspect.</div>
         )}
       </div>
-    </section>
+    </div>
+  );
+}
+
+// ─── Workspace view ────────────────────────────────────────────
+
+function WorkspaceView({
+  targets,
+  activeTargetId,
+  draft,
+  busy,
+  error,
+  rootBootstrap,
+  onChangeDraft,
+  onSave,
+  onSaveAndConnect,
+  onConnect,
+  onEdit,
+  onDelete,
+  onReset,
+}: {
+  targets: WorkspaceTargetProfile[];
+  activeTargetId: string;
+  draft: WorkspaceTargetProfile;
+  busy: boolean;
+  error: string | null;
+  rootBootstrap: BootstrapResponse | null;
+  onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onSave: () => void;
+  onSaveAndConnect: () => void;
+  onConnect: (t: WorkspaceTargetProfile) => void;
+  onEdit: (t: WorkspaceTargetProfile) => void;
+  onDelete: (id: string) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="space-y-4">
+        <h3 className="pp-heading text-base">Target connection</h3>
+        {error ? <StatusBanner tone="danger" title="Error" description={error} /> : null}
+        <TargetForm
+          draft={draft}
+          busy={busy}
+          onChange={onChangeDraft}
+          onSave={onSave}
+          onSaveAndConnect={onSaveAndConnect}
+        />
+      </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="pp-heading text-base">Saved targets</h3>
+          {rootBootstrap?.launcherMode ? (
+            <button className="pp-button-ghost text-xs" type="button" onClick={onReset}>
+              Launcher
+            </button>
+          ) : null}
+        </div>
+        {targets.length === 0 ? (
+          <div className="text-sm text-pp-muted">No saved targets.</div>
+        ) : (
+          <div className="space-y-2">
+            {targets.map((t) => (
+              <div key={t.id} className="rounded-lg border border-pp-border p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
+                    <div className="text-xs text-pp-muted">{t.address}</div>
+                  </div>
+                  {t.id === activeTargetId ? (
+                    <span className="pp-badge text-pp-ok">Active</span>
+                  ) : null}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                  <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
+                  {t.insecure ? <span className="pp-badge text-amber-600">Skip verify</span> : null}
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="pp-button-primary py-1 text-xs"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onConnect(t)}
+                  >
+                    {busy ? (
+                      <LoaderCircle className="size-3 animate-spin" />
+                    ) : (
+                      <Play className="size-3" />
+                    )}
+                    Connect
+                  </button>
+                  <button
+                    className="pp-button-secondary py-1 text-xs"
+                    type="button"
+                    onClick={() => onEdit(t)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="pp-button-ghost py-1 text-xs"
+                    type="button"
+                    onClick={() => onDelete(t.id)}
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Launcher view (no services discovered yet) ────────────────
+
+function LauncherView({
+  bootstrap,
+  targets,
+  activeTargetId,
+  draft,
+  busy,
+  error,
+  onChangeDraft,
+  onSave,
+  onSaveAndConnect,
+  onConnect,
+  onEdit,
+  onDelete,
+}: {
+  bootstrap: BootstrapResponse;
+  targets: WorkspaceTargetProfile[];
+  activeTargetId: string;
+  draft: WorkspaceTargetProfile;
+  busy: boolean;
+  error: string | null;
+  onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onSave: () => void;
+  onSaveAndConnect: () => void;
+  onConnect: (t: WorkspaceTargetProfile) => void;
+  onEdit: (t: WorkspaceTargetProfile) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div className="flex h-screen flex-col bg-pp-bg">
+      <header className="border-b border-pp-border bg-white px-6 py-4">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-bold text-pp-brand">ProtoPeek</span>
+          <span className="text-sm text-pp-muted">{bootstrap.version}</span>
+        </div>
+        <p className="mt-1 text-sm text-pp-muted">Connect a gRPC target to get started.</p>
+      </header>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
+          <div className="space-y-4">
+            <h3 className="pp-heading text-base">Connect a target</h3>
+            {error ? (
+              <StatusBanner tone="danger" title="Connection failed" description={error} />
+            ) : null}
+            <TargetForm
+              draft={draft}
+              busy={busy}
+              onChange={onChangeDraft}
+              onSave={onSave}
+              onSaveAndConnect={onSaveAndConnect}
+            />
+          </div>
+          <div className="space-y-4">
+            <h3 className="pp-heading text-base">Saved targets</h3>
+            {targets.length === 0 ? (
+              <div className="text-sm text-pp-muted">
+                No targets saved yet. Create one to get started.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {targets.map((t) => (
+                  <div key={t.id} className="rounded-lg border border-pp-border bg-white p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
+                        <div className="text-xs text-pp-muted">{t.address}</div>
+                      </div>
+                      {t.id === activeTargetId ? (
+                        <span className="pp-badge text-pp-ok">Active</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                      <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
+                      {t.insecure ? (
+                        <span className="pp-badge text-amber-600">Skip verify</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        className="pp-button-primary py-1 text-xs"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onConnect(t)}
+                      >
+                        {busy ? (
+                          <LoaderCircle className="size-3 animate-spin" />
+                        ) : (
+                          <Play className="size-3" />
+                        )}
+                        Connect
+                      </button>
+                      <button
+                        className="pp-button-secondary py-1 text-xs"
+                        type="button"
+                        onClick={() => onEdit(t)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="pp-button-ghost py-1 text-xs"
+                        type="button"
+                        onClick={() => onDelete(t.id)}
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Target form ───────────────────────────────────────────────
+
+function TargetForm({
+  draft,
+  busy,
+  onChange,
+  onSave,
+  onSaveAndConnect,
+}: {
+  draft: WorkspaceTargetProfile;
+  busy: boolean;
+  onChange: (n: Partial<WorkspaceTargetProfile>) => void;
+  onSave: () => void;
+  onSaveAndConnect: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block">
+          <span className="pp-label">Name</span>
+          <input
+            className="pp-input mt-1"
+            value={draft.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            placeholder="Local dev"
+          />
+        </label>
+        <label className="block">
+          <span className="pp-label">Address</span>
+          <input
+            className="pp-input mt-1"
+            value={draft.address}
+            onChange={(e) => onChange({ address: e.target.value })}
+            placeholder="localhost:50051"
+          />
+        </label>
+      </div>
+      <label className="block">
+        <span className="pp-label">Notes</span>
+        <textarea
+          className="pp-input mt-1"
+          rows={2}
+          value={draft.notes}
+          onChange={(e) => onChange({ notes: e.target.value })}
+          placeholder="Optional notes"
+        />
+      </label>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="block">
+          <span className="pp-label">Schema source</span>
+          <select
+            className="pp-input mt-1"
+            value={draft.schemaSource}
+            onChange={(e) =>
+              onChange({ schemaSource: e.target.value as WorkspaceTargetProfile['schemaSource'] })
+            }
+          >
+            <option value="reflection">Reflection</option>
+            <option value="proto-files">Proto files</option>
+            <option value="protoset">Protoset</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="pp-label">Authority</span>
+          <input
+            className="pp-input mt-1"
+            value={draft.authority}
+            onChange={(e) => onChange({ authority: e.target.value })}
+            placeholder="grpc.example.internal"
+          />
+        </label>
+        <div className="flex items-end gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.plaintext}
+              onChange={(e) =>
+                onChange({
+                  plaintext: e.target.checked,
+                  insecure: e.target.checked ? false : draft.insecure,
+                })
+              }
+            />
+            Plaintext
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draft.insecure}
+              disabled={draft.plaintext}
+              onChange={(e) => onChange({ insecure: e.target.checked })}
+            />
+            Skip verify
+          </label>
+        </div>
+      </div>
+      {!draft.plaintext ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block">
+            <span className="pp-label">CA cert</span>
+            <input
+              className="pp-input mt-1"
+              value={draft.cacertPath}
+              onChange={(e) => onChange({ cacertPath: e.target.value })}
+              placeholder="/certs/ca.pem"
+            />
+          </label>
+          <label className="block">
+            <span className="pp-label">Client cert</span>
+            <input
+              className="pp-input mt-1"
+              value={draft.certPath}
+              onChange={(e) => onChange({ certPath: e.target.value })}
+              placeholder="/certs/client.pem"
+            />
+          </label>
+          <label className="block">
+            <span className="pp-label">Client key</span>
+            <input
+              className="pp-input mt-1"
+              value={draft.keyPath}
+              onChange={(e) => onChange({ keyPath: e.target.value })}
+              placeholder="/certs/key.pem"
+            />
+          </label>
+        </div>
+      ) : null}
+      {draft.schemaSource === 'proto-files' ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="pp-label">Proto files</span>
+            <textarea
+              className="pp-input mt-1 font-mono text-xs"
+              rows={3}
+              value={draft.protoFiles.join('\n')}
+              onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
+              placeholder="api/service.proto"
+            />
+          </label>
+          <label className="block">
+            <span className="pp-label">Import paths</span>
+            <textarea
+              className="pp-input mt-1 font-mono text-xs"
+              rows={3}
+              value={draft.importPaths.join('\n')}
+              onChange={(e) => onChange({ importPaths: parseMultilineValues(e.target.value) })}
+              placeholder="proto"
+            />
+          </label>
+        </div>
+      ) : null}
+      {draft.schemaSource === 'protoset' ? (
+        <label className="block">
+          <span className="pp-label">Protoset files</span>
+          <textarea
+            className="pp-input mt-1 font-mono text-xs"
+            rows={3}
+            value={draft.protosets.join('\n')}
+            onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
+            placeholder="dist/service.protoset"
+          />
+        </label>
+      ) : null}
+      <div className="flex gap-2">
+        <button className="pp-button-secondary" type="button" disabled={busy} onClick={onSave}>
+          <Save className="size-3.5" />
+          Save
+        </button>
+        <button
+          className="pp-button-primary"
+          type="button"
+          disabled={busy}
+          onClick={onSaveAndConnect}
+        >
+          {busy ? (
+            <LoaderCircle className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
+          Save & connect
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Small shared components ───────────────────────────────────
+
+function MethodBadge({ method }: { method: BootstrapMethod }) {
+  const mode = `${method.clientStreaming ? 'client stream' : 'unary'} → ${method.serverStreaming ? 'server stream' : 'unary'}`;
+  return <span className="pp-badge">{mode}</span>;
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-pp-border bg-white p-3">
+      <div className="pp-label">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-pp-ink">{value}</div>
+    </div>
   );
 }
 
@@ -3483,10 +2510,8 @@ function StatusBanner({
   return (
     <div
       className={classNames(
-        'rounded-[24px] border p-4',
-        tone === 'danger'
-          ? 'border-pp-danger/20 bg-pp-danger/5'
-          : 'border-pp-brand/20 bg-pp-brand/5'
+        'rounded-lg border p-3',
+        tone === 'danger' ? 'border-pp-danger/30 bg-red-50' : 'border-pp-brand/30 bg-blue-50'
       )}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-pp-ink">
@@ -3497,74 +2522,151 @@ function StatusBanner({
         )}
         {title}
       </div>
-      <p className="pp-muted mt-2">{description}</p>
+      <p className="pp-muted mt-1">{description}</p>
     </div>
   );
 }
 
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-}) {
+function MetadataTable({ title, values }: { title: string; values: MetadataEntry[] }) {
   return (
-    <div className="rounded-[24px] border border-dashed border-pp-border px-4 py-6 text-center">
-      <Icon className="mx-auto size-8 text-pp-brand" />
-      <div className="mt-3 font-semibold text-pp-ink">{title}</div>
-      <p className="pp-muted mt-2">{description}</p>
+    <div className="rounded-lg border border-pp-border bg-white p-3">
+      <span className="pp-label">{title}</span>
+      {values.length === 0 ? (
+        <div className="mt-2 text-xs text-pp-muted">None.</div>
+      ) : (
+        <div className="mt-2 space-y-1">
+          {values.map((e, i) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: read-only response metadata, never reordered
+              key={i}
+              className="flex gap-2 rounded border border-pp-border bg-pp-bg px-2 py-1 text-xs"
+            >
+              <span className="shrink-0 font-mono font-semibold text-pp-ink">{e.name}</span>
+              <span className="break-all font-mono text-pp-muted">{e.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function ExternalLink({
-  href,
-  title,
-  description,
+function PayloadBlock({ title, values }: { title: string; values: unknown[] }) {
+  return (
+    <div className="rounded-lg border border-pp-border bg-white p-3">
+      <span className="pp-label">{title}</span>
+      {values.length === 0 ? (
+        <div className="mt-2 text-xs text-pp-muted">No payloads.</div>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {values.map((v, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: read-only response payload list, never reordered
+            <pre key={i} className="pp-code text-xs">
+              {prettyJson(v)}
+            </pre>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SchemaField({
+  field,
+  schema,
+  depth,
 }: {
-  href: string;
-  title: string;
-  description: string;
+  field: SchemaResponse['messageTypes'][string][number];
+  schema: SchemaResponse;
+  depth: number;
 }) {
   return (
-    <a
-      className="block rounded-[24px] border border-pp-border bg-white/75 p-4 transition hover:border-pp-brand/35 hover:bg-white"
-      href={href}
-      rel="noreferrer"
-      target="_blank"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="font-semibold text-pp-ink">{title}</div>
-        <SquareArrowOutUpRight className="size-4 text-pp-brand" />
+    <div className="rounded border border-pp-border bg-pp-bg p-2" style={{ marginLeft: depth * 8 }}>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-xs font-semibold text-pp-ink">{field.name}</span>
+        <span className="pp-badge">{field.type}</span>
+        {field.isRequired ? <span className="pp-badge text-amber-600">req</span> : null}
+        {field.isArray ? <span className="pp-badge">[]</span> : null}
+        {field.isMap ? <span className="pp-badge">map</span> : null}
       </div>
-      <div className="pp-muted mt-2">{description}</div>
-    </a>
+      {field.description ? (
+        <div className="mt-1 text-[0.65rem] text-pp-muted">{field.description}</div>
+      ) : null}
+      {field.isMessage && schema.messageTypes[field.type]?.length ? (
+        <div className="mt-1 space-y-1">
+          {schema.messageTypes[field.type].map((nf) => (
+            <SchemaField
+              key={`${field.name}-${nf.name}`}
+              field={nf}
+              schema={schema}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      ) : null}
+      {field.type === 'oneof' && field.oneOfFields.length > 0 ? (
+        <div className="mt-1 space-y-1">
+          {field.oneOfFields.map((c) => (
+            <SchemaField
+              key={`${field.name}-${c.name}`}
+              field={c}
+              schema={schema}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
-function LabeledInput({
-  label,
-  value,
-  type,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  type: string;
-  onChange: (value: string) => void;
-}) {
+function ProtoMsg({ message }: { message: ProtoMessageSummary }) {
   return (
-    <label className="block">
-      <span className="pp-label">{label}</span>
-      <input
-        className="pp-input mt-2"
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+    <div className="rounded-lg border border-pp-border bg-white p-3">
+      <div className="text-sm font-semibold text-pp-ink">{message.fullName}</div>
+      <div className="mt-2 space-y-1">
+        {message.fields.map((f) => (
+          <div
+            key={`${message.fullName}-${f.name}`}
+            className="flex flex-wrap items-center gap-1 rounded border border-pp-border bg-pp-bg px-2 py-1 text-xs"
+          >
+            <span className="font-semibold text-pp-ink">{f.name}</span>
+            <span className="pp-badge">{f.type}</span>
+            <span className="pp-badge">{f.label}</span>
+            {f.oneOf ? <span className="pp-badge">oneof {f.oneOf}</span> : null}
+            {f.map ? <span className="pp-badge">map</span> : null}
+          </div>
+        ))}
+      </div>
+      {message.enums.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {message.enums.map((e) => (
+            <ProtoEnum key={e.fullName} entry={e} />
+          ))}
+        </div>
+      ) : null}
+      {message.messages.length > 0 ? (
+        <div className="mt-2 space-y-1">
+          {message.messages.map((m) => (
+            <ProtoMsg key={m.fullName} message={m} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProtoEnum({ entry }: { entry: ProtoEnumSummary }) {
+  return (
+    <div className="rounded-lg border border-pp-border bg-white p-3">
+      <div className="text-xs font-semibold text-pp-ink">{entry.fullName}</div>
+      <div className="mt-1 flex flex-wrap gap-1">
+        {entry.values.map((v) => (
+          <span key={`${entry.fullName}-${v.name}`} className="pp-badge">
+            {v.name}={v.number}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
