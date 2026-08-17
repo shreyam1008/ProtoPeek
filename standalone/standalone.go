@@ -190,6 +190,24 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 			})
 		})
 
+		mux.HandleFunc("/api/workspace/session", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodDelete {
+				w.Header().Set("Allow", http.MethodDelete)
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			if !validCSRF(r) {
+				http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+				return
+			}
+			sessionID := strings.TrimSpace(r.URL.Query().Get("session_id"))
+			if sessionID == "" || !uiOpts.workspaceManager.Disconnect(sessionID) {
+				http.Error(w, "Unknown workspace session", http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		})
+
 		mux.HandleFunc("/api/workspace/metadata", func(w http.ResponseWriter, r *http.Request) {
 			session := uiOpts.workspaceManager.sessionFromRequest(r)
 			if session == nil {

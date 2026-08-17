@@ -161,6 +161,10 @@ var (
 		The port on which the web UI is exposed.`))
 	bind = flags.String("bind", "127.0.0.1", prettify(`
 		The address on which the web UI is exposed.`))
+	unsafeAllowRemote = flags.Bool("unsafe-allow-remote", false, prettify(`
+		Allow the web UI to bind to a non-loopback address. This exposes a local
+		debugging console with no authentication. Use only behind an explicit
+		local-only container port mapping or another trusted boundary.`))
 	basePath = flags.String("base-path", "/", prettify(`
 		The path on which the web UI is exposed.
 		Defaults to slash ("/"), which is the root of the server.
@@ -432,6 +436,12 @@ func Run() {
 	if !strings.HasPrefix(*basePath, "/") {
 		fail(nil, `The -base-path must begin with a slash ("/")`)
 	}
+	if err := validateWebBind(*bind, *unsafeAllowRemote); err != nil {
+		fail(nil, err.Error())
+	}
+	if *unsafeAllowRemote {
+		warn("unsafe remote web access enabled on %s; ProtoPeek does not provide authentication", *bind)
+	}
 
 	assetNames := map[string]string{}
 	checkAssetNames(assetNames, extraJS, true)
@@ -553,14 +563,15 @@ func Run() {
 	var handler http.Handler
 	if launcherMode {
 		manager := standalone.NewWorkspaceManager(standalone.WorkspaceManagerOptions{
-			Version:         Version,
-			BasePath:        *basePath,
-			DefaultHeaders:  defHeaders,
-			ConnectTimeout:  connectTimeoutDuration,
-			ConnectFailFast: *connectFailFast,
-			KeepaliveTime:   keepaliveDuration,
-			MaxMsgSize:      *maxMsgSz,
-			TargetDefaults:  launcherTargetDefaults,
+			Version:           Version,
+			BasePath:          *basePath,
+			DefaultHeaders:    defHeaders,
+			ReflectionHeaders: append(append([]string{}, addlHeaders...), reflHeaders...),
+			ConnectTimeout:    connectTimeoutDuration,
+			ConnectFailFast:   *connectFailFast,
+			KeepaliveTime:     keepaliveDuration,
+			MaxMsgSize:        *maxMsgSz,
+			TargetDefaults:    launcherTargetDefaults,
 		})
 		defer func() {
 			_ = manager.Close()
@@ -798,6 +809,7 @@ func Run() {
 		mux.Handle(withoutSlash+"/", http.StripPrefix(withoutSlash, handler))
 		handler = mux
 	}
+	handler = localAccessHandler(handler, *unsafeAllowRemote)
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *bind, *port))
 	if err != nil {
@@ -859,8 +871,8 @@ Unix variants, if a -unix=true flag is present, then the address must be the
 path to the domain socket.
 
 Most flags control how the connection to the gRPC server is established. The
-ProtoPeek web server will always bind only to localhost, without TLS, so only the port
-can be controlled via command-line flags.
+ProtoPeek binds to localhost without TLS by default. Non-loopback web binds are
+rejected unless -unsafe-allow-remote is supplied; ProtoPeek does not add authentication.
 
 Available flags:
 `, os.Args[0])

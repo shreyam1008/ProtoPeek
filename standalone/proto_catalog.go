@@ -87,10 +87,14 @@ func buildProtoCatalog(files []*desc.FileDescriptor) ([]byte, error) {
 		}
 
 		summary := protoFileSummary{
-			Name:      fd.GetName(),
-			Package:   fd.GetPackage(),
-			ProtoText: strings.TrimSpace(protoText),
-			WellKnown: strings.HasPrefix(fd.GetName(), "google/protobuf/"),
+			Name:         fd.GetName(),
+			Package:      fd.GetPackage(),
+			Dependencies: make([]string, 0),
+			Services:     make([]protoServiceSummary, 0),
+			Messages:     make([]protoMessageSummary, 0),
+			Enums:        make([]protoEnumSummary, 0),
+			ProtoText:    strings.TrimSpace(protoText),
+			WellKnown:    strings.HasPrefix(fd.GetName(), "google/protobuf/"),
 		}
 
 		for _, dep := range fd.GetDependencies() {
@@ -102,6 +106,7 @@ func buildProtoCatalog(files []*desc.FileDescriptor) ([]byte, error) {
 			service := protoServiceSummary{
 				Name:     sd.GetName(),
 				FullName: sd.GetFullyQualifiedName(),
+				Methods:  make([]protoMethodSummary, 0),
 			}
 			for _, md := range sd.GetMethods() {
 				service.Methods = append(service.Methods, protoMethodSummary{
@@ -147,6 +152,9 @@ func protoMessageSummaryFor(md *desc.MessageDescriptor) protoMessageSummary {
 	summary := protoMessageSummary{
 		Name:     md.GetName(),
 		FullName: md.GetFullyQualifiedName(),
+		Fields:   make([]protoFieldSummary, 0),
+		Messages: make([]protoMessageSummary, 0),
+		Enums:    make([]protoEnumSummary, 0),
 	}
 
 	for _, field := range md.GetFields() {
@@ -188,6 +196,7 @@ func protoEnumSummaryFor(ed *desc.EnumDescriptor) protoEnumSummary {
 	summary := protoEnumSummary{
 		Name:     ed.GetName(),
 		FullName: ed.GetFullyQualifiedName(),
+		Values:   make([]protoEnumValue, 0),
 	}
 	for _, value := range ed.GetValues() {
 		summary.Values = append(summary.Values, protoEnumValue{

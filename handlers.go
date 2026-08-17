@@ -23,8 +23,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/shreyam1008/ProtoPeek/internal"
 	"github.com/fullstorydev/grpcurl"
+	"github.com/shreyam1008/ProtoPeek/internal"
 )
 
 // RPCInvokeHandler returns an HTTP handler that can be used to invoke RPCs. The
@@ -458,11 +458,7 @@ func invokeRPC(ctx context.Context, methodName string, ch grpc.ClientConnInterfa
 		defer cancel()
 	}
 
-	result := rpcResult{
-		descSource:   descSource,
-		emitDefaults: options.EmitDefaults,
-		Requests:     &reqStats,
-	}
+	result := newRPCResult(descSource, options.EmitDefaults, &reqStats)
 	if err := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc); err != nil {
 		return nil, err
 	}
@@ -549,6 +545,17 @@ type rpcResult struct {
 	Responses    []rpcResponseElement `json:"responses"`
 	Requests     *rpcRequestStats     `json:"requests"`
 	Trailers     []rpcMetadata        `json:"trailers"`
+}
+
+func newRPCResult(descSource grpcurl.DescriptorSource, emitDefaults bool, requests *rpcRequestStats) rpcResult {
+	return rpcResult{
+		descSource:   descSource,
+		emitDefaults: emitDefaults,
+		Headers:      make([]rpcMetadata, 0),
+		Responses:    make([]rpcResponseElement, 0),
+		Requests:     requests,
+		Trailers:     make([]rpcMetadata, 0),
+	}
 }
 
 func (*rpcResult) OnResolveMethod(*desc.MethodDescriptor) {}

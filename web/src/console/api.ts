@@ -35,8 +35,85 @@ async function fetchJSON<T>(path: string, init?: RequestInit) {
   return (await response.json()) as T;
 }
 
-export function fetchBootstrap() {
-  return fetchJSON<BootstrapResponse>('api/bootstrap');
+function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+export function normalizeBootstrap(input: unknown): BootstrapResponse {
+  const bootstrap = (input ?? {}) as BootstrapResponse;
+  const defaults = (bootstrap.targetDefaults ?? {}) as WorkspaceTargetConfig;
+  return {
+    ...bootstrap,
+    defaultMetadata: arrayOrEmpty(bootstrap.defaultMetadata),
+    services: arrayOrEmpty(bootstrap.services).map((service) => ({
+      ...service,
+      methods: arrayOrEmpty(service.methods),
+    })),
+    targetDefaults: {
+      address: defaults.address ?? '',
+      plaintext: defaults.plaintext ?? true,
+      insecure: defaults.insecure ?? false,
+      authority: defaults.authority ?? '',
+      cacertPath: defaults.cacertPath ?? '',
+      certPath: defaults.certPath ?? '',
+      keyPath: defaults.keyPath ?? '',
+      schemaSource: defaults.schemaSource ?? 'reflection',
+      protoFiles: arrayOrEmpty(defaults.protoFiles),
+      importPaths: arrayOrEmpty(defaults.importPaths),
+      protosets: arrayOrEmpty(defaults.protosets),
+    },
+  };
+}
+
+export function normalizeInvokeResponse(input: unknown): InvokeResponse {
+  const response = (input ?? {}) as InvokeResponse;
+  return {
+    ...response,
+    headers: arrayOrEmpty(response.headers),
+    responses: arrayOrEmpty(response.responses),
+    trailers: arrayOrEmpty(response.trailers),
+    requests: response.requests ?? null,
+    error: response.error
+      ? { ...response.error, details: arrayOrEmpty(response.error.details) }
+      : null,
+  };
+}
+
+function normalizeMessage(
+  message: ProtoCatalogResponse['files'][number]['messages'][number]
+): ProtoCatalogResponse['files'][number]['messages'][number] {
+  return {
+    ...message,
+    fields: arrayOrEmpty(message.fields),
+    messages: arrayOrEmpty(message.messages).map(normalizeMessage),
+    enums: arrayOrEmpty(message.enums).map((entry) => ({
+      ...entry,
+      values: arrayOrEmpty(entry.values),
+    })),
+  };
+}
+
+export function normalizeProtoCatalog(input: unknown): ProtoCatalogResponse {
+  const catalog = (input ?? {}) as ProtoCatalogResponse;
+  return {
+    files: arrayOrEmpty(catalog.files).map((file) => ({
+      ...file,
+      dependencies: arrayOrEmpty(file.dependencies),
+      services: arrayOrEmpty(file.services).map((service) => ({
+        ...service,
+        methods: arrayOrEmpty(service.methods),
+      })),
+      messages: arrayOrEmpty(file.messages).map(normalizeMessage),
+      enums: arrayOrEmpty(file.enums).map((entry) => ({
+        ...entry,
+        values: arrayOrEmpty(entry.values),
+      })),
+    })),
+  };
+}
+
+export async function fetchBootstrap() {
+  return normalizeBootstrap(await fetchJSON<unknown>('api/bootstrap'));
 }
 
 export function fetchExamples() {
@@ -47,28 +124,46 @@ export function fetchSchema(method: string) {
   return fetchJSON<SchemaResponse>(`metadata?method=${encodeURIComponent(method)}`);
 }
 
-export function invokeMethod(method: string, payload: InvokeRequest) {
-  return fetchJSON<InvokeResponse>(`invoke/${encodeURIComponent(method)}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+export async function invokeMethod(method: string, payload: InvokeRequest) {
+  return normalizeInvokeResponse(
+    await fetchJSON<unknown>(`invoke/${encodeURIComponent(method)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  );
 }
 
-export function fetchProtoCatalog() {
-  return fetchJSON<ProtoCatalogResponse>('api/protos');
+export async function fetchProtoCatalog() {
+  return normalizeProtoCatalog(await fetchJSON<unknown>('api/protos'));
 }
 
-export function connectWorkspaceTarget(target: WorkspaceTargetConfig) {
-  return fetchJSON<WorkspaceConnectResponse>('api/workspace/connect', {
+export async function connectWorkspaceTarget(target: WorkspaceTargetConfig, signal?: AbortSignal) {
+  const response = await fetchJSON<WorkspaceConnectResponse>('api/workspace/connect', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ target }),
+    signal,
   });
+  return { ...response, bootstrap: normalizeBootstrap(response.bootstrap) };
+}
+
+export async function disconnectWorkspaceSession(sessionId: string) {
+  const response = await fetch(
+    urlFor(`api/workspace/session?session_id=${encodeURIComponent(sessionId)}`),
+    {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { 'x-protopeek-csrf-token': csrfToken() },
+    }
+  );
+  if (!response.ok && response.status !== 404) {
+    throw new Error(await response.text());
+  }
 }
 
 export function fetchWorkspaceSchema(sessionId: string, method: string) {
@@ -77,16 +172,22 @@ export function fetchWorkspaceSchema(sessionId: string, method: string) {
   );
 }
 
-export function invokeWorkspaceMethod(sessionId: string, method: string, payload: InvokeRequest) {
-  return fetchJSON<InvokeResponse>(
-    `api/workspace/invoke/${encodeURIComponent(method)}?session_id=${encodeURIComponent(sessionId)}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }
+export async function invokeWorkspaceMethod(
+  sessionId: string,
+  method: string,
+  payload: InvokeRequest
+) {
+  return normalizeInvokeResponse(
+    await fetchJSON<unknown>(
+      `api/workspace/invoke/${encodeURIComponent(method)}?session_id=${encodeURIComponent(sessionId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }
+    )
   );
 }
 
@@ -107,8 +208,8 @@ export function scanAddresses(addresses: string[]) {
   });
 }
 
-export function fetchWorkspaceProtoCatalog(sessionId: string) {
-  return fetchJSON<ProtoCatalogResponse>(
-    `api/workspace/protos?session_id=${encodeURIComponent(sessionId)}`
+export async function fetchWorkspaceProtoCatalog(sessionId: string) {
+  return normalizeProtoCatalog(
+    await fetchJSON<unknown>(`api/workspace/protos?session_id=${encodeURIComponent(sessionId)}`)
   );
 }

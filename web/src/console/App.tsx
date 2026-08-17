@@ -11,6 +11,8 @@ import {
   FlaskConical,
   History,
   LoaderCircle,
+  LockKeyhole,
+  PanelLeft,
   Play,
   Plus,
   RefreshCw,
@@ -20,6 +22,7 @@ import {
   Settings,
   Trash2,
   Upload,
+  Wifi,
   X,
 } from 'lucide-react';
 import {
@@ -29,6 +32,7 @@ import {
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useReducer,
   useRef,
   useState,
 } from 'react';
@@ -82,6 +86,7 @@ import {
 
 import {
   connectWorkspaceTarget,
+  disconnectWorkspaceSession,
   fetchBootstrap,
   fetchExamples,
   fetchProtoCatalog,
@@ -93,6 +98,8 @@ import {
   type ScanResult,
   scanAddresses,
 } from './api';
+import { CallWorkspace } from './CallWorkspace';
+import { initialConsoleSession, sessionReducer } from './session';
 
 type ActiveView =
   | 'compose'
@@ -159,8 +166,7 @@ const navTabs: Array<{
   icon: ComponentType<{ className?: string }>;
   label: string;
 }> = [
-  { key: 'compose', icon: FileCode2, label: 'Compose' },
-  { key: 'response', icon: Activity, label: 'Response' },
+  { key: 'compose', icon: FileCode2, label: 'Invoke' },
   { key: 'history', icon: History, label: 'History' },
   { key: 'tests', icon: FlaskConical, label: 'Tests' },
   { key: 'transport', icon: Cable, label: 'Transport' },
@@ -208,19 +214,22 @@ function countEnums(msgs: ProtoMessageSummary[], enums: ProtoEnumSummary[]): num
 }
 
 export function App() {
-  const [rootBootstrap, setRootBootstrap] = useState<BootstrapResponse | null>(null);
-  const [bootstrap, setBootstrap] = useState<BootstrapResponse | null>(null);
+  const [consoleSession, dispatchSession] = useReducer(sessionReducer, initialConsoleSession);
+  const rootBootstrap = consoleSession.rootBootstrap;
+  const bootstrap = consoleSession.bootstrap;
+  const workspaceSessionId = consoleSession.sessionId;
+  const activeTargetId = consoleSession.activeTargetId;
+  const workspaceBusy = consoleSession.connectStatus === 'connecting';
   const [examples, setExamples] = useState<ExampleResponse[]>([]);
-  const [schema, setSchema] = useState<SchemaResponse | null>(null);
-  const [workspaceSessionId, setWorkspaceSessionId] = useState('');
+  const [schemaResource, setSchemaResource] = useState<{
+    method: string;
+    sessionId: string;
+    data: SchemaResponse | null;
+  }>({ method: '', sessionId: '', data: null });
   const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(
     loadStoredValue(appStorageKeys.targets, [])
   );
-  const [activeTargetId, setActiveTargetId] = useState(
-    loadStoredValue<string>(appStorageKeys.activeTargetId, '')
-  );
   const [targetDraft, setTargetDraft] = useState<WorkspaceTargetProfile>(newTargetDraft());
-  const [workspaceBusy, setWorkspaceBusy] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [protoCatalog, setProtoCatalog] = useState<ProtoCatalogResponse | null>(null);
   const [selectedProtoFile, setSelectedProtoFile] = useState('');
@@ -229,6 +238,10 @@ export function App() {
   const [selectedMethod, setSelectedMethod] = useState(
     loadStoredValue<string>(appStorageKeys.selectedMethod, '')
   );
+  const schema =
+    schemaResource.method === selectedMethod && schemaResource.sessionId === workspaceSessionId
+      ? schemaResource.data
+      : null;
   const [searchText, setSearchText] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>(
     loadStoredValue(appStorageKeys.methodFilter, 'all')
@@ -267,26 +280,39 @@ export function App() {
   const [simulationBusy, setSimulationBusy] = useState(false);
   const [simulationError, setSimulationError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const sidebarToggleRef = useRef<HTMLButtonElement | null>(null);
   const pendingDraftRef = useRef<{
     method: string;
     metadata: MetadataEntry[];
     timeoutSeconds: number;
     requestText: string;
   } | null>(null);
+  const connectRequestRef = useRef(0);
+  const connectAbortRef = useRef<AbortController | null>(null);
   const deferredSearchText = useDeferredValue(searchText);
 
-  function applyBootstrap(next: BootstrapResponse, rememberRoot = false) {
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setSidebarOpen(false);
+      sidebarToggleRef.current?.focus();
+    }
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [sidebarOpen]);
+
+  function applyBootstrap(next: BootstrapResponse) {
     const methods = next.services.flatMap((s) => s.methods);
     const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
     const initial = methods.some((m) => m.fullName === stored)
       ? stored
       : (methods[0]?.fullName ?? '');
-    if (rememberRoot) setRootBootstrap(next);
-    setBootstrap(next);
     setBootError(null);
     setWorkspaceError(null);
-    setSchema(null);
+    setSchemaResource({ method: '', sessionId: '', data: null });
     setProtoCatalog(null);
     setSelectedProtoFile('');
     setMetadata(next.defaultMetadata);
@@ -296,12 +322,7 @@ export function App() {
     else setSelectedMethod('');
   }
 
-  const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse, root = false) =>
-    applyBootstrap(next, root)
-  );
-  const connectTargetEffect = useEffectEvent((t: WorkspaceTargetProfile) => {
-    void handleConnectTarget(t, true);
-  });
+  const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse) => applyBootstrap(next));
 
   useEffect(() => {
     let cancelled = false;
@@ -309,11 +330,10 @@ export function App() {
       try {
         const [b, e] = await Promise.all([fetchBootstrap(), fetchExamples()]);
         if (cancelled) return;
-        applyBootstrapEffect(b, true);
+        dispatchSession({ type: 'bootstrap.loaded', bootstrap: b });
+        applyBootstrapEffect(b);
         setExamples(e);
-        setTargetDraft((x) =>
-          x.address || targets.length > 0 ? x : newTargetDraft(b.targetDefaults)
-        );
+        setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
       } catch (err) {
         if (!cancelled)
           setBootError(err instanceof Error ? err.message : 'Failed to load ProtoPeek.');
@@ -323,20 +343,23 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [targets.length]);
+  }, []);
 
   useEffect(() => {
     if (!bootstrap || !selectedMethod) return;
     let cancelled = false;
+    const requestedMethod = selectedMethod;
+    const requestedSession = workspaceSessionId;
+    setSchemaResource({ method: requestedMethod, sessionId: requestedSession, data: null });
     async function loadSchema() {
       try {
-        const s = workspaceSessionId
-          ? await fetchWorkspaceSchema(workspaceSessionId, selectedMethod)
-          : await fetchSchema(selectedMethod);
+        const s = requestedSession
+          ? await fetchWorkspaceSchema(requestedSession, requestedMethod)
+          : await fetchSchema(requestedMethod);
         if (cancelled) return;
-        setSchema(s);
+        setSchemaResource({ method: requestedMethod, sessionId: requestedSession, data: s });
         const pending =
-          pendingDraftRef.current?.method === selectedMethod ? pendingDraftRef.current : null;
+          pendingDraftRef.current?.method === requestedMethod ? pendingDraftRef.current : null;
         setRequestText(pending?.requestText ?? prettyJson(generateRequestTemplate(s)));
         if (pending) {
           setMetadata(pending.metadata);
@@ -348,7 +371,7 @@ export function App() {
         if (!cancelled) setBootError(err instanceof Error ? err.message : 'Failed to load schema.');
       }
     }
-    storeValue(appStorageKeys.selectedMethod, selectedMethod);
+    storeValue(appStorageKeys.selectedMethod, requestedMethod);
     void loadSchema();
     return () => {
       cancelled = true;
@@ -381,12 +404,6 @@ export function App() {
   }, [activeTargetId]);
 
   useEffect(() => {
-    if (!rootBootstrap?.launcherMode || !activeTargetId || workspaceSessionId || !bootstrap) return;
-    const t = targets.find((e) => e.id === activeTargetId);
-    if (t) connectTargetEffect(t);
-  }, [activeTargetId, bootstrap, rootBootstrap, targets, workspaceSessionId]);
-
-  useEffect(() => {
     if (!bootstrap || bootstrap.services.length === 0) return;
     let cancelled = false;
     async function loadProto() {
@@ -412,7 +429,7 @@ export function App() {
   const currentService =
     bootstrap?.services.find((s) => s.methods.some((m) => m.fullName === selectedMethod)) ?? null;
   const currentMethod = currentService?.methods.find((m) => m.fullName === selectedMethod) ?? null;
-  const matchingExamples = examples.filter(
+  const _matchingExamples = examples.filter(
     (e) =>
       `${e.service}.${e.method}` === selectedMethod || `${e.service}/${e.method}` === selectedMethod
   );
@@ -445,7 +462,7 @@ export function App() {
     );
   });
   const selectedProto = filteredProtoFiles.find((f) => f.name === selectedProtoFile) ?? null;
-  const grpcCommand =
+  const _grpcCommand =
     bootstrap && currentMethod
       ? commandPreview({
           target: bootstrap.target,
@@ -460,31 +477,57 @@ export function App() {
   const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 200, 48);
   const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
-  async function handleConnectTarget(target: WorkspaceTargetProfile, silent = false) {
-    setWorkspaceBusy(true);
-    if (!silent) setWorkspaceError(null);
+  async function handleConnectTarget(target: WorkspaceTargetProfile) {
+    const requestId = connectRequestRef.current + 1;
+    connectRequestRef.current = requestId;
+    connectAbortRef.current?.abort();
+    const controller = new AbortController();
+    connectAbortRef.current = controller;
+    dispatchSession({ type: 'connect.started', requestId, targetId: target.id });
+    setWorkspaceError(null);
+    const previousSessionId = workspaceSessionId;
     try {
-      const r = await connectWorkspaceTarget({
-        address: target.address,
-        plaintext: target.plaintext,
-        insecure: target.insecure,
-        authority: target.authority,
-        cacertPath: target.cacertPath,
-        certPath: target.certPath,
-        keyPath: target.keyPath,
-        schemaSource: target.schemaSource,
-        protoFiles: target.protoFiles,
-        importPaths: target.importPaths,
-        protosets: target.protosets,
+      const r = await connectWorkspaceTarget(
+        {
+          address: target.address,
+          plaintext: target.plaintext,
+          insecure: target.insecure,
+          authority: target.authority,
+          cacertPath: target.cacertPath,
+          certPath: target.certPath,
+          keyPath: target.keyPath,
+          schemaSource: target.schemaSource,
+          protoFiles: target.protoFiles,
+          importPaths: target.importPaths,
+          protosets: target.protosets,
+        },
+        controller.signal
+      );
+      if (connectRequestRef.current !== requestId) {
+        void disconnectWorkspaceSession(r.sessionId);
+        return;
+      }
+      dispatchSession({
+        type: 'connect.succeeded',
+        requestId,
+        targetId: target.id,
+        sessionId: r.sessionId,
+        bootstrap: r.bootstrap,
       });
-      setWorkspaceSessionId(r.sessionId);
-      setActiveTargetId(target.id);
       applyBootstrap(r.bootstrap);
       setTargetDraft(target);
+      if (previousSessionId && previousSessionId !== r.sessionId) {
+        void disconnectWorkspaceSession(previousSessionId);
+      }
     } catch (err) {
-      setWorkspaceError(err instanceof Error ? err.message : 'Connection failed.');
-    } finally {
-      setWorkspaceBusy(false);
+      if (connectRequestRef.current !== requestId) return;
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        dispatchSession({ type: 'connect.cancelled', requestId });
+        return;
+      }
+      const message = err instanceof Error ? err.message : 'Connection failed.';
+      dispatchSession({ type: 'connect.failed', requestId, message });
+      setWorkspaceError(message);
     }
   }
 
@@ -511,7 +554,6 @@ export function App() {
 
   function persistTarget(t: WorkspaceTargetProfile) {
     setTargets((x) => [t, ...x.filter((e) => e.id !== t.id)]);
-    setActiveTargetId(t.id);
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
@@ -536,16 +578,17 @@ export function App() {
   function handleDeleteTarget(id: string) {
     setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
-      setActiveTargetId('');
-      setWorkspaceSessionId('');
+      if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
+      dispatchSession({ type: 'connection.cleared' });
       if (rootBootstrap) applyBootstrap(rootBootstrap);
     }
     if (targetDraft.id === id) setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
   function handleResetToLauncher() {
-    setWorkspaceSessionId('');
-    setActiveTargetId('');
+    connectAbortRef.current?.abort();
+    if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
+    dispatchSession({ type: 'connection.cleared' });
     setWorkspaceError(null);
     if (rootBootstrap) {
       applyBootstrap(rootBootstrap);
@@ -573,7 +616,7 @@ export function App() {
     if (parsed.error) {
       setAssertionResults([]);
       setInvokeState({ loading: false, error: parsed.error, result: null, latencyMs: 0 });
-      setActiveView('response');
+      setActiveView('compose');
       return;
     }
     if (schema.requestStream && !Array.isArray(parsed.value)) {
@@ -584,7 +627,7 @@ export function App() {
         result: null,
         latencyMs: 0,
       });
-      setActiveView('response');
+      setActiveView('compose');
       return;
     }
     if (!schema.requestStream && Array.isArray(parsed.value)) {
@@ -595,7 +638,7 @@ export function App() {
         result: null,
         latencyMs: 0,
       });
-      setActiveView('response');
+      setActiveView('compose');
       return;
     }
     const payload: InvokeRequest = {
@@ -604,7 +647,7 @@ export function App() {
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
     setInvokeState({ loading: true, error: null, result: null, latencyMs: 0 });
-    setActiveView('response');
+    setActiveView('compose');
     const t0 = performance.now();
     try {
       const result = workspaceSessionId
@@ -710,7 +753,7 @@ export function App() {
     setMetadata((x) => x.filter((_, j) => j !== i));
   }
 
-  function handleSaveCollection() {
+  function _handleSaveCollection() {
     if (!currentService || !currentMethod) return;
     const c = toCollection({
       name: collectionName.trim() || `${currentMethod.name} snapshot`,
@@ -726,7 +769,7 @@ export function App() {
     setCollectionNotes('');
   }
 
-  function handleSaveEnvironment() {
+  function _handleSaveEnvironment() {
     const e = toEnvironmentPreset({
       name: environmentName.trim() || `${currentService?.name.split('.').pop() ?? 'default'} env`,
       notes: environmentNotes,
@@ -738,7 +781,7 @@ export function App() {
     setEnvironmentNotes('');
   }
 
-  function applyEnvironment(e: EnvironmentPreset) {
+  function _applyEnvironment(e: EnvironmentPreset) {
     setMetadata(e.metadata);
     setTimeoutSeconds(e.timeoutSeconds);
     setEnvironmentName(e.name);
@@ -765,7 +808,7 @@ export function App() {
     setAssertionRules((x) => x.filter((r) => r.id !== id));
   }
 
-  function applyCollection(c: SavedCollection) {
+  function _applyCollection(c: SavedCollection) {
     pendingDraftRef.current = {
       method: c.method,
       metadata: c.metadata,
@@ -890,7 +933,15 @@ export function App() {
 
   return (
     <div className="pp-shell">
-      <aside className="pp-sidebar">
+      {sidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Close service navigation"
+          className="pp-sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+      <aside className={classNames('pp-sidebar', sidebarOpen && 'pp-sidebar-open')}>
         <div className="border-b border-white/10 px-4 py-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-white">ProtoPeek</span>
@@ -911,7 +962,10 @@ export function App() {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setActiveView(tab.key)}
+              onClick={() => {
+                setActiveView(tab.key);
+                setSidebarOpen(false);
+              }}
               className={classNames(
                 'pp-tab',
                 activeView === tab.key ? 'pp-tab-active' : 'pp-tab-inactive'
@@ -959,7 +1013,10 @@ export function App() {
                 service={svc}
                 selectedMethod={selectedMethod}
                 searchText={deferredSearchText}
-                onSelect={setSelectedMethod}
+                onSelect={(method) => {
+                  setSelectedMethod(method);
+                  setSidebarOpen(false);
+                }}
               />
             ))}
           </div>
@@ -1006,65 +1063,45 @@ export function App() {
       </aside>
 
       <div className="pp-main">
-        <header className="flex items-center gap-3 border-b border-pp-border bg-white px-4 py-2">
+        <header className="pp-console-header">
+          <button
+            ref={sidebarToggleRef}
+            className="pp-mobile-nav-button"
+            type="button"
+            aria-expanded={sidebarOpen}
+            aria-label="Open service navigation"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <PanelLeft aria-hidden="true" />
+          </button>
           <span className="pp-badge">
             <Server className="size-3" />
             {currentService.name}
           </span>
           <span className="pp-heading text-base">{currentMethod.name}</span>
           <MethodBadge method={currentMethod} />
-          <div className="ml-auto flex items-center gap-2">
-            <button className="pp-button-primary py-1.5" type="button" onClick={handleInvoke}>
-              {invokeState.loading ? (
-                <LoaderCircle className="size-3.5 animate-spin" />
-              ) : (
-                <Play className="size-3.5" />
-              )}
-              Invoke
-            </button>
-          </div>
+          <span className="pp-local-indicator">
+            <LockKeyhole aria-hidden="true" /> Local only
+          </span>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div
+          className={classNames('flex-1 overflow-y-auto', activeView === 'compose' ? 'p-0' : 'p-4')}
+        >
           {activeView === 'compose' ? (
-            <ComposeView
+            <CallWorkspace
+              method={currentMethod}
               schema={schema}
               requestText={requestText}
-              setRequestText={setRequestText}
+              onRequestChange={setRequestText}
               timeoutSeconds={timeoutSeconds}
-              setTimeoutSeconds={setTimeoutSeconds}
+              onTimeoutChange={setTimeoutSeconds}
               metadata={metadata}
-              onAddMeta={handleAddMetadata}
-              onRemoveMeta={handleRemoveMetadata}
-              onChangeMeta={handleMetadataChange}
-              grpcCommand={grpcCommand}
+              onAddMetadata={handleAddMetadata}
+              onRemoveMetadata={handleRemoveMetadata}
+              onMetadataChange={handleMetadataChange}
               onInvoke={handleInvoke}
-              onSimulate={() => {
-                void handleSimulation();
-              }}
-              invokeLoading={invokeState.loading}
-              simulationBusy={simulationBusy}
-              onResetFromSchema={() => setRequestText(prettyJson(generateRequestTemplate(schema)))}
-              matchingExamples={matchingExamples}
-              setRequestFromExample={(ex) => {
-                setRequestText(prettyJson(ex.request.data));
-                setMetadata(ex.request.metadata);
-                setTimeoutSeconds(ex.request.timeout_secs);
-              }}
-              collectionName={collectionName}
-              setCollectionName={setCollectionName}
-              collectionNotes={collectionNotes}
-              setCollectionNotes={setCollectionNotes}
-              onSaveCollection={handleSaveCollection}
-              environmentName={environmentName}
-              setEnvironmentName={setEnvironmentName}
-              environmentNotes={environmentNotes}
-              setEnvironmentNotes={setEnvironmentNotes}
-              onSaveEnvironment={handleSaveEnvironment}
-              environments={environments}
-              onApplyEnvironment={applyEnvironment}
-              collections={collections}
-              onApplyCollection={applyCollection}
+              invokeState={invokeState}
             />
           ) : null}
 
@@ -1219,7 +1256,7 @@ function SidebarService({
 
 // ─── Compose view ──────────────────────────────────────────────
 
-function ComposeView({
+function _ComposeView({
   schema,
   requestText,
   setRequestText,
@@ -2344,91 +2381,131 @@ function LauncherView({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="flex h-screen flex-col bg-pp-bg">
-      <header className="border-b border-pp-border bg-white px-6 py-4">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-bold text-pp-brand">ProtoPeek</span>
-          <span className="text-sm text-pp-muted">{bootstrap.version}</span>
+    <div className="pp-launcher">
+      <header className="pp-launcher-header">
+        <div className="pp-wordmark">
+          <span className="pp-wordmark-icon">
+            <Activity aria-hidden="true" />
+          </span>
+          <span>ProtoPeek</span>
+          <span className="pp-version">{bootstrap.version}</span>
         </div>
-        <p className="mt-1 text-sm text-pp-muted">Connect a gRPC target to get started.</p>
+        <span className="pp-local-indicator">
+          <LockKeyhole aria-hidden="true" /> Local only
+        </span>
       </header>
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-2">
-          <div className="space-y-4">
-            <h3 className="pp-heading text-base">Connect a target</h3>
-            {error ? (
-              <StatusBanner tone="danger" title="Connection failed" description={error} />
-            ) : null}
-            <TargetForm
-              draft={draft}
-              busy={busy}
-              onChange={onChangeDraft}
-              onSave={onSave}
-              onSaveAndConnect={onSaveAndConnect}
-            />
+      <main className="pp-launcher-main">
+        <section className="pp-launcher-intro">
+          <span className="pp-kicker">gRPC workbench</span>
+          <h1>
+            Inspect a real service.
+            <br />
+            Keep the whole session local.
+          </h1>
+          <p>
+            Point ProtoPeek at reflection, proto files, or a protoset. Compose calls and inspect
+            messages, headers, trailers, deadlines, and final status in one focused console.
+          </p>
+          <div className="pp-trust-row">
+            <span>
+              <Wifi aria-hidden="true" /> Loopback web server
+            </span>
+            <span>
+              <LockKeyhole aria-hidden="true" /> No account or database
+            </span>
           </div>
-          <div className="space-y-4">
-            <h3 className="pp-heading text-base">Saved targets</h3>
-            {targets.length === 0 ? (
-              <div className="text-sm text-pp-muted">
-                No targets saved yet. Create one to get started.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {targets.map((t) => (
-                  <div key={t.id} className="rounded-lg border border-pp-border bg-white p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
-                        <div className="text-xs text-pp-muted">{t.address}</div>
-                      </div>
-                      {t.id === activeTargetId ? (
-                        <span className="pp-badge text-pp-ok">Active</span>
-                      ) : null}
+        </section>
+
+        <section className="pp-launcher-card" aria-labelledby="connect-title">
+          <div className="pp-card-heading">
+            <div>
+              <span className="pp-kicker">New session</span>
+              <h2 id="connect-title">Connect a target</h2>
+            </div>
+            <span className="pp-reflection-chip">Reflection ready</span>
+          </div>
+          {error ? (
+            <StatusBanner tone="danger" title="Connection failed" description={error} />
+          ) : null}
+          <TargetForm
+            draft={draft}
+            busy={busy}
+            onChange={onChangeDraft}
+            onSave={onSave}
+            onSaveAndConnect={onSaveAndConnect}
+          />
+        </section>
+
+        <section className="pp-saved-targets" aria-labelledby="saved-targets-title">
+          <div className="pp-card-heading">
+            <div>
+              <span className="pp-kicker">Recent</span>
+              <h2 id="saved-targets-title">Saved targets</h2>
+            </div>
+            <span className="pp-version">{targets.length} saved</span>
+          </div>
+          {targets.length === 0 ? (
+            <div className="pp-launcher-empty">
+              Saved targets stay in this browser. Connect above to create your first local entry.
+            </div>
+          ) : (
+            <div className="pp-target-list">
+              {targets.map((t) => (
+                <div key={t.id} className="pp-target-row">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-pp-ink">{t.name}</div>
+                      <div className="text-xs text-pp-muted">{t.address}</div>
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
-                      <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
-                      {t.insecure ? (
-                        <span className="pp-badge text-amber-600">Skip verify</span>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        className="pp-button-primary py-1 text-xs"
-                        type="button"
-                        disabled={busy}
-                        onClick={() => onConnect(t)}
-                      >
-                        {busy ? (
-                          <LoaderCircle className="size-3 animate-spin" />
-                        ) : (
-                          <Play className="size-3" />
-                        )}
-                        Connect
-                      </button>
-                      <button
-                        className="pp-button-secondary py-1 text-xs"
-                        type="button"
-                        onClick={() => onEdit(t)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="pp-button-ghost py-1 text-xs"
-                        type="button"
-                        onClick={() => onDelete(t.id)}
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
-                    </div>
+                    {t.id === activeTargetId ? (
+                      <span className="pp-badge text-pp-ok">Active</span>
+                    ) : null}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
+                    {t.insecure ? (
+                      <span className="pp-badge text-amber-600">Skip verify</span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="pp-button-primary py-1 text-xs"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onConnect(t)}
+                    >
+                      {busy ? (
+                        <LoaderCircle className="size-3 animate-spin" />
+                      ) : (
+                        <Play className="size-3" />
+                      )}
+                      Connect
+                    </button>
+                    <button
+                      className="pp-button-secondary py-1 text-xs"
+                      type="button"
+                      onClick={() => onEdit(t)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="pp-button-ghost py-1 text-xs"
+                      type="button"
+                      onClick={() => onDelete(t.id)}
+                    >
+                      <Trash2 className="size-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+      <footer className="pp-launcher-footer">
+        Nothing leaves this device. ProtoPeek stores workspace preferences in this browser only.
+      </footer>
     </div>
   );
 }

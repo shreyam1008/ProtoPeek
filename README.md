@@ -63,10 +63,11 @@ make install                      # install protopeek and pp locally
 
 ```sh
 make docker
-docker run --rm -p 8080:8080 shreyam1008/protopeek:dev
+docker run --rm -p 127.0.0.1:8080:8080 shreyam1008/protopeek:dev
 ```
 
-Scratch-compatible image: static Go binary, embedded web app, CA certs, non-root user.
+Scratch-compatible image: static Go binary, embedded web app, CA certs, non-root user. The
+image listens on its container interface, so keep the host-side port mapped to loopback as shown.
 
 ## Project origin
 

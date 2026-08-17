@@ -15,12 +15,12 @@ import (
 
 	"github.com/fullstorydev/grpcurl"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	insecurecreds "google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
-
-	grpcui "github.com/shreyam1008/ProtoPeek"
+	"google.golang.org/grpc/metadata"
 )
 
 const defaultWorkspaceSchemaSource = "reflection"
@@ -40,15 +40,16 @@ type WorkspaceTargetConfig struct {
 }
 
 type WorkspaceManagerOptions struct {
-	Version         string
-	BasePath        string
-	DefaultHeaders  []string
-	ConnectTimeout  time.Duration
-	ConnectFailFast bool
-	KeepaliveTime   time.Duration
-	MaxMsgSize      int
-	MaxSessions     int
-	TargetDefaults  WorkspaceTargetConfig
+	Version           string
+	BasePath          string
+	DefaultHeaders    []string
+	ReflectionHeaders []string
+	ConnectTimeout    time.Duration
+	ConnectFailFast   bool
+	KeepaliveTime     time.Duration
+	MaxMsgSize        int
+	MaxSessions       int
+	TargetDefaults    WorkspaceTargetConfig
 }
 
 type WorkspaceConnectResponse struct {
@@ -98,19 +99,21 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	connectCtx := ctx
+	dialCtx := ctx
 	var cancel context.CancelFunc
 	if m.opts.ConnectTimeout > 0 {
-		connectCtx, cancel = context.WithTimeout(ctx, m.opts.ConnectTimeout)
-		defer cancel()
+		dialCtx, cancel = context.WithTimeout(ctx, m.opts.ConnectTimeout)
 	}
 
-	cc, err := m.dialTarget(connectCtx, normalized)
+	cc, err := m.dialTarget(dialCtx, normalized)
+	if cancel != nil {
+		cancel()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	methods, files, descSource, err := loadWorkspaceDescriptors(connectCtx, cc, normalized)
+	methods, files, descSource, err := loadWorkspaceDescriptors(ctx, cc, normalized, m.opts.ReflectionHeaders)
 	if err != nil {
 		_ = cc.Close()
 		return nil, err
@@ -178,6 +181,22 @@ func (m *WorkspaceManager) Session(id string) (*workspaceSession, bool) {
 	defer m.mu.RUnlock()
 	session, ok := m.sessions[id]
 	return session, ok
+}
+
+func (m *WorkspaceManager) Disconnect(id string) bool {
+	m.mu.Lock()
+	session, ok := m.sessions[id]
+	if ok {
+		delete(m.sessions, id)
+	}
+	m.mu.Unlock()
+	if !ok {
+		return false
+	}
+	if session.cc != nil {
+		_ = session.cc.Close()
+	}
+	return true
 }
 
 func (m *WorkspaceManager) sessionFromRequest(r *http.Request) *workspaceSession {
@@ -319,22 +338,27 @@ func workspaceGRPCOptions(cfg WorkspaceTargetConfig) []string {
 	return options
 }
 
-func loadWorkspaceDescriptors(ctx context.Context, cc *grpc.ClientConn, cfg WorkspaceTargetConfig) ([]*desc.MethodDescriptor, []*desc.FileDescriptor, grpcurl.DescriptorSource, error) {
+func loadWorkspaceDescriptors(ctx context.Context, cc *grpc.ClientConn, cfg WorkspaceTargetConfig, reflectionHeaders []string) ([]*desc.MethodDescriptor, []*desc.FileDescriptor, grpcurl.DescriptorSource, error) {
 	switch cfg.SchemaSource {
 	case "reflection":
-		methods, err := grpcui.AllMethodsViaReflection(ctx, cc)
+		reflectionContext := metadata.NewOutgoingContext(ctx, grpcurl.MetadataFromHeaders(reflectionHeaders))
+		reflectionClient := grpcreflect.NewClientAuto(reflectionContext, cc)
+		defer reflectionClient.Reset()
+		reflectionClient.AllowMissingFileDescriptors()
+		source := grpcurl.DescriptorSourceFromServer(ctx, reflectionClient)
+		methods, err := allMethodsFromDescriptorSource(source)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		files, err := grpcui.AllFilesViaReflection(ctx, cc)
+		files, err := grpcurl.GetAllFiles(source)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		source, err := grpcurl.DescriptorSourceFromFileDescriptors(files...)
+		fileSource, err := grpcurl.DescriptorSourceFromFileDescriptors(files...)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		return methods, files, source, nil
+		return methods, files, fileSource, nil
 	case "proto-files":
 		source, err := grpcurl.DescriptorSourceFromProtoFiles(cfg.ImportPaths, cfg.ProtoFiles...)
 		if err != nil {
