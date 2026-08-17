@@ -16,18 +16,49 @@ import (
 
 // ScanResult describes what was found when probing a single address.
 type ScanResult struct {
-	Address  string   `json:"address"`
-	Alive    bool     `json:"alive"`
-	GRPC     bool     `json:"grpc"`
-	Services []string `json:"services,omitempty"`
-	Error    string   `json:"error,omitempty"`
-	LatencyMs int64   `json:"latencyMs"`
+	Address   string   `json:"address"`
+	Alive     bool     `json:"alive"`
+	GRPC      bool     `json:"grpc"`
+	Services  []string `json:"services,omitempty"`
+	Error     string   `json:"error,omitempty"`
+	LatencyMs int64    `json:"latencyMs"`
 }
 
 // ScanRequest is the JSON body for the /api/scan endpoint.
 type ScanRequest struct {
 	// Addresses to probe, e.g. ["localhost:50051", "10.0.0.5:9090"]
 	Addresses []string `json:"addresses"`
+	// Private-network probes are opt-in. Loopback probes are always allowed.
+	AllowPrivateNetwork bool `json:"allowPrivateNetwork"`
+}
+
+func validateScanAddress(address string, allowPrivateNetwork bool) error {
+	host, port, err := net.SplitHostPort(strings.TrimSpace(address))
+	if err != nil || host == "" || port == "" {
+		return fmt.Errorf("expected host:port")
+	}
+	if _, err := net.LookupPort("tcp", port); err != nil {
+		return fmt.Errorf("invalid port")
+	}
+
+	host = strings.Trim(strings.TrimSpace(host), "[]")
+	if strings.EqualFold(host, "localhost") {
+		return nil
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return fmt.Errorf("hostnames are not auto-scanned; enter a loopback or private IP")
+	}
+	if ip.IsLoopback() {
+		return nil
+	}
+	if allowPrivateNetwork && ip.IsPrivate() {
+		return nil
+	}
+	if ip.IsPrivate() {
+		return fmt.Errorf("private-network scan requires explicit opt-in")
+	}
+	return fmt.Errorf("public addresses are not scanned")
 }
 
 // probeGRPC attempts a gRPC reflection handshake on the given address.
@@ -96,6 +127,7 @@ func ScanHandler() http.HandlerFunc {
 			return
 		}
 
+		r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 		var req ScanRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
@@ -112,7 +144,12 @@ func ScanHandler() http.HandlerFunc {
 
 		// Probe sequentially to avoid slamming the network
 		for i, addr := range req.Addresses {
-			results[i] = probeGRPC(ctx, strings.TrimSpace(addr))
+			addr = strings.TrimSpace(addr)
+			if err := validateScanAddress(addr, req.AllowPrivateNetwork); err != nil {
+				results[i] = ScanResult{Address: addr, Error: err.Error()}
+				continue
+			}
+			results[i] = probeGRPC(ctx, addr)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

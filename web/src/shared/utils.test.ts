@@ -171,7 +171,7 @@ describe('evaluateAssertions', () => {
       result: {
         headers: [{ name: 'content-type', value: 'application/grpc' }],
         error: null,
-        responses: [{ isError: false, message: { text: 'pong' } }],
+        responses: [{ isError: false, message: { text: 'pong' }, sequence: 1, elapsedMs: 12 }],
         requests: null,
         trailers: [],
       },

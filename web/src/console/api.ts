@@ -70,7 +70,11 @@ export function normalizeInvokeResponse(input: unknown): InvokeResponse {
   return {
     ...response,
     headers: arrayOrEmpty(response.headers),
-    responses: arrayOrEmpty(response.responses),
+    responses: arrayOrEmpty(response.responses).map((entry, index) => ({
+      ...entry,
+      sequence: entry.sequence ?? index + 1,
+      elapsedMs: entry.elapsedMs ?? 0,
+    })),
     trailers: arrayOrEmpty(response.trailers),
     requests: response.requests ?? null,
     error: response.error
@@ -124,7 +128,7 @@ export function fetchSchema(method: string) {
   return fetchJSON<SchemaResponse>(`metadata?method=${encodeURIComponent(method)}`);
 }
 
-export async function invokeMethod(method: string, payload: InvokeRequest) {
+export async function invokeMethod(method: string, payload: InvokeRequest, signal?: AbortSignal) {
   return normalizeInvokeResponse(
     await fetchJSON<unknown>(`invoke/${encodeURIComponent(method)}`, {
       method: 'POST',
@@ -132,6 +136,7 @@ export async function invokeMethod(method: string, payload: InvokeRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal,
     })
   );
 }
@@ -175,7 +180,8 @@ export function fetchWorkspaceSchema(sessionId: string, method: string) {
 export async function invokeWorkspaceMethod(
   sessionId: string,
   method: string,
-  payload: InvokeRequest
+  payload: InvokeRequest,
+  signal?: AbortSignal
 ) {
   return normalizeInvokeResponse(
     await fetchJSON<unknown>(
@@ -186,6 +192,7 @@ export async function invokeWorkspaceMethod(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal,
       }
     )
   );
@@ -200,11 +207,11 @@ export type ScanResult = {
   latencyMs: number;
 };
 
-export function scanAddresses(addresses: string[]) {
+export function scanAddresses(addresses: string[], allowPrivateNetwork = false) {
   return fetchJSON<ScanResult[]>('api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addresses }),
+    body: JSON.stringify({ addresses, allowPrivateNetwork }),
   });
 }
 

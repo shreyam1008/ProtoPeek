@@ -139,6 +139,8 @@ export type InvokeRequest = {
 export type InvokeResponseElement = {
   message: unknown;
   isError: boolean;
+  sequence: number;
+  elapsedMs: number;
 };
 
 export type InvokeError = {

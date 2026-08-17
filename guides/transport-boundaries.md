@@ -12,6 +12,8 @@ story.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.
 - Reflection, proto files, and protosets remain first-class gRPC schema paths.
+- Automatic discovery is loopback-only. Explicit private IPs require a per-scan opt-in; public IPs,
+  arbitrary hostnames, CIDR expansion, and ambient network crawling are outside this boundary.
 - New transports must not pull their runtime into the default gRPC binary or browser bundle when
   the user does not use them.
 
@@ -48,9 +50,10 @@ message counts consistently, while a protocol inspector renders the actual seman
 
 ### 1. Finish the gRPC local-console contract
 
-Keep the current slice as the reference adapter: safe loopback defaults, deterministic sessions,
-reflection headers, proto/protoset compatibility, request/response split view, and visible headers,
-trailers, deadlines, streaming mode, and status.
+Keep the current slice as the reference adapter: bounded loopback discovery, deterministic
+sessions, reflection headers, proto/protoset compatibility, request/response split view, explicit
+cancellation, ordered response timing, and visible headers, trailers, deadlines, streaming mode,
+and status.
 
 ### 2. Extract an internal adapter boundary
 
@@ -78,4 +81,3 @@ plugin marketplace. Those are Postman-product features, not ProtoPeek's job.
 - Cancellation and session teardown release connections and subprocesses.
 - Sensitive metadata is not persisted unless the user explicitly saves it.
 - The inspector names the real protocol concepts instead of using generic labels.
-

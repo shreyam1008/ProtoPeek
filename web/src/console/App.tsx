@@ -1,33 +1,24 @@
 import {
   Activity,
-  BookMarked,
-  Cable,
   CheckCircle2,
   CircleAlert,
   Clock3,
   Copy,
   Download,
-  FileCode2,
   FlaskConical,
-  History,
   LoaderCircle,
   LockKeyhole,
-  PanelLeft,
   Play,
   Plus,
   RefreshCw,
   Save,
   Search,
-  Server,
-  Settings,
   Trash2,
-  Upload,
   Wifi,
   X,
 } from 'lucide-react';
 import {
   type ChangeEvent,
-  type ComponentType,
   startTransition,
   useDeferredValue,
   useEffect,
@@ -42,7 +33,6 @@ import type {
   AssertionRule,
   BootstrapMethod,
   BootstrapResponse,
-  BootstrapService,
   EnvironmentPreset,
   ExampleResponse,
   InvokeRequest,
@@ -99,16 +89,12 @@ import {
   scanAddresses,
 } from './api';
 import { CallWorkspace } from './CallWorkspace';
+import { CommandPalette, type PaletteAction } from './CommandPalette';
+import { ServiceNavigator, type WorkbenchView } from './ServiceNavigator';
 import { initialConsoleSession, sessionReducer } from './session';
+import { WorkbenchHeader } from './WorkbenchHeader';
 
-type ActiveView =
-  | 'compose'
-  | 'response'
-  | 'history'
-  | 'tests'
-  | 'transport'
-  | 'structure'
-  | 'workspace';
+type ActiveView = WorkbenchView;
 
 const defaultSimulation: SimulationConfig = { runs: 25, concurrency: 5, thinkTimeMs: 0 };
 
@@ -131,14 +117,6 @@ const defaultAssertions: AssertionRule[] = [
   },
 ];
 
-const methodFilterOptions: Array<{ value: MethodFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'unary', label: 'Unary' },
-  { value: 'client-streaming', label: 'Client' },
-  { value: 'server-streaming', label: 'Server' },
-  { value: 'bidirectional', label: 'Bidi' },
-];
-
 const simulationPresets: Array<{ label: string; config: SimulationConfig }> = [
   { label: 'Quick', config: { runs: 12, concurrency: 3, thinkTimeMs: 0 } },
   { label: 'Burst', config: { runs: 60, concurrency: 12, thinkTimeMs: 0 } },
@@ -159,19 +137,6 @@ const assertionComparatorOptions: Array<{ value: AssertionRule['comparator']; la
   { value: 'contains', label: 'contains' },
   { value: 'lte', label: '<=' },
   { value: 'gte', label: '>=' },
-];
-
-const navTabs: Array<{
-  key: ActiveView;
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-}> = [
-  { key: 'compose', icon: FileCode2, label: 'Invoke' },
-  { key: 'history', icon: History, label: 'History' },
-  { key: 'tests', icon: FlaskConical, label: 'Tests' },
-  { key: 'transport', icon: Cable, label: 'Transport' },
-  { key: 'structure', icon: BookMarked, label: 'Structure' },
-  { key: 'workspace', icon: Settings, label: 'Workspace' },
 ];
 
 function newTargetDraft(defaults?: WorkspaceTargetConfig): WorkspaceTargetProfile {
@@ -281,6 +246,7 @@ export function App() {
   const [simulationError, setSimulationError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const sidebarToggleRef = useRef<HTMLButtonElement | null>(null);
   const pendingDraftRef = useRef<{
@@ -291,6 +257,7 @@ export function App() {
   } | null>(null);
   const connectRequestRef = useRef(0);
   const connectAbortRef = useRef<AbortController | null>(null);
+  const invokeAbortRef = useRef<AbortController | null>(null);
   const deferredSearchText = useDeferredValue(searchText);
 
   useEffect(() => {
@@ -304,12 +271,36 @@ export function App() {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [sidebarOpen]);
 
+  useEffect(() => {
+    function handleWorkbenchShortcuts(event: KeyboardEvent) {
+      const target = event.target;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable);
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+        return;
+      }
+      if (event.key === '/' && !typing) {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>('#method-search')?.focus();
+      }
+    }
+    window.addEventListener('keydown', handleWorkbenchShortcuts);
+    return () => window.removeEventListener('keydown', handleWorkbenchShortcuts);
+  }, []);
+
   function applyBootstrap(next: BootstrapResponse) {
     const methods = next.services.flatMap((s) => s.methods);
     const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
+    const lowFriction =
+      methods.find((method) => /(^|\/|\.)(ping|check)$/i.test(method.fullName)) ??
+      methods.find((method) => !method.clientStreaming && !method.serverStreaming);
     const initial = methods.some((m) => m.fullName === stored)
       ? stored
-      : (methods[0]?.fullName ?? '');
+      : (lowFriction?.fullName ?? methods[0]?.fullName ?? '');
     setBootError(null);
     setWorkspaceError(null);
     setSchemaResource({ method: '', sessionId: '', data: null });
@@ -478,6 +469,7 @@ export function App() {
   const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
   async function handleConnectTarget(target: WorkspaceTargetProfile) {
+    invokeAbortRef.current?.abort();
     const requestId = connectRequestRef.current + 1;
     connectRequestRef.current = requestId;
     connectAbortRef.current?.abort();
@@ -587,6 +579,7 @@ export function App() {
 
   function handleResetToLauncher() {
     connectAbortRef.current?.abort();
+    invokeAbortRef.current?.abort();
     if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
     dispatchSession({ type: 'connection.cleared' });
     setWorkspaceError(null);
@@ -646,13 +639,21 @@ export function App() {
       metadata: metadata.filter((e) => e.name.trim()),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
+    invokeAbortRef.current?.abort();
+    const controller = new AbortController();
+    invokeAbortRef.current = controller;
     setInvokeState({ loading: true, error: null, result: null, latencyMs: 0 });
     setActiveView('compose');
     const t0 = performance.now();
     try {
       const result = workspaceSessionId
-        ? await invokeWorkspaceMethod(workspaceSessionId, currentMethod.fullName, payload)
-        : await invokeMethod(currentMethod.fullName, payload);
+        ? await invokeWorkspaceMethod(
+            workspaceSessionId,
+            currentMethod.fullName,
+            payload,
+            controller.signal
+          )
+        : await invokeMethod(currentMethod.fullName, payload, controller.signal);
       const lat = performance.now() - t0;
       setInvokeState({ loading: false, error: null, result, latencyMs: lat });
       setAssertionResults(evaluateAssertions({ rules: assertionRules, result, latencyMs: lat }));
@@ -675,11 +676,22 @@ export function App() {
       setAssertionResults([]);
       setInvokeState({
         loading: false,
-        error: err instanceof Error ? err.message : 'Invocation failed.',
+        error:
+          err instanceof DOMException && err.name === 'AbortError'
+            ? 'Invocation cancelled.'
+            : err instanceof Error
+              ? err.message
+              : 'Invocation failed.',
         result: null,
         latencyMs: 0,
       });
+    } finally {
+      if (invokeAbortRef.current === controller) invokeAbortRef.current = null;
     }
+  }
+
+  function handleCancelInvoke() {
+    invokeAbortRef.current?.abort();
   }
 
   async function handleSimulation() {
@@ -746,14 +758,14 @@ export function App() {
   function handleMetadataChange(i: number, next: MetadataEntry) {
     setMetadata((x) => x.map((e, j) => (j === i ? next : e)));
   }
-  function handleAddMetadata() {
-    setMetadata((x) => [...x, { name: '', value: '' }]);
+  function handleAddMetadata(entry: MetadataEntry = { name: '', value: '' }) {
+    setMetadata((x) => [...x, entry]);
   }
   function handleRemoveMetadata(i: number) {
     setMetadata((x) => x.filter((_, j) => j !== i));
   }
 
-  function _handleSaveCollection() {
+  function handleSaveCollection() {
     if (!currentService || !currentMethod) return;
     const c = toCollection({
       name: collectionName.trim() || `${currentMethod.name} snapshot`,
@@ -808,7 +820,7 @@ export function App() {
     setAssertionRules((x) => x.filter((r) => r.id !== id));
   }
 
-  function _applyCollection(c: SavedCollection) {
+  function applyCollection(c: SavedCollection) {
     pendingDraftRef.current = {
       method: c.method,
       metadata: c.metadata,
@@ -833,6 +845,21 @@ export function App() {
     startTransition(() => {
       setSelectedMethod(e.method);
       setActiveView('compose');
+    });
+  }
+
+  function resetRequestFromSchema() {
+    if (!schema) return;
+    setRequestText(prettyJson(generateRequestTemplate(schema)));
+  }
+
+  function handleSelectMethod(method: string) {
+    invokeAbortRef.current?.abort();
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+    startTransition(() => {
+      setSelectedMethod(method);
+      setActiveView('compose');
+      setSidebarOpen(false);
     });
   }
 
@@ -876,6 +903,58 @@ export function App() {
     if (d.history) setHistory(d.history);
     if (d.targets) setTargets(d.targets);
   }
+
+  const paletteActions: PaletteAction[] = [
+    {
+      id: 'invoke',
+      label: invokeState.loading ? 'Cancel active RPC' : 'Invoke current method',
+      hint: '⌘↵',
+      keywords: 'run send cancel',
+      run: () => {
+        if (invokeState.loading) handleCancelInvoke();
+        else void handleInvoke();
+      },
+    },
+    {
+      id: 'save-request',
+      label: 'Save current request',
+      keywords: 'collection workspace',
+      run: handleSaveCollection,
+    },
+    {
+      id: 'search-methods',
+      label: 'Search services and methods',
+      hint: '/',
+      keywords: 'filter rpc',
+      run: () => document.querySelector<HTMLInputElement>('#method-search')?.focus(),
+    },
+    {
+      id: 'history',
+      label: 'Open history and saved requests',
+      keywords: 'recent collection',
+      run: () => setActiveView('history'),
+    },
+    {
+      id: 'schema',
+      label: 'Inspect schema',
+      keywords: 'proto descriptor structure',
+      run: () => setActiveView('structure'),
+    },
+    {
+      id: 'targets',
+      label: 'Manage targets',
+      keywords: 'endpoint connect reflection proto protoset',
+      run: () => setActiveView('workspace'),
+    },
+    ...(bootstrap?.services.flatMap((service) =>
+      service.methods.map((method) => ({
+        id: `method-${method.fullName}`,
+        label: `Open ${service.name.split('.').pop()}.${method.name}`,
+        keywords: `${service.name} ${method.fullName} rpc method`,
+        run: () => handleSelectMethod(method.fullName),
+      }))
+    ) ?? []),
+  ];
 
   // boot/loading states
   if (bootError)
@@ -942,148 +1021,48 @@ export function App() {
         />
       ) : null}
       <aside className={classNames('pp-sidebar', sidebarOpen && 'pp-sidebar-open')}>
-        <div className="border-b border-white/10 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-white">ProtoPeek</span>
-            <span className="text-[0.65rem] text-[var(--pp-sidebar-muted)]">
-              {bootstrap.version}
-            </span>
-          </div>
-          <div
-            className="mt-1 truncate text-[0.7rem] text-[var(--pp-sidebar-muted)]"
-            title={bootstrap.target}
-          >
-            {bootstrap.target}
-          </div>
-        </div>
-
-        <nav className="space-y-0.5 border-b border-white/10 px-2 py-2">
-          {navTabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setActiveView(tab.key);
-                setSidebarOpen(false);
-              }}
-              className={classNames(
-                'pp-tab',
-                activeView === tab.key ? 'pp-tab-active' : 'pp-tab-inactive'
-              )}
-            >
-              <tab.icon className="size-3.5" />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="space-y-2 border-b border-white/10 px-3 py-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[var(--pp-sidebar-muted)]" />
-              <input
-                className="w-full rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 text-xs text-white outline-none placeholder:text-[var(--pp-sidebar-muted)] focus:border-[var(--pp-sidebar-active)] focus:ring-1 focus:ring-[var(--pp-sidebar-active)]/30"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search methods..."
-              />
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {methodFilterOptions.map((o) => (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => setMethodFilter(o.value)}
-                  className={classNames(
-                    'rounded px-2 py-0.5 text-[0.65rem] font-medium transition',
-                    methodFilter === o.value
-                      ? 'bg-[var(--pp-sidebar-active)] text-white'
-                      : 'text-[var(--pp-sidebar-muted)] hover:bg-white/10 hover:text-white'
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto px-2 py-2">
-            {visibleServices.map((svc) => (
-              <SidebarService
-                key={svc.name}
-                service={svc}
-                selectedMethod={selectedMethod}
-                searchText={deferredSearchText}
-                onSelect={(method) => {
-                  setSelectedMethod(method);
-                  setSidebarOpen(false);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-          <span className="text-[0.65rem] text-[var(--pp-sidebar-muted)]">Workspace</span>
-          <div className="flex gap-1">
-            <button
-              className="pp-button-ghost px-1.5 py-1"
-              type="button"
-              onClick={handleExportWorkspace}
-              title="Export"
-            >
-              <Download className="size-3.5" />
-            </button>
-            <button
-              className="pp-button-ghost px-1.5 py-1"
-              type="button"
-              onClick={() => importInputRef.current?.click()}
-              title="Import"
-            >
-              <Upload className="size-3.5" />
-            </button>
-            <input
-              ref={importInputRef}
-              className="hidden"
-              type="file"
-              accept="application/json"
-              onChange={handleImportWorkspace}
-            />
-            {rootBootstrap?.launcherMode ? (
-              <button
-                className="pp-button-ghost px-1.5 py-1"
-                type="button"
-                onClick={handleResetToLauncher}
-                title="Back to launcher"
-              >
-                <Server className="size-3.5" />
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <ServiceNavigator
+          services={visibleServices}
+          selectedMethod={selectedMethod}
+          searchText={searchText}
+          filter={methodFilter}
+          activeView={activeView}
+          historyCount={history.length}
+          savedCount={collections.length}
+          onSearchChange={setSearchText}
+          onFilterChange={setMethodFilter}
+          onSelectMethod={handleSelectMethod}
+          onViewChange={(view) => {
+            setActiveView(view);
+            setSidebarOpen(false);
+          }}
+          onExport={handleExportWorkspace}
+          onImport={() => importInputRef.current?.click()}
+        />
+        <input
+          ref={importInputRef}
+          className="hidden"
+          type="file"
+          accept="application/json"
+          onChange={handleImportWorkspace}
+        />
       </aside>
 
       <div className="pp-main">
-        <header className="pp-console-header">
-          <button
-            ref={sidebarToggleRef}
-            className="pp-mobile-nav-button"
-            type="button"
-            aria-expanded={sidebarOpen}
-            aria-label="Open service navigation"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <PanelLeft aria-hidden="true" />
-          </button>
-          <span className="pp-badge">
-            <Server className="size-3" />
-            {currentService.name}
-          </span>
-          <span className="pp-heading text-base">{currentMethod.name}</span>
-          <MethodBadge method={currentMethod} />
-          <span className="pp-local-indicator">
-            <LockKeyhole aria-hidden="true" /> Local only
-          </span>
-        </header>
+        <WorkbenchHeader
+          target={bootstrap.target}
+          targetProfile={targets.find((target) => target.id === activeTargetId) ?? null}
+          serviceName={currentService.name}
+          method={currentMethod}
+          sidebarButtonRef={sidebarToggleRef}
+          sidebarOpen={sidebarOpen}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onOpenCommandPalette={() => setCommandPaletteOpen(true)}
+          onSwitchTarget={() => {
+            if (rootBootstrap?.launcherMode) handleResetToLauncher();
+            else setActiveView('workspace');
+          }}
+        />
 
         <div
           className={classNames('flex-1 overflow-y-auto', activeView === 'compose' ? 'p-0' : 'p-4')}
@@ -1101,16 +1080,20 @@ export function App() {
               onRemoveMetadata={handleRemoveMetadata}
               onMetadataChange={handleMetadataChange}
               onInvoke={handleInvoke}
+              onCancel={handleCancelInvoke}
+              onSaveRequest={handleSaveCollection}
+              onResetRequest={resetRequestFromSchema}
               invokeState={invokeState}
             />
           ) : null}
 
-          {activeView === 'response' ? (
-            <ResponseView invokeState={invokeState} responsePayload={responsePayload} />
-          ) : null}
-
           {activeView === 'history' ? (
-            <HistoryView history={history} onApply={applyHistory} />
+            <HistoryView
+              history={history}
+              collections={collections}
+              onApply={applyHistory}
+              onApplyCollection={applyCollection}
+            />
           ) : null}
 
           {activeView === 'tests' ? (
@@ -1193,63 +1176,11 @@ export function App() {
           ) : null}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Sidebar service tree ──────────────────────────────────────
-
-function SidebarService({
-  service,
-  selectedMethod,
-  searchText,
-  onSelect,
-}: {
-  service: BootstrapService;
-  selectedMethod: string;
-  searchText: string;
-  onSelect: (m: string) => void;
-}) {
-  const autoOpen = Boolean(searchText.trim());
-  const [open, setOpen] = useState(
-    autoOpen || service.methods.some((m) => m.fullName === selectedMethod)
-  );
-  useEffect(() => {
-    if (autoOpen) setOpen(true);
-  }, [autoOpen]);
-
-  return (
-    <div className="mb-1">
-      <button
-        type="button"
-        onClick={() => setOpen((x) => !x)}
-        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold text-[var(--pp-sidebar-ink)] hover:bg-white/5"
-      >
-        <span className="truncate">{service.name.split('.').pop()}</span>
-        <span className="text-[0.6rem] text-[var(--pp-sidebar-muted)]">{open ? '−' : '+'}</span>
-      </button>
-      {open ? (
-        <div className="ml-2 space-y-0.5 border-l border-white/10 pl-2">
-          {service.methods.map((m) => (
-            <button
-              key={m.fullName}
-              type="button"
-              onClick={() => onSelect(m.fullName)}
-              className={classNames(
-                'block w-full truncate rounded-md px-2 py-1 text-left text-xs transition',
-                m.fullName === selectedMethod
-                  ? 'bg-[var(--pp-sidebar-active)] font-semibold text-white'
-                  : 'text-[var(--pp-sidebar-muted)] hover:bg-white/5 hover:text-white'
-              )}
-            >
-              {m.name}
-              {m.clientStreaming || m.serverStreaming ? (
-                <span className="ml-1 text-[0.6rem] opacity-60">stream</span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <CommandPalette
+        open={commandPaletteOpen}
+        actions={paletteActions}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 }
@@ -1554,7 +1485,7 @@ function _ComposeView({
 
 // ─── Response view ─────────────────────────────────────────────
 
-function ResponseView({
+function _ResponseView({
   invokeState,
   responsePayload,
 }: {
@@ -1607,39 +1538,78 @@ function ResponseView({
 
 function HistoryView({
   history,
+  collections,
   onApply,
+  onApplyCollection,
 }: {
   history: RequestHistoryEntry[];
+  collections: SavedCollection[];
   onApply: (e: RequestHistoryEntry) => void;
+  onApplyCollection: (collection: SavedCollection) => void;
 }) {
-  if (history.length === 0)
-    return <div className="text-sm text-pp-muted">No history yet. Run an RPC first.</div>;
   return (
-    <div className="space-y-2">
-      {history.map((e) => (
-        <button
-          key={e.id}
-          type="button"
-          onClick={() => onApply(e)}
-          className="block w-full rounded-lg border border-pp-border p-3 text-left transition hover:bg-pp-bg"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <span className="text-sm font-semibold text-pp-ink">
-                {e.method.split('/').pop() || e.method}
-              </span>
-              <span className="ml-2 text-xs text-pp-muted">{compactDate(e.createdAt)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="pp-badge">{durationLabel(e.latencyMs)}</span>
-              <span className={classNames('pp-badge', e.success ? 'text-pp-ok' : 'text-pp-danger')}>
-                {e.success ? 'OK' : 'ERR'}
-              </span>
-            </div>
+    <div className="pp-history-layout">
+      <section>
+        <div className="pp-section-heading">
+          <div>
+            <span className="pp-kicker">Reusable</span>
+            <h2>Saved requests</h2>
           </div>
-          <p className="mt-1 truncate text-xs text-pp-muted">{e.responsePreview}</p>
-        </button>
-      ))}
+          <span className="pp-count">{collections.length}</span>
+        </div>
+        {collections.length ? (
+          <div className="pp-history-list">
+            {collections.map((collection) => (
+              <button
+                key={collection.id}
+                type="button"
+                onClick={() => onApplyCollection(collection)}
+                className="pp-history-row"
+              >
+                <div>
+                  <strong>{collection.name}</strong>
+                  <span>{collection.method}</span>
+                </div>
+                <small>{compactDate(collection.createdAt)}</small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="pp-empty-copy">Save the current request to reuse its body and metadata.</p>
+        )}
+      </section>
+      <section>
+        <div className="pp-section-heading">
+          <div>
+            <span className="pp-kicker">Evidence</span>
+            <h2>Recent calls</h2>
+          </div>
+          <span className="pp-count">{history.length}</span>
+        </div>
+        {history.length ? (
+          <div className="pp-history-list">
+            {history.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onApply(entry)}
+                className="pp-history-row"
+              >
+                <div>
+                  <strong>{entry.method.split('/').pop() || entry.method}</strong>
+                  <span>{entry.responsePreview}</span>
+                </div>
+                <small>
+                  {compactDate(entry.createdAt)} · {durationLabel(entry.latencyMs)} ·{' '}
+                  {entry.success ? 'OK' : 'ERR'}
+                </small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="pp-empty-copy">Run an RPC to build local history.</p>
+        )}
+      </section>
     </div>
   );
 }
@@ -2228,26 +2198,36 @@ function WorkspaceView({
 
 // ─── Scan panel ────────────────────────────────────────────────
 
-function ScanPanel({ onUseAddress }: { onUseAddress: (addr: string) => void }) {
-  const [scanInput, setScanInput] = useState('localhost:50051');
+function ScanPanel({
+  onUseAddress,
+  autoStart = false,
+}: {
+  onUseAddress: (addr: string) => void;
+  autoStart?: boolean;
+}) {
+  const [scanInput, setScanInput] = useState(
+    'localhost:50051\nlocalhost:9090\nlocalhost:6565\nlocalhost:7000\nlocalhost:8080\n127.0.0.1:50051'
+  );
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<ScanResult[]>([]);
+  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
+  const autoStartedRef = useRef(false);
 
-  const handleScan = async () => {
-    const addrs = scanInput
+  const runScan = useEffectEvent(async () => {
+    const addresses = scanInput
       .split(/[,\n]+/)
       .map((a) => a.trim())
       .filter(Boolean);
-    if (addrs.length === 0) return;
+    if (addresses.length === 0) return;
     setScanning(true);
     setResults([]);
     try {
-      const res = await scanAddresses(addrs);
+      const res = await scanAddresses(addresses, allowPrivateNetwork);
       setResults(res);
     } catch {
       setResults([
         {
-          address: addrs[0],
+          address: addresses[0],
           alive: false,
           grpc: false,
           services: null,
@@ -2258,33 +2238,42 @@ function ScanPanel({ onUseAddress }: { onUseAddress: (addr: string) => void }) {
     } finally {
       setScanning(false);
     }
-  };
+  });
+
+  useEffect(() => {
+    if (!autoStart || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    void runScan();
+  }, [autoStart]);
 
   return (
-    <div className="pp-panel">
-      <div className="flex items-center gap-2">
-        <Search className="size-4 text-pp-brand" />
-        <h3 className="pp-heading text-base">Scan for gRPC services</h3>
+    <div className="pp-panel pp-discovery-panel">
+      <div className="pp-card-heading">
+        <div>
+          <span className="pp-kicker">Nearby</span>
+          <h3>Discover local gRPC</h3>
+        </div>
+        <span className="pp-local-indicator">
+          <LockKeyhole aria-hidden="true" /> Loopback by default
+        </span>
       </div>
-      <p className="pp-muted mt-1">
-        Enter one or more host:port addresses (comma or newline separated). ProtoPeek will probe
-        each for gRPC reflection and list discovered services.
-      </p>
-      <div className="mt-3 flex gap-2">
-        <input
-          className="pp-input"
+      <p className="pp-muted">Checks common loopback ports. Private-network probing is opt-in.</p>
+      <div className="pp-discovery-controls">
+        <textarea
+          className="pp-input font-mono text-xs"
+          rows={2}
           value={scanInput}
           onChange={(e) => setScanInput(e.target.value)}
-          placeholder="host:port, host:port, ..."
+          placeholder="localhost:50051"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') void handleScan();
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void runScan();
           }}
         />
         <button
           className="pp-button-primary shrink-0"
           type="button"
           disabled={scanning}
-          onClick={() => void handleScan()}
+          onClick={() => void runScan()}
         >
           {scanning ? (
             <LoaderCircle className="size-4 animate-spin" />
@@ -2294,30 +2283,35 @@ function ScanPanel({ onUseAddress }: { onUseAddress: (addr: string) => void }) {
           Scan
         </button>
       </div>
+      <label className="pp-private-scan-toggle">
+        <input
+          type="checkbox"
+          checked={allowPrivateNetwork}
+          onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
+        />
+        Allow explicit private IPs in this list
+      </label>
       {results.length > 0 ? (
-        <div className="mt-3 space-y-2">
+        <div className="pp-discovery-results">
           {results.map((r) => (
             <div
               key={r.address}
               className={classNames(
-                'rounded-lg border p-3',
-                r.grpc
-                  ? 'border-pp-ok/30 bg-emerald-50'
-                  : r.alive
-                    ? 'border-pp-accent/30 bg-amber-50'
-                    : 'border-pp-border bg-pp-bg'
+                'pp-discovery-result',
+                r.grpc && 'is-grpc',
+                r.alive && !r.grpc && 'is-open'
               )}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="pp-discovery-result-head">
+                <div>
                   <span
                     className={classNames(
-                      'size-2.5 rounded-full',
+                      'pp-discovery-dot',
                       r.grpc ? 'bg-pp-ok' : r.alive ? 'bg-pp-accent' : 'bg-pp-muted'
                     )}
                   />
-                  <span className="font-mono text-sm font-semibold text-pp-ink">{r.address}</span>
-                  <span className="text-xs text-pp-muted">{r.latencyMs}ms</span>
+                  <strong>{r.address}</strong>
+                  <small>{r.latencyMs}ms</small>
                 </div>
                 {r.grpc ? (
                   <button
@@ -2330,18 +2324,18 @@ function ScanPanel({ onUseAddress }: { onUseAddress: (addr: string) => void }) {
                 ) : null}
               </div>
               {r.services && r.services.length > 0 ? (
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="pp-discovered-services">
                   {r.services.map((svc) => (
-                    <span key={svc} className="pp-badge text-xs">
+                    <span key={svc} className="pp-badge">
                       {svc}
                     </span>
                   ))}
                 </div>
               ) : null}
-              {r.error ? <div className="mt-1 text-xs text-pp-muted">{r.error}</div> : null}
-              {!r.alive ? <div className="mt-1 text-xs text-pp-muted">Not reachable</div> : null}
+              {r.error ? <p className="pp-muted">{r.error}</p> : null}
+              {!r.alive && !r.error ? <p className="pp-muted">Not reachable</p> : null}
               {r.alive && !r.grpc ? (
-                <div className="mt-1 text-xs text-pp-muted">Port open but no gRPC detected</div>
+                <p className="pp-muted">Port open; reflection was not detected.</p>
               ) : null}
             </div>
           ))}
@@ -2397,21 +2391,14 @@ function LauncherView({
       <main className="pp-launcher-main">
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
-          <h1>
-            Inspect a real service.
-            <br />
-            Keep the whole session local.
-          </h1>
-          <p>
-            Point ProtoPeek at reflection, proto files, or a protoset. Compose calls and inspect
-            messages, headers, trailers, deadlines, and final status in one focused console.
-          </p>
+          <h1>Open a gRPC target.</h1>
+          <p>Reflection first. Proto files and protosets when you need them.</p>
           <div className="pp-trust-row">
             <span>
-              <Wifi aria-hidden="true" /> Loopback web server
+              <Wifi aria-hidden="true" /> Auto-find loopback services
             </span>
             <span>
-              <LockKeyhole aria-hidden="true" /> No account or database
+              <LockKeyhole aria-hidden="true" /> No account, cloud, or database
             </span>
           </div>
         </section>
@@ -2435,6 +2422,13 @@ function LauncherView({
             onSaveAndConnect={onSaveAndConnect}
           />
         </section>
+
+        <ScanPanel
+          autoStart
+          onUseAddress={(address) =>
+            onChangeDraft({ address, name: draft.name || 'Local gRPC service' })
+          }
+        />
 
         <section className="pp-saved-targets" aria-labelledby="saved-targets-title">
           <div className="pp-card-heading">
@@ -2529,15 +2523,6 @@ function TargetForm({
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="pp-label">Name</span>
-          <input
-            className="pp-input mt-1"
-            value={draft.name}
-            onChange={(e) => onChange({ name: e.target.value })}
-            placeholder="Local dev"
-          />
-        </label>
-        <label className="block">
           <span className="pp-label">Address</span>
           <input
             className="pp-input mt-1"
@@ -2546,18 +2531,19 @@ function TargetForm({
             placeholder="localhost:50051"
           />
         </label>
+        <label className="block">
+          <span className="pp-label">
+            Name <small>optional</small>
+          </span>
+          <input
+            className="pp-input mt-1"
+            value={draft.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            placeholder="Local dev"
+          />
+        </label>
       </div>
-      <label className="block">
-        <span className="pp-label">Notes</span>
-        <textarea
-          className="pp-input mt-1"
-          rows={2}
-          value={draft.notes}
-          onChange={(e) => onChange({ notes: e.target.value })}
-          placeholder="Optional notes"
-        />
-      </label>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="pp-label">Schema source</span>
           <select
@@ -2572,16 +2558,8 @@ function TargetForm({
             <option value="protoset">Protoset</option>
           </select>
         </label>
-        <label className="block">
-          <span className="pp-label">Authority</span>
-          <input
-            className="pp-input mt-1"
-            value={draft.authority}
-            onChange={(e) => onChange({ authority: e.target.value })}
-            placeholder="grpc.example.internal"
-          />
-        </label>
-        <div className="flex items-end gap-3">
+        <div className="pp-transport-choice">
+          <span className="pp-label">Transport</span>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -2593,86 +2571,112 @@ function TargetForm({
                 })
               }
             />
-            Plaintext
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={draft.insecure}
-              disabled={draft.plaintext}
-              onChange={(e) => onChange({ insecure: e.target.checked })}
-            />
-            Skip verify
+            {draft.plaintext ? 'Plaintext' : 'TLS'}
           </label>
         </div>
       </div>
-      {!draft.plaintext ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="block">
-            <span className="pp-label">CA cert</span>
-            <input
-              className="pp-input mt-1"
-              value={draft.cacertPath}
-              onChange={(e) => onChange({ cacertPath: e.target.value })}
-              placeholder="/certs/ca.pem"
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Client cert</span>
-            <input
-              className="pp-input mt-1"
-              value={draft.certPath}
-              onChange={(e) => onChange({ certPath: e.target.value })}
-              placeholder="/certs/client.pem"
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Client key</span>
-            <input
-              className="pp-input mt-1"
-              value={draft.keyPath}
-              onChange={(e) => onChange({ keyPath: e.target.value })}
-              placeholder="/certs/key.pem"
-            />
-          </label>
+      <details className="pp-target-advanced">
+        <summary>Advanced connection options</summary>
+        <div className="pp-target-advanced-body">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="pp-label">Authority</span>
+              <input
+                className="pp-input mt-1"
+                value={draft.authority}
+                onChange={(e) => onChange({ authority: e.target.value })}
+                placeholder="grpc.example.internal"
+              />
+            </label>
+            <label className="block">
+              <span className="pp-label">Notes</span>
+              <input
+                className="pp-input mt-1"
+                value={draft.notes}
+                onChange={(e) => onChange({ notes: e.target.value })}
+                placeholder="Optional context"
+              />
+            </label>
+          </div>
+          {!draft.plaintext ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.insecure}
+                onChange={(e) => onChange({ insecure: e.target.checked })}
+              />
+              Skip certificate verification
+            </label>
+          ) : null}
+          {!draft.plaintext ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="pp-label">CA cert</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.cacertPath}
+                  onChange={(e) => onChange({ cacertPath: e.target.value })}
+                  placeholder="/certs/ca.pem"
+                />
+              </label>
+              <label className="block">
+                <span className="pp-label">Client cert</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.certPath}
+                  onChange={(e) => onChange({ certPath: e.target.value })}
+                  placeholder="/certs/client.pem"
+                />
+              </label>
+              <label className="block">
+                <span className="pp-label">Client key</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.keyPath}
+                  onChange={(e) => onChange({ keyPath: e.target.value })}
+                  placeholder="/certs/key.pem"
+                />
+              </label>
+            </div>
+          ) : null}
+          {draft.schemaSource === 'proto-files' ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="pp-label">Proto files</span>
+                <textarea
+                  className="pp-input mt-1 font-mono text-xs"
+                  rows={3}
+                  value={draft.protoFiles.join('\n')}
+                  onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
+                  placeholder="api/service.proto"
+                />
+              </label>
+              <label className="block">
+                <span className="pp-label">Import paths</span>
+                <textarea
+                  className="pp-input mt-1 font-mono text-xs"
+                  rows={3}
+                  value={draft.importPaths.join('\n')}
+                  onChange={(e) => onChange({ importPaths: parseMultilineValues(e.target.value) })}
+                  placeholder="proto"
+                />
+              </label>
+            </div>
+          ) : null}
+          {draft.schemaSource === 'protoset' ? (
+            <label className="block">
+              <span className="pp-label">Protoset files</span>
+              <textarea
+                className="pp-input mt-1 font-mono text-xs"
+                rows={3}
+                value={draft.protosets.join('\n')}
+                onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
+                placeholder="dist/service.protoset"
+              />
+            </label>
+          ) : null}
         </div>
-      ) : null}
-      {draft.schemaSource === 'proto-files' ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="pp-label">Proto files</span>
-            <textarea
-              className="pp-input mt-1 font-mono text-xs"
-              rows={3}
-              value={draft.protoFiles.join('\n')}
-              onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
-              placeholder="api/service.proto"
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Import paths</span>
-            <textarea
-              className="pp-input mt-1 font-mono text-xs"
-              rows={3}
-              value={draft.importPaths.join('\n')}
-              onChange={(e) => onChange({ importPaths: parseMultilineValues(e.target.value) })}
-              placeholder="proto"
-            />
-          </label>
-        </div>
-      ) : null}
-      {draft.schemaSource === 'protoset' ? (
-        <label className="block">
-          <span className="pp-label">Protoset files</span>
-          <textarea
-            className="pp-input mt-1 font-mono text-xs"
-            rows={3}
-            value={draft.protosets.join('\n')}
-            onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
-            placeholder="dist/service.protoset"
-          />
-        </label>
-      ) : null}
+      </details>
       <div className="flex gap-2">
         <button className="pp-button-secondary" type="button" disabled={busy} onClick={onSave}>
           <Save className="size-3.5" />
@@ -2689,7 +2693,7 @@ function TargetForm({
           ) : (
             <Play className="size-3.5" />
           )}
-          Save & connect
+          Connect
         </button>
       </div>
     </div>
@@ -2698,7 +2702,7 @@ function TargetForm({
 
 // ─── Small shared components ───────────────────────────────────
 
-function MethodBadge({ method }: { method: BootstrapMethod }) {
+function _MethodBadge({ method }: { method: BootstrapMethod }) {
   const mode = `${method.clientStreaming ? 'client stream' : 'unary'} → ${method.serverStreaming ? 'server stream' : 'unary'}`;
   return <span className="pp-badge">{mode}</span>;
 }

@@ -521,8 +521,10 @@ type rpcInput struct {
 }
 
 type rpcResponseElement struct {
-	Data    json.RawMessage `json:"message"`
-	IsError bool            `json:"isError"`
+	Data      json.RawMessage `json:"message"`
+	IsError   bool            `json:"isError"`
+	Sequence  int             `json:"sequence,omitempty"`
+	ElapsedMs int64           `json:"elapsedMs,omitempty"`
 }
 
 type rpcRequestStats struct {
@@ -540,6 +542,7 @@ type rpcError struct {
 type rpcResult struct {
 	descSource   grpcurl.DescriptorSource
 	emitDefaults bool
+	startedAt    time.Time
 	Headers      []rpcMetadata        `json:"headers"`
 	Error        *rpcError            `json:"error"`
 	Responses    []rpcResponseElement `json:"responses"`
@@ -551,6 +554,7 @@ func newRPCResult(descSource grpcurl.DescriptorSource, emitDefaults bool, reques
 	return rpcResult{
 		descSource:   descSource,
 		emitDefaults: emitDefaults,
+		startedAt:    time.Now(),
 		Headers:      make([]rpcMetadata, 0),
 		Responses:    make([]rpcResponseElement, 0),
 		Requests:     requests,
@@ -567,7 +571,10 @@ func (r *rpcResult) OnReceiveHeaders(md metadata.MD) {
 }
 
 func (r *rpcResult) OnReceiveResponse(m proto.Message) {
-	r.Responses = append(r.Responses, responseToJSON(r.descSource, m, r.emitDefaults))
+	response := responseToJSON(r.descSource, m, r.emitDefaults)
+	response.Sequence = len(r.Responses) + 1
+	response.ElapsedMs = time.Since(r.startedAt).Milliseconds()
+	r.Responses = append(r.Responses, response)
 }
 
 func (r *rpcResult) OnReceiveTrailers(stat *status.Status, md metadata.MD) {

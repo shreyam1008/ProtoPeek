@@ -1,6 +1,6 @@
 # ProtoPeek
 
-Performance-first gRPC workbench with reflection-driven exploration, proto structure visualization, metadata inspection, and lightweight load simulation.
+Local-first gRPC workbench with reflection-driven exploration, ready-to-edit JSON, streaming evidence, and lightweight checks.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
@@ -31,18 +31,21 @@ pp -plaintext localhost:50051     # direct single-target mode
 ```
 
 In launcher mode each saved target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths.
+ProtoPeek automatically checks a small list of common loopback ports. Private-network IPs are only probed when you explicitly opt in; public hosts and arbitrary hostnames are never accepted by the discovery scan.
 
 ## Capabilities
 
 | Surface | What it does |
 |---|---|
-| **Method rail** | Search services and methods with streaming badges |
+| **Method rail** | Search and filter reflected services/methods with clear unary and streaming modes |
 | **Target registry** | Save and switch gRPC endpoints without restarting |
+| **Local discovery** | Find reflection-enabled loopback targets with an explicit private-network boundary |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
-| **Metadata presets** | Editable auth headers and reusable environment profiles |
-| **Collections** | Save request recipes with notes; import/export as JSON |
-| **Response lab** | Headers, trailers, payloads, status, and latency in one surface |
+| **Metadata and auth** | Editable metadata, Bearer helper, deadline, and reusable environment profiles |
+| **Saved requests** | Keep request recipes locally, replay them, and import/export workspace JSON |
+| **Response timeline** | Ordered messages with arrival timing, filtering, copy/export, headers, trailers, and final status |
+| **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Simulation** | Concurrency sweeps with p50/p95/p99 latency and throughput |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
