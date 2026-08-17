@@ -1,13 +1,13 @@
 # Transport boundaries
 
-ProtoPeek stays a local protocol console, not a general collaboration client. Its durable product
-advantage is the short path from a real target to an explainable request, response, and transport
-story.
+ProtoPeek is Protocol Peek: a local protocol console, not a general collaboration client. Its
+durable product advantage is the short path from a real target to an explainable request, response,
+and transport story.
 
 ## Product contract
 
-- `pp [target]` and `protopeek [target]` continue to mean gRPC unless the user opts into another
-  transport.
+- `pp [target]` and `protopeek [target]` mean gRPC today; future transports are explicit adapter
+  choices rather than silent changes to the default.
 - Every session runs locally, without an account, remote sync, or external database.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.

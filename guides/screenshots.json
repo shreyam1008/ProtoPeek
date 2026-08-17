@@ -3,20 +3,20 @@
   "status": "captured-locally",
   "screenshots": [
     {
-      "file": "../design/protopeek-launcher-concept.png",
-      "alt": "ProtoPeek local target launcher design direction",
-      "platform": "design reference",
+      "file": "../web/site/public/assets/protopeek-console.jpg",
+      "alt": "ProtoPeek local gRPC console with a reflected bidirectional-stream request workspace",
+      "platform": "desktop",
       "capturedVersion": "unreleased",
       "capturedAt": "2026-08-17",
-      "workflow": "Replace with a release-candidate product capture before publishing store metadata."
+      "workflow": "Real local Chrome capture against the repository KitchenSink reflection server. Recapture for each release candidate."
     },
     {
-      "file": "../design/protopeek-console-concept.png",
-      "alt": "ProtoPeek split gRPC request and response console design direction",
-      "platform": "design reference",
+      "file": "../web/site/public/assets/protopeek-console-response.jpg",
+      "alt": "ProtoPeek local gRPC console showing a successful Ping response with headers, status, timeline, and latency",
+      "platform": "desktop",
       "capturedVersion": "unreleased",
       "capturedAt": "2026-08-17",
-      "workflow": "Replace with a release-candidate product capture before publishing store metadata."
+      "workflow": "Real local Chrome capture against the repository KitchenSink reflection server. Recapture for each release candidate."
     }
   ]
 }

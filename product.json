@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "protopeek",
   "name": "ProtoPeek",
-  "summary": "A local-first gRPC workbench for reflection, proto exploration, invocation, metadata, trailers, status, and streaming.",
+  "summary": "A local-first protocol workbench: gRPC inspection today, with Cap'n Proto and REST adapters planned behind a native-detail shell.",
   "visibility": "public",
   "portfolioApproved": true,
   "lifecycle": "released",
