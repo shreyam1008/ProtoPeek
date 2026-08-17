@@ -1,15 +1,19 @@
 import {
   ArrowRight,
+  Braces,
   Cable,
   ChevronRight,
   Copy,
   Download,
   FileCode2,
   FlaskConical,
+  Globe2,
   Layers3,
+  Network,
   Radio,
   SearchCode,
   Server,
+  ShieldCheck,
   SquareArrowOutUpRight,
   Terminal,
   Zap,
@@ -23,8 +27,9 @@ export function App() {
 
       <main className="mx-auto max-w-5xl space-y-16 px-6 pb-20">
         <Hero />
-        <HowGrpcWorks />
+        <ProtocolModel />
         <Features />
+        <Roadmap />
         <Install />
         <Footer />
       </main>
@@ -42,10 +47,13 @@ function Nav() {
         </div>
         <div className="flex items-center gap-4">
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#how-grpc-works">
-            How gRPC works
+            Protocol model
           </a>
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#features">
-            Features
+            Shipped now
+          </a>
+          <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#roadmap">
+            Roadmap
           </a>
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#install">
             Install
@@ -70,19 +78,19 @@ function Hero() {
     <section className="pt-16 text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-pp-border bg-white px-4 py-1.5 text-xs font-medium text-pp-muted shadow-sm">
         <Zap className="size-3.5 text-pp-brand" />
-        Lightweight gRPC console &mdash; zero external dependencies
+        Protocol Peek &mdash; local request inspection, without platform bloat
       </div>
 
       <h1 className="mt-6 text-4xl font-bold tracking-tight text-pp-ink md:text-5xl lg:text-6xl">
-        See your protos.
+        See the request.
         <br />
-        <span className="text-pp-brand">Test your services.</span>
+        <span className="text-pp-brand">Understand the server.</span>
       </h1>
 
       <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pp-muted">
-        ProtoPeek is a fast, single-binary gRPC workbench. Auto-discover services via reflection,
-        browse proto schemas, invoke methods, run simulations, and inspect transport details &mdash;
-        all from a clean web UI that takes almost no RAM.
+        ProtoPeek is a fast, single-binary protocol workbench for the request-to-server path. gRPC
+        is the first adapter: reflection, proto schemas, streaming, metadata, trailers, status, and
+        timing are visible today. Cap&apos;n Proto and REST are planned behind the same local shell.
       </p>
 
       <div className="mt-8 flex items-center justify-center gap-3">
@@ -101,34 +109,26 @@ function Hero() {
         </a>
       </div>
 
-      <div className="mx-auto mt-12 max-w-3xl">
-        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-[#0d1117] shadow-2xl">
-          <div className="flex items-center gap-1.5 border-b border-white/10 px-4 py-2.5">
-            <span className="size-2.5 rounded-full bg-red-500/80" />
-            <span className="size-2.5 rounded-full bg-yellow-500/80" />
-            <span className="size-2.5 rounded-full bg-green-500/80" />
-            <span className="ml-3 text-xs text-neutral-500">terminal</span>
-          </div>
-          <div className="px-5 py-4 font-mono text-sm leading-7 text-emerald-400">
-            <div>
-              <span className="text-neutral-500">$</span> curl -fsSL
-              https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
-            </div>
-            <div className="text-neutral-500">Installed protopeek and pp to /usr/local/bin</div>
-            <div className="mt-2">
-              <span className="text-neutral-500">$</span> pp -plaintext localhost:50051
-            </div>
-            <div className="text-sky-400">
-              ProtoPeek available at http://127.0.0.1:8080/ (target: localhost:50051)
-            </div>
-          </div>
-        </div>
+      <div className="mx-auto mt-12 max-w-4xl">
+        <figure className="overflow-hidden rounded-2xl border border-neutral-800 bg-[#0d1117] shadow-2xl">
+          <img
+            src="/assets/protopeek-console-response.jpg"
+            alt="ProtoPeek local gRPC console showing a successful Ping request, response timeline, headers, status, and latency"
+            className="block w-full"
+            width="1920"
+            height="860"
+          />
+          <figcaption className="border-t border-white/10 px-4 py-3 text-left text-xs leading-relaxed text-neutral-400">
+            Real local capture: reflected KitchenSink service, Ping request, OK status, headers,
+            response timeline, and 62 ms latency.
+          </figcaption>
+        </figure>
       </div>
     </section>
   );
 }
 
-function HowGrpcWorks() {
+function ProtocolModel() {
   const steps = [
     {
       num: '01',
@@ -182,10 +182,66 @@ function HowGrpcWorks() {
   return (
     <section id="how-grpc-works">
       <SectionHeader
-        label="How gRPC works"
-        title="A 60-second protocol primer"
-        subtitle="gRPC is not just JSON-over-HTTP with a different content type. Here's what makes it different."
+        label="Protocol model"
+        title="One shell. Native protocol detail."
+        subtitle="ProtoPeek keeps discovery, request editing, response evidence, and local history consistent while each adapter preserves the concepts that make its protocol different."
       />
+
+      <div className="mt-8 grid gap-4 md:grid-cols-3">
+        {[
+          {
+            icon: Network,
+            label: 'Shipped now',
+            title: 'gRPC',
+            detail:
+              'Reflection, .proto and protoset loading, unary and streaming calls, metadata, headers, trailers, status, and timing.',
+            tone: 'border-pp-brand/40 bg-pp-brand/5',
+          },
+          {
+            icon: Braces,
+            label: 'Planned adapter',
+            title: "Cap'n Proto",
+            detail:
+              'Schema-file and capability bootstrap with a native inspector for message segments and capability resolution.',
+            tone: 'border-pp-border bg-white',
+          },
+          {
+            icon: Globe2,
+            label: 'Planned adapter',
+            title: 'REST / HTTP',
+            detail:
+              'Method, URL, headers, body, status, timing, and optional OpenAPI operation discovery—without pretending it is gRPC.',
+            tone: 'border-pp-border bg-white',
+          },
+        ].map((protocol) => (
+          <div key={protocol.title} className={`rounded-xl border p-5 shadow-sm ${protocol.tone}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-pp-brand/10 text-pp-brand">
+                <protocol.icon className="size-5" />
+              </div>
+              <span className="pp-badge">{protocol.label}</span>
+            </div>
+            <h3 className="mt-4 text-base font-semibold text-pp-ink">{protocol.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-pp-muted">{protocol.detail}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-pp-border bg-white p-5 shadow-sm md:p-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-center text-xs font-semibold text-pp-ink md:gap-3">
+          <span className="rounded-lg bg-pp-bg-strong px-3 py-2">Target</span>
+          <ChevronRight className="size-4 text-pp-muted" />
+          <span className="rounded-lg bg-pp-brand/10 px-3 py-2 text-pp-brand">Adapter</span>
+          <ChevronRight className="size-4 text-pp-muted" />
+          <span className="rounded-lg bg-pp-bg-strong px-3 py-2">Request editor</span>
+          <ChevronRight className="size-4 text-pp-muted" />
+          <span className="rounded-lg bg-pp-bg-strong px-3 py-2">Native inspector</span>
+        </div>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm leading-relaxed text-pp-muted">
+          The shared path stays small and local. The adapter owns discovery, validation, invocation,
+          cancellation, and transport events; the inspector owns the vocabulary.
+        </p>
+      </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {steps.map((s) => (
@@ -205,7 +261,9 @@ function HowGrpcWorks() {
       </div>
 
       <div className="mt-8">
-        <h3 className="text-center text-sm font-semibold text-pp-ink">The four RPC shapes</h3>
+        <h3 className="text-center text-sm font-semibold text-pp-ink">
+          What the gRPC adapter shows today
+        </h3>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {shapes.map((s) => (
             <div
@@ -247,22 +305,22 @@ function Features() {
     },
     {
       icon: Cable,
-      title: 'Transport lens',
-      desc: 'See the raw transport story: gRPC status codes, HTTP/2 metadata, trailers, and timing — not just the payload.',
+      title: 'Protocol-native evidence',
+      desc: 'See the raw gRPC story: status codes, HTTP/2 metadata, trailers, stream mode, and timing — not just the payload.',
     },
     {
-      icon: Server,
-      title: 'Workspace targets',
-      desc: 'Register multiple gRPC targets with different TLS/auth configs. Switch between them without restarting.',
+      icon: Network,
+      title: 'Adapter-ready shell',
+      desc: 'Keep targets, local history, request editing, and session lifecycle stable as Cap’n Proto and REST adapters arrive.',
     },
   ];
 
   return (
     <section id="features">
       <SectionHeader
-        label="Features"
-        title="Everything you need, nothing you don't"
-        subtitle="ProtoPeek is gRPC-focused. No REST, no GraphQL, no bloat."
+        label="Shipped now"
+        title="A small console that shows the useful parts"
+        subtitle="The first adapter is deliberately gRPC-aware. It makes the request, response, and transport story easy to inspect before the protocol roadmap grows."
       />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -273,6 +331,70 @@ function Features() {
             </div>
             <h3 className="mt-3 text-sm font-semibold text-pp-ink">{f.title}</h3>
             <p className="mt-1 text-sm leading-relaxed text-pp-muted">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Roadmap() {
+  const phases = [
+    {
+      phase: '01',
+      status: 'Live',
+      title: 'Make gRPC the reference adapter',
+      detail:
+        'Harden reflection, proto/protoset workflows, streaming, metadata, response timelines, cancellation, saved requests, and local-only safety.',
+      icon: ShieldCheck,
+    },
+    {
+      phase: '02',
+      status: 'Next',
+      title: "Add a Cap'n Proto inspector",
+      detail:
+        'Start with a local schema-file and capability bootstrap flow. Keep message segments and capability resolution visible instead of flattening them into JSON.',
+      icon: Braces,
+    },
+    {
+      phase: '03',
+      status: 'Next',
+      title: 'Add bounded REST / HTTP',
+      detail:
+        'Support one excellent local request path: method, URL, headers, body, status, timing, and optional OpenAPI discovery. No cloud sync or script marketplace.',
+      icon: Globe2,
+    },
+    {
+      phase: '04',
+      status: 'Later',
+      title: 'Grow the protocol shelf carefully',
+      detail:
+        'SMTP, FTP, and other request-server protocols can become opt-in adapters only after their security model, native evidence, and local UX are clear.',
+      icon: Layers3,
+    },
+  ];
+
+  return (
+    <section id="roadmap">
+      <SectionHeader
+        label="Long-term plan"
+        title="Protocol breadth, without generic-client drift"
+        subtitle="Every new protocol earns its own adapter, inspector, tests, and safety boundary. The goal is not to clone Postman; it is to make hard request-server systems legible."
+      />
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        {phases.map((item) => (
+          <div key={item.phase} className="pp-panel flex gap-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-pp-brand/10 text-pp-brand">
+              <item.icon className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-pp-brand">{item.phase}</span>
+                <span className="pp-badge">{item.status}</span>
+              </div>
+              <h3 className="mt-2 text-sm font-semibold text-pp-ink">{item.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-pp-muted">{item.detail}</p>
+            </div>
           </div>
         ))}
       </div>
@@ -308,8 +430,8 @@ function Install() {
     <section id="install">
       <SectionHeader
         label="Install"
-        title="One command. No dependencies."
-        subtitle="ProtoPeek is a single Go binary. Install it with curl, wget, or go install."
+        title="Start the local gRPC adapter"
+        subtitle="ProtoPeek is a single Go binary today. Install it with curl, wget, or go install; future adapters stay opt-in."
       />
 
       <div className="mt-8 space-y-3">
@@ -362,7 +484,7 @@ function Footer() {
     <footer className="border-t border-pp-border pt-8 text-center">
       <div className="text-sm font-semibold text-pp-ink">ProtoPeek</div>
       <p className="mt-2 text-sm text-pp-muted">
-        A performance-first gRPC workbench by{' '}
+        A local-first protocol peek by{' '}
         <a
           href="https://shreyam1008.com.np/"
           className="text-pp-brand hover:underline"

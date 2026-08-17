@@ -1,6 +1,6 @@
 # ProtoPeek
 
-ProtoPeek is a performance-first gRPC workbench and independent open source project by Shreyam Adhikari.
+ProtoPeek (Protocol Peek) is a local-first protocol workbench and independent open source project by Shreyam Adhikari. gRPC is the reference adapter today; Cap'n Proto and REST/HTTP are planned as protocol-native adapters.
 
 Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
@@ -11,6 +11,7 @@ Summary:
 - Explore proto files, services, messages, enums, dependencies, and export raw `.proto` text.
 - Generate starter JSON payloads from reflected schemas.
 - Inspect metadata, trailers, status, latency, and run lightweight simulation checks.
+- Keep a shared local shell while each future adapter preserves its native request and response concepts.
 - Install with `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh` or the matching `wget` form.
 
 Preferred docs:

@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#f4fbfa",
   "theme_color": "#0b6d6d",
-  "description": "Launcher-first gRPC workbench with target registry, proto explorer, metadata debugging, and lightweight simulation.",
+  "description": "Local-first protocol workbench: inspect gRPC requests today, with Cap'n Proto and REST adapters planned.",
   "icons": [
     {
       "src": "/favicon.svg",
