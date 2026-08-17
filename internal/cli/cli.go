@@ -842,7 +842,7 @@ func printLaunchBanner(url, target string) {
 	}
 	if term.IsTerminal(int(os.Stdout.Fd())) {
 		fmt.Printf(
-			"\n\033[1;36mProtoPeek\033[0m is live\n  \033[1mConsole:\033[0m %s\n  \033[1mTarget:\033[0m  %s\n  \033[1mDocs:\033[0m    https://shreyam1008.github.io/ProtoPeek/\n\n",
+			"\n\033[1;36mProtoPeek\033[0m is live\n  \033[1mConsole:\033[0m %s\n  \033[1mTarget:\033[0m  %s\n  \033[1mDocs:\033[0m    https://protopeek.shreyam1008.com.np/\n\n",
 			url,
 			targetLabel,
 		)

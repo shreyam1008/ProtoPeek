@@ -5,7 +5,7 @@ import { sharedViteConfig } from './vite.shared';
 
 export default mergeConfig(sharedViteConfig(), {
   appType: 'spa',
-  base: '/ProtoPeek/',
+  base: '/',
   root: path.resolve(__dirname, 'site'),
   build: {
     emptyOutDir: true,

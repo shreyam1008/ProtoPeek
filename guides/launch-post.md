@@ -26,7 +26,7 @@ ProtoPeek tries to stay small and practical:
 Project links:
 
 - Repo: https://github.com/shreyam1008/ProtoPeek
-- Site: https://shreyam1008.github.io/ProtoPeek/
+- Site: https://protopeek.shreyam1008.com.np/
 
 Historical note:
 

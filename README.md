@@ -2,7 +2,7 @@
 
 Performance-first gRPC workbench with reflection-driven exploration, proto structure visualization, metadata inspection, and lightweight load simulation.
 
-Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://shreyam1008.github.io/ProtoPeek/) · [Docs](https://shreyam1008.github.io/ProtoPeek/docs/) · [Learn gRPC](https://shreyam1008.github.io/ProtoPeek/learn-grpc/)
+Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
 ## Install
 

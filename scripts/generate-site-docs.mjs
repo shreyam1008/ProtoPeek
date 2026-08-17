@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const docsRoot = path.join(repoRoot, 'docs');
-const siteBase = '/ProtoPeek';
-const siteRoot = 'https://shreyam1008.github.io/ProtoPeek';
+const siteBase = '';
+const siteRoot = 'https://protopeek.shreyam1008.com.np';
 const repoRootURL = 'https://github.com/shreyam1008/ProtoPeek';
 
 const publishedPages = [

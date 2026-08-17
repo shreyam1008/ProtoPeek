@@ -384,7 +384,7 @@ function Footer() {
         </a>
         <a
           className="text-sm text-pp-muted transition hover:text-pp-ink"
-          href="https://shreyam1008.github.io/ProtoPeek/docs/"
+          href="https://protopeek.shreyam1008.com.np/docs/"
         >
           Docs
           <ChevronRight className="ml-0.5 inline size-3" />

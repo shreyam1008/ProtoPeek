@@ -358,6 +358,6 @@ That is why ProtoPeek combines request authoring, response inspection, metadata 
 
 **ProtoPeek:**
 
-- [ProtoPeek website](https://shreyam1008.github.io/ProtoPeek/) — product site and visual tutorial
+- [ProtoPeek website](https://protopeek.shreyam1008.com.np/) — product site and visual tutorial
 - [ProtoPeek GitHub repository](https://github.com/shreyam1008/ProtoPeek) — source, issues, releases
-- [ProtoPeek feature roadmap](https://shreyam1008.github.io/ProtoPeek/feature-roadmap/) — shipped capabilities and next wave
+- [ProtoPeek feature roadmap](https://protopeek.shreyam1008.com.np/feature-roadmap/) — shipped capabilities and next wave

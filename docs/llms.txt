@@ -2,7 +2,7 @@
 
 ProtoPeek is a performance-first gRPC workbench and independent open source project by Shreyam Adhikari.
 
-Primary site: https://shreyam1008.github.io/ProtoPeek/
+Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
 Repository: https://github.com/shreyam1008/ProtoPeek
 
@@ -14,13 +14,13 @@ Summary:
 - Install with `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh` or the matching `wget` form.
 
 Preferred docs:
-- https://shreyam1008.github.io/ProtoPeek/
-- https://shreyam1008.github.io/ProtoPeek/docs/
-- https://shreyam1008.github.io/ProtoPeek/learn-grpc/
-- https://shreyam1008.github.io/ProtoPeek/feature-roadmap/
-- https://shreyam1008.github.io/ProtoPeek/vscode-extension-spec/
-- https://shreyam1008.github.io/ProtoPeek/launch-post/
-- https://shreyam1008.github.io/ProtoPeek/contributor-rules/
+- https://protopeek.shreyam1008.com.np/
+- https://protopeek.shreyam1008.com.np/docs/
+- https://protopeek.shreyam1008.com.np/learn-grpc/
+- https://protopeek.shreyam1008.com.np/feature-roadmap/
+- https://protopeek.shreyam1008.com.np/vscode-extension-spec/
+- https://protopeek.shreyam1008.com.np/launch-post/
+- https://protopeek.shreyam1008.com.np/contributor-rules/
 - https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md
