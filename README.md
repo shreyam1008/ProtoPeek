@@ -1,11 +1,15 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the request-to-server path clearly. The shipped workbench has protocol-native gRPC and HTTP surfaces: gRPC keeps schemas, stream modes, metadata, headers, trailers, and status visible, while HTTP keeps methods, URLs, redirects, response bodies, and timing visible.
+ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the request-to-server path clearly. Its protocol-native gRPC and HTTP surfaces keep transport details visible, and its evidence tools add bounded discovery, read-only kernel-selected next-hop lookup, and offline Nmap XML import without background polling or a database.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
 > **Latest stable:** v0.2.0. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
+
+> **v0.3 source build:** the dashboard, themes, expanded discovery, next-hop evidence, and Nmap
+> XML import documented below are available in this checkout and remain release-candidate features
+> until the v0.3 tag, archives, installers, and public site are published together.
 
 ![ProtoPeek local gRPC console showing a successful request and response evidence](https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg)
 
@@ -49,9 +53,13 @@ pp https://api.example.test       # dashboard + probe of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 ```
 
-With no target, the dashboard opens at `/` and the protocol rail keeps the shipped gRPC (`/grpc`) and HTTP (`/http`) surfaces one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
+With no target, the dashboard opens at `/`. The protocol rail keeps gRPC (`/grpc`), HTTP (`/http`), next-hop evidence (`/routes`), and the in-app roadmap (`/roadmap`) one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
 
-Ambient discovery checks only a fixed list of loopback candidates. A literal private IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. Scans are cancellable, never follow redirects, and never send a state-changing request.
+Ambient discovery checks only a fixed list of loopback candidates. A private or link-local IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Hostnames are resolved once, every returned address is classified against that opt-in, and probes dial a validated numeric address so DNS cannot silently change the destination between policy and connection. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. Scans are cancellable, never follow redirects, and never send a state-changing request.
+
+Next-hop lookup asks the local kernel for one currently selected route per resolved address from the ProtoPeek process. It resolves at most eight addresses, performs at most four route lookups concurrently, and requests a two-second aggregate deadline. It reports source address, interface, reported gateway or on-link status, prefix, and metric/table when the platform provides them. It is not traceroute: it performs no hop probes, mutates no routes, and requires no elevation. Entering a hostname can still perform normal DNS resolution. VPN, proxy, policy-routing, ECMP, and later route changes remain explicit sources of uncertainty.
+
+The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`. Nmap is not required to import an existing file. To create new XML, users obtain and run Nmap separately; ProtoPeek does not bundle, install, locate, or execute Nmap/Npcap and accepts no Nmap arguments. Imported service names and table/probed confidence are untrusted hints; an open TCP endpoint at a validated literal IP must run through **Verify with ProtoPeek** and the existing bounded scanner before gRPC or HTTP can open. Uploaded XML and imported inventory are not persisted.
 
 ## Capabilities
 
@@ -60,10 +68,12 @@ Ambient discovery checks only a fixed list of loopback candidates. A literal pri
 | **Method rail** | Search and filter reflected services/methods with clear unary and streaming modes |
 | **Target registry** | Save and switch gRPC endpoints without restarting |
 | **Local discovery** | Distinguish reflection, gRPC-without-reflection, safe HTTP response evidence, and open TCP with bounded loopback and explicit-target policies |
+| **Next-hop evidence** | Read one kernel-selected route per resolved address from the ProtoPeek process without hop probes, polling, privilege, or route mutation |
+| **Offline Nmap import** | Parse bounded `nmap -oX` host/port hints and require ProtoPeek verification before opening a workbench |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
 | **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |
-| **Saved requests** | Keep secret-sanitized request recipes locally, replay them, and import/export workspace JSON |
+| **Saved gRPC requests** | Keep secret-sanitized gRPC recipes locally, replay them, and import/export workspace JSON |
 | **Response timeline** | Ordered messages with arrival timing, filtering, copy/export, headers, trailers, and final status |
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
@@ -79,16 +89,19 @@ cancellation, and its native inspector.
 
 | Adapter | Status | First useful slice |
 |---|---|---|
-| gRPC | Shipped | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, timing |
-| HTTP / REST | Shipped | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
-| Cap'n Proto | Planned, gated | Local schema/capability bootstrap, one unary path, segment and capability inspector; requires fixture, dependency-size, and native-inspector gates |
-| Route trace | Planned, gated | Evidence tied to a real request path; requires a supported data source and truthful failure model before UI exposure |
+| gRPC | Stable · v0.2 | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, timing |
+| HTTP / REST | Stable · v0.2 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
+| Next-hop route evidence | Available in this v0.3 build | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
+| Nmap XML evidence | Available in this v0.3 build · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
+| Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
+| Traceroute / hop probes | Gated | Requires explicit consent, strict probe budgets, truthful partial failures, and reliable unprivileged backends |
+| Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
 | LAN discovery | Planned, gated | Explicit, previewable private ranges only; requires opt-in scope, strict candidate budgets, cancellation, and no ambient or public crawling |
 | SMTP, FTP, and others | Later | Only after protocol-specific security, evidence, and UX are designed |
 
-Cap'n Proto, route trace, and LAN discovery are roadmap items only. They do not appear as clickable request surfaces in the current console.
+Bundled Nmap execution is not planned for the core binary. Traceroute/hop probes, LAN range expansion, and live capture remain gated. The current route surface is kernel evidence only; the current Nmap surface is offline XML import only.
 
-See the detailed [protocol roadmap](guides/feature-roadmap.md), [transport boundaries](guides/transport-boundaries.md), and [go-to-market runbook](guides/go-to-market.md).
+See the detailed [route and Nmap evidence boundary](guides/route-and-nmap-evidence.md), [protocol roadmap](guides/feature-roadmap.md), [transport boundaries](guides/transport-boundaries.md), and [go-to-market runbook](guides/go-to-market.md).
 
 ## Development
 

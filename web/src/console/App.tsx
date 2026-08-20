@@ -2353,7 +2353,7 @@ function LauncherView({
           <span className="pp-version">{displayBuildVersion(bootstrap.version)}</span>
         </div>
         <span className="pp-local-indicator">
-          <LockKeyhole aria-hidden="true" /> Local only
+          <LockKeyhole aria-hidden="true" /> Local console
         </span>
       </header>
       <div className="pp-launcher-main">

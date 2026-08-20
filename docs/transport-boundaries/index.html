@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transport boundaries | ProtoPeek</title>
+    <meta name="description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/transport-boundaries/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Transport boundaries | ProtoPeek" />
+    <meta property="og:description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/transport-boundaries/" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Transport boundaries | ProtoPeek" />
+    <meta name="twitter:description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Architecture</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Transport boundaries</h1>
+              <p>The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.</p>
+              <div class="pp-doc-chip-row">
+                <span>Local-first shell</span><span>Native evidence</span><span>Release gates</span>
+              </div>
+            </div>
+
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">Transport boundaries</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Local-first shell</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Native evidence</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>Release gates</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>ProtoPeek is Protocol Peek: a local protocol console, not a general collaboration client. Its durable product advantage is the short path from a real target to an explainable request, response, and transport story.</p>
+<h2 id="product-contract">Product contract</h2>
+<ul><li><code>pp host:port</code> and <code>protopeek host:port</code> keep their direct gRPC-compatible CLI meaning and open</li></ul>
+<p>the <code>/grpc</code> workbench. With no target the browser opens the Protocol Peek dashboard at <code>/</code>. A bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.</p>
+<ul><li>Every session runs locally, without an account, remote sync, or external database.</li><li>Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,</li></ul>
+<p>Cap&#39;n Proto capabilities, or HTTP status and headers into a misleading common response object.</p>
+<ul><li>Reflection, proto files, and protosets remain first-class gRPC schema paths.</li><li>Automatic discovery is loopback-only. Explicit private or link-local destinations require a</li></ul>
+<p>per-scan opt-in. An explicit public IP or hostname is one user-entered target, never permission for port-range expansion. Hostnames are resolved once, all returned addresses are classified, and probes dial a validated numeric address to avoid a policy-to-dial DNS change. An explicit host without a port has only the visible <code>50051</code> plaintext and <code>443</code> verified-TLS candidates. CIDR expansion and ambient network crawling are outside this boundary.</p>
+<ul><li>Scan evidence is independently labeled as verified gRPC, safe HTTP, or open TCP. HTTP evidence</li></ul>
+<p>uses only <code>HEAD /</code>, verified TLS where applicable, fixed per-protocol and whole-request deadlines, no body, no authentication, and no redirect following. Closing or cancelling the dialog cancels the request context.</p>
+<ul><li>Next-hop evidence is one read-only kernel-selected route per resolved address from the ProtoPeek</li></ul>
+<p>process. It sends no hop probes (hostnames may still resolve through DNS), does not trace hops, does not poll or mutate routes, and requires no elevation. Its UI permanently states that VPNs, proxies, policy routing, ECMP, and later changes can alter a real connection path.</p>
+<ul><li>Nmap is not required to import an existing XML file. To create new XML, users obtain and run Nmap</li></ul>
+<p>separately. ProtoPeek only imports bounded <code>nmap -oX</code> XML, retains no command arguments/scripts/OS/trace data, persists no inventory, and treats service names as hints until the existing bounded scanner verifies a literal-IP endpoint.</p>
+<ul><li>New transports must not add a heavy runtime or materially grow the browser bundle without a</li></ul>
+<p>measured reason. The first HTTP adapter uses the Go standard library.</p>
+<h2 id="architecture">Architecture</h2>
+<p>The console shell owns target selection, the split request/response workspace, local history, and session lifecycle. A transport adapter owns discovery, schema loading, request validation, invocation, cancellation, and transport events.</p>
+<pre class="pp-doc-code"><code data-lang="text">pp CLI / local web server
+        |
+console session manager
+        |
+        +-- gRPC adapter       reflection | .proto | protoset
+        +-- HTTP adapter       explicit HTTP(S) URL | bounded stdlib client
+        +-- route evidence     kernel-selected next hop | no probe packets
+        +-- Nmap import        offline XML hints -&gt; bounded verification
+        +-- Cap&#39;n Proto adapter exploring: schema file | capability bootstrap
+        |
+ordered transport events -&gt; protocol-specific inspector</code></pre>
+<p>Bundled Nmap execution is not planned for the core binary; traceroute/hop probes, LAN range expansion, and live capture remain gated. Offline Nmap XML import is available in the v0.3 source build, but Nmap itself is not bundled or invoked. Next-hop evidence is available in that build, but it is not traceroute/hop probing.</p>
+<p>The shared boundary should stay deliberately small:</p>
+<ol><li><div class="pp-doc-list-title"><code>Target</code>: transport kind plus adapter-owned connection configuration.</div></li><li><div class="pp-doc-list-title"><code>Operation</code>: a selectable RPC or HTTP operation with an adapter-owned schema.</div></li><li><div class="pp-doc-list-title"><code>Invocation</code>: deadline, metadata, and one or more request messages.</div></li><li><div class="pp-doc-list-title"><code>TransportEvent</code>: ordered events such as connected, headers, request message, response message,</div><p>trailers, status, capability resolution, or HTTP body chunk.</p></li></ol>
+<p>Adapters return their native detail alongside these events. The shell can render timing and message counts consistently, while a protocol inspector renders the actual semantics.</p>
+<h2 id="delivery-slices">Delivery slices</h2>
+<h3 id="1-finish-the-grpc-local-console-contract">1. Finish the gRPC local-console contract</h3>
+<p>Keep the current slice as the reference adapter: bounded loopback discovery, deterministic sessions, reflection headers, proto/protoset compatibility, request/response split view, explicit cancellation, ordered response timing, and visible headers, trailers, deadlines, streaming mode, and status.</p>
+<h3 id="2-keep-the-http-slice-bounded">2. Keep the HTTP slice bounded</h3>
+<p>The live HTTP surface accepts method, URL, headers, body, timeout, and redirect choice. It accepts only <code>http</code> and <code>https</code>, keeps TLS verification on, leaves redirects off by default, supports cancellation, and bounds envelopes, bodies, headers, redirects, and deadlines. Its inspector owns status, HTTP protocol, response headers, text/base64 body, byte and truncation evidence, redirect hops, peer/TLS context, and phase timings.</p>
+<h3 id="3-keep-route-and-imported-evidence-read-only">3. Keep route and imported evidence read-only</h3>
+<p>Use OS-native route APIs for one selected next hop and bounded streaming XML for offline Nmap evidence. Preserve source/interface/gateway and table/probed confidence, but require a fresh ProtoPeek scan before an imported hint can open a workbench. See <a href="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" rel="noreferrer" target="_blank">the route and Nmap evidence guide</a> for exact limits and platform behavior.</p>
+<h3 id="4-cap-n-proto-experiment-exploring">4. Cap&#39;n Proto experiment (exploring)</h3>
+<p>Build one local, schema-file-driven unary/capability call path behind an explicit experimental flag. Show capability resolution and message segments in its own inspector. Measure binary and bundle cost before deciding whether it belongs in the main binary or an optional companion.</p>
+<h3 id="5-traceroute-and-lan-expansion-gated">5. Traceroute and LAN expansion (gated)</h3>
+<p>Traceroute requires consent, a bounded probe source, explicit uncertainty, and partial-failure tests. LAN discovery requires a user-enabled, previewed private scope plus strict candidate/time budgets and cancellation. Neither is a clickable surface today; public or ambient network crawling remains out of scope.</p>
+<h2 id="release-gates-for-any-adapter">Release gates for any adapter</h2>
+<ul><li>Default gRPC startup time and bundle size do not materially regress.</li><li>The adapter works without a database or network service other than the target being inspected.</li><li>Cancellation and session teardown release connections and subprocesses.</li><li>Authorization, cookies, proxy authorization, binary metadata, and API-key/token-like metadata are</li></ul>
+<p>redacted from automatic history and default exports.</p>
+<ul><li>The inspector names the real protocol concepts instead of using generic labels.</li></ul>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#product-contract">Product contract</a><a class="level-2" href="#architecture">Architecture</a><a class="level-2" href="#delivery-slices">Delivery slices</a><a class="level-3" href="#1-finish-the-grpc-local-console-contract">1. Finish the gRPC local-console contract</a><a class="level-3" href="#2-keep-the-http-slice-bounded">2. Keep the HTTP slice bounded</a><a class="level-3" href="#3-keep-route-and-imported-evidence-read-only">3. Keep route and imported evidence read-only</a><a class="level-3" href="#4-cap-n-proto-experiment-exploring">4. Cap&#39;n Proto experiment (exploring)</a><a class="level-3" href="#5-traceroute-and-lan-expansion-gated">5. Traceroute and LAN expansion (gated)</a><a class="level-2" href="#release-gates-for-any-adapter">Release gates for any adapter</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/transport-boundaries.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/route-and-nmap-evidence/"><strong>Route and Nmap evidence</strong><span>Guide</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -25,10 +25,30 @@ const publishedPages = [
     title: 'Feature roadmap',
     section: 'Roadmap',
     description:
-      'The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work.',
+      'Stable gRPC and HTTP, the v0.3 source build, and the gates for future transport-aware work.',
     sourcePath: 'guides/feature-roadmap.md',
     sourceURL: `${repoRootURL}/blob/master/guides/feature-roadmap.md`,
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
+  },
+  {
+    slug: 'route-and-nmap-evidence',
+    title: 'Route and Nmap evidence',
+    section: 'Guide',
+    description:
+      'Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.',
+    sourcePath: 'guides/route-and-nmap-evidence.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/route-and-nmap-evidence.md`,
+    highlights: ['Kernel next hop', 'Offline Nmap XML', 'No hidden execution'],
+  },
+  {
+    slug: 'transport-boundaries',
+    title: 'Transport boundaries',
+    section: 'Architecture',
+    description:
+      'The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.',
+    sourcePath: 'guides/transport-boundaries.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/transport-boundaries.md`,
+    highlights: ['Local-first shell', 'Native evidence', 'Release gates'],
   },
   {
     slug: 'vscode-extension-spec',
@@ -73,10 +93,7 @@ const publishedPages = [
 ];
 
 async function main() {
-  await Promise.all([
-    ...publishedPages.map((page) => writeMarkdownPage(page)),
-    writeDocsHubPage(),
-  ]);
+  await Promise.all([...publishedPages.map((page) => writeMarkdownPage(page)), writeDocsHubPage()]);
 }
 
 async function writeMarkdownPage(page) {
@@ -99,7 +116,7 @@ async function writeMarkdownPage(page) {
       sourcePath: page.sourcePath,
       highlights: page.highlights,
       heroVisual: renderHeroVisual(title, page.highlights),
-    }),
+    })
   );
 }
 
@@ -124,7 +141,7 @@ async function writeDocsHubPage() {
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for the gRPC tutorial, roadmap, extension plan, launch runbook, and contributor rules.</p>
+          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, release planning, and contributor rules.</p>
           <a href="${siteBase}/learn-grpc/">Start with Learn gRPC</a>
         </article>
       </div>
@@ -149,7 +166,7 @@ async function writeDocsHubPage() {
                   <a href="${page.sourceURL}" rel="noreferrer" target="_blank">Source markdown</a>
                 </div>
               </article>
-            `,
+            `
           )
           .join('')}
       </div>
@@ -168,18 +185,12 @@ async function writeDocsHubPage() {
       intro:
         'ProtoPeek now publishes its guides as first-class pages instead of leaving them buried as raw markdown in the repository.',
       body,
-      toc: [
-        { id: 'published-guides', text: 'Published guides', level: 2 },
-      ],
+      toc: [{ id: 'published-guides', text: 'Published guides', level: 2 }],
       sourceURL: `${repoRootURL}/tree/master/guides`,
       sourcePath: 'guides/ + AGENTS.md',
       highlights: ['Published pages', 'SEO-friendly routes', 'GitHub source links'],
-      heroVisual: renderHeroVisual('Docs hub', [
-        'Homepage',
-        'Published guides',
-        'Source markdown',
-      ]),
-    }),
+      heroVisual: renderHeroVisual('Docs hub', ['Homepage', 'Published guides', 'Source markdown']),
+    })
   );
 }
 
@@ -241,8 +252,8 @@ function renderMarkdownPage(markdown, page) {
       }
       html.push(
         `<pre class="pp-doc-code"><code data-lang="${escapeAttr(language)}">${escapeHtml(
-          code.join('\n'),
-        )}</code></pre>`,
+          code.join('\n')
+        )}</code></pre>`
       );
       continue;
     }
@@ -277,7 +288,7 @@ function renderMarkdownPage(markdown, page) {
         `<div class="pp-doc-callout pp-doc-callout-${kind}">` +
           `<div class="pp-doc-callout-label">${calloutLabels[kind]}</div>` +
           `<div>${renderInline(calloutLines.join(' ').trim())}</div>` +
-          `</div>`,
+          `</div>`
       );
       continue;
     }
@@ -286,7 +297,11 @@ function renderMarkdownPage(markdown, page) {
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       flushParagraph();
       const tableLines = [];
-      while (index < lines.length && lines[index].trim().startsWith('|') && lines[index].trim().endsWith('|')) {
+      while (
+        index < lines.length &&
+        lines[index].trim().startsWith('|') &&
+        lines[index].trim().endsWith('|')
+      ) {
         tableLines.push(lines[index].trim());
         index += 1;
       }
@@ -303,7 +318,14 @@ function renderMarkdownPage(markdown, page) {
         const thead = `<thead><tr>${headerCells.map((c) => `<th>${renderInline(c)}</th>`).join('')}</tr></thead>`;
         const tbody =
           bodyRows.length > 0
-            ? `<tbody>${bodyRows.map((row) => `<tr>${parseRow(row).map((c) => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
+            ? `<tbody>${bodyRows
+                .map(
+                  (row) =>
+                    `<tr>${parseRow(row)
+                      .map((c) => `<td>${renderInline(c)}</td>`)
+                      .join('')}</tr>`
+                )
+                .join('')}</tbody>`
             : '';
         html.push(`<table>${thead}${tbody}</table>`);
       }
@@ -455,7 +477,7 @@ function renderPageTemplate({
                     ? toc
                         .map(
                           (item) =>
-                            `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`,
+                            `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`
                         )
                         .join('')
                     : '<span class="pp-doc-empty">No section headings in this page.</span>'
@@ -476,7 +498,7 @@ function renderPageTemplate({
                   .filter((item) => item.title !== title)
                   .map(
                     (item) =>
-                      `<a href="${siteBase}/${item.slug}/"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.section)}</span></a>`,
+                      `<a href="${siteBase}/${item.slug}/"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.section)}</span></a>`
                   )
                   .join('')}
               </div>
@@ -501,7 +523,7 @@ function renderHeroVisual(title, highlights) {
             <div class="pp-doc-visual-fill fill-${index + 1}"></div>
           </div>
         </div>
-      `,
+      `
     )
     .join('');
 
@@ -529,7 +551,7 @@ function renderInline(text) {
   let value = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
     const key = `__PP_TOKEN_${tokens.length}__`;
     tokens.push(
-      `<a href="${escapeAttr(href)}"${isExternal(href) ? ' rel="noreferrer" target="_blank"' : ''}>${escapeHtml(label)}</a>`,
+      `<a href="${escapeAttr(href)}"${isExternal(href) ? ' rel="noreferrer" target="_blank"' : ''}>${escapeHtml(label)}</a>`
     );
     return key;
   });
@@ -544,7 +566,7 @@ function renderInline(text) {
   value = value.replace(
     /(^|[\s(])(https?:\/\/[^\s)]+)(?=($|[\s).]))/g,
     (_, prefix, url) =>
-      `${prefix}<a href="${escapeAttr(url)}" rel="noreferrer" target="_blank">${escapeHtml(url)}</a>`,
+      `${prefix}<a href="${escapeAttr(url)}" rel="noreferrer" target="_blank">${escapeHtml(url)}</a>`
   );
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -562,10 +584,12 @@ function uniqueSlug(base, counts) {
 }
 
 function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'section';
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'section'
+  );
 }
 
 function escapeHtml(text) {

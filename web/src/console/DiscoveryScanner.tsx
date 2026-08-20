@@ -153,7 +153,8 @@ export function DiscoveryScanner({
       <p className="pp-scan-policy">
         Loopback checks use six fixed endpoints. An explicit host checks only its supplied port, or
         50051 and 443 when no port is given. Probes are HEAD, gRPC reflection, and TCP connect;
-        redirects are never followed.
+        redirects are never followed. Hostnames are resolved once before dialing, and private or
+        link-local results require the opt-in below.
       </p>
       <div className="pp-discovery-controls">
         <input
@@ -186,7 +187,7 @@ export function DiscoveryScanner({
           checked={allowPrivateNetwork}
           onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
         />
-        Allow this explicit private IP
+        Allow this target to reach private or link-local IPs
       </label>
       {scanMessage ? (
         <p className="pp-scan-message" role="status">
@@ -226,7 +227,7 @@ export function DiscoveryScanner({
   );
 }
 
-function ScanResultCard({
+export function ScanResultCard({
   result,
   onOpenGRPC,
   onOpenHTTP,

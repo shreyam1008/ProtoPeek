@@ -3181,8 +3181,8 @@
     width: 0.42rem;
     height: 0.42rem;
     border-radius: 999px;
-    background: var(--pp-success-signal);
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--pp-success-signal) 14%, transparent);
+    background: var(--pp-text-faint);
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--pp-text-faint) 14%, transparent);
   }
 
   .pp-global-command {
@@ -3269,7 +3269,7 @@
     gap: 0.2rem;
     border-radius: 0.4rem;
     color: var(--pp-text-muted);
-    font-size: 0.54rem;
+    font-size: 0.64rem;
     font-weight: 700;
   }
 
@@ -3338,10 +3338,10 @@
   .pp-dashboard-hero h1 {
     margin-top: 0.6rem;
     color: var(--pp-text);
-    font-size: clamp(2.4rem, 6vw, 5.8rem);
+    font-size: clamp(2rem, 4vw, 2.8rem);
     font-weight: 760;
     letter-spacing: -0.07em;
-    line-height: 0.86;
+    line-height: 0.98;
   }
 
   .pp-dashboard-hero p {
@@ -3582,7 +3582,7 @@
   .pp-recent-list small,
   .pp-recent-list p {
     color: var(--pp-text-faint);
-    font-size: 0.57rem;
+    font-size: 0.65rem;
   }
 
   .pp-recent-list p {
@@ -4376,5 +4376,715 @@
 
   .pp-signal-path i {
     width: 1rem;
+  }
+}
+
+/* v0.3 evidence workbenches. These surfaces intentionally reuse the console's
+   semantic tokens and compact editor geometry. */
+.pp-evidence-workbench {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--pp-stroke) 32%, transparent) 1px,
+      transparent 1px
+    ),
+    var(--pp-canvas);
+  background-size: 2rem 2rem;
+  color: var(--pp-text);
+}
+
+.pp-evidence-hero {
+  display: flex;
+  width: min(74rem, 100%);
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--pp-stroke-strong);
+  padding: 1rem 0 1.25rem;
+}
+
+.pp-evidence-hero h1 {
+  margin-top: 0.35rem;
+  color: var(--pp-text);
+  font-size: clamp(1.65rem, 4vw, 3.4rem);
+  font-weight: 780;
+  letter-spacing: -0.045em;
+}
+
+.pp-evidence-hero p {
+  max-width: 42rem;
+  margin-top: 0.5rem;
+  color: var(--pp-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.pp-route-controls {
+  display: grid;
+  width: min(74rem, 100%);
+  grid-template-columns: minmax(0, 1fr) 10rem auto;
+  align-items: end;
+  gap: 0.65rem;
+  margin: 1rem auto 0;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  background: var(--pp-surface);
+}
+
+.pp-route-controls label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--pp-text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.pp-route-controls input,
+.pp-route-controls select {
+  height: 2.2rem;
+  border: 1px solid var(--pp-stroke-strong);
+  border-radius: 0.35rem;
+  padding: 0 0.6rem;
+  background: var(--pp-surface-raised);
+  color: var(--pp-text);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.pp-route-controls button,
+.pp-nmap-file-row button {
+  display: inline-flex;
+  min-height: 2.2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 0.35rem;
+  padding: 0 0.75rem;
+  font-size: 0.64rem;
+  font-weight: 750;
+}
+
+.pp-route-controls button svg,
+.pp-nmap-file-row button svg {
+  width: 0.8rem;
+}
+
+.pp-route-uncertainty,
+.pp-nmap-trust-note {
+  display: flex;
+  width: min(74rem, 100%);
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.7rem auto 0;
+  border-left: 2px solid var(--pp-warning-signal);
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--pp-warning-signal) 8%, var(--pp-surface));
+  color: var(--pp-text-muted);
+  font-size: 0.64rem;
+  line-height: 1.5;
+}
+
+.pp-route-uncertainty svg,
+.pp-nmap-trust-note svg {
+  width: 0.85rem;
+  flex: none;
+  color: var(--pp-warning-signal);
+}
+
+.pp-evidence-loading,
+.pp-evidence-error {
+  width: min(74rem, 100%);
+  margin: 0.75rem auto 0;
+  color: var(--pp-text-muted);
+  font-size: 0.68rem;
+}
+
+.pp-evidence-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pp-evidence-loading svg,
+.pp-nmap-port button svg.is-loading {
+  width: 0.85rem;
+  animation: spin 0.8s linear infinite;
+}
+
+.pp-evidence-error {
+  color: var(--pp-danger-signal);
+}
+
+.pp-route-results {
+  width: min(74rem, 100%);
+  margin: 1rem auto 2rem;
+}
+
+.pp-route-results > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0 0 0.65rem;
+}
+
+.pp-route-results h2 {
+  margin-top: 0.18rem;
+  font-size: 0.86rem;
+}
+
+.pp-route-results time {
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.57rem;
+}
+
+.pp-route-results > div {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.65rem;
+}
+
+.pp-route-result {
+  content-visibility: auto;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.5rem;
+  padding: 0.8rem;
+  background: var(--pp-surface);
+}
+
+.pp-route-result.is-error {
+  border-color: color-mix(in srgb, var(--pp-danger-signal) 35%, var(--pp-stroke));
+}
+
+.pp-route-result > header,
+.pp-route-result > header > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pp-route-result > header {
+  justify-content: space-between;
+}
+
+.pp-route-result > header strong {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.pp-route-family,
+.pp-route-status {
+  border-radius: 0.25rem;
+  padding: 0.18rem 0.34rem;
+  background: var(--pp-surface-sunken);
+  color: var(--pp-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pp-route-status.is-ok {
+  background: color-mix(in srgb, var(--pp-success-signal) 12%, var(--pp-surface));
+  color: var(--pp-success-signal);
+}
+
+.pp-route-status.is-error,
+.pp-route-status.is-unsupported {
+  background: var(--pp-danger-soft);
+  color: var(--pp-danger-signal);
+}
+
+.pp-kernel-path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.38rem;
+  padding: 0.65rem;
+  background: var(--pp-code-surface);
+}
+
+.pp-kernel-path span {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+}
+
+.pp-kernel-path small {
+  color: var(--pp-text-faint);
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pp-kernel-path strong {
+  overflow: hidden;
+  color: var(--pp-code-text);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-kernel-path > svg {
+  width: 0.75rem;
+  color: var(--pp-accent-signal);
+}
+
+.pp-route-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 0.65rem;
+  overflow: hidden;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.38rem;
+  background: var(--pp-stroke);
+}
+
+.pp-route-facts > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.18rem;
+  padding: 0.55rem;
+  background: var(--pp-surface-raised);
+}
+
+.pp-route-facts dt {
+  color: var(--pp-text-faint);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+
+.pp-route-facts dd {
+  overflow-wrap: anywhere;
+  color: var(--pp-text);
+  font-family: var(--font-mono);
+  font-size: 0.61rem;
+}
+
+.pp-route-notes {
+  display: grid;
+  gap: 0.18rem;
+  margin-top: 0.6rem;
+  color: var(--pp-text-faint);
+  font-size: 0.57rem;
+}
+
+.pp-route-notes li::before {
+  margin-right: 0.35rem;
+  color: var(--pp-warning-signal);
+  content: "note";
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  text-transform: uppercase;
+}
+
+.pp-scan-dialog {
+  width: min(48rem, 100%);
+}
+
+.pp-scan-source-tabs {
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0 1rem;
+  background: var(--pp-surface-raised);
+}
+
+.pp-scan-source-tabs .pp-pane-tab {
+  min-height: 2.5rem;
+}
+
+.pp-scan-dialog > [role="tabpanel"] > .pp-discovery-scanner,
+.pp-nmap-import {
+  padding: 1rem;
+}
+
+.pp-nmap-file-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.pp-nmap-file-row input[type="file"] {
+  display: none;
+}
+
+.pp-nmap-file-row > span {
+  overflow: hidden;
+  color: var(--pp-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-nmap-file-row .pp-button-secondary {
+  border: 1px solid var(--pp-stroke-strong);
+  background: var(--pp-surface-raised);
+  color: var(--pp-text);
+}
+
+.pp-nmap-file-row > .pp-button-primary {
+  grid-column: -2 / -1;
+}
+
+.pp-nmap-file-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pp-nmap-trust-note {
+  width: 100%;
+}
+
+.pp-nmap-partial {
+  border: 1px solid color-mix(in srgb, var(--pp-warning-signal) 35%, var(--pp-stroke));
+  border-radius: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  background: color-mix(in srgb, var(--pp-warning-signal) 8%, var(--pp-surface));
+  color: var(--pp-text-muted);
+  font-size: 0.68rem;
+}
+
+.pp-nmap-results {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.pp-nmap-results > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding-bottom: 0.5rem;
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+
+.pp-nmap-host {
+  content-visibility: auto;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.45rem;
+  background: var(--pp-surface-raised);
+}
+
+.pp-nmap-host > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.6rem 0.7rem;
+}
+
+.pp-nmap-host > header div {
+  display: grid;
+  min-width: 0;
+}
+
+.pp-nmap-host > header strong {
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-nmap-host > header small,
+.pp-nmap-host > header > span {
+  color: var(--pp-text-faint);
+  font-size: 0.53rem;
+}
+
+.pp-nmap-ports {
+  display: grid;
+}
+
+.pp-nmap-identities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.5rem 0.7rem;
+}
+
+.pp-nmap-identities span {
+  border-radius: 0.22rem;
+  padding: 0.16rem 0.3rem;
+  background: var(--pp-surface-sunken);
+  color: var(--pp-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.pp-nmap-port {
+  display: grid;
+  grid-template-columns: 6.2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.6rem 0.7rem;
+}
+
+.pp-nmap-port:last-child {
+  border-bottom: 0;
+}
+
+.pp-nmap-port-main,
+.pp-nmap-service-hint {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.pp-nmap-port-main strong {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+
+.pp-nmap-port-main span,
+.pp-nmap-service-hint small,
+.pp-nmap-unusable {
+  color: var(--pp-text-faint);
+  font-size: 0.54rem;
+}
+
+.pp-nmap-service-hint > span {
+  color: var(--pp-text);
+  font-size: 0.62rem;
+}
+
+.pp-nmap-service-hint em {
+  width: fit-content;
+  border-radius: 0.22rem;
+  padding: 0.12rem 0.3rem;
+  background: color-mix(in srgb, var(--pp-warning-signal) 10%, var(--pp-surface));
+  color: var(--pp-warning-signal);
+  font-family: var(--font-mono);
+  font-size: 0.49rem;
+  font-style: normal;
+}
+
+.pp-nmap-service-hint em.is-probed {
+  background: color-mix(in srgb, var(--pp-success-signal) 10%, var(--pp-surface));
+  color: var(--pp-success-signal);
+}
+
+.pp-nmap-port > button {
+  display: inline-flex;
+  min-height: 1.9rem;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--pp-stroke-strong);
+  border-radius: 0.3rem;
+  padding: 0 0.5rem;
+  color: var(--pp-accent-signal);
+  font-size: 0.56rem;
+  font-weight: 750;
+}
+
+.pp-nmap-port > button svg {
+  width: 0.68rem;
+}
+
+.pp-nmap-port > button:disabled {
+  opacity: 0.45;
+}
+
+.pp-nmap-verification {
+  grid-column: 1 / -1;
+}
+
+.pp-nmap-pagination {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+}
+
+.pp-nmap-pagination button {
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.28rem;
+  padding: 0.25rem 0.4rem;
+  color: var(--pp-accent-signal);
+  font-family: var(--font-sans);
+  font-size: 0.54rem;
+  font-weight: 700;
+}
+
+.pp-nmap-pagination button:disabled {
+  opacity: 0.4;
+}
+
+.pp-roadmap-grid {
+  display: grid;
+  width: min(74rem, 100%);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin: 1rem auto 2rem;
+}
+
+.pp-roadmap-group {
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.52rem;
+  background: var(--pp-surface);
+}
+
+.pp-roadmap-group > header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.7rem 0.8rem;
+}
+
+.pp-roadmap-group > header svg {
+  width: 0.9rem;
+  color: var(--pp-accent-signal);
+}
+
+.pp-roadmap-group.is-gated > header svg {
+  color: var(--pp-warning-signal);
+}
+
+.pp-roadmap-group > header h2 {
+  font-size: 0.78rem;
+}
+
+.pp-roadmap-group > header span {
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+}
+
+.pp-roadmap-group > div {
+  display: grid;
+}
+
+.pp-roadmap-group article {
+  content-visibility: auto;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.72rem 0.8rem;
+}
+
+.pp-roadmap-group article:last-child {
+  border-bottom: 0;
+}
+
+.pp-roadmap-group h3 {
+  color: var(--pp-text);
+  font-size: 0.66rem;
+}
+
+.pp-roadmap-group article p {
+  margin-top: 0.22rem;
+  color: var(--pp-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .pp-protocol-rail {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pp-protocol-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pp-route-controls {
+    grid-template-columns: minmax(0, 1fr) 8rem;
+  }
+
+  .pp-route-controls button {
+    grid-column: 1 / -1;
+  }
+
+  .pp-route-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pp-roadmap-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .pp-evidence-workbench {
+    padding: 0.75rem;
+  }
+
+  .pp-evidence-hero {
+    display: grid;
+    padding-top: 0.35rem;
+  }
+
+  .pp-route-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-route-controls button {
+    grid-column: 1;
+  }
+
+  .pp-kernel-path {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-kernel-path > svg {
+    transform: rotate(90deg);
+  }
+
+  .pp-route-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-route-results > header,
+  .pp-nmap-results > header {
+    display: grid;
+  }
+
+  .pp-scan-dialog-layer {
+    padding: 0.5rem;
+  }
+
+  .pp-nmap-file-row,
+  .pp-nmap-port {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-nmap-file-row > span {
+    grid-row: 1;
+  }
+
+  .pp-nmap-file-row > .pp-button-primary {
+    grid-column: 1;
+  }
+
+  .pp-nmap-port > button {
+    justify-content: center;
   }
 }

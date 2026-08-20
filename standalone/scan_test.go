@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,36 +19,93 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestValidateScanAddress(t *testing.T) {
+type scanResolverFunc func(context.Context, string, string) ([]netip.Addr, error)
+
+func (function scanResolverFunc) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
+	return function(ctx, network, host)
+}
+
+func TestPrepareScanCandidateAddressPolicy(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name         string
 		address      string
+		resolved     []netip.Addr
 		allowPrivate bool
 		explicit     bool
 		wantErr      bool
+		wantDial     string
 	}{
-		{name: "localhost", address: "localhost:50051"},
+		{name: "localhost", address: "localhost:50051", resolved: []netip.Addr{netip.MustParseAddr("::1")}, wantDial: "[::1]:50051"},
+		{name: "localhost must stay loopback", address: "localhost:50051", resolved: []netip.Addr{netip.MustParseAddr("203.0.113.8")}, wantErr: true},
 		{name: "localhost absolute hostname denied", address: "localhost.:50051", wantErr: true},
-		{name: "ipv4 loopback", address: "127.0.0.1:9090"},
-		{name: "ipv6 loopback", address: "[::1]:50051"},
+		{name: "ipv4 loopback", address: "127.0.0.1:9090", wantDial: "127.0.0.1:9090"},
+		{name: "ipv6 loopback", address: "[::1]:50051", wantDial: "[::1]:50051"},
 		{name: "private denied by default", address: "192.168.1.20:50051", wantErr: true},
-		{name: "private opt in", address: "192.168.1.20:50051", allowPrivate: true},
+		{name: "private opt in", address: "192.168.1.20:50051", allowPrivate: true, wantDial: "192.168.1.20:50051"},
 		{name: "public ambient denied", address: "8.8.8.8:443", wantErr: true},
-		{name: "public explicit", address: "8.8.8.8:443", explicit: true},
+		{name: "public explicit", address: "8.8.8.8:443", explicit: true, wantDial: "8.8.8.8:443"},
 		{name: "hostname ambient denied", address: "api.example.test:443", wantErr: true},
-		{name: "hostname explicit", address: "api.example.test:443", explicit: true},
+		{name: "hostname explicit", address: "api.example.test:443", resolved: []netip.Addr{netip.MustParseAddr("203.0.113.9")}, explicit: true, wantDial: "203.0.113.9:443"},
+		{name: "hostname private denied", address: "internal.example.test:443", resolved: []netip.Addr{netip.MustParseAddr("10.0.0.8")}, explicit: true, wantErr: true},
+		{name: "hostname private opt in", address: "internal.example.test:443", resolved: []netip.Addr{netip.MustParseAddr("10.0.0.8")}, explicit: true, allowPrivate: true, wantDial: "10.0.0.8:443"},
+		{name: "mixed public private fails closed", address: "mixed.example.test:443", resolved: []netip.Addr{netip.MustParseAddr("203.0.113.9"), netip.MustParseAddr("10.0.0.8")}, explicit: true, wantErr: true},
+		{name: "multicast denied", address: "224.0.0.1:443", explicit: true, wantErr: true},
+		{name: "link local needs private opt in", address: "169.254.169.254:80", explicit: true, wantErr: true},
 		{name: "missing port", address: "localhost", wantErr: true},
 	}
 	for _, test := range tests {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err := validateScanAddress(test.address, test.allowPrivate, test.explicit)
+			resolver := scanResolverFunc(func(_ context.Context, network, _ string) ([]netip.Addr, error) {
+				if network != "ip" {
+					t.Fatalf("network = %q", network)
+				}
+				return test.resolved, nil
+			})
+			candidate, err := prepareScanCandidate(
+				context.Background(),
+				resolver,
+				scanCandidate{Address: test.address},
+				test.allowPrivate,
+				test.explicit,
+			)
 			if (err != nil) != test.wantErr {
-				t.Fatalf("validateScanAddress(%q, %v, %v) error = %v, wantErr %v", test.address, test.allowPrivate, test.explicit, err, test.wantErr)
+				t.Fatalf("prepareScanCandidate(%q, %v, %v) error = %v, wantErr %v", test.address, test.allowPrivate, test.explicit, err, test.wantErr)
+			}
+			if !test.wantErr && candidate.DialAddress != test.wantDial {
+				t.Fatalf("dial address = %q, want %q", candidate.DialAddress, test.wantDial)
 			}
 		})
+	}
+}
+
+func TestHTTPProbeDialsValidatedAddressAndPreservesOriginalHost(t *testing.T) {
+	t.Parallel()
+	hostSeen := make(chan string, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hostSeen <- r.Host
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	_, port, err := net.SplitHostPort(server.Listener.Addr().String())
+	if err != nil {
+		t.Fatalf("split fixture address: %v", err)
+	}
+	candidate := scanCandidate{
+		Address:     net.JoinHostPort("service.example.test", port),
+		DialAddress: server.Listener.Addr().String(),
+		ServerName:  "service.example.test",
+		Transport:   "plaintext",
+	}
+	result := probeHTTPResolvedTransport(context.Background(), candidate, "plaintext")
+	if !result.Detected || result.StatusCode != http.StatusNoContent {
+		t.Fatalf("HTTP result = %#v", result)
+	}
+	host := <-hostSeen
+	if !strings.HasPrefix(host, "service.example.test:") {
+		t.Fatalf("Host = %q, want original hostname", host)
 	}
 }
 
@@ -224,6 +283,9 @@ func TestScanHandlerReportsMultiProtocolResultsWithoutFollowingRedirects(t *test
 	ScanHandler().ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+	if response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("security headers = %#v", response.Header())
 	}
 
 	var results []ScanResult

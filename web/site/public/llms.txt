@@ -1,11 +1,12 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first protocol workbench and independent open source project by Shreyam Adhikari. gRPC and bounded HTTP are shipped as separate protocol-native request surfaces. Cap'n Proto, route trace, and LAN discovery remain gated plans.
+ProtoPeek (Protocol Peek) is a local-first protocol workbench and independent open source project by Shreyam Adhikari. gRPC and bounded HTTP are stable as separate protocol-native request surfaces. The v0.3 source preview adds a dashboard, expanded bounded discovery, read-only kernel next-hop evidence, and offline Nmap XML import. Cap'n Proto, traceroute/hop probes, and LAN expansion remain research or gated plans.
 
 Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
 Repository: https://github.com/shreyam1008/ProtoPeek
 Release status: v0.2.0 is the current public stable release.
+Preview status: v0.3 features remain in source until the tag, release archives, installers, and public site ship together.
 
 Summary:
 - Launch ProtoPeek with no target and define one or more saved gRPC endpoints from the UI.
@@ -21,9 +22,13 @@ Preferred docs:
 - https://protopeek.shreyam1008.com.np/docs/
 - https://protopeek.shreyam1008.com.np/learn-grpc/
 - https://protopeek.shreyam1008.com.np/feature-roadmap/
+- https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
+- https://protopeek.shreyam1008.com.np/transport-boundaries/
 - https://protopeek.shreyam1008.com.np/vscode-extension-spec/
 - https://protopeek.shreyam1008.com.np/launch-post/
 - https://protopeek.shreyam1008.com.np/contributor-rules/
 - https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md

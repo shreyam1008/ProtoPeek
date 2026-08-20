@@ -162,6 +162,20 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 		HTTPRequestHandler().ServeHTTP(w, r)
 	})
+	mux.HandleFunc("/api/route/lookup", func(w http.ResponseWriter, r *http.Request) {
+		if !validCSRF(r) {
+			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+			return
+		}
+		RouteLookupHandler().ServeHTTP(w, r)
+	})
+	mux.HandleFunc("/api/nmap/import", func(w http.ResponseWriter, r *http.Request) {
+		if !validCSRF(r) {
+			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+			return
+		}
+		NmapImportHandler().ServeHTTP(w, r)
+	})
 
 	if uiOpts.workspaceManager != nil {
 		mux.HandleFunc("/api/workspace/connect", func(w http.ResponseWriter, r *http.Request) {

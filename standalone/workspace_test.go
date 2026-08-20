@@ -106,3 +106,47 @@ func TestHandlerHTTPRouteUsesCSRFProtection(t *testing.T) {
 		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
 	}
 }
+
+func TestHandlerRouteAndNmapEndpointsUseCSRFProtection(t *testing.T) {
+	t.Parallel()
+	handler := Handler(nil, "", nil, nil)
+
+	bootstrapResponse := httptest.NewRecorder()
+	handler.ServeHTTP(bootstrapResponse, httptest.NewRequest(http.MethodGet, "/", nil))
+	cookies := bootstrapResponse.Result().Cookies()
+	if len(cookies) == 0 {
+		t.Fatal("handler did not issue a CSRF cookie")
+	}
+
+	for _, test := range []struct {
+		name        string
+		path        string
+		contentType string
+		body        string
+	}{
+		{name: "route", path: "/api/route/lookup", contentType: "application/json", body: `{"destination":"127.0.0.1"}`},
+		{name: "nmap", path: "/api/nmap/import", contentType: "application/xml", body: `<nmaprun scanner="nmap"/>`},
+	} {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			missingRequest := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+			missingRequest.Header.Set("Content-Type", test.contentType)
+			missingResponse := httptest.NewRecorder()
+			handler.ServeHTTP(missingResponse, missingRequest)
+			if missingResponse.Code != http.StatusUnauthorized {
+				t.Fatalf("missing-CSRF status = %d", missingResponse.Code)
+			}
+
+			request := httptest.NewRequest(http.MethodPost, test.path, strings.NewReader(test.body))
+			request.Header.Set("Content-Type", test.contentType)
+			request.Header.Set(csrfHeaderName, cookies[0].Value)
+			request.AddCookie(cookies[0])
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusOK {
+				t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+			}
+		})
+	}
+}

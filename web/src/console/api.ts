@@ -230,6 +230,64 @@ export type ScanResult = {
   latencyMs: number;
 };
 
+export type RouteResult = {
+  destination: string;
+  family: 'ipv4' | 'ipv6';
+  status: 'ok' | 'error' | 'unsupported';
+  sourceIp: string;
+  interfaceIndex: number;
+  interfaceName: string;
+  nextHop: string;
+  onLink: boolean;
+  local: boolean;
+  prefix: number | null;
+  routeMetric: number | null;
+  table: number | null;
+  backend: string;
+  notes: string[];
+  error: string;
+};
+
+export type RouteLookupResponse = {
+  perspective: 'protopeek-process';
+  observedAt: string;
+  results: RouteResult[];
+};
+
+export type NmapServiceHint = {
+  name: string;
+  product: string;
+  version: string;
+  extrainfo: string;
+  tunnel: string;
+  method: string;
+  confidence: string;
+};
+
+export type NmapPortEvidence = {
+  port: number;
+  protocol: string;
+  state: string;
+  reason: string;
+  service: NmapServiceHint;
+};
+
+export type NmapHostEvidence = {
+  id: number;
+  status: { state: string; reason: string };
+  addresses: Array<{ address: string; type: string; vendor: string }>;
+  hostnames: Array<{ name: string; type: string }>;
+  ports: NmapPortEvidence[];
+};
+
+export type NmapImportResponse = {
+  hosts: NmapHostEvidence[];
+  hostCount: number;
+  portCount: number;
+  complete: boolean;
+  completion: string;
+};
+
 export function scanAddresses(
   addresses: string[],
   allowPrivateNetwork = false,
@@ -242,6 +300,47 @@ export function scanAddresses(
     body: JSON.stringify({ addresses, allowPrivateNetwork, explicit }),
     signal,
   });
+}
+
+export async function lookupRoute(
+  destination: string,
+  family: 'auto' | 'ipv4' | 'ipv6',
+  signal?: AbortSignal
+) {
+  const response = await fetchJSON<RouteLookupResponse>('api/route/lookup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ destination, family }),
+    signal,
+  });
+  return {
+    ...response,
+    results: arrayOrEmpty(response.results).map((result) => ({
+      ...result,
+      notes: arrayOrEmpty(result.notes),
+    })),
+  };
+}
+
+export async function importNmapXML(xml: Blob, signal?: AbortSignal) {
+  const response = await fetchJSON<NmapImportResponse>('api/nmap/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/xml' },
+    body: xml,
+    signal,
+  });
+  return {
+    ...response,
+    complete: response.complete === true,
+    completion: response.completion || 'missing',
+    hosts: arrayOrEmpty(response.hosts).map((host, index) => ({
+      ...host,
+      id: Number.isInteger(host.id) && host.id > 0 ? host.id : index + 1,
+      addresses: arrayOrEmpty(host.addresses),
+      hostnames: arrayOrEmpty(host.hostnames),
+      ports: arrayOrEmpty(host.ports),
+    })),
+  };
 }
 
 export function sendHTTPRequest(input: HTTPRequestInput, signal?: AbortSignal) {

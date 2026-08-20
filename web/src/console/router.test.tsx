@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe('protocol routes', () => {
-  it('uses the dashboard at root and preserves the gRPC and HTTP workbench routes', async () => {
+  it('uses the dashboard at root and preserves lazy workbench and roadmap routes', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -67,7 +67,8 @@ describe('protocol routes', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
-    expect(screen.getByText('Route trace')).toBeInTheDocument();
+    expect(screen.getByText('Next-hop lookup')).toBeInTheDocument();
+    expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
     expect(screen.getAllByText('Gated').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
@@ -86,6 +87,18 @@ describe('protocol routes', () => {
       await router.navigate({ to: '/http' });
     });
     expect(await screen.findByText('Request workbench')).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate({ to: '/routes' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Next-hop route' })).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate({ to: '/roadmap' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
+    expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
+    expect(screen.getByText('Traceroute / hop probes')).toBeInTheDocument();
   });
 
   it('stores truthful recent discoveries in the local browser profile', async () => {

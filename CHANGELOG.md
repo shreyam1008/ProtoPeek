@@ -3,7 +3,19 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
-## Unreleased — v0.3 milestone 1
+## Unreleased — v0.3 milestone 2
+
+- Added a lazy next-hop workbench backed by one read-only kernel route selection: direct Linux
+  `RTM_GETROUTE`, Darwin routing sockets, and Windows `GetBestRoute2`, with bounded DNS, deadlines,
+  concurrency, per-address failures, source/interface/gateway evidence, and no packets or privilege.
+- Added streaming, non-persistent `nmap -oX` import with strict XML and collection bounds. Imported
+  service labels remain untrusted hints and must pass the existing explicit bounded scanner before
+  gRPC or HTTP can open; ProtoPeek never locates or runs Nmap/Npcap.
+- Added a lazy in-app roadmap with Available in this build, Next, Exploring, and Gated states, and updated dashboard,
+  help, README, site source, and detailed guides to distinguish next-hop lookup from traceroute and
+  Nmap XML import from active Nmap execution.
+
+### Milestone 1 foundation
 
 - Added a light-first Protocol Peek dashboard at `/`, moved the gRPC console to `/grpc`, retained
   `/http`, and kept exact `host:port` CLI startup opening directly into gRPC.
@@ -11,7 +23,7 @@ version source of truth.
   dialog, local recent discoveries, and guarded versioned light/dark preference storage.
 - Extended bounded discovery to report independent gRPC, safe non-following HTTP `HEAD`, and open
   TCP evidence with fixed candidate/deadline limits and request cancellation.
-- Kept route trace and Cap'n Proto gated and labeled Nmap and packet evidence as optional rather
+- Kept traceroute/hop probes and Cap'n Proto gated and labeled Nmap and packet evidence as optional rather
   than presenting unimplemented diagnostics.
 
 ## v0.2.0 — 2026-08-20

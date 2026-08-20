@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ const (
 	maxScanInputs        = 20
 	maxScanCandidates    = 24
 	maxScanServices      = 64
+	maxScanResolvedIPs   = 8
 	maxScanHTTPHeader    = 64 << 10
 	scanRequestTimeout   = 4 * time.Second
 	tcpProbeTimeout      = 500 * time.Millisecond
@@ -66,8 +68,10 @@ type ScanRequest struct {
 }
 
 type scanCandidate struct {
-	Address   string
-	Transport string
+	Address     string
+	DialAddress string
+	ServerName  string
+	Transport   string
 }
 
 type httpProbeResult struct {
@@ -80,30 +84,84 @@ type httpProbeResult struct {
 	Details    []string
 }
 
-func validateScanAddress(address string, allowPrivateNetwork, explicit bool) error {
-	host, port, err := net.SplitHostPort(strings.TrimSpace(address))
+type scanResolver interface {
+	LookupNetIP(context.Context, string, string) ([]netip.Addr, error)
+}
+
+func prepareScanCandidate(
+	ctx context.Context,
+	resolver scanResolver,
+	candidate scanCandidate,
+	allowPrivateNetwork bool,
+	explicit bool,
+) (scanCandidate, error) {
+	host, port, err := net.SplitHostPort(strings.TrimSpace(candidate.Address))
 	if err != nil || host == "" || port == "" {
-		return fmt.Errorf("expected host:port")
+		return candidate, fmt.Errorf("expected host:port")
 	}
 	if _, err := net.LookupPort("tcp", port); err != nil {
-		return fmt.Errorf("invalid port")
+		return candidate, fmt.Errorf("invalid port")
 	}
-
 	host = strings.Trim(strings.TrimSpace(host), "[]")
-	if strings.EqualFold(host, "localhost") {
-		return nil
-	}
-	ip := net.ParseIP(host)
-	if ip == nil {
-		if explicit {
-			return nil
+	if address, err := netip.ParseAddr(host); err == nil {
+		address = address.Unmap()
+		if err := validateScanIP(address, allowPrivateNetwork, explicit); err != nil {
+			return candidate, err
 		}
-		return fmt.Errorf("hostnames are only probed when explicitly entered")
+		candidate.DialAddress = net.JoinHostPort(address.String(), port)
+		return candidate, nil
 	}
-	if ip.IsLoopback() {
+	if !validRouteHostname(host) {
+		return candidate, fmt.Errorf("invalid hostname")
+	}
+	if !explicit && !strings.EqualFold(host, "localhost") {
+		return candidate, fmt.Errorf("hostnames are only probed when explicitly entered")
+	}
+	resolved, err := resolver.LookupNetIP(ctx, "ip", host)
+	if err != nil {
+		return candidate, fmt.Errorf("resolve scan hostname: %w", err)
+	}
+	if len(resolved) == 0 {
+		return candidate, fmt.Errorf("resolve scan hostname: no addresses")
+	}
+	var selected netip.Addr
+	for index, address := range resolved {
+		if index == maxScanResolvedIPs {
+			break
+		}
+		address = address.Unmap()
+		if err := validateScanIP(address, allowPrivateNetwork, explicit); err != nil {
+			return candidate, fmt.Errorf("resolved address %s: %w", address, err)
+		}
+		if !explicit && !address.IsLoopback() {
+			return candidate, fmt.Errorf("localhost resolved outside loopback")
+		}
+		if !selected.IsValid() {
+			selected = address
+		}
+	}
+	if !selected.IsValid() {
+		return candidate, fmt.Errorf("resolve scan hostname: no usable addresses")
+	}
+	candidate.DialAddress = net.JoinHostPort(selected.String(), port)
+	candidate.ServerName = host
+	return candidate, nil
+}
+
+func validateScanIP(address netip.Addr, allowPrivateNetwork, explicit bool) error {
+	if !address.IsValid() || address.IsUnspecified() {
+		return fmt.Errorf("unspecified addresses are not allowed")
+	}
+	if address.IsMulticast() {
+		return fmt.Errorf("multicast addresses are not allowed")
+	}
+	if address.Is4() && address == netip.MustParseAddr("255.255.255.255") {
+		return fmt.Errorf("broadcast addresses are not allowed")
+	}
+	if address.IsLoopback() {
 		return nil
 	}
-	if ip.IsPrivate() {
+	if address.IsPrivate() || address.IsLinkLocalUnicast() {
 		if allowPrivateNetwork {
 			return nil
 		}
@@ -220,7 +278,7 @@ func probeCandidate(ctx context.Context, candidate scanCandidate) ScanResult {
 
 	tcpCtx, tcpCancel := context.WithTimeout(ctx, tcpProbeTimeout)
 	var dialer net.Dialer
-	conn, err := dialer.DialContext(tcpCtx, "tcp", candidate.Address)
+	conn, err := dialer.DialContext(tcpCtx, "tcp", candidate.targetAddress())
 	tcpCancel()
 	if err != nil {
 		result.Failure, result.Error = classifyProbeFailure(ctx, err)
@@ -284,6 +342,21 @@ func probeCandidate(ctx context.Context, candidate scanCandidate) ScanResult {
 	return result
 }
 
+func (candidate scanCandidate) targetAddress() string {
+	if candidate.DialAddress != "" {
+		return candidate.DialAddress
+	}
+	return candidate.Address
+}
+
+func (candidate scanCandidate) tlsServerName() string {
+	if candidate.ServerName != "" {
+		return candidate.ServerName
+	}
+	host, _, _ := net.SplitHostPort(candidate.Address)
+	return strings.Trim(host, "[]")
+}
+
 func probeGRPCTransports(ctx context.Context, candidate scanCandidate) ScanResult {
 	transports := []string{candidate.Transport}
 	if candidate.Transport == "auto" || candidate.Transport == "" {
@@ -291,7 +364,7 @@ func probeGRPCTransports(ctx context.Context, candidate scanCandidate) ScanResul
 	}
 	bestAttempt := ScanResult{}
 	for _, transport := range transports {
-		attempt := probeGRPCTransport(ctx, candidate.Address, transport)
+		attempt := probeGRPCResolvedTransport(ctx, candidate, transport)
 		if attempt.GRPC {
 			return attempt
 		}
@@ -312,8 +385,12 @@ func probeGRPCTransports(ctx context.Context, candidate scanCandidate) ScanResul
 }
 
 func probeGRPCTransport(ctx context.Context, address, transport string) ScanResult {
+	return probeGRPCResolvedTransport(ctx, scanCandidate{Address: address}, transport)
+}
+
+func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, transport string) ScanResult {
 	result := ScanResult{
-		Address:    address,
+		Address:    candidate.Address,
 		Transport:  transport,
 		Reflection: "not-checked",
 		Services:   make([]string, 0),
@@ -324,12 +401,15 @@ func probeGRPCTransport(ctx context.Context, address, transport string) ScanResu
 
 	var creds credentials.TransportCredentials
 	if transport == "tls" {
-		host, _, _ := net.SplitHostPort(address)
-		creds = credentials.NewTLS(&tls.Config{ServerName: strings.Trim(host, "[]"), MinVersion: tls.VersionTLS12})
+		creds = credentials.NewTLS(&tls.Config{ServerName: candidate.tlsServerName(), MinVersion: tls.VersionTLS12})
 	} else {
 		creds = insecure.NewCredentials()
 	}
-	cc, err := grpc.DialContext(probeCtx, address, grpc.WithTransportCredentials(creds), grpc.WithBlock())
+	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(creds), grpc.WithBlock()}
+	if candidate.ServerName != "" {
+		dialOptions = append(dialOptions, grpc.WithAuthority(candidate.Address))
+	}
+	cc, err := grpc.DialContext(probeCtx, candidate.targetAddress(), dialOptions...)
 	if err != nil {
 		result.Failure, result.Error = classifyProbeFailure(probeCtx, err)
 		if isNonGRPCProbeError(err) {
@@ -389,7 +469,7 @@ func probeHTTP(ctx context.Context, candidate scanCandidate) httpProbeResult {
 	}
 	result := httpProbeResult{Details: make([]string, 0, len(transports))}
 	for _, transport := range transports {
-		attempt := probeHTTPTransport(ctx, candidate.Address, transport)
+		attempt := probeHTTPResolvedTransport(ctx, candidate, transport)
 		result.Details = append(result.Details, attempt.Details...)
 		if attempt.Detected {
 			attempt.Details = result.Details
@@ -403,6 +483,10 @@ func probeHTTP(ctx context.Context, candidate scanCandidate) httpProbeResult {
 }
 
 func probeHTTPTransport(ctx context.Context, address, transport string) httpProbeResult {
+	return probeHTTPResolvedTransport(ctx, scanCandidate{Address: address}, transport)
+}
+
+func probeHTTPResolvedTransport(ctx context.Context, candidate scanCandidate, transport string) httpProbeResult {
 	result := httpProbeResult{Transport: transport, Details: make([]string, 0, 1)}
 	probeCtx, cancel := context.WithTimeout(ctx, protocolProbeTimeout)
 	defer cancel()
@@ -411,18 +495,20 @@ func probeHTTPTransport(ctx context.Context, address, transport string) httpProb
 	if transport == "tls" {
 		scheme = "https"
 	}
-	host, _, _ := net.SplitHostPort(address)
+	dialer := &net.Dialer{Timeout: tcpProbeTimeout}
 	client := &http.Client{
 		Transport: &http.Transport{
-			Proxy:                  nil,
-			DialContext:            (&net.Dialer{Timeout: tcpProbeTimeout}).DialContext,
+			Proxy: nil,
+			DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, network, candidate.targetAddress())
+			},
 			DisableKeepAlives:      true,
 			ForceAttemptHTTP2:      true,
 			TLSHandshakeTimeout:    protocolProbeTimeout,
 			ResponseHeaderTimeout:  protocolProbeTimeout,
 			MaxResponseHeaderBytes: maxScanHTTPHeader,
 			TLSClientConfig: &tls.Config{
-				ServerName: strings.Trim(host, "[]"),
+				ServerName: candidate.tlsServerName(),
 				MinVersion: tls.VersionTLS12,
 			},
 		},
@@ -430,7 +516,7 @@ func probeHTTPTransport(ctx context.Context, address, transport string) httpProb
 			return http.ErrUseLastResponse
 		},
 	}
-	req, err := http.NewRequestWithContext(probeCtx, http.MethodHead, scheme+"://"+address+"/", nil)
+	req, err := http.NewRequestWithContext(probeCtx, http.MethodHead, scheme+"://"+candidate.Address+"/", nil)
 	if err != nil {
 		result.Details = append(result.Details, fmt.Sprintf("http %s: %s", transport, err.Error()))
 		return result
@@ -505,9 +591,12 @@ func isNonGRPCProbeError(err error) bool {
 	return false
 }
 
-// ScanHandler returns the bounded POST /api/scan endpoint.
+// ScanHandler returns the bounded POST /api/scan endpoint. The caller must
+// enforce ProtoPeek's local-access and CSRF policy.
 func ScanHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if r.Method != http.MethodPost {
 			w.Header().Set("Allow", http.MethodPost)
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -532,7 +621,8 @@ func ScanHandler() http.HandlerFunc {
 			probes.Add(1)
 			go func(index int, candidate scanCandidate) {
 				defer probes.Done()
-				if err := validateScanAddress(candidate.Address, req.AllowPrivateNetwork, req.Explicit); err != nil {
+				prepared, err := prepareScanCandidate(scanCtx, net.DefaultResolver, candidate, req.AllowPrivateNetwork, req.Explicit)
+				if err != nil {
 					results[index] = ScanResult{
 						Address:    candidate.Address,
 						Transport:  candidate.Transport,
@@ -545,12 +635,12 @@ func ScanHandler() http.HandlerFunc {
 					}
 					return
 				}
-				results[index] = probeCandidate(scanCtx, candidate)
+				results[index] = probeCandidate(scanCtx, prepared)
 			}(i, candidate)
 		}
 		probes.Wait()
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(results)
 	}
 }

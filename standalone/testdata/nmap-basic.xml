@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/share/nmap/nmap.xsl" type="text/xsl"?>
+<nmaprun scanner="nmap" args="nmap --script unsafe -O --traceroute -oX evidence.xml 192.0.2.10">
+  <host>
+    <status state="up" reason="syn-ack"/>
+    <address addr="192.0.2.10" addrtype="ipv4"/>
+    <hostnames><hostname name="grpc.example.test" type="user"/></hostnames>
+    <ports>
+      <port protocol="tcp" portid="50051">
+        <state state="open" reason="syn-ack"/>
+        <service name="grpc" product="fixture" version="1.2" extrainfo="test only" tunnel="ssl" method="probed" conf="10"/>
+        <script id="discard-me" output="not retained"/>
+      </port>
+      <port protocol="tcp" portid="8080">
+        <state state="open" reason="syn-ack"/>
+        <service name="http" method="table" conf="3"/>
+      </port>
+    </ports>
+    <os><osmatch name="not retained"/></os>
+    <trace><hop ipaddr="198.51.100.1"/></trace>
+  </host>
+  <runstats><finished exit="success"/></runstats>
+</nmaprun>

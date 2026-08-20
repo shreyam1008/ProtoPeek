@@ -49,7 +49,7 @@ function Nav() {
             Protocol model
           </a>
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#features">
-            Shipped now
+            Features
           </a>
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#roadmap">
             Roadmap
@@ -77,7 +77,7 @@ function Hero() {
     <section className="pt-16 text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-pp-border bg-white px-4 py-1.5 text-xs font-medium text-pp-muted shadow-sm">
         <Zap className="size-3.5 text-pp-brand" />
-        Protocol Peek &mdash; local request inspection, without platform bloat
+        v0.2 stable &middot; v0.3 source preview
       </div>
 
       <h1 className="mt-6 text-4xl font-bold tracking-tight text-pp-ink md:text-5xl lg:text-6xl">
@@ -89,7 +89,8 @@ function Hero() {
       <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pp-muted">
         ProtoPeek is a local, single-binary protocol workbench for the request-to-server path. gRPC
         keeps schemas, streaming, metadata, trailers, and status visible; HTTP keeps methods, URLs,
-        redirects, bodies, and phase timing visible. Cap&apos;n Proto remains a gated plan.
+        redirects, bodies, and phase timing visible. Read-only next-hop evidence and offline Nmap
+        XML import add context without silently tracing, scanning, or capturing.
       </p>
 
       <div className="mt-8 flex items-center justify-center gap-3">
@@ -190,7 +191,7 @@ function ProtocolModel() {
         {[
           {
             icon: Network,
-            label: 'Shipped now',
+            label: 'Stable · v0.2',
             title: 'gRPC',
             detail:
               'Reflection, .proto and protoset loading, unary and streaming calls, metadata, headers, trailers, status, and timing.',
@@ -198,15 +199,31 @@ function ProtocolModel() {
           },
           {
             icon: Globe2,
-            label: 'Shipped now',
+            label: 'Stable · v0.2',
             title: 'HTTP / REST',
             detail:
               'Bounded HTTP(S), params, headers, live auth, body, cancellation, redirect choice, status, protocol, TLS context, and phase timing.',
             tone: 'border-pp-brand/40 bg-pp-brand/5',
           },
           {
+            icon: Network,
+            label: 'v0.3 preview',
+            title: 'Next-hop evidence',
+            detail:
+              'One kernel route per resolved address from the local ProtoPeek process with source, interface, gateway or on-link state, prefix, and available metric/table evidence. No hop probes.',
+            tone: 'border-pp-brand/40 bg-pp-brand/5',
+          },
+          {
+            icon: SearchCode,
+            label: 'v0.3 preview · offline',
+            title: 'Nmap XML import',
+            detail:
+              'Bounded nmap -oX host and port hints. ProtoPeek never runs Nmap and requires its own bounded verification before a protocol workbench opens.',
+            tone: 'border-pp-brand/40 bg-pp-brand/5',
+          },
+          {
             icon: Braces,
-            label: 'Planned · gated',
+            label: 'Exploring',
             title: "Cap'n Proto",
             detail:
               'Schema-file and capability bootstrap with a native inspector, after fixture, dependency-size, and failure-model gates.',
@@ -309,6 +326,16 @@ function Features() {
     },
     {
       icon: Network,
+      title: 'Read the selected next hop',
+      desc: 'See process-perspective source, interface, gateway or on-link state, prefix, and known metric/table values without traceroute or probe packets.',
+    },
+    {
+      icon: SearchCode,
+      title: 'Import, then verify Nmap hints',
+      desc: 'Parse bounded offline XML, preserve table/probed confidence, and require a fresh ProtoPeek scan before opening gRPC or HTTP.',
+    },
+    {
+      icon: ShieldCheck,
       title: 'Secret-safe local shell',
       desc: 'Keep request work local while automatic history and default exports redact credentials, cookies, binary metadata, and token-like values.',
     },
@@ -317,9 +344,9 @@ function Features() {
   return (
     <section id="features">
       <SectionHeader
-        label="Shipped now"
+        label="Stable foundation + v0.3 preview"
         title="A small console that shows the useful parts"
-        subtitle="gRPC and HTTP share a compact local shell while keeping different request controls and response evidence. Planned protocols stay out of the request rail until their gates are met."
+        subtitle="gRPC and HTTP are stable in v0.2. The v0.3 source build adds the dashboard, expanded discovery, read-only route evidence, and offline Nmap import; wider operations stay gated."
       />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -341,34 +368,34 @@ function Roadmap() {
   const phases = [
     {
       phase: '01',
-      status: 'Live',
-      title: 'Make gRPC the reference adapter',
+      status: 'Available in v0.3 source',
+      title: 'Protocol workbenches + bounded evidence',
       detail:
-        'Harden reflection, proto/protoset workflows, streaming, metadata, response timelines, cancellation, saved requests, and local-only safety.',
+        'Dashboard, themes, stable gRPC and HTTP workbenches, bounded TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
       icon: ShieldCheck,
     },
     {
       phase: '02',
-      status: 'Live',
-      title: 'Ship bounded HTTP / REST',
+      status: 'Next',
+      title: 'Close daily workflow gaps',
       detail:
-        'Use the Go standard library for explicit HTTP(S) requests with bounded input/output, verified TLS, opt-in redirects, cancellation, and native evidence.',
+        'Incremental gRPC stream delivery and Health Check/Watch, saved HTTP requests and profiles, bounded cURL import/export, open proto folder upload, and target DNS/TLS preflight.',
       icon: Globe2,
     },
     {
       phase: '03',
-      status: 'Planned · gated',
-      title: "Evaluate a Cap'n Proto inspector",
+      status: 'Exploring',
+      title: 'Research native evidence fit',
       detail:
-        'Require a local fixture, capability and segment evidence, a truthful failure model, and measured dependency cost before exposing a request surface.',
+        "WebSocket/SSE, bounded PCAP import with Wireshark/TShark handoff, Cap'n Proto, and QUIC/HTTP3 must prove native UX and dependency cost.",
       icon: Braces,
     },
     {
       phase: '04',
-      status: 'Planned · gated',
-      title: 'Evaluate route trace and LAN discovery',
+      status: 'Gated',
+      title: 'Wider network operations',
       detail:
-        'Route trace needs a supported evidence source. LAN discovery needs explicit previewed private scope, strict budgets, cancellation, and no ambient or public crawling.',
+        'Bundled Nmap execution is not planned for the core binary. Traceroute/hop probes, LAN range expansion, and live capture require explicit consent, bounded scope, truthful failure models, and reliable teardown.',
       icon: Layers3,
     },
   ];
@@ -376,9 +403,9 @@ function Roadmap() {
   return (
     <section id="roadmap">
       <SectionHeader
-        label="Long-term plan"
+        label="Available · Next · Exploring · Gated"
         title="Protocol breadth, without generic-client drift"
-        subtitle="Every new protocol earns its own adapter, inspector, tests, and safety boundary. The goal is not to clone Postman; it is to make hard request-server systems legible."
+        subtitle="Every capability earns native evidence, tests, and a safety boundary. Next-hop never means traceroute, and XML import never means Nmap execution."
       />
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {phases.map((item) => (
@@ -432,9 +459,9 @@ function Install() {
   return (
     <section id="install">
       <SectionHeader
-        label="Install"
+        label="Install · stable v0.2"
         title="Start the local workbench"
-        subtitle="The Go binary serves both the gRPC and HTTP request surfaces. Install it with the verified shell or PowerShell installer, or go install."
+        subtitle="The verified installers currently resolve v0.2. The dashboard, next-hop, and Nmap XML surfaces remain a v0.3 source preview until the tag and release assets ship together."
       />
 
       <div className="mt-8 space-y-3">
@@ -468,19 +495,19 @@ function Install() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-pp-muted">
-          After install, run{' '}
+          With stable v0.2, run{' '}
           <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
             pp
           </code>{' '}
-          or{' '}
-          <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
-            pp localhost
-          </code>{' '}
-          for a bounded host probe, or pass an exact{' '}
+          or pass an exact{' '}
           <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
             host:port
           </code>{' '}
-          for direct gRPC mode.
+          for direct gRPC mode. In the v0.3 source build,{' '}
+          <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
+            pp localhost
+          </code>{' '}
+          opens the visible bounded target scan.
         </p>
       </div>
     </section>

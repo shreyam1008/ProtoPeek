@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { CircleHelp, Home, Moon, Radar, Route, Server, Sun, TerminalSquare, X } from 'lucide-react';
+import { CircleHelp, Home, ListTodo, Moon, Radar, Route, Server, Sun, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -117,9 +117,21 @@ export function ProtocolFrame() {
       },
       {
         id: 'scan',
-        label: 'Scan a target',
-        keywords: 'discover grpc http tcp',
+        label: 'Probe or import discovery evidence',
+        keywords: 'discover grpc http tcp nmap xml',
         run: () => openScan(),
+      },
+      {
+        id: 'routes',
+        label: 'Open next-hop route evidence',
+        keywords: 'route kernel next hop interface source',
+        run: () => void navigate({ to: '/routes' }),
+      },
+      {
+        id: 'roadmap',
+        label: 'Open product roadmap',
+        keywords: 'available next exploring gated',
+        run: () => void navigate({ to: '/roadmap' }),
       },
       {
         id: 'theme',
@@ -205,19 +217,22 @@ export function ProtocolFrame() {
             <span>Scan</span>
           </button>
           <span className="pp-rail-divider" aria-hidden="true" />
-          <button type="button" className="pp-rail-gated" disabled title="Gated for milestone 2">
+          <Link
+            to="/routes"
+            activeProps={{ className: 'is-active' }}
+            aria-label="Open next-hop route evidence"
+          >
             <Route aria-hidden="true" />
             <span>Routes</span>
-          </button>
-          <button
-            type="button"
-            className="pp-rail-gated"
-            disabled
-            title="Optional capture workflow"
+          </Link>
+          <Link
+            to="/roadmap"
+            activeProps={{ className: 'is-active' }}
+            aria-label="Open product roadmap"
           >
-            <TerminalSquare aria-hidden="true" />
-            <span>Packet</span>
-          </button>
+            <ListTodo aria-hidden="true" />
+            <span>Roadmap</span>
+          </Link>
           <button
             type="button"
             className="pp-rail-help"
@@ -237,7 +252,7 @@ export function ProtocolFrame() {
               <small>local protocol console</small>
             </Link>
             <span className="pp-global-local">
-              <i aria-hidden="true" /> Local process
+              <i aria-hidden="true" /> Local session
             </span>
             <button
               type="button"
@@ -350,7 +365,7 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </button>
         </header>
         <section>
-          <h3>gRPC · shipped</h3>
+          <h3>gRPC · available</h3>
           <ul>
             <li>Confirm plaintext versus verified TLS before invoking.</li>
             <li>Use reflection, proto files, or protosets for the schema.</li>
@@ -358,7 +373,7 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </ul>
         </section>
         <section>
-          <h3>HTTP · shipped</h3>
+          <h3>HTTP · available</h3>
           <ul>
             <li>Redirects are off and certificate verification is on by default.</li>
             <li>Inspect negotiated protocol, remote peer, timing phases, and truncation.</li>
@@ -366,10 +381,12 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </ul>
         </section>
         <section className="pp-help-planned">
-          <h3>Gated or optional</h3>
+          <h3>Routes + external evidence</h3>
           <p>
-            Route trace and Cap&apos;n Proto are gated. Nmap and packet evidence require explicit
-            optional integrations; neither runs in this milestone.
+            Next-hop lookup reads one kernel-selected route and is not traceroute. Nmap XML import
+            is offline and treats service names as hints; ProtoPeek never installs or executes Nmap.
+            Bundled Nmap execution is not planned for the core binary. Traceroute, LAN expansion,
+            and live capture remain gated.
           </p>
         </section>
       </aside>

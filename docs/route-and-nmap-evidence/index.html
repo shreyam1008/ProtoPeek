@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Route and Nmap evidence | ProtoPeek</title>
+    <meta name="description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Route and Nmap evidence | ProtoPeek" />
+    <meta property="og:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Route and Nmap evidence | ProtoPeek" />
+    <meta name="twitter:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Guide</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Route and Nmap evidence</h1>
+              <p>Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.</p>
+              <div class="pp-doc-chip-row">
+                <span>Kernel next hop</span><span>Offline Nmap XML</span><span>No hidden execution</span>
+              </div>
+            </div>
+
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">Route and Nmap evidence boundary</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Kernel next hop</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Offline Nmap XML</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>No hidden execution</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>ProtoPeek&#39;s v0.3 source build adds two evidence inputs with deliberately different trust models. The route workbench reads the local kernel. The Nmap path imports a file produced elsewhere. Neither is a general network scanner.</p>
+<h2 id="next-hop-route-lookup">Next-hop route lookup</h2>
+<p><code>POST /api/route/lookup</code> accepts JSON with <code>destination</code> and an optional <code>family</code> of <code>auto</code>, <code>ipv4</code>, or <code>ipv6</code>. The same-origin CSRF token is required. The request body is capped at 16 KiB and the destination at 253 bytes. Resolution plus all route lookups request a two-second deadline. ProtoPeek keeps at most eight unique resolved addresses and runs at most four kernel lookups concurrently. Windows IP Helper calls are synchronous, so cancellation prevents new work but cannot interrupt an already-running operating-system call.</p>
+<p>The result is one kernel-selected route per address from the ProtoPeek process perspective. It can include source IP, interface index/name, exact next hop or on-link state, local-route state, prefix, route metric/table when known, backend, notes, and a per-address error. One address failing does not erase successful siblings.</p>
+<p>This is not traceroute. Route lookup:</p>
+<ul><li>sends no route probes; a hostname may still cause normal DNS queries;</li><li>makes one read-only kernel query per resolved address;</li><li>never dumps, polls, adds, changes, or deletes routes;</li><li>requires no elevation;</li><li>cannot prove the path taken later through a VPN, proxy, policy rule, ECMP choice, container/host</li></ul>
+<p>boundary, or changed route table.</p>
+<h3 id="platform-boundary">Platform boundary</h3>
+<ul><li>Linux sends one <code>RTM_GETROUTE</code> netlink request with <code>NLM_F_REQUEST</code> only. It validates message</li></ul>
+<p>lengths, attributes, sequence, the kernel socket sender, and the response port ID assigned to its socket. Its prefix is the resolved <code>RTM_GETROUTE</code> destination prefix; ProtoPeek does not dump the underlying routing table to reconstruct a broader FIB prefix. It adds no netlink library. ECMP, cross-family <code>RTA_VIA</code>, and next-hop-object replies fail explicitly until the result model can represent them without inventing an on-link route.</p>
+<ul><li>Darwin sends one <code>RTM_GET</code> through a non-blocking routing socket and matches process ID and</li></ul>
+<p>sequence. Darwin does not provide a portable table ID or route metric through this response, so those fields remain unknown.</p>
+<ul><li>Windows calls <code>GetBestRoute2</code>. Its route metric excludes the separately maintained interface</li></ul>
+<p>metric; table identifiers are not exposed by this API.</p>
+<ul><li>Other build targets compile an explicit <code>unsupported</code> backend result. No fallback shells out to</li></ul>
+<p><code>route</code>, <code>ip</code>, PowerShell, or another executable.</p>
+<p>Unspecified, multicast, IPv4 limited-broadcast, and unzoned IPv6 link-local destinations are rejected. Zoned link-local destinations use the named or numeric interface scope.</p>
+<h2 id="offline-nmap-xml-import">Offline Nmap XML import</h2>
+<p><code>POST /api/nmap/import</code> accepts raw <code>application/xml</code> previously produced by <code>nmap -oX</code>. It never accepts command arguments and never bundles, installs, locates, or executes Nmap or Npcap. Uploaded XML and parsed inventory live only for the request and current UI state; neither is written to a file or database.</p>
+<p>The importer uses streaming <code>encoding/xml</code>, requires an unnamespaced <code>nmaprun</code> root with <code>scanner=&quot;nmap&quot;</code>, accepts only the ordinary bare <code>DOCTYPE nmaprun</code> declaration, ignores stylesheet processing instructions without fetching them, and rejects external/public/internal DTD and entity input. It retains only:</p>
+<ul><li>host state/reason, up to eight addresses, and up to sixteen hostnames per host;</li><li>port number, protocol, state, and reason;</li><li>service name, product, version, extra info, tunnel, method, and confidence.</li></ul>
+<p>It discards the original Nmap arguments, NSE scripts, OS fingerprints, and trace hops. Bounds are 8 MiB, XML depth 32, 250,000 tokens, 100,000 start elements, 512 attributes per element, 1,024 hosts, 16,384 ports total, and 512 bytes for every returned attribute. Collection fields always encode as arrays, and a missing or failed Nmap completion record is labeled as partial evidence.</p>
+<p>Service metadata is an untrusted hint even when Nmap labels its method <code>probed</code>. A usable open TCP endpoint at a validated literal IPv4 or IPv6 address offers <strong>Verify with ProtoPeek</strong>, which calls the existing explicit bounded scanner. Imported hostnames remain display-only. Only that fresh TCP/gRPC/TLS/HTTP evidence enables a protocol workbench. UDP, IP protocol entries, port zero, and non-open states are shown as imported evidence but cannot be verified by the current TCP scanner.</p>
+<h2 id="permanently-gated-distinctions">Permanently gated distinctions</h2>
+<ul><li><strong>Bundled Nmap execution:</strong> not planned for the core binary because executable discovery,</li></ul>
+<p>argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.</p>
+<ul><li><strong>Traceroute/hop probes:</strong> gated because they send packets and can require platform privilege.</li></ul>
+<p>Release requires consent, strict budgets, reliable unprivileged backends, cancellation, and truthful partial failures.</p>
+<ul><li><strong>LAN range expansion:</strong> gated because one target must not become ambient crawling. Release</li></ul>
+<p>requires previewed private scope, opt-in, hard candidate/time limits, and cancellation.</p>
+<ul><li><strong>Live capture:</strong> gated because it can require privilege and expose secrets. Release requires an</li></ul>
+<p>explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.</p>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#next-hop-route-lookup">Next-hop route lookup</a><a class="level-3" href="#platform-boundary">Platform boundary</a><a class="level-2" href="#offline-nmap-xml-import">Offline Nmap XML import</a><a class="level-2" href="#permanently-gated-distinctions">Permanently gated distinctions</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/route-and-nmap-evidence.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -24,7 +24,7 @@ transport events, and the final evidence stay close together.
 - A promise that every protocol belongs in the default binary. Future adapters should be opt-in when
   they add meaningful binary, dependency, or security cost.
 
-## Current workbench: gRPC + HTTP
+## Current workbench: gRPC + HTTP + bounded evidence
 
 The gRPC adapter remains the quality bar for protocol-native depth:
 
@@ -50,6 +50,16 @@ The HTTP adapter is the first additional protocol slice:
    are redacted before persistence or default export.
 6. Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.
 
+The v0.3 source build adds two deliberately narrow evidence inputs:
+
+1. Read one kernel-selected next hop per resolved address from the ProtoPeek process without
+   packets, polling, route dumps, mutation, or privilege.
+2. Import bounded `nmap -oX` XML without installing or executing Nmap and retain only host/port
+   evidence.
+3. Treat every imported service label as an untrusted hint and require the existing bounded scanner
+   before opening gRPC or HTTP.
+4. Keep next-hop versus traceroute and Nmap import versus Nmap execution permanently distinct.
+
 ## Shared adapter architecture
 
 ```text
@@ -59,7 +69,9 @@ console shell: target -> operation -> request -> response evidence
         |
         +-- gRPC adapter       reflection | .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
-        +-- Cap'n Proto adapter planned: schema file | capability bootstrap
+        +-- route evidence     OS kernel query | one selected next hop
+        +-- Nmap import        offline XML hints | explicit ProtoPeek verification
+        +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
 ```
 
@@ -105,7 +117,44 @@ This slice deliberately excludes OpenAPI discovery, a cookie jar, cloud sync, sc
 servers, OAuth app marketplaces, and team workspaces. Those features are not implied by the HTTP
 surface and would require separate product and security review.
 
-### Phase 3 — Cap'n Proto experiment (planned and gated)
+### Milestone 2 — next-hop and offline Nmap evidence (available in this build)
+
+- Linux uses direct `RTM_GETROUTE`, Darwin uses a routing socket, and Windows uses
+  `GetBestRoute2`; other targets report explicit unsupported evidence.
+- DNS and route work share strict address, concurrency, and requested deadline limits. Individual route
+  failures remain visible beside successful sibling addresses.
+- Streaming XML parsing accepts the ordinary bare Nmap DOCTYPE without resolving external data,
+  rejects external/entity input, and bounds bytes, XML work, hosts, ports, addresses, hostnames,
+  and retained attributes. XML and inventory are never persisted.
+- The in-app roadmap names Available in this build, Next, Exploring, and Gated states without fake dates or
+  controls.
+
+### Next — daily workflow gaps
+
+- incremental gRPC stream delivery with bounded retention plus Health Check/Watch;
+- saved HTTP requests and profiles;
+- bounded cURL import/export;
+- open proto folder upload with explicit import roots;
+- target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.
+
+### Exploring — evidence and protocol fit
+
+WebSocket/SSE timelines, bounded PCAP import with Wireshark/TShark handoff, Cap'n Proto, and
+QUIC/HTTP3 remain research. Each must preserve native evidence and prove its runtime/dependency
+cost.
+
+### Gated — operations with a wider safety boundary
+
+- Bundled Nmap execution is not planned for the core binary. Any future opt-in companion needs an
+  explicit executable choice, previewed scope, hard budgets, and an auditable command.
+- Traceroute/hop probes need consent, strict budgets, truthful partial failures, and reliable
+  unprivileged backends.
+- LAN range expansion needs previewed private scope, opt-in, hard candidate/time limits, and
+  cancellation.
+- Live capture needs explicit lifecycle, redaction/export policy, privilege handling, and reliable
+  teardown.
+
+### Later experiment — Cap'n Proto
 
 Start with one useful, local path rather than a large protocol surface:
 
@@ -119,15 +168,7 @@ Start with one useful, local path rather than a large protocol surface:
 Exit gate: a user can understand what capability was requested, what was sent, and why a call failed
 without reading a generic JSON translation.
 
-### Phase 4 — route trace and LAN discovery (planned and gated)
-
-- Route trace must be attached to a supported request path, expose its data source and uncertainty,
-  and have fixtures for partial or unavailable evidence before a control is added.
-- LAN discovery must be explicitly enabled for a previewed private range, enforce strict candidate
-  and time budgets, support cancellation, and never become ambient or public scanning.
-- Neither item appears as a request-surface tab until its gate is met.
-
-### Phase 5 — protocol shelf (later)
+### Protocol shelf (later)
 
 SMTP, FTP, and other request-server protocols are candidates, not commitments. For each one, write
 a short protocol brief before implementation:
@@ -166,6 +207,17 @@ Before an adapter is called shipped:
 - browser QA proves the primary action, response evidence, error state, and narrow layout;
 - README, website, roadmap, product metadata, and screenshots all describe the same current state;
 - the adapter has a rollback flag or can be omitted from the default binary.
+
+### Milestone 2 bundle evidence
+
+The v0.3 milestone 2 production console build measures 324.80 kB / 102.45 kB gzip for the shared
+entry and 110.43 kB / 20.65 kB gzip for CSS. The next-hop and roadmap workspaces stay lazy at
+6.04 kB / 1.95 kB gzip and 4.43 kB / 2.10 kB gzip. Compared with the milestone 1 embedded build,
+the shared entry grew 12.46 kB raw / 3.68 kB gzip and CSS grew 12.64 kB raw / 2.27 kB gzip. No
+frontend dependency was added; `x/sys` was already a transitive Go dependency and is now direct for
+native route lookup. This measured increase is accepted for the bounded XML inventory UI, shared
+evidence styling, and OS-native route workbench. Future adapters must preserve the same lazy-loading
+and no-heavy-chart-library budget.
 
 ## Research trail
 

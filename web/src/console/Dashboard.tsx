@@ -1,5 +1,14 @@
 import { Link } from '@tanstack/react-router';
-import { Activity, ArrowRight, Cable, Globe2, LockKeyhole, Radar, Server } from 'lucide-react';
+import {
+  Activity,
+  ArrowRight,
+  Cable,
+  Globe2,
+  LockKeyhole,
+  Radar,
+  Route,
+  Server,
+} from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 
 import { compactDate, displayBuildVersion } from '@/shared/utils';
@@ -8,10 +17,26 @@ import { fetchBootstrap } from './api';
 import { useProtocolShell } from './ProtocolShellContext';
 
 const gatedCapabilities = [
-  { name: 'Route trace', state: 'Gated', detail: 'Planned for milestone 2; no route probing yet.' },
-  { name: 'Packet evidence', state: 'Optional', detail: 'Requires an explicit capture workflow.' },
-  { name: 'Nmap integration', state: 'Optional', detail: 'Not installed or invoked by ProtoPeek.' },
-  { name: "Cap'n Proto", state: 'Gated', detail: 'Protocol adapter is not shipped.' },
+  {
+    name: 'Next-hop lookup',
+    state: 'This build',
+    detail: 'One read-only kernel route per resolved address; no hop probes.',
+  },
+  {
+    name: 'Nmap XML import',
+    state: 'This build',
+    detail: 'Offline hints only; verify with ProtoPeek.',
+  },
+  {
+    name: 'Bundled Nmap',
+    state: 'Not planned',
+    detail: 'Never installed, located, or run by ProtoPeek.',
+  },
+  {
+    name: 'Traceroute',
+    state: 'Gated',
+    detail: 'Hop probes are separate from kernel route evidence.',
+  },
 ];
 
 export function Dashboard() {
@@ -75,17 +100,17 @@ export function Dashboard() {
           <header>
             <div>
               <span className="pp-kicker">Available now</span>
-              <h2 id="protocols-title">Protocol workbenches</h2>
+              <h2 id="protocols-title">Workbench surfaces</h2>
             </div>
             <span className="pp-local-indicator">
-              <LockKeyhole aria-hidden="true" /> Local only
+              <LockKeyhole aria-hidden="true" /> Session data stays local
             </span>
           </header>
           <div className="pp-protocol-cards">
             <Link to="/grpc" className="pp-protocol-card">
               <Server aria-hidden="true" />
               <span>
-                <small>Shipped</small>
+                <small>Stable</small>
                 <strong>gRPC</strong>
               </span>
               <p>Reflection, proto files, protosets, deadlines, streams, headers, trailers.</p>
@@ -94,10 +119,22 @@ export function Dashboard() {
             <Link to="/http" className="pp-protocol-card">
               <Globe2 aria-hidden="true" />
               <span>
-                <small>Shipped</small>
+                <small>Stable</small>
                 <strong>HTTP</strong>
               </span>
               <p>Safe local relay with TLS, redirect, timing, peer, header, and body evidence.</p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/routes" className="pp-protocol-card">
+              <Route aria-hidden="true" />
+              <span>
+                <small>In this build</small>
+                <strong>Next hop</strong>
+              </span>
+              <p>
+                Read-only process-perspective source, interface, gateway, prefix, metric, and table
+                evidence.
+              </p>
               <ArrowRight aria-hidden="true" />
             </Link>
           </div>
@@ -154,7 +191,7 @@ export function Dashboard() {
       <section className="pp-capability-strip" aria-labelledby="capability-title">
         <header>
           <span className="pp-kicker">Honest boundaries</span>
-          <h2 id="capability-title">Not silently running</h2>
+          <h2 id="capability-title">Evidence boundaries</h2>
         </header>
         <div>
           {gatedCapabilities.map((capability) => (

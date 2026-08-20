@@ -25,8 +25,24 @@ const httpRoute = createRoute({
   path: '/http',
   component: lazyRouteComponent(() => import('./HTTPWorkbench'), 'HTTPWorkbench'),
 });
+const routesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/routes',
+  component: lazyRouteComponent(() => import('./RoutesWorkbench'), 'RoutesWorkbench'),
+});
+const roadmapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/roadmap',
+  component: lazyRouteComponent(() => import('./Roadmap'), 'Roadmap'),
+});
 
-const routeTree = rootRoute.addChildren([dashboardRoute, grpcRoute, httpRoute]);
+const routeTree = rootRoute.addChildren([
+  dashboardRoute,
+  grpcRoute,
+  httpRoute,
+  routesRoute,
+  roadmapRoute,
+]);
 
 export function createProtoPeekRouter(history = createHashHistory()) {
   return createRouter({ routeTree, history, defaultPreload: 'intent' });

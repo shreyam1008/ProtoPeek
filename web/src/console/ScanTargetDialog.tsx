@@ -1,8 +1,10 @@
 import { Radar, X } from 'lucide-react';
-import { useEffect, useEffectEvent, useRef } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
+import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import type { ScanResult } from './api';
 import { DiscoveryScanner } from './DiscoveryScanner';
+import { NmapImportPanel } from './NmapImportPanel';
 
 export function ScanTargetDialog({
   open,
@@ -24,6 +26,7 @@ export function ScanTargetDialog({
   const dialogRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const [activeTab, setActiveTab] = useState<'probe' | 'nmap'>('probe');
   const closeDialog = useEffectEvent(onClose);
 
   useEffect(() => {
@@ -40,9 +43,9 @@ export function ScanTargetDialog({
       if (event.key !== 'Tab') return;
       const focusable = Array.from(
         dialogRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+          'button:not([disabled]), input:not([disabled]):not([tabindex="-1"]), [href], [tabindex]:not([tabindex="-1"])'
         ) ?? []
-      );
+      ).filter((element) => !element.closest('[hidden]'));
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (!first || !last) return;
@@ -90,16 +93,37 @@ export function ScanTargetDialog({
             <X aria-hidden="true" />
           </button>
         </header>
-        <DiscoveryScanner
-          inputRef={inputRef}
-          initialTarget={initialTarget}
-          autoStart={autoStart}
-          onResults={onResults}
-          onOpenGRPC={onOpenGRPC}
-          onOpenHTTP={onOpenHTTP}
+        <AccessibleTabs
+          id="scan-target-mode"
+          label="Discovery source"
+          tabs={[
+            { value: 'probe', label: 'Probe target' },
+            { value: 'nmap', label: 'Import Nmap XML' },
+          ]}
+          value={activeTab}
+          onChange={setActiveTab}
+          className="pp-scan-source-tabs"
         />
+        <TabPanel id="scan-target-mode" tab="probe" active={activeTab === 'probe'}>
+          <DiscoveryScanner
+            inputRef={inputRef}
+            initialTarget={initialTarget}
+            autoStart={autoStart}
+            onResults={onResults}
+            onOpenGRPC={onOpenGRPC}
+            onOpenHTTP={onOpenHTTP}
+          />
+        </TabPanel>
+        <TabPanel id="scan-target-mode" tab="nmap" active={activeTab === 'nmap'}>
+          <NmapImportPanel
+            active={activeTab === 'nmap'}
+            onResults={onResults}
+            onOpenGRPC={onOpenGRPC}
+            onOpenHTTP={onOpenHTTP}
+          />
+        </TabPanel>
         <footer>
-          <span>Local process · no background polling</span>
+          <span>Local session · no background polling</span>
           <span>Esc closes</span>
         </footer>
       </section>

@@ -59,7 +59,7 @@ export function WorkbenchHeader({
         <RefreshCw aria-hidden="true" />
       </button>
       <span className="pp-connection-fact">
-        <LockKeyhole aria-hidden="true" /> Local only
+        <LockKeyhole aria-hidden="true" /> Local console
       </span>
       <span className="pp-connection-fact">{transport}</span>
       <span className="pp-connection-fact pp-source-fact">{source}</span>
