@@ -33,7 +33,7 @@ version source of truth.
 - Added dual-command release archives, checksum-enforcing Unix and Windows
   installers, three-OS CI, archive SBOMs, and GitHub build provenance.
 - Added a prerendered homepage, current social metadata, and cross-platform man
-  pages while keeping v0.2.0 in draft-candidate state until acceptance passes.
+  pages.
 
 ## v0.1.6
 

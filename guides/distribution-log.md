@@ -6,13 +6,12 @@ Last checked: 20 August 2026
 
 | Channel | Version | Status | Evidence / next check |
 | --- | --- | --- | --- |
-| Product website | current public site | **Live** | Custom domain serves over HTTPS and the legacy Pages URL redirects to it. Candidate source changes are not live until merged and deployed. |
-| GitHub Releases | v0.1.6 | **Live stable** | Public stable release exists but predates the rebuilt gRPC and HTTP workbench. |
-| Release candidate | v0.2.0 | **Draft candidate; not published** | Packaging, installers, OS validation, SBOMs, and provenance must pass before a tag draft is manually published. |
-| Edge release | v0.0.0-edge | **Rolling prerelease** | Public edge exists. The safer workflow in the candidate is not deployment evidence until merged and run. |
+| Product website | v0.2.0 docs | **Live** | Custom domain serves the prerendered gRPC + HTTP site over HTTPS and the legacy Pages URL redirects to it. |
+| GitHub Releases | v0.2.0 | **Live stable** | Eight archives provide both commands across Linux, macOS, and Windows, with checksums, SBOMs, and provenance attestations. |
+| Edge release | v0.0.0-edge | **Rolling prerelease** | Edge remains an explicit opt-in channel and is never a stable-resolution fallback. |
 | Docker registry | — | **Not published** | The repository builds `protopeek:dev` locally; no public image is claimed. |
 | Package managers | — | **Not published** | Homebrew, Scoop, WinGet, AUR, and Chocolatey remain outside the v0.2.0 release gate. |
 
-Do not call v0.2.0 released until its draft archives, checksums, SBOMs,
-attestations, Unix and Windows installers, website, and three-OS acceptance all
-describe the same version and the draft is manually published.
+v0.2.0 is the first stable release of the rebuilt gRPC and HTTP workbench. Its
+website, installers, archives, checksums, SBOMs, attestations, and three-OS CI
+describe the same version.
