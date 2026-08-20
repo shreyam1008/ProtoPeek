@@ -1,6 +1,6 @@
-# ProtoPeek v0.2.0 draft notes
+# ProtoPeek v0.2.0 release notes
 
-This file is a candidate template, not evidence that v0.2.0 is public.
+Released 20 August 2026.
 
 ## Highlights
 
@@ -22,5 +22,7 @@ This file is a candidate template, not evidence that v0.2.0 is public.
   verified installer fixture.
 - The release contract builds and inspects Linux 386/amd64/arm64, macOS
   amd64/arm64, and Windows 386/amd64/arm64 archives.
-- The browser UI and `pp` auto-open path still require a final draft-asset smoke
-  check before the GitHub release is published.
+- The browser UI passed desktop, 320 px, keyboard, discovery, recents, and HTTP
+  history/send regression checks in Chromium. Native CI covers command startup
+  and installers; physical macOS and Windows browser auto-open remain useful
+  follow-up smoke checks rather than unreported release claims.

@@ -1,8 +1,7 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.2.0 is currently a draft candidate, not a public stable release. The
-> stable resolver continues to install v0.1.6 until the draft is tested and
-> manually published.
+> v0.2.0 is the current public stable release. The default resolver installs it
+> from immutable GitHub release assets and never falls back to edge.
 
 ## Install through the release resolver
 
@@ -36,11 +35,11 @@ Get-Content .\install.ps1
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.1.6 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.2.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.1.6'
+$env:PROTOPEEK_VERSION = 'v0.2.0'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 

@@ -9,9 +9,10 @@
   "repository": "https://github.com/shreyam1008/ProtoPeek",
   "canonicalUrl": "https://protopeek.shreyam1008.com.np/",
   "creatorUrl": "https://shreyam1008.com.np/",
-  "releaseCandidate": {
+  "latestRelease": {
     "version": "0.2.0",
-    "status": "draft-not-published"
+    "status": "published",
+    "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.2.0"
   },
   "versionSource": "Git tag consumed by .goreleaser.yml",
   "verifyCommand": "make ci",
@@ -30,9 +31,9 @@
     {
       "channel": "GitHub Releases",
       "status": "live",
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.1.6",
-      "version": "0.1.6",
-      "verifiedAt": "2026-08-17"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.2.0",
+      "version": "0.2.0",
+      "verifiedAt": "2026-08-20"
     }
   ]
 }

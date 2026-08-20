@@ -4,9 +4,8 @@ ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the req
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Release status:** v0.2.0 is a draft candidate, not a public release. Until
-> that draft is tested and published, the stable installer and `@latest` remain
-> on v0.1.6. The current source tree and edge channel contain newer work.
+> **Latest stable:** v0.2.0. The verified shell and PowerShell installers, and
+> `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
 ![ProtoPeek local gRPC console showing a successful request and response evidence](https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg)
 
