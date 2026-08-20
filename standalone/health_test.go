@@ -169,6 +169,7 @@ type fakeHealthClient struct {
 type delayedTrailerHealthStream struct {
 	ctx          context.Context
 	trailerDelay time.Duration
+	trailerReady chan struct{}
 }
 
 func (client *fakeHealthClient) Check(ctx context.Context, request *healthpb.HealthCheckRequest, options ...grpc.CallOption) (*healthpb.HealthCheckResponse, error) {
@@ -184,6 +185,10 @@ func (*delayedTrailerHealthStream) Header() (metadata.MD, error) {
 }
 
 func (stream *delayedTrailerHealthStream) Trailer() metadata.MD {
+	if stream.trailerReady != nil {
+		close(stream.trailerReady)
+		<-stream.ctx.Done()
+	}
 	time.Sleep(stream.trailerDelay)
 	return metadata.Pairs("x-watch-trailer", "server-canceled")
 }
@@ -1141,6 +1146,40 @@ func TestHealthWatchServerTerminalBeforeDurationCannotBeRelabeledWhileReadingTra
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
 	}
+	ended := lastHealthWatchEvent(t, response.Body.String())
+	if ended.Reason != "rpc-error" || ended.GRPCStatus.Code != int32(codes.Canceled) || ended.GRPCStatus.Message != "server canceled before local duration" {
+		t.Fatalf("server-canceled ended = %#v", ended)
+	}
+}
+
+func TestHealthWatchRequestCancellationAfterServerTerminalCannotRelabelEvidence(t *testing.T) {
+	t.Parallel()
+
+	trailerReady := make(chan struct{})
+	handlers := newHealthHandlerSet(nil, nil)
+	handlers.clientFactory = func(grpc.ClientConnInterface) healthClient {
+		return &fakeHealthClient{
+			watch: func(ctx context.Context, _ *healthpb.HealthCheckRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[healthpb.HealthCheckResponse], error) {
+				return &delayedTrailerHealthStream{ctx: ctx, trailerReady: trailerReady}, nil
+			},
+		}
+	}
+	handler := handlers.watchHandler(func(*http.Request) (grpc.ClientConnInterface, *healthRequestError) {
+		return nil, nil
+	})
+	cookie := &http.Cookie{Name: csrfCookieName, Value: "health-token"}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	request := newHealthJSONRequest(ctx, cookie, "/api/health/watch", strings.NewReader(`{"service":"terminal-owner","duration_seconds":10}`))
+	response := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		handler.ServeHTTP(response, request)
+		close(done)
+	}()
+	waitHealthSignal(t, trailerReady, "server terminal before delayed trailers")
+	cancel()
+	waitHealthSignal(t, done, "Health Watch completion after request cancellation")
 	ended := lastHealthWatchEvent(t, response.Body.String())
 	if ended.Reason != "rpc-error" || ended.GRPCStatus.Code != int32(codes.Canceled) || ended.GRPCStatus.Message != "server canceled before local duration" {
 		t.Fatalf("server-canceled ended = %#v", ended)

@@ -353,8 +353,8 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 		}
 		headerObservedAt := time.Now()
 		if headerErr != nil {
-			trailers, trailersTruncated, _ := boundedHealthMetadata(stream.Trailer(), maxHealthResponseMetadataBytes)
 			reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, headerErr, false)
+			trailers, trailersTruncated, _ := boundedHealthMetadata(stream.Trailer(), maxHealthResponseMetadataBytes)
 			_ = events.write(healthWatchEndedEvent{
 				healthWatchEventBase: base("ended", headerObservedAt),
 				Reason:               reason,
@@ -413,12 +413,12 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 			}
 		}
 
+		reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, terminalErr, observationLimit)
 		trailers := make([]healthMetadata, 0)
 		trailersTruncated := observationLimit
 		if !observationLimit {
 			trailers, trailersTruncated, _ = boundedHealthMetadata(stream.Trailer(), maxHealthResponseMetadataBytes-headerBytes)
 		}
-		reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, terminalErr, observationLimit)
 		_ = events.write(healthWatchEndedEvent{
 			healthWatchEventBase: base("ended", terminalObservedAt),
 			Reason:               reason,
