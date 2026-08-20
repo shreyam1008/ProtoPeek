@@ -154,7 +154,7 @@ function Hero() {
     <section className="pt-16 text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-pp-border bg-white px-4 py-1.5 text-xs font-medium text-pp-muted shadow-sm">
         <Zap className="size-3.5 text-pp-brand" />
-        v0.3.1 stable &middot; local-first
+        v0.3.2 stable &middot; local-first
       </div>
 
       <h1 className="mt-6 text-4xl font-bold tracking-tight text-pp-ink md:text-5xl lg:text-6xl">
@@ -555,9 +555,9 @@ function Install() {
   return (
     <section id="install">
       <SectionHeader
-        label="Install · stable v0.3.1"
+        label="Install · stable v0.3.2"
         title="Start the local workbench"
-        subtitle="The verified release installers and owned Homebrew and Scoop channels resolve v0.3.1 from checksum-pinned public archives."
+        subtitle="The verified release installers resolve v0.3.2; the owned Homebrew and Scoop channels remain on v0.3.1 until their independent updates pass."
       />
 
       <div className="mt-8 space-y-3">
@@ -591,7 +591,7 @@ function Install() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-pp-muted">
-          With stable v0.3.1, run{' '}
+          With stable v0.3.2, run{' '}
           <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
             pp
           </code>{' '}

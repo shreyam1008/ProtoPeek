@@ -10,9 +10,9 @@
   "canonicalUrl": "https://protopeek.shreyam1008.com.np/",
   "creatorUrl": "https://shreyam1008.com.np/",
   "latestRelease": {
-    "version": "0.3.1",
+    "version": "0.3.2",
     "status": "published",
-    "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.1"
+    "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.2"
   },
   "versionSource": "Git tag consumed by .goreleaser.yml",
   "verifyCommand": "make ci",
@@ -26,28 +26,28 @@
       "channel": "Product website",
       "status": "live",
       "url": "https://protopeek.shreyam1008.com.np/",
-      "verifiedAt": "2026-08-20"
+      "verifiedAt": "2026-08-21"
     },
     {
       "channel": "GitHub Releases",
       "status": "live",
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.1",
-      "version": "0.3.1",
-      "verifiedAt": "2026-08-20"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.2",
+      "version": "0.3.2",
+      "verifiedAt": "2026-08-21"
     },
     {
       "channel": "Homebrew Tap",
       "status": "live",
       "url": "https://github.com/shreyam1008/homebrew-tap/blob/main/Formula/protopeek.rb",
       "version": "0.3.1",
-      "verifiedAt": "2026-08-20"
+      "verifiedAt": "2026-08-21"
     },
     {
       "channel": "Scoop Bucket",
       "status": "live",
       "url": "https://github.com/shreyam1008/scoop-bucket/blob/main/bucket/protopeek.json",
       "version": "0.3.1",
-      "verifiedAt": "2026-08-20"
+      "verifiedAt": "2026-08-21"
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.3.1 is the current public stable release. The default resolver installs it
+> v0.3.2 is the current public stable release. The default resolver installs it
 > from immutable GitHub release assets and never falls back to edge.
 
 ## Install through an owned package channel
@@ -18,9 +18,10 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest pin the public v0.3.1 archives by SHA-256. Update with
-`brew upgrade protopeek` or `scoop update protopeek`; uninstall with
-`brew uninstall protopeek` or `scoop uninstall protopeek`.
+The formula and manifest remain pinned to the public v0.3.1 archives until their
+independent v0.3.2 updates pass. Update with `brew upgrade protopeek` or
+`scoop update protopeek`; uninstall with `brew uninstall protopeek` or
+`scoop uninstall protopeek`.
 
 ## Install through the release resolver
 
@@ -54,11 +55,11 @@ Get-Content .\install.ps1
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.3.1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.3.2 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.3.1'
+$env:PROTOPEEK_VERSION = 'v0.3.2'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
