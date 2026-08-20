@@ -4,7 +4,7 @@ ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the req
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Latest stable:** v0.3.0. The verified shell and PowerShell installers, and
+> **Latest stable:** v0.3.1. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
@@ -46,8 +46,10 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 ```
 
 The owned package definitions and installers pin the selected release archive
-to its published SHA-256 entry. See the [install guide](guides/INSTALLING.md)
-for package updates, pinned versions, rollback, PATH behavior, and uninstall.
+to its published SHA-256 entry. The release resolvers move to v0.3.1 with the
+stable release; Homebrew and Scoop remain on v0.3.0 until their independent
+package updates pass. See the [install guide](guides/INSTALLING.md) for package
+updates, pinned versions, rollback, PATH behavior, and uninstall.
 
 Go fallback:
 

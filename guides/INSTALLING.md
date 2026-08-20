@@ -1,6 +1,6 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.3.0 is the current public stable release. The default resolver installs it
+> v0.3.1 is the current public stable release. The default resolver installs it
 > from immutable GitHub release assets and never falls back to edge.
 
 ## Install through an owned package channel
@@ -54,11 +54,11 @@ Get-Content .\install.ps1
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.3.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.3.1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.3.0'
+$env:PROTOPEEK_VERSION = 'v0.3.1'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 

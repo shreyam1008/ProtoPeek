@@ -26,10 +26,10 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **the v0.3.0 release, matching website, owned Homebrew tap, and owned Scoop
-bucket are public**. WinGet and community launch submissions remain gated on initial package/user
-feedback. No third-party submission or founder-authored community post should be made from an agent
-account.
+Current execution state: **the v0.3.1 release and matching website are public; the owned Homebrew
+tap and Scoop bucket remain public on v0.3.0 until their independent updates pass**. WinGet and
+community launch submissions remain gated on initial package/user feedback. No third-party
+submission or founder-authored community post should be made from an agent account.
 
 The owned feedback channels are live: use [Issues](https://github.com/shreyam1008/ProtoPeek/issues)
 for reproducible installer/runtime defects and
@@ -39,7 +39,7 @@ reports unless the reporter has reviewed and intentionally shared them.
 
 ### 1. Direct release: day zero
 
-- The tested v0.3.0 GitHub release and matching website are public.
+- The tested v0.3.1 GitHub release and matching website are public.
 - Keep the verified shell and PowerShell installers as canonical fallbacks alongside the owned
   package channels.
 - Update Shreyam's portfolio entry from “gRPC Tooling” to “local gRPC + HTTP
