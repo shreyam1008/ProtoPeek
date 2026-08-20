@@ -40,6 +40,8 @@ const csrfCookieName = "_protopeek_csrf_token"
 
 const csrfHeaderName = "x-protopeek-csrf-token"
 
+const maxWorkspaceConnectBodyBytes = 256 << 10
+
 // Handler returns an HTTP handler that provides a fully-functional gRPC web
 // UI, including the main index (with the HTML form), all needed CSS and JS
 // assets, and the handlers that provide schema metadata and perform RPC
@@ -153,6 +155,13 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 		ScanHandler().ServeHTTP(w, r)
 	})
+	mux.HandleFunc("/api/http/request", func(w http.ResponseWriter, r *http.Request) {
+		if !validCSRF(r) {
+			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+			return
+		}
+		HTTPRequestHandler().ServeHTTP(w, r)
+	})
 
 	if uiOpts.workspaceManager != nil {
 		mux.HandleFunc("/api/workspace/connect", func(w http.ResponseWriter, r *http.Request) {
@@ -169,8 +178,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 			var payload struct {
 				Target WorkspaceTargetConfig `json:"target"`
 			}
-			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-				http.Error(w, "Failed to decode target payload", http.StatusBadRequest)
+			if !decodeJSONRequest(w, r, maxWorkspaceConnectBodyBytes, &payload) {
 				return
 			}
 
@@ -266,7 +274,6 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 
 	// make sure we always have a csrf token cookie
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		if _, err := r.Cookie(csrfCookieName); err != nil {
 			tokenBytes := make([]byte, 32)
 			if _, err := rand.Read(tokenBytes); err != nil {
@@ -274,8 +281,10 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				return
 			}
 			c := &http.Cookie{
-				Name:  csrfCookieName,
-				Value: base64.RawURLEncoding.EncodeToString(tokenBytes),
+				Name:     csrfCookieName,
+				Value:    base64.RawURLEncoding.EncodeToString(tokenBytes),
+				Path:     "/",
+				SameSite: http.SameSiteStrictMode,
 			}
 			http.SetCookie(w, c)
 		}

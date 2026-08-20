@@ -1,8 +1,8 @@
 import {
   BookOpenText,
   Boxes,
+  CheckCircle2,
   Download,
-  FlaskConical,
   History,
   Network,
   Search,
@@ -29,7 +29,7 @@ const utilityViews: Array<{
   label: string;
 }> = [
   { key: 'history', icon: History, label: 'History & saved' },
-  { key: 'tests', icon: FlaskConical, label: 'Checks' },
+  { key: 'tests', icon: CheckCircle2, label: 'Checks' },
   { key: 'transport', icon: Network, label: 'Transport' },
   { key: 'structure', icon: BookOpenText, label: 'Schema' },
   { key: 'workspace', icon: Settings, label: 'Targets' },

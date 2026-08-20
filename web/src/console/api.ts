@@ -1,6 +1,8 @@
 import type {
   BootstrapResponse,
   ExampleResponse,
+  HTTPRequestInput,
+  HTTPResponse,
   InvokeRequest,
   InvokeResponse,
   ProtoCatalogResponse,
@@ -44,6 +46,7 @@ export function normalizeBootstrap(input: unknown): BootstrapResponse {
   const defaults = (bootstrap.targetDefaults ?? {}) as WorkspaceTargetConfig;
   return {
     ...bootstrap,
+    initialScanTarget: bootstrap.initialScanTarget ?? '',
     defaultMetadata: arrayOrEmpty(bootstrap.defaultMetadata),
     services: arrayOrEmpty(bootstrap.services).map((service) => ({
       ...service,
@@ -202,16 +205,29 @@ export type ScanResult = {
   address: string;
   alive: boolean;
   grpc: boolean;
+  reflection: 'available' | 'unavailable' | 'not-checked';
+  transport: 'plaintext' | 'tls' | 'auto' | 'none' | '';
   services: string[] | null;
+  failure: 'unreachable' | 'non-grpc' | 'blocked' | 'request' | '';
   error: string | null;
+  details: string[] | null;
   latencyMs: number;
 };
 
-export function scanAddresses(addresses: string[], allowPrivateNetwork = false) {
+export function scanAddresses(addresses: string[], allowPrivateNetwork = false, explicit = false) {
   return fetchJSON<ScanResult[]>('api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addresses, allowPrivateNetwork }),
+    body: JSON.stringify({ addresses, allowPrivateNetwork, explicit }),
+  });
+}
+
+export function sendHTTPRequest(input: HTTPRequestInput, signal?: AbortSignal) {
+  return fetchJSON<HTTPResponse>('api/http/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    signal,
   });
 }
 

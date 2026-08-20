@@ -8,7 +8,6 @@ import {
   LoaderCircle,
   Play,
   Plus,
-  RotateCcw,
   Save,
   Search,
   Square,
@@ -22,7 +21,16 @@ import type {
   MetadataEntry,
   SchemaResponse,
 } from '@/shared/types';
-import { classNames, durationLabel, prettyJson, safeParseJson } from '@/shared/utils';
+import {
+  classNames,
+  durationLabel,
+  modifierKeyLabel,
+  prettyJson,
+  safeParseJson,
+  sanitizeInvokeResponseForExport,
+} from '@/shared/utils';
+
+import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 
 type InvokeState = {
   loading: boolean;
@@ -91,6 +99,7 @@ export function CallWorkspace({
   const response = invokeState.result;
   const parsedRequest = useMemo(() => safeParseJson(requestText), [requestText]);
   const lineCount = Math.max(1, requestText.split('\n').length);
+  const modifier = modifierKeyLabel();
 
   const filteredResponses = useMemo(() => {
     const query = responseQuery.trim().toLowerCase();
@@ -122,34 +131,98 @@ export function CallWorkspace({
     ? (response?.responses[visibleSelectedIndex] ?? null)
     : null;
   const mode = streamMode(method);
+  const responseTabs = (
+    [
+      ['messages', 'Messages', response?.responses.length ?? 0],
+      ['headers', 'Headers', response?.headers.length ?? 0],
+      ['trailers', 'Trailers', response?.trailers.length ?? 0],
+      ['status', 'Status', null],
+    ] as const
+  ).map(([value, label, count]) => ({
+    value,
+    label: (
+      <>
+        {label} {count !== null ? <span className="pp-count">{count}</span> : null}
+      </>
+    ),
+  }));
+
+  function renderResponseTab(tab: ResponseTab) {
+    if (invokeState.loading) {
+      return (
+        <ResponsePlaceholder>
+          <LoaderCircle className="pp-response-spinner" aria-hidden="true" />
+          Waiting for {mode.toLowerCase()}… Use Cancel to stop the RPC.
+        </ResponsePlaceholder>
+      );
+    }
+    if (invokeState.error) {
+      return (
+        <div className="pp-response-error" role="alert">
+          <CircleAlert aria-hidden="true" />
+          <div>
+            <strong>Invocation failed</strong>
+            <p>{invokeState.error}</p>
+          </div>
+        </div>
+      );
+    }
+    if (!response) {
+      return (
+        <ResponsePlaceholder>Invoke this method to inspect gRPC evidence.</ResponsePlaceholder>
+      );
+    }
+    switch (tab) {
+      case 'messages':
+        return (
+          <ResponseMessages
+            responses={response.responses}
+            filtered={filteredResponses}
+            selectedIndex={visibleSelectedIndex}
+            selected={selected}
+            totalLatencyMs={invokeState.latencyMs}
+            onSelect={setSelectedResponse}
+          />
+        );
+      case 'headers':
+        return <MetadataGrid title="Response headers" values={response.headers} />;
+      case 'trailers':
+        return <MetadataGrid title="Response trailers" values={response.trailers} />;
+      case 'status':
+        return <StatusGrid response={response} latencyMs={invokeState.latencyMs} />;
+    }
+  }
 
   return (
     <section className="pp-call-workspace" aria-label={`${method.name} call workspace`}>
-      <div className="pp-mobile-workspace-tabs" role="tablist" aria-label="Call workspace pane">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobilePane === 'request'}
-          onClick={() => setMobilePane('request')}
-        >
-          Request
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobilePane === 'response'}
-          onClick={() => setMobilePane('response')}
-        >
-          Response
-          {response?.responses.length ? <span>{response.responses.length}</span> : null}
-        </button>
-      </div>
+      <AccessibleTabs
+        id="grpc-mobile-pane"
+        label="Call workspace pane"
+        tabs={[
+          { value: 'request' as const, label: 'Request' },
+          {
+            value: 'response' as const,
+            label: (
+              <>
+                Response
+                {response?.responses.length ? <span>{response.responses.length}</span> : null}
+              </>
+            ),
+          },
+        ]}
+        value={mobilePane}
+        onChange={setMobilePane}
+        className="pp-mobile-workspace-tabs"
+      />
 
       <div
         className={classNames(
           'pp-call-pane pp-request-pane',
           mobilePane !== 'request' && 'pp-mobile-pane-hidden'
         )}
+        id="grpc-mobile-pane-panel-request"
+        role="tabpanel"
+        aria-labelledby="grpc-mobile-pane-tab-request"
       >
         <div className="pp-pane-titlebar">
           <div>
@@ -160,81 +233,88 @@ export function CallWorkspace({
             <Save aria-hidden="true" /> Save request
           </button>
         </div>
-        <div className="pp-pane-tabs" role="tablist" aria-label="Request input">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={requestTab === 'request'}
-            className={classNames('pp-pane-tab', requestTab === 'request' && 'pp-pane-tab-active')}
-            onClick={() => setRequestTab('request')}
-          >
-            Request
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={requestTab === 'metadata'}
-            className={classNames('pp-pane-tab', requestTab === 'metadata' && 'pp-pane-tab-active')}
-            onClick={() => setRequestTab('metadata')}
-          >
-            Metadata <span className="pp-count">{metadata.filter((item) => item.name).length}</span>
-          </button>
-        </div>
+        <AccessibleTabs
+          id="grpc-request"
+          label="Request input"
+          tabs={[
+            { value: 'request' as const, label: 'Request' },
+            {
+              value: 'metadata' as const,
+              label: (
+                <>
+                  Metadata{' '}
+                  <span className="pp-count">{metadata.filter((item) => item.name).length}</span>
+                </>
+              ),
+            },
+          ]}
+          value={requestTab}
+          onChange={setRequestTab}
+        />
 
-        {requestTab === 'request' ? (
-          <div className="pp-editor-region">
-            <div className="pp-editor-toolbar">
-              <span>
-                <Braces aria-hidden="true" /> JSON
+        <TabPanel
+          id="grpc-request"
+          tab="request"
+          className="pp-editor-region"
+          active={requestTab === 'request'}
+        >
+          <div className="pp-editor-toolbar">
+            <span>
+              <Braces aria-hidden="true" /> JSON
+            </span>
+            <div>
+              <span className={parsedRequest.error ? 'pp-json-invalid' : 'pp-json-valid'}>
+                {parsedRequest.error ? 'Invalid JSON' : 'Valid JSON'}
               </span>
-              <div>
-                <span className={parsedRequest.error ? 'pp-json-invalid' : 'pp-json-valid'}>
-                  {parsedRequest.error ? 'Invalid JSON' : 'Valid JSON'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!parsedRequest.error) onRequestChange(prettyJson(parsedRequest.value));
-                  }}
-                  disabled={Boolean(parsedRequest.error)}
-                >
-                  Format
-                </button>
-                <button type="button" onClick={onResetRequest}>
-                  <RotateCcw aria-hidden="true" /> Reset
-                </button>
-              </div>
-            </div>
-            <div className="pp-json-editor">
-              <div className="pp-line-numbers" aria-hidden="true">
-                {Array.from({ length: lineCount }, (_, index) => (
-                  <span
-                    // biome-ignore lint/suspicious/noArrayIndexKey: visual line numbers follow source order
-                    key={index}
-                  >
-                    {index + 1}
-                  </span>
-                ))}
-              </div>
-              <textarea
-                aria-label="Request JSON"
-                spellCheck={false}
-                value={requestText}
-                onChange={(event) => onRequestChange(event.target.value)}
-              />
-            </div>
-            <div className="pp-schema-note">
-              {schema.requestStream ? 'Send a JSON array' : schema.requestType}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!parsedRequest.error) onRequestChange(prettyJson(parsedRequest.value));
+                }}
+                disabled={Boolean(parsedRequest.error)}
+              >
+                Format
+              </button>
+              <button type="button" onClick={onResetRequest}>
+                Reset
+              </button>
             </div>
           </div>
-        ) : (
+          <div className="pp-json-editor">
+            <div className="pp-line-numbers" aria-hidden="true">
+              {Array.from({ length: lineCount }, (_, index) => (
+                <span
+                  // biome-ignore lint/suspicious/noArrayIndexKey: visual line numbers follow source order
+                  key={index}
+                >
+                  {index + 1}
+                </span>
+              ))}
+            </div>
+            <textarea
+              aria-label="Request JSON"
+              spellCheck={false}
+              value={requestText}
+              onChange={(event) => onRequestChange(event.target.value)}
+            />
+          </div>
+          <div className="pp-schema-note">
+            {schema.requestStream ? 'Send a JSON array' : schema.requestType}
+          </div>
+        </TabPanel>
+        <TabPanel
+          id="grpc-request"
+          tab="metadata"
+          className="pp-metadata-editor"
+          active={requestTab === 'metadata'}
+        >
           <MetadataEditor
             metadata={metadata}
             onMetadataChange={onMetadataChange}
             onAddMetadata={onAddMetadata}
             onRemoveMetadata={onRemoveMetadata}
           />
-        )}
+        </TabPanel>
 
         <div className="pp-invoke-bar">
           <label>
@@ -260,7 +340,7 @@ export function CallWorkspace({
           >
             {invokeState.loading ? <Square aria-hidden="true" /> : <Play aria-hidden="true" />}
             {invokeState.loading ? 'Cancel' : 'Invoke'}
-            <kbd>⌘↵</kbd>
+            <kbd>{modifier}↵</kbd>
           </button>
         </div>
       </div>
@@ -270,6 +350,9 @@ export function CallWorkspace({
           'pp-call-pane pp-response-pane',
           mobilePane !== 'response' && 'pp-mobile-pane-hidden'
         )}
+        id="grpc-mobile-pane-panel-response"
+        role="tabpanel"
+        aria-labelledby="grpc-mobile-pane-tab-response"
         aria-live="polite"
       >
         <div className="pp-response-summary">
@@ -306,7 +389,12 @@ export function CallWorkspace({
             className="pp-response-action"
             aria-label="Copy response JSON"
             disabled={!response}
-            onClick={() => void navigator.clipboard.writeText(prettyJson(response))}
+            onClick={() =>
+              response &&
+              void navigator.clipboard.writeText(
+                prettyJson(sanitizeInvokeResponseForExport(response))
+              )
+            }
           >
             <Copy aria-hidden="true" />
           </button>
@@ -315,73 +403,38 @@ export function CallWorkspace({
             className="pp-response-action"
             aria-label="Export response JSON"
             disabled={!response}
-            onClick={() => downloadJSON(`${method.name}-response.json`, response)}
+            onClick={() =>
+              response &&
+              downloadJSON(
+                `${method.name}-response.json`,
+                sanitizeInvokeResponseForExport(response)
+              )
+            }
           >
             <Download aria-hidden="true" />
           </button>
         </div>
 
-        <div className="pp-pane-tabs pp-response-tabs" role="tablist" aria-label="RPC response">
-          {(
-            [
-              ['messages', 'Messages', response?.responses.length ?? 0],
-              ['headers', 'Headers', response?.headers.length ?? 0],
-              ['trailers', 'Trailers', response?.trailers.length ?? 0],
-              ['status', 'Status', null],
-            ] as const
-          ).map(([key, label, count]) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={responseTab === key}
-              className={classNames('pp-pane-tab', responseTab === key && 'pp-pane-tab-active')}
-              onClick={() => setResponseTab(key)}
-            >
-              {label} {count !== null ? <span className="pp-count">{count}</span> : null}
-            </button>
-          ))}
-        </div>
+        <AccessibleTabs
+          id="grpc-response"
+          label="RPC response"
+          tabs={responseTabs}
+          value={responseTab}
+          onChange={setResponseTab}
+          className="pp-response-tabs"
+        />
 
-        <div className="pp-response-content">
-          {invokeState.loading ? (
-            <ResponsePlaceholder>
-              <LoaderCircle className="pp-response-spinner" aria-hidden="true" />
-              Waiting for {mode.toLowerCase()}… Use Cancel to stop the RPC.
-            </ResponsePlaceholder>
-          ) : null}
-          {invokeState.error ? (
-            <div className="pp-response-error" role="alert">
-              <CircleAlert aria-hidden="true" />
-              <div>
-                <strong>Invocation failed</strong>
-                <p>{invokeState.error}</p>
-              </div>
-            </div>
-          ) : null}
-          {!invokeState.loading && !invokeState.error && !response ? (
-            <ResponsePlaceholder>Invoke this method to inspect gRPC evidence.</ResponsePlaceholder>
-          ) : null}
-          {response && responseTab === 'messages' ? (
-            <ResponseMessages
-              responses={response.responses}
-              filtered={filteredResponses}
-              selectedIndex={visibleSelectedIndex}
-              selected={selected}
-              totalLatencyMs={invokeState.latencyMs}
-              onSelect={setSelectedResponse}
-            />
-          ) : null}
-          {response && responseTab === 'headers' ? (
-            <MetadataGrid title="Response headers" values={response.headers} />
-          ) : null}
-          {response && responseTab === 'trailers' ? (
-            <MetadataGrid title="Response trailers" values={response.trailers} />
-          ) : null}
-          {response && responseTab === 'status' ? (
-            <StatusGrid response={response} latencyMs={invokeState.latencyMs} />
-          ) : null}
-        </div>
+        {(['messages', 'headers', 'trailers', 'status'] as const).map((tab) => (
+          <TabPanel
+            key={tab}
+            id="grpc-response"
+            tab={tab}
+            className="pp-response-content"
+            active={responseTab === tab}
+          >
+            {responseTab === tab ? renderResponseTab(tab) : null}
+          </TabPanel>
+        ))}
       </div>
     </section>
   );
@@ -458,7 +511,8 @@ function MetadataEditor({
           <p className="pp-empty-copy">No metadata. Add auth, tracing, or routing keys.</p>
         ) : null}
         <p className="pp-secret-note">
-          Metadata stays in memory unless you explicitly save this request or workspace.
+          Sensitive metadata stays live here but is redacted from saved requests, history, and
+          exports.
         </p>
       </div>
     </div>

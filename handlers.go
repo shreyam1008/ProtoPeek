@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
+	"mime"
 	"net/http"
 	"sort"
 	"strconv"
@@ -26,6 +28,8 @@ import (
 	"github.com/fullstorydev/grpcurl"
 	"github.com/shreyam1008/ProtoPeek/internal"
 )
+
+const maxInvokeRequestBodyBytes = 8 << 20
 
 // RPCInvokeHandler returns an HTTP handler that can be used to invoke RPCs. The
 // request includes request data, header metadata, and an optional timeout.
@@ -79,10 +83,12 @@ func RPCInvokeHandlerWithOptions(ch grpc.ClientConnInterface, descs []*desc.Meth
 			return
 		}
 
-		if r.Header.Get("Content-Type") != "application/json" {
+		contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if err != nil || !strings.EqualFold(contentType, "application/json") {
 			http.Error(w, "Request must be JSON", http.StatusUnsupportedMediaType)
 			return
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxInvokeRequestBodyBytes)
 
 		method := r.URL.Path
 		if method[0] == '/' {
@@ -98,6 +104,11 @@ func RPCInvokeHandlerWithOptions(ch grpc.ClientConnInterface, descs []*desc.Meth
 				}
 				results, err := invokeRPC(r.Context(), method, ch, descSource, r.Header, r.Body, &options)
 				if err != nil {
+					var maxBytesErr *http.MaxBytesError
+					if errors.As(err, &maxBytesErr) {
+						http.Error(w, "Request body is too large", http.StatusRequestEntityTooLarge)
+						return
+					}
 					if _, ok := err.(errReadFail); ok {
 						http.Error(w, "Failed to read request", 499)
 						return
@@ -412,6 +423,10 @@ type errReadFail struct {
 
 func (e errReadFail) Error() string {
 	return e.err.Error()
+}
+
+func (e errReadFail) Unwrap() error {
+	return e.err
 }
 
 func invokeRPC(ctx context.Context, methodName string, ch grpc.ClientConnInterface, descSource grpcurl.DescriptorSource, reqHdrs http.Header, body io.Reader, options *InvokeOptions) (*rpcResult, error) {

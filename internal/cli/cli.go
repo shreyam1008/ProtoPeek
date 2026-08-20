@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -18,11 +19,13 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fullstorydev/grpcurl"
@@ -417,8 +420,14 @@ func Run() {
 	}
 	launcherMode := flags.NArg() == 0
 	target := ""
+	initialScanTarget := ""
 	if !launcherMode {
 		target = flags.Arg(0)
+		if (isUnixSocket == nil || !isUnixSocket()) && shouldStartLauncherScan(target) {
+			launcherMode = true
+			initialScanTarget = target
+			target = ""
+		}
 	}
 
 	if len(protoset) > 0 && len(reflHeaders) > 0 {
@@ -603,6 +612,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
+		if initialScanTarget != "" {
+			handlerOpts = append(handlerOpts, standalone.WithInitialScanTarget(initialScanTarget))
+		}
 		handler = standalone.Handler(nil, "", nil, nil, handlerOpts...)
 	} else {
 		dialCtx, cancel := context.WithTimeout(ctx, connectTimeoutDuration)
@@ -811,7 +823,7 @@ func Run() {
 	}
 	handler = localAccessHandler(handler, *unsafeAllowRemote)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *bind, *port))
+	listener, err := net.Listen("tcp", net.JoinHostPort(requestHostname(*bind), strconv.Itoa(*port)))
 	if err != nil {
 		fail(err, "Failed to listen on port %d", *port)
 	}
@@ -820,7 +832,7 @@ func Run() {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	url := fmt.Sprintf("http://%s:%d%s", *bind, listener.Addr().(*net.TCPAddr).Port, path)
+	url := browserURL(*bind, listener.Addr().(*net.TCPAddr).Port, path)
 	printLaunchBanner(url, target)
 
 	if *openBrowser {
@@ -830,9 +842,40 @@ func Run() {
 			}
 		}()
 	}
-	if err := http.Serve(listener, handler); err != nil {
-		fail(err, "Failed to serve ProtoPeek")
+	server := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+	shutdownContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	serveErrors := make(chan error, 1)
+	go func() {
+		serveErrors <- server.Serve(listener)
+	}()
+
+	select {
+	case err := <-serveErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fail(err, "Failed to serve ProtoPeek")
+		}
+	case <-shutdownContext.Done():
+		graceContext, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+		err := server.Shutdown(graceContext)
+		cancelShutdown()
+		if err != nil {
+			_ = server.Close()
+			warn("ProtoPeek shutdown exceeded its grace period: %v", err)
+		}
+		if serveErr := <-serveErrors; serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			fail(serveErr, "Failed to serve ProtoPeek")
+		}
+	}
+}
+
+func browserURL(bindAddress string, port int, path string) string {
+	return fmt.Sprintf("http://%s%s", net.JoinHostPort(requestHostname(bindAddress), strconv.Itoa(port)), path)
 }
 
 func printLaunchBanner(url, target string) {
@@ -858,17 +901,18 @@ func usage() {
 
 Starts the ProtoPeek web console.
 
-If an address is provided, ProtoPeek connects directly to that target and opens
-the console in single-target mode.
+If a host:port address is provided, ProtoPeek connects directly to that target
+and opens the console in single-target mode. A bare host or HTTP(S) authority
+opens the launcher and probes only its explicit bounded candidates.
 
 If no address is provided, ProtoPeek opens in workspace launcher mode so you can
 define and switch between one or more gRPC targets from the UI.
 
-The address will typically be in the form "host:port" where host can be an IP
-address or a hostname and port is a numeric port or service name. If an IPv6
-address is given, it must be surrounded by brackets, like "[2001:db8::1]". For
-Unix variants, if a -unix=true flag is present, then the address must be the
-path to the domain socket.
+An exact address has the form "host:port", where port is numeric or a service
+name. A bare host checks only port 50051 with plaintext and port 443 with
+verified TLS. An http:// or https:// authority checks its stated or default
+port. IPv6 hosts must use brackets. For Unix variants, if a -unix=true flag is
+present, the address must be the path to the domain socket.
 
 Most flags control how the connection to the gRPC server is established. The
 ProtoPeek binds to localhost without TLS by default. Non-loopback web binds are
@@ -877,6 +921,19 @@ rejected unless -unsafe-allow-remote is supplied; ProtoPeek does not add authent
 Available flags:
 `, os.Args[0])
 	flags.PrintDefaults()
+}
+
+func shouldStartLauncherScan(target string) bool {
+	trimmed := strings.TrimSpace(target)
+	lower := strings.ToLower(trimmed)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		return true
+	}
+	if strings.Contains(trimmed, "://") {
+		return false
+	}
+	_, _, err := net.SplitHostPort(trimmed)
+	return err != nil
 }
 
 func prettify(docString string) string {

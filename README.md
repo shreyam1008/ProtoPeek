@@ -1,8 +1,12 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the request-to-server path clearly. gRPC is the reference adapter today; Cap'n Proto and REST/HTTP are planned as protocol-native adapters, not flattened generic-client modes.
+ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the request-to-server path clearly. The shipped workbench has protocol-native gRPC and HTTP surfaces: gRPC keeps schemas, stream modes, metadata, headers, trailers, and status visible, while HTTP keeps methods, URLs, redirects, response bodies, and timing visible.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
+
+> **Release status:** v0.2.0 is a draft candidate, not a public release. Until
+> that draft is tested and published, the stable installer and `@latest` remain
+> on v0.1.6. The current source tree and edge channel contain newer work.
 
 ![ProtoPeek local gRPC console showing a successful request and response evidence](https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg)
 
@@ -20,6 +24,16 @@ Or with `wget`:
 wget -qO- https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
 ```
 
+Windows PowerShell, per user:
+
+```powershell
+irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
+```
+
+The installers verify the selected release archive against its published
+SHA-256 entry before extracting. See the [install guide](guides/INSTALLING.md)
+for pinned versions, upgrades, rollback, PATH behavior, and uninstall.
+
 Go fallback:
 
 ```sh
@@ -30,12 +44,15 @@ go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 ## Usage
 
 ```sh
-pp                                # blank launcher — add targets from the browser UI
-pp -plaintext localhost:50051     # direct single-target mode
+pp                                # launcher + bounded automatic loopback discovery
+pp localhost                      # prefill + probe only localhost:50051 and localhost:443
+pp https://api.example.test       # prefill + probe the stated/default verified-TLS port
+pp -plaintext localhost:50051     # exact direct single-target mode
 ```
 
-In launcher mode each saved target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths.
-ProtoPeek automatically checks a small list of common loopback ports. Private-network IPs are only probed when you explicitly opt in; public hosts and arbitrary hostnames are never accepted by the discovery scan.
+In launcher mode each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Open the HTTP surface from the request rail to send an explicit `http://` or `https://` request through the same local server.
+
+Ambient discovery checks only a fixed list of loopback candidates. A literal private IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Passing that explicit target to the CLI opens the same visible launcher probe. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port.
 
 ## Capabilities
 
@@ -43,16 +60,16 @@ ProtoPeek automatically checks a small list of common loopback ports. Private-ne
 |---|---|
 | **Method rail** | Search and filter reflected services/methods with clear unary and streaming modes |
 | **Target registry** | Save and switch gRPC endpoints without restarting |
-| **Local discovery** | Find reflection-enabled loopback targets with an explicit private-network boundary |
+| **Local discovery** | Distinguish reflection, gRPC-without-reflection, and non-gRPC results with bounded loopback and explicit-target policies |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
-| **Metadata and auth** | Editable metadata, Bearer helper, deadline, and reusable environment profiles |
-| **Saved requests** | Keep request recipes locally, replay them, and import/export workspace JSON |
+| **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |
+| **Saved requests** | Keep secret-sanitized request recipes locally, replay them, and import/export workspace JSON |
 | **Response timeline** | Ordered messages with arrival timing, filtering, copy/export, headers, trailers, and final status |
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
-| **Simulation** | Concurrency sweeps with p50/p95/p99 latency and throughput |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
+| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence |
 
 ## Protocol direction
 
@@ -64,11 +81,15 @@ cancellation, and its native inspector.
 | Adapter | Status | First useful slice |
 |---|---|---|
 | gRPC | Shipped | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, timing |
-| Cap'n Proto | Planned | Local schema/capability bootstrap, one unary path, segment and capability inspector |
-| REST / HTTP | Planned | Method, URL, headers, body, status, timing, optional OpenAPI operation discovery |
+| HTTP / REST | Shipped | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
+| Cap'n Proto | Planned, gated | Local schema/capability bootstrap, one unary path, segment and capability inspector; requires fixture, dependency-size, and native-inspector gates |
+| Route trace | Planned, gated | Evidence tied to a real request path; requires a supported data source and truthful failure model before UI exposure |
+| LAN discovery | Planned, gated | Explicit, previewable private ranges only; requires opt-in scope, strict candidate budgets, cancellation, and no ambient or public crawling |
 | SMTP, FTP, and others | Later | Only after protocol-specific security, evidence, and UX are designed |
 
-See the detailed [protocol roadmap](guides/feature-roadmap.md) and [transport boundaries](guides/transport-boundaries.md).
+Cap'n Proto, route trace, and LAN discovery are roadmap items only. They do not appear as clickable request surfaces in the current console.
+
+See the detailed [protocol roadmap](guides/feature-roadmap.md), [transport boundaries](guides/transport-boundaries.md), and [go-to-market runbook](guides/go-to-market.md).
 
 ## Development
 
@@ -86,7 +107,7 @@ make install                      # install protopeek and pp locally
 
 ```sh
 make docker
-docker run --rm -p 127.0.0.1:8080:8080 shreyam1008/protopeek:dev
+docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev
 ```
 
 Scratch-compatible image: static Go binary, embedded web app, CA certs, non-root user. The

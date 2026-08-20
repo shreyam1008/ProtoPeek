@@ -1,6 +1,6 @@
 # ProtoPeek protocol roadmap
 
-ProtoPeek is **Protocol Peek**: a local, lightweight workbench for understanding the path from a
+ProtoPeek is **Protocol Peek**: a local workbench for understanding the path from a
 request to a server response. It is not trying to become a cloud API-management suite or a clone of
 Postman. Its advantage is that difficult protocols remain explainable: the request editor, the
 transport events, and the final evidence stay close together.
@@ -24,9 +24,9 @@ transport events, and the final evidence stay close together.
 - A promise that every protocol belongs in the default binary. Future adapters should be opt-in when
   they add meaningful binary, dependency, or security cost.
 
-## Current release: gRPC reference adapter
+## Current workbench: gRPC + HTTP
 
-The gRPC adapter is the quality bar for every future protocol:
+The gRPC adapter remains the quality bar for protocol-native depth:
 
 1. Discover services through reflection, loopback scan, `.proto`, or protoset sources.
 2. Keep service and method selection visible in a searchable rail with unary, server-stream,
@@ -34,9 +34,21 @@ The gRPC adapter is the quality bar for every future protocol:
 3. Generate an editable request payload from the reflected schema.
 4. Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.
 5. Render ordered response messages, headers, trailers, final status, and timing together.
-6. Preserve saved requests, history, checks, export, and command shortcuts without a server account.
+6. Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts
+   without a server account.
 7. Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public
    network probing.
+
+The HTTP adapter is the first additional protocol slice:
+
+1. Send an explicit HTTP(S) method, URL, headers, and body through the local Go server.
+2. Keep TLS verification on and redirect following off by default.
+3. Bound request envelopes, request and response bodies, header counts, timeouts, and redirects.
+4. Support cancellation and show status, HTTP protocol, headers, text/base64 body, byte count,
+   truncation, redirect hops, remote address, TLS summary, and DNS/connect/TLS/TTFB/total timing.
+5. Keep automatic local history secret-safe; credentials remain editable for the live request but
+   are redacted before persistence or default export.
+6. Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.
 
 ## Shared adapter architecture
 
@@ -46,8 +58,8 @@ local CLI / web server
 console shell: target -> operation -> request -> response evidence
         |
         +-- gRPC adapter       reflection | .proto | protoset
-        +-- Cap'n Proto adapter schema file | capability bootstrap
-        +-- HTTP adapter       URL | optional OpenAPI document
+        +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
+        +-- Cap'n Proto adapter planned: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
 ```
 
@@ -69,20 +81,31 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 ### Phase 1 — gRPC hardening (live)
 
-Finish the reference adapter before adding breadth:
+The reference adapter currently preserves:
 
-- Make reflection, proto, and protoset paths share the same operation model.
-- Keep all four stream shapes testable with deterministic local fixtures.
-- Add flow-level checks: pre-invoke setup, per-message assertions, terminal status assertions, and
-  bounded exportable reports.
-- Add Channelz/grpcdebug links for cases where the payload is fine but the channel is unhealthy.
-- Measure startup, response latency, memory, and bundle size on a low-end machine.
-- Keep credentials out of history and exports unless the user explicitly opts in.
+- reflection, proto, and protoset schema paths;
+- unary, client-streaming, server-streaming, and bidirectional invocation;
+- visible request metadata, deadlines, cancellation, response headers, messages, trailers, status,
+  and timing;
+- bounded loopback discovery plus an explicit-target policy that reports reflection and transport
+  outcomes separately;
+- credentials and binary metadata kept out of automatic history and default exports.
 
-Exit gate: the gRPC adapter remains fast, local, cancellable, and semantically complete after the
-shared boundary is extracted.
+Channelz links, pre-invoke hooks, and richer flow reports are proposals, not current controls. They
+need fixtures and a native evidence model before entering the workbench.
 
-### Phase 2 — Cap'n Proto experiment (next)
+### Phase 2 — bounded HTTP / REST (live)
+
+The first HTTP adapter supports one explicit request path: method, URL, query params, headers,
+live auth input, raw body, timeout, redirect choice, cancellation, and a native response inspector.
+It uses Go's standard HTTP stack and accepts only `http` and `https` URLs. TLS verification is on
+and redirect following is off by default.
+
+This slice deliberately excludes OpenAPI discovery, a cookie jar, cloud sync, script runners, mock
+servers, OAuth app marketplaces, and team workspaces. Those features are not implied by the HTTP
+surface and would require separate product and security review.
+
+### Phase 3 — Cap'n Proto experiment (planned and gated)
 
 Start with one useful, local path rather than a large protocol surface:
 
@@ -96,25 +119,15 @@ Start with one useful, local path rather than a large protocol surface:
 Exit gate: a user can understand what capability was requested, what was sent, and why a call failed
 without reading a generic JSON translation.
 
-### Phase 3 — bounded REST / HTTP (next)
+### Phase 4 — route trace and LAN discovery (planned and gated)
 
-Support one excellent local request path:
+- Route trace must be attached to a supported request path, expose its data source and uncertainty,
+  and have fixtures for partial or unavailable evidence before a control is added.
+- LAN discovery must be explicitly enabled for a previewed private range, enforce strict candidate
+  and time budgets, support cancellation, and never become ambient or public scanning.
+- Neither item appears as a request-surface tab until its gate is met.
 
-- method and URL;
-- headers and explicit auth input;
-- JSON or raw body editor;
-- response status, headers, body, timing, and cancellation;
-- optional OpenAPI operation discovery;
-- saved request recipes and export using the same local-first rules.
-
-The first REST adapter excludes cloud sync, cookies, script runners, mock servers, OAuth app
-marketplaces, and team workspaces. Those features would change the product boundary rather than
-improve the protocol-peek workflow.
-
-Exit gate: HTTP concepts remain visible and the adapter does not make gRPC users feel they are in a
-generic API shell.
-
-### Phase 4 — protocol shelf (later)
+### Phase 5 — protocol shelf (later)
 
 SMTP, FTP, and other request-server protocols are candidates, not commitments. For each one, write
 a short protocol brief before implementation:
@@ -137,8 +150,8 @@ If those answers are weak, keep the protocol in research instead of adding a sup
    the response, not behind an unrelated settings screen.
 4. **Protocol words matter.** Do not call every result “response JSON” when it is a stream, segment,
    capability, or HTTP body.
-5. **Local means local.** Persist only what the user saves; do not introduce an account to make the
-   core workflow work.
+5. **Local means local.** Do not introduce an account to make the core workflow work. Redact
+   credentials and binary metadata from automatic history and default exports.
 6. **Keyboard and narrow screens count.** Preserve command palette, search, shortcuts, and a useful
    mobile request/response flow.
 

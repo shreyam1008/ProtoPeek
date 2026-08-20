@@ -1,27 +1,29 @@
 # Launch Post Draft
 
-Title: ProtoPeek: a modern gRPC workbench for today’s debugging workflows
+Title: ProtoPeek: a local gRPC and HTTP workbench for debugging the real protocol
 
-ProtoPeek is an independent gRPC workbench focused on the parts modern teams actually need when debugging gRPC services:
+ProtoPeek is an independent local workbench focused on the parts teams need when debugging gRPC and HTTP services:
 
 - A responsive, search-first method rail
 - Reflected schema visibility
 - JSON starter payload generation
 - Local collections and history
 - A response lab that keeps headers, trailers, payloads, and status together
-- A lightweight simulation studio for quick throughput and latency checks
+- Bounded browser-driven repetition for latency sanity checks, explicitly not a load benchmark
+- A separate HTTP(S) editor with redirects off and TLS verification on by default
+- HTTP status, protocol, headers, text/base64 body, redirects, peer/TLS context, and phase timings
 - A public learn page that explains gRPC, gRPC-Web, Envoy, and why debugging gets hard
 
 Why rebuild it?
 
-Because gRPC is not just “REST with different syntax”. The transport model is different, the debugging surface is different, and browser teams hit a totally different set of constraints once gRPC-Web enters the picture.
+Because gRPC is not just “REST with different syntax,” and HTTP is not gRPC without descriptors. The workbench keeps the transport model and evidence for each surface visible instead of flattening both into one JSON client.
 
 ProtoPeek tries to stay small and practical:
 
 - Single Go binary
 - Scratch-friendly Docker image
 - Local-first workspace model
-- Modern TypeScript frontend with lightweight assets
+- Modern TypeScript frontend with a measured embedded asset budget
 
 Project links:
 
@@ -34,5 +36,7 @@ Historical note:
 
 Notes:
 
-- This draft is ready to post to forums such as r/golang, r/grpc, Lobsters, Hacker News “Show HN”, or relevant CNCF/community spaces.
-- I cannot post it directly from this environment, but the copy is ready.
+- Do not post this draft until v0.2.0 is publicly released and its Unix and
+  Windows installers pass clean-machine acceptance.
+- After release, adapt the technical detail and limitations to each community;
+  do not broadcast identical promotional copy or solicit votes.

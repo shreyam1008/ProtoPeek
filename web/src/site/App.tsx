@@ -6,7 +6,6 @@ import {
   Copy,
   Download,
   FileCode2,
-  FlaskConical,
   Globe2,
   Layers3,
   Network,
@@ -46,7 +45,7 @@ function Nav() {
           <span className="text-sm font-bold tracking-tight text-pp-ink">ProtoPeek</span>
         </div>
         <div className="flex items-center gap-4">
-          <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#how-grpc-works">
+          <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#protocol-model">
             Protocol model
           </a>
           <a className="text-sm text-pp-muted transition hover:text-pp-ink" href="#features">
@@ -88,9 +87,9 @@ function Hero() {
       </h1>
 
       <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-pp-muted">
-        ProtoPeek is a fast, single-binary protocol workbench for the request-to-server path. gRPC
-        is the first adapter: reflection, proto schemas, streaming, metadata, trailers, status, and
-        timing are visible today. Cap&apos;n Proto and REST are planned behind the same local shell.
+        ProtoPeek is a local, single-binary protocol workbench for the request-to-server path. gRPC
+        keeps schemas, streaming, metadata, trailers, and status visible; HTTP keeps methods, URLs,
+        redirects, bodies, and phase timing visible. Cap&apos;n Proto remains a gated plan.
       </p>
 
       <div className="mt-8 flex items-center justify-center gap-3">
@@ -180,7 +179,7 @@ function ProtocolModel() {
   ];
 
   return (
-    <section id="how-grpc-works">
+    <section id="protocol-model">
       <SectionHeader
         label="Protocol model"
         title="One shell. Native protocol detail."
@@ -198,19 +197,19 @@ function ProtocolModel() {
             tone: 'border-pp-brand/40 bg-pp-brand/5',
           },
           {
-            icon: Braces,
-            label: 'Planned adapter',
-            title: "Cap'n Proto",
+            icon: Globe2,
+            label: 'Shipped now',
+            title: 'HTTP / REST',
             detail:
-              'Schema-file and capability bootstrap with a native inspector for message segments and capability resolution.',
-            tone: 'border-pp-border bg-white',
+              'Bounded HTTP(S), params, headers, live auth, body, cancellation, redirect choice, status, protocol, TLS context, and phase timing.',
+            tone: 'border-pp-brand/40 bg-pp-brand/5',
           },
           {
-            icon: Globe2,
-            label: 'Planned adapter',
-            title: 'REST / HTTP',
+            icon: Braces,
+            label: 'Planned · gated',
+            title: "Cap'n Proto",
             detail:
-              'Method, URL, headers, body, status, timing, and optional OpenAPI operation discovery—without pretending it is gRPC.',
+              'Schema-file and capability bootstrap with a native inspector, after fixture, dependency-size, and failure-model gates.',
             tone: 'border-pp-border bg-white',
           },
         ].map((protocol) => (
@@ -285,8 +284,8 @@ function Features() {
   const features = [
     {
       icon: SearchCode,
-      title: 'Auto-discover services',
-      desc: 'Scan for gRPC servers on your network. Auto-detect via reflection or load .proto files and protosets manually.',
+      title: 'Bounded gRPC discovery',
+      desc: 'Check fixed loopback candidates, opt into a literal private IP, or enter one public target. See reflection, transport, and non-gRPC failures honestly.',
     },
     {
       icon: Layers3,
@@ -299,9 +298,9 @@ function Features() {
       desc: 'Pick a method, fill in the request JSON with auto-generated templates, add metadata, hit invoke. See the full response with headers and trailers.',
     },
     {
-      icon: FlaskConical,
-      title: 'Simulate & assert',
-      desc: 'Run N concurrent requests, measure p50/p95/p99 latency, and set pass/fail assertions on status, headers, or body.',
+      icon: Globe2,
+      title: 'Send real HTTP requests',
+      desc: 'Choose method, URL, params, headers, auth, body, timeout, and redirects; cancel in flight and inspect status, body, TLS, redirect, and timing evidence.',
     },
     {
       icon: Cable,
@@ -310,8 +309,8 @@ function Features() {
     },
     {
       icon: Network,
-      title: 'Adapter-ready shell',
-      desc: 'Keep targets, local history, request editing, and session lifecycle stable as Cap’n Proto and REST adapters arrive.',
+      title: 'Secret-safe local shell',
+      desc: 'Keep request work local while automatic history and default exports redact credentials, cookies, binary metadata, and token-like values.',
     },
   ];
 
@@ -320,7 +319,7 @@ function Features() {
       <SectionHeader
         label="Shipped now"
         title="A small console that shows the useful parts"
-        subtitle="The first adapter is deliberately gRPC-aware. It makes the request, response, and transport story easy to inspect before the protocol roadmap grows."
+        subtitle="gRPC and HTTP share a compact local shell while keeping different request controls and response evidence. Planned protocols stay out of the request rail until their gates are met."
       />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -350,26 +349,26 @@ function Roadmap() {
     },
     {
       phase: '02',
-      status: 'Next',
-      title: "Add a Cap'n Proto inspector",
+      status: 'Live',
+      title: 'Ship bounded HTTP / REST',
       detail:
-        'Start with a local schema-file and capability bootstrap flow. Keep message segments and capability resolution visible instead of flattening them into JSON.',
-      icon: Braces,
-    },
-    {
-      phase: '03',
-      status: 'Next',
-      title: 'Add bounded REST / HTTP',
-      detail:
-        'Support one excellent local request path: method, URL, headers, body, status, timing, and optional OpenAPI discovery. No cloud sync or script marketplace.',
+        'Use the Go standard library for explicit HTTP(S) requests with bounded input/output, verified TLS, opt-in redirects, cancellation, and native evidence.',
       icon: Globe2,
     },
     {
-      phase: '04',
-      status: 'Later',
-      title: 'Grow the protocol shelf carefully',
+      phase: '03',
+      status: 'Planned · gated',
+      title: "Evaluate a Cap'n Proto inspector",
       detail:
-        'SMTP, FTP, and other request-server protocols can become opt-in adapters only after their security model, native evidence, and local UX are clear.',
+        'Require a local fixture, capability and segment evidence, a truthful failure model, and measured dependency cost before exposing a request surface.',
+      icon: Braces,
+    },
+    {
+      phase: '04',
+      status: 'Planned · gated',
+      title: 'Evaluate route trace and LAN discovery',
+      detail:
+        'Route trace needs a supported evidence source. LAN discovery needs explicit previewed private scope, strict budgets, cancellation, and no ambient or public crawling.',
       icon: Layers3,
     },
   ];
@@ -415,6 +414,10 @@ function Install() {
       cmd: 'wget -qO- https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
     },
     {
+      label: 'PowerShell',
+      cmd: 'irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex',
+    },
+    {
       label: 'go install',
       cmd: 'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest',
     },
@@ -430,8 +433,8 @@ function Install() {
     <section id="install">
       <SectionHeader
         label="Install"
-        title="Start the local gRPC adapter"
-        subtitle="ProtoPeek is a single Go binary today. Install it with curl, wget, or go install; future adapters stay opt-in."
+        title="Start the local workbench"
+        subtitle="The Go binary serves both the gRPC and HTTP request surfaces. Install it with the verified shell or PowerShell installer, or go install."
       />
 
       <div className="mt-8 space-y-3">
@@ -450,6 +453,7 @@ function Install() {
               type="button"
               className="shrink-0 rounded-md p-1.5 text-neutral-500 transition hover:bg-white/10 hover:text-white"
               onClick={() => copy(o.cmd)}
+              aria-label={`Copy ${o.label} command`}
               title="Copy"
             >
               {copied === o.cmd ? (
@@ -470,9 +474,13 @@ function Install() {
           </code>{' '}
           or{' '}
           <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
-            protopeek -plaintext host:port
+            pp localhost
           </code>{' '}
-          to start.
+          for a bounded host probe, or pass an exact{' '}
+          <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
+            host:port
+          </code>{' '}
+          for direct gRPC mode.
         </p>
       </div>
     </section>

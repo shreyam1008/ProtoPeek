@@ -2,13 +2,17 @@
   "schemaVersion": 1,
   "slug": "protopeek",
   "name": "ProtoPeek",
-  "summary": "A local-first protocol workbench: gRPC inspection today, with Cap'n Proto and REST adapters planned behind a native-detail shell.",
+  "summary": "A local-first protocol workbench with shipped gRPC and bounded HTTP request surfaces; Cap'n Proto remains a gated plan.",
   "visibility": "public",
   "portfolioApproved": true,
   "lifecycle": "released",
   "repository": "https://github.com/shreyam1008/ProtoPeek",
   "canonicalUrl": "https://protopeek.shreyam1008.com.np/",
-  "creatorUrl": "https://shreyam1008.com.np/me",
+  "creatorUrl": "https://shreyam1008.com.np/",
+  "releaseCandidate": {
+    "version": "0.2.0",
+    "status": "draft-not-published"
+  },
   "versionSource": "Git tag consumed by .goreleaser.yml",
   "verifyCommand": "make ci",
   "changelog": "CHANGELOG.md",
@@ -19,8 +23,9 @@
   "distributions": [
     {
       "channel": "Product website",
-      "status": "prepared",
-      "url": "https://protopeek.shreyam1008.com.np/"
+      "status": "live",
+      "url": "https://protopeek.shreyam1008.com.np/",
+      "verifiedAt": "2026-08-20"
     },
     {
       "channel": "GitHub Releases",

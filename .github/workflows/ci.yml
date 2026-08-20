@@ -7,17 +7,16 @@ on:
       - master
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.10
 
@@ -27,22 +26,277 @@ jobs:
       - name: Frontend quality gate
         run: bun run test
 
-      - name: Build site and app assets
+      - name: Build site and embedded app
         run: bun run build
 
-      - name: Smoke test installer
+      - name: Verify generated assets and prerender
+        shell: bash
         run: |
-          RELEASE_DIR="$(mktemp -d)"
-          ARCHIVE_DIR="$RELEASE_DIR/archive"
-          INSTALL_DIR="$(mktemp -d)"
-          mkdir -p "$ARCHIVE_DIR"
-          GOOS=linux GOARCH=amd64 go build -ldflags '-X main.version=vtest' -o "$ARCHIVE_DIR/protopeek" ./cmd/protopeek
-          tar -C "$ARCHIVE_DIR" -czf "$RELEASE_DIR/protopeek_test_linux_x86_64.tar.gz" protopeek
-          PROTOPEEK_DOWNLOAD_URL="file://$RELEASE_DIR/protopeek_test_linux_x86_64.tar.gz" \
-          PROTOPEEK_INSTALL_DIR="$INSTALL_DIR" \
-          sh ./install.sh
-          "$INSTALL_DIR/protopeek" -version
-          "$INSTALL_DIR/pp" -version
+          test -z "$(git status --porcelain -- docs internal/resources/app/dist)"
+          grep -Fq 'One shell. Native protocol detail.' docs/index.html
+          if grep -Fq '<div id="root"></div>' docs/index.html; then
+            echo 'Homepage was not prerendered.' >&2
+            exit 1
+          fi
+
+  go:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
 
       - name: Go test
         run: go test ./...
+
+      - name: Compile both commands
+        run: go build ./cmd/protopeek ./cmd/pp
+
+  installer-unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Exercise verified installer and failure paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="$(mktemp -d)"
+          payload="$fixture/payload"
+          install_dir="$fixture/install"
+          man_dir="$fixture/man"
+          archive="$fixture/protopeek_test_native_x86_64.tar.gz"
+          mkdir -p "$payload/man"
+          go build -ldflags '-X main.version=vtest' -o "$payload/protopeek" ./cmd/protopeek
+          go build -ldflags '-X main.version=vtest' -o "$payload/pp" ./cmd/pp
+          cp web/site/public/man/protopeek.1 web/site/public/man/pp.1 "$payload/man/"
+          tar -C "$payload" -czf "$archive" protopeek pp man
+          if command -v sha256sum >/dev/null 2>&1; then
+            hash="$(sha256sum "$archive" | awk '{print $1}')"
+          else
+            hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
+          fi
+          printf '%s  %s\n' "$hash" "$(basename "$archive")" > "$fixture/checksums.txt"
+
+          PROTOPEEK_DOWNLOAD_URL="file://$archive" \
+          PROTOPEEK_CHECKSUM_URL="file://$fixture/checksums.txt" \
+          PROTOPEEK_INSTALL_DIR="$install_dir" \
+          PROTOPEEK_MAN_DIR="$man_dir" \
+          sh ./install.sh
+          "$install_dir/protopeek" -version
+          "$install_dir/pp" -version
+          test -f "$man_dir/protopeek.1"
+          test -f "$man_dir/pp.1"
+
+          printf 'replaced after install\n' > "$fixture/replaced-pp"
+          chmod +x "$fixture/replaced-pp"
+          mv -f "$fixture/replaced-pp" "$install_dir/pp"
+          PROTOPEEK_DOWNLOAD_URL="file://$archive" \
+          PROTOPEEK_CHECKSUM_URL="file://$fixture/checksums.txt" \
+          PROTOPEEK_INSTALL_DIR="$install_dir" \
+          PROTOPEEK_MAN_DIR="$man_dir" \
+          sh ./install.sh
+          grep -Fxq 'replaced after install' "$install_dir/pp"
+
+          legacy="$fixture/protopeek_legacy_native_x86_64.tar.gz"
+          tar -C "$payload" -czf "$legacy" protopeek
+          if command -v sha256sum >/dev/null 2>&1; then
+            legacy_hash="$(sha256sum "$legacy" | awk '{print $1}')"
+          else
+            legacy_hash="$(shasum -a 256 "$legacy" | awk '{print $1}')"
+          fi
+          printf '%s  %s\n' "$legacy_hash" "$(basename "$legacy")" > "$fixture/legacy-checksums.txt"
+          PROTOPEEK_DOWNLOAD_URL="file://$legacy" \
+          PROTOPEEK_CHECKSUM_URL="file://$fixture/legacy-checksums.txt" \
+          PROTOPEEK_INSTALL_DIR="$fixture/legacy-install" \
+          PROTOPEEK_MAN_DIR="$man_dir" \
+          sh ./install.sh
+          "$fixture/legacy-install/protopeek" -version
+          "$fixture/legacy-install/pp" -version
+
+          conflict_dir="$fixture/conflict"
+          mkdir -p "$conflict_dir"
+          printf 'unrelated pp\n' > "$conflict_dir/pp"
+          chmod +x "$conflict_dir/pp"
+          PROTOPEEK_DOWNLOAD_URL="file://$archive" \
+          PROTOPEEK_CHECKSUM_URL="file://$fixture/checksums.txt" \
+          PROTOPEEK_INSTALL_DIR="$conflict_dir" \
+          PROTOPEEK_MAN_DIR="$man_dir" \
+          sh ./install.sh
+          grep -Fxq 'unrelated pp' "$conflict_dir/pp"
+          "$conflict_dir/protopeek" -version
+
+          corrupt="$fixture/protopeek_corrupt_native_x86_64.tar.gz"
+          cp "$archive" "$corrupt"
+          printf 'corrupt' >> "$corrupt"
+          sed "s#$(basename "$archive")#$(basename "$corrupt")#" "$fixture/checksums.txt" > "$fixture/corrupt-checksums.txt"
+          if PROTOPEEK_DOWNLOAD_URL="file://$corrupt" \
+            PROTOPEEK_CHECKSUM_URL="file://$fixture/corrupt-checksums.txt" \
+            PROTOPEEK_INSTALL_DIR="$fixture/corrupt-install" \
+            sh ./install.sh; then
+            echo 'Corrupt archive unexpectedly installed.' >&2
+            exit 1
+          fi
+
+          if PROTOPEEK_DOWNLOAD_URL="file://$archive" \
+            PROTOPEEK_CHECKSUM_URL="file://$fixture/missing-checksums.txt" \
+            PROTOPEEK_INSTALL_DIR="$fixture/missing-install" \
+            sh ./install.sh; then
+            echo 'Archive without checksums unexpectedly installed.' >&2
+            exit 1
+          fi
+
+  installer-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Exercise verified installer and failure paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixture = Join-Path $env:RUNNER_TEMP 'protopeek-installer'
+          $payload = Join-Path $fixture 'payload'
+          $installDir = Join-Path $fixture 'install'
+          $archive = Join-Path $fixture 'protopeek_test_windows_x86_64.zip'
+          New-Item -ItemType Directory -Path $payload -Force | Out-Null
+          go build -ldflags '-X main.version=vtest' -o (Join-Path $payload 'protopeek.exe') ./cmd/protopeek
+          go build -ldflags '-X main.version=vtest' -o (Join-Path $payload 'pp.exe') ./cmd/pp
+          Compress-Archive -Path (Join-Path $payload '*') -DestinationPath $archive -Force
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $checksums = Join-Path $fixture 'checksums.txt'
+          Set-Content -LiteralPath $checksums -Value "$hash  $([IO.Path]::GetFileName($archive))"
+
+          & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate
+          & (Join-Path $installDir 'protopeek.exe') -version
+          & (Join-Path $installDir 'pp.exe') -version
+
+          $replacement = Join-Path $fixture 'replaced-pp.exe'
+          Set-Content -LiteralPath $replacement -Value 'replaced after install' -NoNewline
+          Move-Item -LiteralPath $replacement -Destination (Join-Path $installDir 'pp.exe') -Force
+          & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate
+          if ((Get-Content -LiteralPath (Join-Path $installDir 'pp.exe') -Raw) -ne 'replaced after install') { throw 'A replaced pp.exe alias was overwritten.' }
+
+          $legacy = Join-Path $fixture 'protopeek_legacy_windows_x86_64.zip'
+          Compress-Archive -Path (Join-Path $payload 'protopeek.exe') -DestinationPath $legacy -Force
+          $legacyHash = (Get-FileHash -LiteralPath $legacy -Algorithm SHA256).Hash.ToLowerInvariant()
+          $legacyChecksums = Join-Path $fixture 'legacy-checksums.txt'
+          Set-Content -LiteralPath $legacyChecksums -Value "$legacyHash  $([IO.Path]::GetFileName($legacy))"
+          $legacyInstall = Join-Path $fixture 'legacy-install'
+          & ./install.ps1 -DownloadUrl $legacy -ChecksumUrl $legacyChecksums -InstallDir $legacyInstall -NoPathUpdate
+          & (Join-Path $legacyInstall 'protopeek.exe') -version
+          & (Join-Path $legacyInstall 'pp.exe') -version
+
+          $conflictDir = Join-Path $fixture 'conflict'
+          New-Item -ItemType Directory -Path $conflictDir -Force | Out-Null
+          Set-Content -LiteralPath (Join-Path $conflictDir 'pp.exe') -Value 'unrelated pp' -NoNewline
+          & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $conflictDir -NoPathUpdate
+          if ((Get-Content -LiteralPath (Join-Path $conflictDir 'pp.exe') -Raw) -ne 'unrelated pp') { throw 'Conflicting pp.exe was overwritten.' }
+          & (Join-Path $conflictDir 'protopeek.exe') -version
+
+          $corrupt = Join-Path $fixture 'protopeek_corrupt_windows_x86_64.zip'
+          Copy-Item -LiteralPath $archive -Destination $corrupt
+          Add-Content -LiteralPath $corrupt -Value 'corrupt'
+          $corruptChecksums = Join-Path $fixture 'corrupt-checksums.txt'
+          Set-Content -LiteralPath $corruptChecksums -Value "$hash  $([IO.Path]::GetFileName($corrupt))"
+          try {
+            & ./install.ps1 -DownloadUrl $corrupt -ChecksumUrl $corruptChecksums -InstallDir (Join-Path $fixture 'corrupt-install') -NoPathUpdate
+            throw 'Corrupt archive unexpectedly installed.'
+          } catch {
+            if ($_.Exception.Message -eq 'Corrupt archive unexpectedly installed.') { throw }
+          }
+
+          try {
+            & ./install.ps1 -DownloadUrl $archive -ChecksumUrl (Join-Path $fixture 'missing.txt') -InstallDir (Join-Path $fixture 'missing-install') -NoPathUpdate
+            throw 'Archive without checksums unexpectedly installed.'
+          } catch {
+            if ($_.Exception.Message -eq 'Archive without checksums unexpectedly installed.') { throw }
+          }
+
+  release-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          syft-version: v1.51.0
+
+      - name: Check stable GoReleaser configuration
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: check --config .goreleaser.yml
+
+      - name: Check edge GoReleaser configuration
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: check --config .goreleaser.edge.yml
+
+      - name: Build release snapshot
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: release --snapshot --clean --config .goreleaser.yml
+
+      - name: Verify archive, checksum, and SBOM contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_count=0
+          for archive in dist/protopeek_*.tar.gz; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(tar -tzf "$archive")"
+            grep -Eq '(^|/)protopeek$' <<<"$contents"
+            grep -Eq '(^|/)pp$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          for archive in dist/protopeek_*.zip; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(unzip -Z1 "$archive")"
+            grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
+            grep -Eq '(^|/)pp\.exe$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          test "$archive_count" -gt 0

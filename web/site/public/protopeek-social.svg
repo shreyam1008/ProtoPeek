@@ -14,9 +14,9 @@
   <circle cx="170" cy="520" r="160" fill="#ffffff" fill-opacity="0.05" />
   <rect x="74" y="72" width="1052" height="486" rx="30" fill="#f4fbfa" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.14" />
   <text x="100" y="150" fill="#8ee1d8" font-family="Georgia, 'Times New Roman', serif" font-size="28" letter-spacing="6">PROTOPEEK</text>
-  <text x="100" y="268" fill="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="88" font-weight="700">Modern gRPC</text>
-  <text x="100" y="356" fill="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="88" font-weight="700">Workbench</text>
-  <text x="100" y="430" fill="#d5f3ef" font-family="'Courier New', monospace" font-size="32">Launcher-first target switching, proto explorer/export, metadata debugging, simulation.</text>
+  <text x="100" y="260" fill="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="76" font-weight="700">Local gRPC + HTTP</text>
+  <text x="100" y="346" fill="#ffffff" font-family="Georgia, 'Times New Roman', serif" font-size="76" font-weight="700">Protocol Workbench</text>
+  <text x="100" y="420" fill="#d5f3ef" font-family="'Courier New', monospace" font-size="27">Reflection, streams, metadata · bounded HTTP(S), redirects, timing</text>
   <rect x="100" y="474" width="332" height="64" rx="18" fill="url(#accent)" />
   <text x="132" y="516" fill="#081719" font-family="'Courier New', monospace" font-size="28" font-weight="700">protopeek / pp</text>
   <text x="760" y="494" fill="#d5f3ef" font-family="'Courier New', monospace" font-size="24">by shreyam1008</text>

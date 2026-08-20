@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go-to-market runbook | ProtoPeek</title>
+    <meta name="description" content="A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt." />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/go-to-market/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Go-to-market runbook | ProtoPeek" />
+    <meta property="og:description" content="A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/go-to-market/" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Go-to-market runbook | ProtoPeek" />
+    <meta name="twitter:description" content="A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Launch</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Go-to-market runbook</h1>
+              <p>A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt.</p>
+              <div class="pp-doc-chip-row">
+                <span>Release gate</span><span>Package channels</span><span>Human launch voice</span>
+              </div>
+            </div>
+
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">ProtoPeek go-to-market runbook</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Release gate</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Package channels</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>Human launch voice</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>ProtoPeek should launch as a small, inspectable developer tool—not as a vague &quot;Postman for everything.&quot; The first public promise is narrower and testable:</p>
+<p>&gt; One local binary. Open a browser. Discover and inspect gRPC or send HTTP &gt; requests without moving credentials or request history to a hosted service.</p>
+<h2 id="release-gate">Release gate</h2>
+<p>Do not send launch traffic to <code>master</code>, an edge build, or a draft. Launch only after all of these are true for the same stable tag:</p>
+<ul><li>GitHub Actions passes on Linux, macOS, and Windows.</li><li>The draft contains eight OS/architecture archives, checksums, SBOMs, and</li></ul>
+<p>provenance attestations.</p>
+<ul><li><code>protopeek</code> and <code>pp</code> start correctly from clean Linux, macOS, and Windows</li></ul>
+<p>installs; upgrades and uninstall are also checked.</p>
+<ul><li>The website, README, installers, changelog, and structured data name the same</li></ul>
+<p>public version.</p>
+<ul><li>The three-minute path works: install, run <code>pp</code>, find a local service or enter</li></ul>
+<p>a target, make one request, inspect the result.</p>
+<p><a href="https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases" rel="noreferrer" target="_blank">GitHub Releases are tag-based deployable software packages</a>, so the stable tag is the immutable center of this launch—not the website copy.</p>
+<h2 id="distribution-order">Distribution order</h2>
+<h3 id="1-direct-release-day-zero">1. Direct release: day zero</h3>
+<ul><li>Publish the tested GitHub release and deploy the matching website.</li><li>Keep the verified shell and PowerShell installers as the canonical paths.</li><li>Update Shreyam&#39;s portfolio entry from “gRPC Tooling” to “local gRPC + HTTP</li></ul>
+<p>protocol workbench.”</p>
+<ul><li>Submit the custom-domain sitemap in Google Search Console after deployment.</li></ul>
+<p>The first goal is not maximum reach. It is proving that real users on all three desktop operating systems can install and reach a successful request.</p>
+<h3 id="2-native-package-discovery-after-the-stable-assets-hold">2. Native package discovery: after the stable assets hold</h3>
+<table><thead><tr><th>Channel</th><th>Why it earns a place</th><th>Release rule</th></tr></thead><tbody><tr><td>Homebrew tap</td><td>Best first macOS/Linux package path; a tap can live in a GitHub <code>homebrew-*</code> repository.</td><td>Publish a formula pinned to a stable archive and checksum; test Intel and Apple Silicon. Follow the <a href="https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap" rel="noreferrer" target="_blank">tap contract</a>.</td></tr><tr><td>Scoop bucket</td><td>Lightweight Windows developer distribution with a JSON manifest.</td><td>Start in ProtoPeek&#39;s own bucket, verify both architectures, then consider a community bucket. Follow <a href="https://github.com/ScoopInstaller/Scoop/wiki/Buckets" rel="noreferrer" target="_blank">Scoop&#39;s bucket guidance</a>.</td></tr><tr><td>WinGet</td><td>Native Windows search and upgrade path.</td><td>Submit only after the PowerShell installer and release URLs are stable. Microsoft requires a schema-valid manifest, sandbox test, and PR review; use the <a href="https://learn.microsoft.com/en-us/windows/package-manager/package/repository" rel="noreferrer" target="_blank">official submission flow</a>.</td></tr><tr><td>AUR</td><td>Useful later for Arch users who accept source/community packaging.</td><td>Add after one patch release proves the stable layout; keep the PKGBUILD small and reproducible. Follow the <a href="https://wiki.archlinux.org/title/AUR_submission_guidelines" rel="noreferrer" target="_blank">AUR submission rules</a>.</td></tr></tbody></table>
+<p>Do not create an npm package for a Go desktop binary. Do not advertise a Docker image until one is actually published, signed, documented, and useful for the loopback/browser model.</p>
+<h3 id="3-technical-communities-after-package-smoke-tests">3. Technical communities: after package smoke tests</h3>
+<ul><li>Open a focused contribution to</li></ul>
+<p><a href="https://github.com/grpc-ecosystem/awesome-grpc" rel="noreferrer" target="_blank">awesome-grpc</a> under GUI or debugging tools. The submission should state capabilities and limits, not repeat landing-page copy.</p>
+<ul><li>Write one technical walkthrough: why reflection can be absent, how ProtoPeek</li></ul>
+<p>distinguishes “gRPC without reflection” from “not gRPC,” and how it keeps metadata, headers, trailers, and status visible.</p>
+<ul><li>Share that walkthrough where it is genuinely on-topic: the gRPC community,</li></ul>
+<p>Go developer channels, and relevant subreddits after reading each channel&#39;s current self-promotion rules.</p>
+<ul><li>Submit a Show HN only when the stable build is runnable without signup. The</li></ul>
+<p><a href="https://news.ycombinator.com/showhn.html" rel="noreferrer" target="_blank">Show HN rules</a> explicitly require something people can try and prohibit vote solicitation. Shreyam should write the post and replies personally, in his own voice.</p>
+<h3 id="4-broad-launch-after-first-user-feedback">4. Broad launch: after first-user feedback</h3>
+<p>Use Product Hunt only after direct installs, screenshots, onboarding, and the first support fixes are proven. Its <a href="https://www.producthunt.com/launch" rel="noreferrer" target="_blank">official launch guide</a> allows makers to launch their own work and recommends measurable goals; no paid hunter is needed. Prepare:</p>
+<ul><li>one clear tagline;</li><li>the real 1200 by 630 social card and three product screenshots;</li><li>a 30–45 second silent install-to-first-request recording;</li><li>a founder comment covering the problem, local-first boundary, shipped</li></ul>
+<p>protocols, and honest roadmap;</p>
+<ul><li>active support coverage for the launch day and following morning.</li></ul>
+<h2 id="launch-messages">Launch messages</h2>
+<p>Use one factual spine, then write for the channel:</p>
+<ul><li><strong>Tagline:</strong> Inspect the protocol, not just the payload.</li><li><strong>One sentence:</strong> ProtoPeek is a single local binary that opens a browser</li></ul>
+<p>workbench for discovering and invoking gRPC services and sending HTTP requests while preserving protocol-native evidence.</p>
+<ul><li><strong>Proof:</strong> no account, local history, secret-safe exports, bounded discovery,</li></ul>
+<p>verified installers, and native gRPC/HTTP response views.</p>
+<ul><li><strong>Boundary:</strong> Cap&#39;n Proto, route trace, and LAN discovery are roadmap work,</li></ul>
+<p>not shipped features.</p>
+<p>Never paste the same launch paragraph everywhere. Never claim “all protocols,” “zero configuration,” benchmarks that were not measured, or packages that are not live.</p>
+<h2 id="what-to-measure">What to measure</h2>
+<p>Keep the binary free of invasive analytics. Use public and voluntary signals:</p>
+<ul><li>release downloads by OS and architecture;</li><li>installer and startup failures reported through issues;</li><li>time-to-first-success from five moderated install sessions;</li><li>percentage of those sessions that discover a service without documentation;</li><li>issue quality, repeat contributors, package installs, and useful discussion;</li><li>website search impressions for the custom domain after sitemap submission.</li></ul>
+<p>The two-week decision is simple: fix installation and first-request failures before adding another protocol. Start the Cap&#39;n Proto slice only after the shipped gRPC and HTTP paths are boringly reliable.</p>
+<h2 id="owner-checklist">Owner checklist</h2>
+<p>Shreyam owns the release publish button, community accounts, replies, and the truth of every public claim. Automation may assemble artifacts and drafts; it must not impersonate the founder in community posts or solicit engagement.</p>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#release-gate">Release gate</a><a class="level-2" href="#distribution-order">Distribution order</a><a class="level-3" href="#1-direct-release-day-zero">1. Direct release: day zero</a><a class="level-3" href="#2-native-package-discovery-after-the-stable-assets-hold">2. Native package discovery: after the stable assets hold</a><a class="level-3" href="#3-technical-communities-after-package-smoke-tests">3. Technical communities: after package smoke tests</a><a class="level-3" href="#4-broad-launch-after-first-user-feedback">4. Broad launch: after first-user feedback</a><a class="level-2" href="#launch-messages">Launch messages</a><a class="level-2" href="#what-to-measure">What to measure</a><a class="level-2" href="#owner-checklist">Owner checklist</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/go-to-market.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/go-to-market.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

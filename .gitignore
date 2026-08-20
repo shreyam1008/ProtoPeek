@@ -5,6 +5,8 @@ VERSION
 .idea/
 *.iml
 .tmp/
+.playwright-cli/
+output/
 node_modules/
 package-lock.json
 .DS_Store

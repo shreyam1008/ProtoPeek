@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#f4fbfa",
   "theme_color": "#0b6d6d",
-  "description": "Local-first protocol workbench: inspect gRPC requests today, with Cap'n Proto and REST adapters planned.",
+  "description": "Local-first protocol workbench with protocol-native gRPC and bounded HTTP request surfaces.",
   "icons": [
     {
       "src": "/favicon.svg",

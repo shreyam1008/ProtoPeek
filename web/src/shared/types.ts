@@ -3,6 +3,65 @@ export type MetadataEntry = {
   value: string;
 };
 
+export type HTTPRequestInput = {
+  method: string;
+  url: string;
+  headers: MetadataEntry[];
+  body: string;
+  timeoutMs: number;
+  followRedirects: boolean;
+};
+
+export type HTTPRedirect = {
+  url: string;
+  status: string;
+  statusCode: number;
+  location: string;
+};
+
+export type HTTPTimings = {
+  dnsMs: number;
+  connectMs: number;
+  tlsMs: number;
+  ttfbMs: number;
+  totalMs: number;
+};
+
+export type HTTPTLSSummary = {
+  version: string;
+  cipherSuite: string;
+  serverName: string;
+  peerSubject: string;
+  peerExpiresAt: string;
+  verified: boolean;
+};
+
+export type HTTPResponse = {
+  status: string;
+  statusCode: number;
+  proto: string;
+  headers: MetadataEntry[];
+  body: string;
+  bodyEncoding: 'text' | 'base64';
+  bytes: number;
+  truncated: boolean;
+  redirects: HTTPRedirect[];
+  remoteIp: string;
+  tls: HTTPTLSSummary | null;
+  timings: HTTPTimings;
+};
+
+export type HTTPHistoryEntry = {
+  id: string;
+  createdAt: string;
+  method: string;
+  url: string;
+  requestHeaders: MetadataEntry[];
+  status: string;
+  statusCode: number;
+  totalMs: number;
+};
+
 export type BootstrapMethod = {
   name: string;
   fullName: string;
@@ -24,6 +83,7 @@ export type BootstrapResponse = {
   version: string;
   target: string;
   launcherMode: boolean;
+  initialScanTarget: string;
   basePath: string;
   docsURL: string;
   repoURL: string;

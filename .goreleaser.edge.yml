@@ -6,6 +6,8 @@ builds:
   - id: protopeek
     binary: protopeek
     main: ./cmd/protopeek
+    env:
+      - CGO_ENABLED=0
     goos:
       - linux
       - darwin
@@ -17,35 +19,66 @@ builds:
     ignore:
       - goos: darwin
         goarch: 386
-      - goos: windows
-        goarch: arm64
+    ldflags:
+      - -s -w -X main.version=v{{ .Version }}
+  - id: pp
+    binary: pp
+    main: ./cmd/pp
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - 386
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: 386
     ldflags:
       - -s -w -X main.version=v{{ .Version }}
 
 archives:
   - id: protopeek
-    builds:
+    ids:
       - protopeek
-    format: tar.gz
+      - pp
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: >-
-      {{ .Binary }}_{{ .Version }}_
+      {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}osx{{ else }}{{ .Os }}{{ end }}_
       {{- if eq .Arch "amd64" }}x86_64{{ else if eq .Arch "386" }}x86_32{{ else }}{{ .Arch }}{{ end }}
       {{- with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}
     files:
       - LICENSE
+      - README.md
+      - CHANGELOG.md
+      - src: web/site/public/man/protopeek.1
+        dst: man/protopeek.1
+      - src: web/site/public/man/pp.1
+        dst: man/pp.1
 
 checksum:
   name_template: checksums.txt
+
+sboms:
+  - id: archives
+    artifacts: archive
+    disable: false
 
 release:
   prerelease: true
   make_latest: false
   extra_files:
     - glob: ./install.sh
+    - glob: ./install.ps1
 
 changelog:
   disable: true

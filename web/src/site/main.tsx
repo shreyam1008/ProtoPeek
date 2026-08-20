@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { hydrateRoot } from 'react-dom/client';
 
 import '@/shared/protopeek.css';
 
@@ -11,7 +11,8 @@ if (!rootElement) {
   throw new Error('ProtoPeek site root element not found.');
 }
 
-createRoot(rootElement).render(
+hydrateRoot(
+  rootElement,
   <StrictMode>
     <App />
   </StrictMode>

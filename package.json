@@ -8,7 +8,7 @@
   "scripts": {
     "build": "bun run build:app && bun run build:site",
     "build:app": "vite build --config web/vite.console.config.ts",
-    "build:site": "vite build --config web/vite.site.config.ts && bun scripts/generate-site-docs.mjs",
+    "build:site": "vite build --config web/vite.site.config.ts && bun scripts/prerender-site.tsx && bun scripts/generate-site-docs.mjs",
     "dev": "vite --config web/vite.console.config.ts",
     "dev:site": "vite --config web/vite.site.config.ts",
     "format": "biome format --write web package.json biome.json",
@@ -19,6 +19,8 @@
     "typecheck": "tsgo -p web/tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-router": "^1.170.31",
     "lucide-react": "^1.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

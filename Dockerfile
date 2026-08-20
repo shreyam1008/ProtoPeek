@@ -15,6 +15,7 @@ RUN bun run build:app
 
 FROM golang:1.26-alpine AS go-builder
 WORKDIR /src
+ARG VERSION=docker
 RUN addgroup -S protopeek && adduser -S -D -u 10001 protopeek -G protopeek
 
 COPY go.mod go.sum ./
@@ -30,7 +31,7 @@ ENV CGO_ENABLED=0
 ENV GOFLAGS="-trimpath -buildvcs=false"
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    go build -ldflags "-s -w -buildid= -X main.version=${VERSION:-docker}" -o /out/protopeek ./cmd/protopeek
+    go build -ldflags "-s -w -buildid= -X main.version=${VERSION}" -o /out/protopeek ./cmd/protopeek
 
 FROM scratch
 WORKDIR /

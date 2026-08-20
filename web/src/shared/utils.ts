@@ -4,6 +4,7 @@ import type {
   BootstrapMethod,
   EnvironmentPreset,
   FieldDefinition,
+  HTTPHistoryEntry,
   InvokeResponse,
   MetadataEntry,
   MethodFilter,
@@ -21,6 +22,7 @@ export const appStorageKeys = {
   collections: 'protopeek.collections.v1',
   environments: 'protopeek.environments.v1',
   history: 'protopeek.history.v1',
+  httpHistory: 'protopeek.httpHistory.v1',
   methodFilter: 'protopeek.methodFilter.v1',
   selectedMethod: 'protopeek.selectedMethod.v1',
   simulation: 'protopeek.simulation.v1',
@@ -28,8 +30,74 @@ export const appStorageKeys = {
   activeTargetId: 'protopeek.activeTargetId.v1',
 };
 
+export const redactedValue = '[redacted]';
+
+export function isSensitiveMetadataName(name: string) {
+  const normalized = name.trim().toLowerCase().replaceAll('_', '-');
+  if (
+    normalized === 'authorization' ||
+    normalized === 'cookie' ||
+    normalized === 'set-cookie' ||
+    normalized === 'proxy-authorization' ||
+    normalized.endsWith('-bin')
+  ) {
+    return true;
+  }
+  const compact = normalized.replaceAll(/[^a-z0-9]/g, '');
+  return (
+    compact === 'apikey' ||
+    compact === 'accesstoken' ||
+    compact === 'refreshtoken' ||
+    compact === 'idtoken' ||
+    /(^|[-.])(api-?key|auth-?token|access-?token|refresh-?token|id-?token|token|secret)([-.]|$)/.test(
+      normalized
+    )
+  );
+}
+
+export function sanitizeMetadataForPersistence(entries: MetadataEntry[]) {
+  return entries.map((entry) => ({
+    ...entry,
+    value: isSensitiveMetadataName(entry.name) ? redactedValue : entry.value,
+  }));
+}
+
+export function sanitizeAssertionForPersistence(rule: AssertionRule) {
+  if ((rule.kind === 'header' || rule.kind === 'trailer') && isSensitiveMetadataName(rule.target)) {
+    return { ...rule, value: redactedValue };
+  }
+  return rule;
+}
+
+export function sanitizeInvokeResponseForExport(response: InvokeResponse): InvokeResponse {
+  return {
+    ...response,
+    headers: sanitizeMetadataForPersistence(response.headers),
+    trailers: sanitizeMetadataForPersistence(response.trailers),
+  };
+}
+
+export function sanitizeURLForPersistence(value: string) {
+  try {
+    const parsed = new URL(value);
+    for (const name of Array.from(parsed.searchParams.keys())) {
+      if (isSensitiveMetadataName(name) || /password|passwd|credential/i.test(name)) {
+        parsed.searchParams.set(name, redactedValue);
+      }
+    }
+    return parsed.toString();
+  } catch {
+    return value;
+  }
+}
+
 export function classNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
+}
+
+export function modifierKeyLabel() {
+  if (typeof navigator === 'undefined') return 'Ctrl';
+  return /Mac|iPhone|iPad|iPod/i.test(navigator.platform) ? '⌘' : 'Ctrl';
 }
 
 export function loadStoredValue<T>(key: string, fallback: T): T {
@@ -241,7 +309,7 @@ export function toHistoryEntry(args: {
     success: args.success,
     requestText: args.requestText,
     responsePreview: responsePreview(args.response),
-    metadata: args.metadata,
+    metadata: sanitizeMetadataForPersistence(args.metadata),
     timeoutSeconds: args.timeoutSeconds,
   };
 }
@@ -266,7 +334,7 @@ export function toCollection(args: {
     notes: args.notes,
     service: args.service,
     method: args.method,
-    metadata: args.metadata,
+    metadata: sanitizeMetadataForPersistence(args.metadata),
     timeoutSeconds: args.timeoutSeconds,
     requestText: args.requestText,
   };
@@ -283,9 +351,29 @@ export function toEnvironmentPreset(args: {
     id: args.existingId ?? uid('env'),
     name: args.name,
     notes: args.notes,
-    metadata: args.metadata,
+    metadata: sanitizeMetadataForPersistence(args.metadata),
     timeoutSeconds: args.timeoutSeconds,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export function toHTTPHistoryEntry(args: {
+  method: string;
+  url: string;
+  requestHeaders: MetadataEntry[];
+  status: string;
+  statusCode: number;
+  totalMs: number;
+}): HTTPHistoryEntry {
+  return {
+    id: uid('http-history'),
+    createdAt: new Date().toISOString(),
+    method: args.method,
+    url: sanitizeURLForPersistence(args.url),
+    requestHeaders: sanitizeMetadataForPersistence(args.requestHeaders),
+    status: args.status,
+    statusCode: args.statusCode,
+    totalMs: args.totalMs,
   };
 }
 
