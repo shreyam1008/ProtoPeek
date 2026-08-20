@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-dev_build_version=$(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+dev_build_version := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
 export PATH := $(shell pwd)/.tmp/protoc/bin:$(PATH)
 export PROTOC_VERSION := 22.0
@@ -45,6 +45,10 @@ release-snapshot:
 .PHONY: docker
 docker:
 	docker build --build-arg VERSION=$(dev_build_version) -t protopeek:dev .
+
+.PHONY: docker-smoke
+docker-smoke: docker
+	./scripts/docker-smoke.sh protopeek:dev "$(dev_build_version)"
 
 .PHONY: generate
 generate: .tmp/protoc/bin/protoc

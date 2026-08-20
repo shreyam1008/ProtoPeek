@@ -124,8 +124,10 @@ var (
 		is received for this same period then the connection is closed and the
 		operation fails.`))
 	maxTime = flags.Float64("max-time", 0, prettify(`
-		The maximum total time a single RPC invocation is allowed to take, in
-		seconds.`))
+		The maximum ProtoPeek-owned local wall for one ordinary RPC invocation,
+		in seconds. When reached, the handler returns bounded partial evidence
+		without presenting local cancellation as a server gRPC status. Zero or a
+		value above 60 seconds uses the built-in 60-second safety wall.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
 		The maximum encoded size of a message that ProtoPeek will accept. If not
 		specified, defaults to 4mb.`))
@@ -164,10 +166,14 @@ var (
 		The port on which the web UI is exposed.`))
 	bind = flags.String("bind", "127.0.0.1", prettify(`
 		The address on which the web UI is exposed.`))
+	allowNonLoopbackBind = flags.Bool("allow-non-loopback-bind", false, prettify(`
+		Allow the listener to bind to a non-loopback container interface while
+		still rejecting browser requests whose Host or Origin is not loopback.
+		Use only when the outer container port is published on host loopback.`))
 	unsafeAllowRemote = flags.Bool("unsafe-allow-remote", false, prettify(`
-		Allow the web UI to bind to a non-loopback address. This exposes a local
-		debugging console with no authentication. Use only behind an explicit
-		local-only container port mapping or another trusted boundary.`))
+		Allow the web UI to bind to a non-loopback address and accept non-loopback
+		browser Hosts. This exposes a debugging console with no authentication.
+		Use only behind a trusted TLS, authentication, and rate-limit boundary.`))
 	basePath = flags.String("base-path", "/", prettify(`
 		The path on which the web UI is exposed.
 		Defaults to slash ("/"), which is the root of the server.
@@ -445,11 +451,13 @@ func Run() {
 	if !strings.HasPrefix(*basePath, "/") {
 		fail(nil, `The -base-path must begin with a slash ("/")`)
 	}
-	if err := validateWebBind(*bind, *unsafeAllowRemote); err != nil {
+	if err := validateWebBind(*bind, *allowNonLoopbackBind, *unsafeAllowRemote); err != nil {
 		fail(nil, err.Error())
 	}
 	if *unsafeAllowRemote {
 		warn("unsafe remote web access enabled on %s; ProtoPeek does not provide authentication", *bind)
+	} else if *allowNonLoopbackBind {
+		warn("container listener enabled on %s; publish its outer host port on loopback only", *bind)
 	}
 
 	assetNames := map[string]string{}
@@ -612,6 +620,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
+		if *maxTime > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
+		}
 		if initialScanTarget != "" {
 			handlerOpts = append(handlerOpts, standalone.WithInitialScanTarget(initialScanTarget))
 		}
@@ -756,22 +767,11 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
+		if *maxTime > 0 {
+			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
+		}
 
 		handler = standalone.Handler(cc, target, methods, allFiles, handlerOpts...)
-	}
-	if *maxTime > 0 {
-		timeout := floatSecondsToDuration(*maxTime)
-		// enforce the timeout by wrapping the handler and inserting a
-		// context timeout for invocation calls
-		orig := handler
-		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/invoke/") || strings.HasPrefix(r.URL.Path, "/api/workspace/invoke/") {
-				ctx, cancel := context.WithTimeout(r.Context(), timeout)
-				defer cancel()
-				r = r.WithContext(ctx)
-			}
-			orig.ServeHTTP(w, r)
-		})
 	}
 
 	if verbosity > 0 {
@@ -922,9 +922,12 @@ verified TLS. An http:// or https:// authority checks its stated or default
 port. IPv6 hosts must use brackets. For Unix variants, if a -unix=true flag is
 present, the address must be the path to the domain socket.
 
-Most flags control how the connection to the gRPC server is established. The
-ProtoPeek binds to localhost without TLS by default. Non-loopback web binds are
-rejected unless -unsafe-allow-remote is supplied; ProtoPeek does not add authentication.
+Most flags control how the connection to the gRPC server is established.
+ProtoPeek binds to localhost without TLS by default. For a container whose outer
+port is published only on host loopback, -allow-non-loopback-bind permits the
+container-interface bind while retaining the loopback Host and Origin policy.
+-unsafe-allow-remote also accepts non-loopback browser Hosts and requires an
+external TLS, authentication, and rate-limit boundary.
 
 Available flags:
 `, os.Args[0])

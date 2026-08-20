@@ -61,9 +61,12 @@ type WorkspaceManager struct {
 	mu                     sync.RWMutex
 	sessions               map[string]*workspaceSession
 	activeUploads          map[uint64]context.CancelFunc
+	activeSchemaConnects   map[uint64]context.CancelFunc
 	nextUploadID           uint64
+	nextSchemaConnectID    uint64
 	uploadDescriptorLoader workspaceUploadDescriptorLoader
 	dialTargetOverride     func(context.Context, WorkspaceTargetConfig) (*grpc.ClientConn, error)
+	schemaLimits           workspaceSchemaLimits
 	closed                 bool
 	opts                   WorkspaceManagerOptions
 }
@@ -92,7 +95,9 @@ func NewWorkspaceManager(opts WorkspaceManagerOptions) *WorkspaceManager {
 	return &WorkspaceManager{
 		sessions:               map[string]*workspaceSession{},
 		activeUploads:          map[uint64]context.CancelFunc{},
+		activeSchemaConnects:   map[uint64]context.CancelFunc{},
 		uploadDescriptorLoader: loadUploadedWorkspaceDescriptors,
+		schemaLimits:           defaultWorkspaceSchemaLimits(),
 		opts:                   opts,
 	}
 }
@@ -106,10 +111,19 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	dialCtx := ctx
+	connectCtx, releaseConnect, err := m.beginWorkspaceSchemaConnect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer releaseConnect()
+	if err := preflightWorkspaceSchemaFiles(connectCtx, normalized, m.schemaLimits); err != nil {
+		return nil, err
+	}
+
+	dialCtx := connectCtx
 	var cancel context.CancelFunc
 	if m.opts.ConnectTimeout > 0 {
-		dialCtx, cancel = context.WithTimeout(ctx, m.opts.ConnectTimeout)
+		dialCtx, cancel = context.WithTimeout(connectCtx, m.opts.ConnectTimeout)
 	}
 
 	cc, err := m.dialTarget(dialCtx, normalized)
@@ -120,12 +134,12 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 		return nil, err
 	}
 
-	methods, files, descSource, err := loadWorkspaceDescriptors(ctx, cc, normalized, m.opts.ReflectionHeaders)
+	methods, files, descSource, err := loadWorkspaceDescriptors(connectCtx, cc, normalized, m.opts.ReflectionHeaders, m.schemaLimits)
 	if err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
-	return m.publishSession(ctx, normalized, cc, methods, files, descSource)
+	return m.publishSession(connectCtx, normalized, cc, methods, files, descSource)
 }
 
 func (m *WorkspaceManager) publishSession(ctx context.Context, normalized WorkspaceTargetConfig, cc *grpc.ClientConn, methods []*desc.MethodDescriptor, files []*desc.FileDescriptor, descSource grpcurl.DescriptorSource) (*workspaceSession, error) {
@@ -133,18 +147,26 @@ func (m *WorkspaceManager) publishSession(ctx context.Context, normalized Worksp
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
+		return nil, err
+	}
+	if err := validateWorkspaceSchemaResources(ctx, methods, files, m.schemaLimits); err != nil {
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
 	protoCatalogJSON, err := buildProtoCatalog(files)
 	if err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
+		return nil, err
+	}
+	if err := validateWorkspaceSchemaCatalog(protoCatalogJSON, m.schemaLimits); err != nil {
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
 
 	id, err := randomSessionID()
 	if err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
 
@@ -157,7 +179,7 @@ func (m *WorkspaceManager) publishSession(ctx context.Context, normalized Worksp
 		targetDefaults:  m.opts.TargetDefaults,
 	})
 	if err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
 
@@ -176,11 +198,11 @@ func (m *WorkspaceManager) publishSession(ctx context.Context, normalized Worksp
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if err := ctx.Err(); err != nil {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
 		return nil, err
 	}
 	if m.closed {
-		_ = cc.Close()
+		closeWorkspaceConnection(cc)
 		return nil, fmt.Errorf("workspace manager is closed")
 	}
 	if len(m.sessions) >= m.opts.MaxSessions {
@@ -201,6 +223,12 @@ func (m *WorkspaceManager) publishSession(ctx context.Context, normalized Worksp
 	}
 	m.sessions[id] = session
 	return session, nil
+}
+
+func closeWorkspaceConnection(cc *grpc.ClientConn) {
+	if cc != nil {
+		_ = cc.Close()
+	}
 }
 
 func (m *WorkspaceManager) Session(id string) (*workspaceSession, bool) {
@@ -254,10 +282,18 @@ func (m *WorkspaceManager) Close() error {
 		uploadCancels = append(uploadCancels, cancel)
 		delete(m.activeUploads, id)
 	}
+	schemaConnectCancels := make([]context.CancelFunc, 0, len(m.activeSchemaConnects))
+	for id, cancel := range m.activeSchemaConnects {
+		schemaConnectCancels = append(schemaConnectCancels, cancel)
+		delete(m.activeSchemaConnects, id)
+	}
 	m.mu.Unlock()
 
 	var firstErr error
 	for _, cancel := range uploadCancels {
+		cancel()
+	}
+	for _, cancel := range schemaConnectCancels {
 		cancel()
 	}
 	for _, session := range sessions {
@@ -397,7 +433,7 @@ func workspaceGRPCOptions(cfg WorkspaceTargetConfig) []string {
 	return options
 }
 
-func loadWorkspaceDescriptors(ctx context.Context, cc *grpc.ClientConn, cfg WorkspaceTargetConfig, reflectionHeaders []string) ([]*desc.MethodDescriptor, []*desc.FileDescriptor, grpcurl.DescriptorSource, error) {
+func loadWorkspaceDescriptors(ctx context.Context, cc *grpc.ClientConn, cfg WorkspaceTargetConfig, reflectionHeaders []string, limits workspaceSchemaLimits) ([]*desc.MethodDescriptor, []*desc.FileDescriptor, grpcurl.DescriptorSource, error) {
 	switch cfg.SchemaSource {
 	case "reflection":
 		reflectionContext := metadata.NewOutgoingContext(ctx, grpcurl.MetadataFromHeaders(reflectionHeaders))
@@ -405,45 +441,29 @@ func loadWorkspaceDescriptors(ctx context.Context, cc *grpc.ClientConn, cfg Work
 		defer reflectionClient.Reset()
 		reflectionClient.AllowMissingFileDescriptors()
 		source := grpcurl.DescriptorSourceFromServer(ctx, reflectionClient)
-		methods, err := allMethodsFromDescriptorSource(source)
+		methods, files, fileSource, err := loadReflectionWorkspaceDescriptors(ctx, source, limits)
 		if err != nil {
-			return nil, nil, nil, err
-		}
-		files, err := grpcurl.GetAllFiles(source)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		fileSource, err := grpcurl.DescriptorSourceFromFileDescriptors(files...)
-		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, sanitizeWorkspaceSchemaLoadError(cfg.SchemaSource, err)
 		}
 		return methods, files, fileSource, nil
 	case "proto-files":
 		source, err := grpcurl.DescriptorSourceFromProtoFiles(cfg.ImportPaths, cfg.ProtoFiles...)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, sanitizeWorkspaceSchemaLoadError(cfg.SchemaSource, err)
 		}
-		methods, err := allMethodsFromDescriptorSource(source)
+		methods, files, err := loadLocalWorkspaceDescriptors(ctx, source, limits)
 		if err != nil {
-			return nil, nil, nil, err
-		}
-		files, err := grpcurl.GetAllFiles(source)
-		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, sanitizeWorkspaceSchemaLoadError(cfg.SchemaSource, err)
 		}
 		return methods, files, source, nil
 	case "protoset":
 		source, err := grpcurl.DescriptorSourceFromProtoSets(cfg.Protosets...)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, sanitizeWorkspaceSchemaLoadError(cfg.SchemaSource, err)
 		}
-		methods, err := allMethodsFromDescriptorSource(source)
+		methods, files, err := loadLocalWorkspaceDescriptors(ctx, source, limits)
 		if err != nil {
-			return nil, nil, nil, err
-		}
-		files, err := grpcurl.GetAllFiles(source)
-		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, sanitizeWorkspaceSchemaLoadError(cfg.SchemaSource, err)
 		}
 		return methods, files, source, nil
 	default:
