@@ -423,7 +423,7 @@ export function buildRepeatRun(args: {
   totalMs: number;
   stopReason: RepeatStopReason;
 }): RepeatRun {
-  const counts = { ok: 0, grpcError: 0, relayTransportError: 0, cancelled: 0 };
+  const counts = { ok: 0, grpcError: 0, localLimit: 0, relayTransportError: 0, cancelled: 0 };
   const completedAttempts: RepeatAttempt[] = [];
   for (const attempt of args.attempts) {
     switch (attempt.outcome) {
@@ -434,6 +434,9 @@ export function buildRepeatRun(args: {
       case 'grpc-error':
         counts.grpcError++;
         completedAttempts.push(attempt);
+        break;
+      case 'local-limit':
+        counts.localLimit++;
         break;
       case 'relay-transport-error':
         counts.relayTransportError++;
@@ -502,6 +505,7 @@ function repeatRunForExport(run: RepeatRun): RepeatRun {
     counts: {
       ok: run.counts.ok,
       grpcError: run.counts.grpcError,
+      localLimit: run.counts.localLimit,
       relayTransportError: run.counts.relayTransportError,
       cancelled: run.counts.cancelled,
     },
@@ -1372,7 +1376,11 @@ export function evaluateAssertions(args: {
   latencyMs: number;
 }): AssertionResult[] {
   const payloadText = prettyJson(args.result.responses.map((entry) => entry.message));
-  const status = args.result.error ? args.result.error.name : 'OK';
+  const status = args.result.localLimit
+    ? 'LOCAL_LIMIT'
+    : args.result.error
+      ? args.result.error.name
+      : 'OK';
 
   return args.rules.map((rule) => {
     switch (rule.kind) {

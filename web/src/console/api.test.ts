@@ -6,9 +6,11 @@ import {
   checkHealth,
   connectWorkspaceTarget,
   normalizeBootstrap,
+  normalizeHTTPResponse,
   normalizeInvokeResponse,
   normalizeProtoCatalog,
   scanAddresses,
+  sendHTTPRequest,
   watchHealth,
 } from './api';
 
@@ -46,6 +48,49 @@ afterEach(() => {
 });
 
 describe('API response normalization', () => {
+  it('accepts bounded HTTP evidence and rejects malformed successful relay payloads', async () => {
+    const response = normalizeHTTPResponse({
+      status: '200 OK',
+      statusCode: 200,
+      proto: 'HTTP/1.1',
+      headers: [{ name: 'Content-Type', value: 'text/plain' }],
+      body: 'hello',
+      bodyEncoding: 'text',
+      bytes: 5,
+      truncated: false,
+      redirects: [],
+      remoteIp: '127.0.0.1:8080',
+      tls: null,
+      timings: { dnsMs: 0, connectMs: 1, tlsMs: 0, ttfbMs: 2, totalMs: 3 },
+    });
+    expect(response).toMatchObject({ statusCode: 200, body: 'hello', bytes: 5 });
+    expect(
+      normalizeHTTPResponse({ ...response, status: '700 Custom', statusCode: 700 })
+    ).toMatchObject({ status: '700 Custom', statusCode: 700 });
+
+    expect(() =>
+      normalizeHTTPResponse({
+        ...response,
+        timings: { ...response.timings, totalMs: Number.NaN },
+      })
+    ).toThrow(/malformed HTTP response evidence/i);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ ...response, headers: 'not-an-array' }))
+    );
+    await expect(
+      sendHTTPRequest({
+        method: 'GET',
+        url: 'http://localhost:8080',
+        headers: [],
+        body: '',
+        timeoutMs: 30_000,
+        followRedirects: false,
+      })
+    ).rejects.toThrow(/malformed HTTP response evidence/i);
+  });
+
   it('normalizes all scan evidence truncation flags to explicit booleans', async () => {
     vi.stubGlobal(
       'fetch',
@@ -127,6 +172,39 @@ describe('API response normalization', () => {
       totalMs: 19.5,
     });
     expect(normalizeInvokeResponse({ timings: { totalMs: -1 } }).timings).toBeNull();
+  });
+
+  it('normalizes local invoke limits without turning malformed evidence into server success', () => {
+    const valid = normalizeInvokeResponse({
+      localLimit: {
+        reason: 'response-bytes',
+        message: 'ProtoPeek stopped before retaining the next response.',
+        retainedResponses: 2,
+        retainedResponseBytes: 6_000_000,
+        maxResponses: 512,
+        maxResponseBytes: 8_388_608,
+        maxDurationSeconds: 60,
+      },
+    });
+    expect(valid.localLimit).toEqual({
+      reason: 'response-bytes',
+      message: 'ProtoPeek stopped before retaining the next response.',
+      retainedResponses: 2,
+      retainedResponseBytes: 6_000_000,
+      maxResponses: 512,
+      maxResponseBytes: 8_388_608,
+      maxDurationSeconds: 60,
+    });
+
+    expect(normalizeInvokeResponse({}).localLimit).toBeNull();
+    expect(
+      normalizeInvokeResponse({ localLimit: { reason: 'server-said-ok' } }).localLimit
+    ).toEqual(
+      expect.objectContaining({
+        reason: 'invalid',
+        message: expect.stringMatching(/malformed local-limit evidence/i),
+      })
+    );
   });
 
   it('normalizes sparse proto catalogs recursively', () => {

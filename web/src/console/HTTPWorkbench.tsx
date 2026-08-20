@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { Clock3, History, KeyRound, LockKeyhole, Play, Plus, Square, X } from 'lucide-react';
+import { Clock3, Copy, History, KeyRound, LockKeyhole, Play, Plus, Square, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type {
@@ -27,11 +27,14 @@ import {
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
+import { buildCurlCommand } from './http-curl';
+import { prepareHTTPRequestDraft } from './http-request-draft';
 import { protocolShellEvents } from './ProtocolShellContext';
 
 type RequestTab = 'params' | 'headers' | 'auth' | 'body';
 type BodyMode = 'none' | 'json' | 'text';
 type AuthMode = 'none' | 'bearer' | 'basic' | 'api-key';
+type CurlCopyNotice = { kind: 'success' | 'error'; message: string };
 
 const requestTabs: Array<{ value: RequestTab; label: string }> = [
   { value: 'params', label: 'Params' },
@@ -65,11 +68,13 @@ export function HTTPWorkbench() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
+  const [curlCopyNotice, setCurlCopyNotice] = useState<CurlCopyNotice | null>(null);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
     normalizeHTTPHistory(loadStoredValue<unknown>(appStorageKeys.httpHistory, []))
   );
   const abortRef = useRef<AbortController | null>(null);
   const requestGenerationRef = useRef(0);
+  const curlCopyGenerationRef = useRef(0);
   const historyRef = useRef<HTMLDetailsElement | null>(null);
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const modifier = modifierKeyLabel();
@@ -88,6 +93,7 @@ export function HTTPWorkbench() {
       return;
     }
     requestGenerationRef.current++;
+    curlCopyGenerationRef.current++;
     const active = abortRef.current;
     abortRef.current = null;
     active?.abort();
@@ -108,6 +114,7 @@ export function HTTPWorkbench() {
     setResponse(null);
     setValidationError(null);
     setHistoryNotice(null);
+    setCurlCopyNotice(null);
     setRequestTab('params');
     setMobilePane('request');
     if (historyRef.current) historyRef.current.open = false;
@@ -128,6 +135,7 @@ export function HTTPWorkbench() {
   useEffect(
     () => () => {
       requestGenerationRef.current++;
+      curlCopyGenerationRef.current++;
       const active = abortRef.current;
       abortRef.current = null;
       active?.abort();
@@ -145,6 +153,11 @@ export function HTTPWorkbench() {
     return () => window.removeEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
   }, []);
 
+  function invalidateCurlCopy() {
+    curlCopyGenerationRef.current++;
+    setCurlCopyNotice(null);
+  }
+
   function buildURL() {
     const parsed = new URL(url.trim());
     for (const param of params) {
@@ -156,64 +169,106 @@ export function HTTPWorkbench() {
 
   function buildHeaders() {
     const result = filterMetadataForInvoke(headers).map((header) => ({ ...header }));
-    const usableAuthSecret = isRedactedValue(authSecret) ? '' : authSecret;
+    const authPlaceholderOmitted = authMode !== 'none' && isRedactedValue(authSecret);
+    const usableAuthSecret = authPlaceholderOmitted ? '' : authSecret;
+    const omittedHeaderPlaceholderCount = headers.filter(
+      (header) => header.name.trim() && isRedactedValue(header.value)
+    ).length;
+    let authHeaderName: string | null = null;
     if (authMode === 'bearer' && usableAuthSecret) {
       result.push({ name: 'Authorization', value: `Bearer ${usableAuthSecret}` });
-    } else if (authMode === 'basic' && (authUser || usableAuthSecret)) {
+      authHeaderName = 'Authorization';
+    } else if (authMode === 'basic' && !authPlaceholderOmitted && (authUser || usableAuthSecret)) {
       result.push({
         name: 'Authorization',
         value: `Basic ${encodeBasicAuth(authUser, usableAuthSecret)}`,
       });
+      authHeaderName = 'Authorization';
     } else if (authMode === 'api-key' && authName.trim() && usableAuthSecret) {
       result.push({ name: authName.trim(), value: usableAuthSecret });
+      authHeaderName = authName.trim();
     }
     if (
       bodyMode !== 'none' &&
-      !result.some((header) => header.name.toLowerCase() === 'content-type')
+      !result.some((header) => header.name.trim().toLowerCase() === 'content-type')
     ) {
       result.push({
         name: 'Content-Type',
         value: bodyMode === 'json' ? 'application/json' : 'text/plain; charset=utf-8',
       });
     }
-    return result;
+    return {
+      requestHeaders: result,
+      authHeaderName,
+      authPlaceholderOmitted,
+      preOmittedCredentialCount: omittedHeaderPlaceholderCount + Number(authPlaceholderOmitted),
+    };
+  }
+
+  function prepareCurrentDraft() {
+    let requestURL = url.trim();
+    try {
+      requestURL = buildURL();
+    } catch {
+      // The shared preparer returns the actionable URL error for both actions.
+    }
+    const headerDraft = buildHeaders();
+    const prepared = prepareHTTPRequestDraft({
+      method,
+      url: requestURL,
+      headers: headerDraft.requestHeaders,
+      body: bodyMode === 'none' ? null : body,
+      timeoutMs: Math.round(timeoutSeconds * 1000),
+      followRedirects,
+    });
+    if (!prepared.ok) return prepared;
+    return {
+      ...prepared,
+      authHeaderName: headerDraft.authHeaderName,
+      authPlaceholderOmitted: headerDraft.authPlaceholderOmitted,
+      preOmittedCredentialCount:
+        headerDraft.preOmittedCredentialCount + prepared.redactedQueryCount,
+    };
+  }
+
+  function showResponsePane() {
+    setMobilePane('response');
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 760px)').matches
+    ) {
+      requestAnimationFrame(() => {
+        document.getElementById('http-mobile-pane-tab-response')?.focus();
+      });
+    }
   }
 
   async function handleSend() {
     if (abortRef.current || mutation.isPending) return;
     setValidationError(null);
+    setHistoryNotice(null);
     mutation.reset();
-    let requestURL: string;
-    try {
-      const prepared = prepareURLForReplay(buildURL());
-      requestURL = prepared.url;
-      if (prepared.redactedCount > 0) {
-        setHistoryNotice(
-          `${prepared.redactedCount} redacted query ${prepared.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before sending if the endpoint requires them.`
-        );
-      }
-      if (authMode !== 'none' && isRedactedValue(authSecret)) {
-        setHistoryNotice('The [redacted] auth placeholder was not sent. Re-enter the credential.');
-      }
-    } catch {
-      setValidationError('Enter an absolute http:// or https:// URL.');
+    setResponse(null);
+    const prepared = prepareCurrentDraft();
+    if (!prepared.ok) {
+      setValidationError(prepared.error);
+      showResponsePane();
       return;
     }
-    const requestHeaders = buildHeaders();
-    const input: HTTPRequestInput = {
-      method,
-      url: requestURL,
-      headers: requestHeaders,
-      body: bodyMode === 'none' ? '' : body,
-      timeoutMs: Math.round(timeoutSeconds * 1000),
-      followRedirects,
-    };
+    const { input } = prepared;
+    if (prepared.redactedQueryCount > 0) {
+      setHistoryNotice(
+        `${prepared.redactedQueryCount} redacted query ${prepared.redactedQueryCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before sending if the endpoint requires them.`
+      );
+    }
+    if (prepared.authPlaceholderOmitted) {
+      setHistoryNotice('The [redacted] auth placeholder was not sent. Re-enter the credential.');
+    }
     const controller = new AbortController();
     const requestGeneration = requestGenerationRef.current + 1;
     requestGenerationRef.current = requestGeneration;
     abortRef.current = controller;
-    setResponse(null);
-    setMobilePane('response');
+    showResponsePane();
     try {
       const result = await mutation.mutateAsync({ input, signal: controller.signal });
       if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
@@ -225,9 +280,9 @@ export function HTTPWorkbench() {
       setHistory((entries) =>
         normalizeHTTPHistory([
           toHTTPHistoryEntry({
-            method,
-            url: requestURL,
-            requestHeaders,
+            method: input.method,
+            url: input.url,
+            requestHeaders: input.headers,
             status: result.status,
             statusCode: result.statusCode,
             totalMs: result.timings.totalMs,
@@ -247,6 +302,56 @@ export function HTTPWorkbench() {
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
     }
+  }
+
+  async function handleCopyAsCurl() {
+    const copyGeneration = curlCopyGenerationRef.current + 1;
+    curlCopyGenerationRef.current = copyGeneration;
+    const prepared = prepareCurrentDraft();
+    if (!prepared.ok) {
+      setCurlCopyNotice({ kind: 'error', message: prepared.error });
+      return;
+    }
+    const result = buildCurlCommand({
+      ...prepared.input,
+      authHeaderName: prepared.authHeaderName,
+      body: prepared.bodyActive ? prepared.input.body : null,
+      preOmittedCredentialCount: prepared.preOmittedCredentialCount,
+    });
+    if (!result.ok) {
+      setCurlCopyNotice({ kind: 'error', message: result.error });
+      return;
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        setCurlCopyNotice({
+          kind: 'error',
+          message:
+            'Clipboard access is unavailable. Use a browser context with clipboard permission and try again.',
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(result.command);
+    } catch {
+      if (curlCopyGenerationRef.current !== copyGeneration) return;
+      setCurlCopyNotice({
+        kind: 'error',
+        message: 'Could not copy cURL. Allow clipboard access and try again.',
+      });
+      return;
+    }
+    if (curlCopyGenerationRef.current !== copyGeneration) return;
+
+    const omissionLabel = `${result.omittedCredentialCount} credential-like ${
+      result.omittedCredentialCount === 1 ? 'value was' : 'values were'
+    } omitted.`;
+    setCurlCopyNotice({
+      kind: 'success',
+      message: result.bodyCopiedVerbatim
+        ? `Copied cURL for a POSIX shell. ${omissionLabel} Request body content was copied verbatim; review the command before sharing or running it.`
+        : `Copied cURL for a POSIX shell. ${omissionLabel} Review the command before sharing or running it.`,
+    });
   }
 
   const sendFromShortcut = useEffectEvent(() => {
@@ -271,6 +376,7 @@ export function HTTPWorkbench() {
 
   function loadHistory(entry: HTTPHistoryEntry) {
     requestGenerationRef.current++;
+    curlCopyGenerationRef.current++;
     const active = abortRef.current;
     abortRef.current = null;
     active?.abort();
@@ -290,6 +396,7 @@ export function HTTPWorkbench() {
     setFollowRedirects(false);
     setResponse(null);
     setValidationError(null);
+    setCurlCopyNotice(null);
     mutation.reset();
     const redactedCount = replayURL.redactedCount + replayHeaders.redactedCount;
     setHistoryNotice(
@@ -311,7 +418,7 @@ export function HTTPWorkbench() {
             H
           </i>
           <span>HTTP / REST</span>
-          <strong>Request workbench</strong>
+          <h1>Request workbench</h1>
         </div>
         <span className="pp-connection-fact">
           <LockKeyhole aria-hidden="true" /> Local relay
@@ -348,7 +455,10 @@ export function HTTPWorkbench() {
       <div className="pp-http-request-line">
         <select
           value={method}
-          onChange={(event) => setMethod(event.target.value)}
+          onChange={(event) => {
+            invalidateCurlCopy();
+            setMethod(event.target.value);
+          }}
           aria-label="HTTP method"
         >
           {httpMethods.map((entry) => (
@@ -358,7 +468,10 @@ export function HTTPWorkbench() {
         <input
           ref={urlInputRef}
           value={url}
-          onChange={(event) => setURL(event.target.value)}
+          onChange={(event) => {
+            invalidateCurlCopy();
+            setURL(event.target.value);
+          }}
           aria-label="Request URL"
           spellCheck={false}
           placeholder="https://api.example.test/v1/items"
@@ -388,6 +501,19 @@ export function HTTPWorkbench() {
               <X className="pp-http-notice-icon" aria-hidden="true" />
             </button>
           ) : null}
+        </div>
+      ) : null}
+
+      {curlCopyNotice ? (
+        <div
+          className={classNames(
+            'pp-http-curl-notice',
+            curlCopyNotice.kind === 'error' && 'is-error'
+          )}
+          role={curlCopyNotice.kind === 'error' ? 'alert' : 'status'}
+        >
+          <Copy className="pp-http-notice-icon" aria-hidden="true" />
+          <span>{curlCopyNotice.message}</span>
         </div>
       ) : null}
 
@@ -425,7 +551,10 @@ export function HTTPWorkbench() {
                 max={120}
                 step={0.1}
                 value={timeoutSeconds}
-                onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
+                onChange={(event) => {
+                  invalidateCurlCopy();
+                  setTimeoutSeconds(Number(event.target.value));
+                }}
               />
               s
             </label>
@@ -433,10 +562,22 @@ export function HTTPWorkbench() {
               <input
                 type="checkbox"
                 checked={followRedirects}
-                onChange={(event) => setFollowRedirects(event.target.checked)}
+                onChange={(event) => {
+                  invalidateCurlCopy();
+                  setFollowRedirects(event.target.checked);
+                }}
               />
               Follow redirects
             </label>
+            <button
+              type="button"
+              className="pp-http-copy-curl"
+              aria-describedby="http-curl-shell-boundary"
+              onClick={() => void handleCopyAsCurl()}
+            >
+              <Copy aria-hidden="true" /> Copy as cURL
+            </button>
+            <span id="http-curl-shell-boundary">POSIX shell export</span>
             <span>TLS verification on</span>
           </div>
           <AccessibleTabs
@@ -454,7 +595,10 @@ export function HTTPWorkbench() {
                 entries={params}
                 namePlaceholder="page"
                 valuePlaceholder="1"
-                onChange={setParams}
+                onChange={(entries) => {
+                  invalidateCurlCopy();
+                  setParams(entries);
+                }}
               />
             </TabPanel>
             <TabPanel id="http-request" tab="headers" active={requestTab === 'headers'}>
@@ -463,7 +607,10 @@ export function HTTPWorkbench() {
                 entries={headers}
                 namePlaceholder="Accept"
                 valuePlaceholder="application/json"
-                onChange={setHeaders}
+                onChange={(entries) => {
+                  invalidateCurlCopy();
+                  setHeaders(entries);
+                }}
               />
             </TabPanel>
             <TabPanel
@@ -476,7 +623,10 @@ export function HTTPWorkbench() {
                 <span>Auth type</span>
                 <select
                   value={authMode}
-                  onChange={(event) => setAuthMode(event.target.value as AuthMode)}
+                  onChange={(event) => {
+                    invalidateCurlCopy();
+                    setAuthMode(event.target.value as AuthMode);
+                  }}
                 >
                   <option value="none">None</option>
                   <option value="bearer">Bearer token</option>
@@ -487,13 +637,25 @@ export function HTTPWorkbench() {
               {authMode === 'basic' ? (
                 <label>
                   <span>Username</span>
-                  <input value={authUser} onChange={(event) => setAuthUser(event.target.value)} />
+                  <input
+                    value={authUser}
+                    onChange={(event) => {
+                      invalidateCurlCopy();
+                      setAuthUser(event.target.value);
+                    }}
+                  />
                 </label>
               ) : null}
               {authMode === 'api-key' ? (
                 <label>
                   <span>Header name</span>
-                  <input value={authName} onChange={(event) => setAuthName(event.target.value)} />
+                  <input
+                    value={authName}
+                    onChange={(event) => {
+                      invalidateCurlCopy();
+                      setAuthName(event.target.value);
+                    }}
+                  />
                 </label>
               ) : null}
               {authMode !== 'none' ? (
@@ -505,7 +667,10 @@ export function HTTPWorkbench() {
                     type="password"
                     value={authSecret}
                     autoComplete="off"
-                    onChange={(event) => setAuthSecret(event.target.value)}
+                    onChange={(event) => {
+                      invalidateCurlCopy();
+                      setAuthSecret(event.target.value);
+                    }}
                   />
                 </label>
               ) : (
@@ -527,7 +692,10 @@ export function HTTPWorkbench() {
                   Body type
                   <select
                     value={bodyMode}
-                    onChange={(event) => setBodyMode(event.target.value as BodyMode)}
+                    onChange={(event) => {
+                      invalidateCurlCopy();
+                      setBodyMode(event.target.value as BodyMode);
+                    }}
                   >
                     <option value="none">None</option>
                     <option value="json">JSON</option>
@@ -544,7 +712,10 @@ export function HTTPWorkbench() {
               <textarea
                 value={body}
                 disabled={bodyMode === 'none'}
-                onChange={(event) => setBody(event.target.value)}
+                onChange={(event) => {
+                  invalidateCurlCopy();
+                  setBody(event.target.value);
+                }}
                 spellCheck={false}
                 aria-label="HTTP request body"
                 placeholder={bodyMode === 'json' ? '{\n  "name": "ProtoPeek"\n}' : 'Request body'}

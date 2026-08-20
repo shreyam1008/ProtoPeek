@@ -1530,6 +1530,50 @@ describe('unary repeat', () => {
     expect(window.localStorage.getItem('protopeek.simulation.v1')).toBeNull();
   });
 
+  it('classifies ProtoPeek local limits separately in Unary Repeat', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        return Promise.resolve(
+          response({
+            headers: [{ name: 'x-observed', value: 'true' }],
+            responses: [{ message: { partial: true }, isError: false }],
+            requests: { total: 1, sent: 1 },
+            trailers: [],
+            error: null,
+            timings: { headersMs: 1, firstMessageMs: 2, trailersMs: null, totalMs: 60_000 },
+            localLimit: {
+              reason: 'duration',
+              message: "ProtoPeek stopped locally; the server's final status was not observed.",
+              retainedResponses: 1,
+              retainedResponseBytes: 18,
+              maxResponses: 512,
+              maxResponseBytes: 8_388_608,
+              maxDurationSeconds: 60,
+            },
+          })
+        );
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(screen.getByLabelText('Calls'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+
+    expect(await screen.findByText('2 of 2 attempts')).toBeVisible();
+    expect(screen.getByText('Local limits').nextElementSibling).toHaveTextContent('2');
+    expect(screen.getByText('OK').nextElementSibling).toHaveTextContent('0');
+    expect(screen.getAllByText('local-limit')).toHaveLength(2);
+    expect(screen.queryByText('DeadlineExceeded')).not.toBeInTheDocument();
+  });
+
   it('clears an older Invoke loading state when Repeat takes ownership', async () => {
     const invokeSignals: AbortSignal[] = [];
     const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {

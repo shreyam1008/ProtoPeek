@@ -105,6 +105,60 @@ function normalizeInvokeTimings(value: unknown): InvokeResponse['timings'] {
   };
 }
 
+function normalizeInvokeLocalLimit(value: unknown): InvokeResponse['localLimit'] {
+  if (value === null || value === undefined) return null;
+  const invalid: NonNullable<InvokeResponse['localLimit']> = {
+    reason: 'invalid',
+    message:
+      "ProtoPeek returned malformed local-limit evidence; the server's final gRPC status is not trusted.",
+    retainedResponses: 0,
+    retainedResponseBytes: 0,
+    maxResponses: 0,
+    maxResponseBytes: 0,
+    maxDurationSeconds: 0,
+  };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return invalid;
+  const limit = value as Record<string, unknown>;
+  const reason = limit.reason;
+  const message = limit.message;
+  const retainedResponses = limit.retainedResponses;
+  const retainedResponseBytes = limit.retainedResponseBytes;
+  const maxResponses = limit.maxResponses;
+  const maxResponseBytes = limit.maxResponseBytes;
+  const maxDurationSeconds = limit.maxDurationSeconds;
+  if (
+    (reason !== 'response-count' && reason !== 'response-bytes' && reason !== 'duration') ||
+    typeof message !== 'string' ||
+    message.length === 0 ||
+    message.length > 1024 ||
+    !Number.isSafeInteger(retainedResponses) ||
+    (retainedResponses as number) < 0 ||
+    !Number.isSafeInteger(retainedResponseBytes) ||
+    (retainedResponseBytes as number) < 0 ||
+    !Number.isSafeInteger(maxResponses) ||
+    (maxResponses as number) <= 0 ||
+    !Number.isSafeInteger(maxResponseBytes) ||
+    (maxResponseBytes as number) <= 0 ||
+    typeof maxDurationSeconds !== 'number' ||
+    !Number.isFinite(maxDurationSeconds) ||
+    maxDurationSeconds <= 0 ||
+    maxDurationSeconds > 60 ||
+    (retainedResponses as number) > (maxResponses as number) ||
+    (retainedResponseBytes as number) > (maxResponseBytes as number)
+  ) {
+    return invalid;
+  }
+  return {
+    reason,
+    message,
+    retainedResponses: retainedResponses as number,
+    retainedResponseBytes: retainedResponseBytes as number,
+    maxResponses: maxResponses as number,
+    maxResponseBytes: maxResponseBytes as number,
+    maxDurationSeconds,
+  };
+}
+
 function normalizeInvokeElements(
   value: InvokeResponse['responses'] | null | undefined
 ): InvokeResponse['responses'] {
@@ -151,6 +205,7 @@ export function normalizeInvokeResponse(input: unknown): InvokeResponse {
     trailers: arrayOrEmpty(response.trailers),
     requests: response.requests ?? null,
     timings: normalizeInvokeTimings(response.timings),
+    localLimit: normalizeInvokeLocalLimit(response.localLimit),
     error: response.error
       ? { ...response.error, details: normalizeInvokeElements(response.error.details) }
       : null,
@@ -531,13 +586,140 @@ export async function importNmapXML(xml: Blob, signal?: AbortSignal) {
   };
 }
 
-export function sendHTTPRequest(input: HTTPRequestInput, signal?: AbortSignal) {
-  return fetchJSON<HTTPResponse>('api/http/request', {
+const httpResponseBodyMaxBytes = 4 << 20;
+const httpResponseBase64MaxBytes = Math.ceil(httpResponseBodyMaxBytes / 3) * 4;
+const httpResponseHeaderMaxCount = 2_048;
+const httpResponseHeaderAggregateMaxBytes = 2 << 20;
+
+function malformedHTTPResponse(): never {
+  throw new Error(
+    'ProtoPeek returned malformed HTTP response evidence or exceeded browser display limits.'
+  );
+}
+
+function httpResponseRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) malformedHTTPResponse();
+  return value as Record<string, unknown>;
+}
+
+function httpResponseString(value: unknown, maxBytes: number, allowEmpty = true): string {
+  if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) malformedHTTPResponse();
+  if (byteLength(value) > maxBytes) malformedHTTPResponse();
+  return value;
+}
+
+function httpResponseMilliseconds(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    malformedHTTPResponse();
+  }
+  return value;
+}
+
+function normalizeHTTPHeaders(value: unknown): HTTPResponse['headers'] {
+  if (!Array.isArray(value) || value.length > httpResponseHeaderMaxCount) malformedHTTPResponse();
+  let aggregateBytes = 0;
+  return value.map((entry) => {
+    const header = httpResponseRecord(entry);
+    const name = httpResponseString(header.name, 256, false);
+    const headerValue = httpResponseString(header.value, 64 << 10);
+    aggregateBytes += byteLength(name);
+    aggregateBytes += byteLength(headerValue);
+    if (aggregateBytes > httpResponseHeaderAggregateMaxBytes) malformedHTTPResponse();
+    return { name, value: headerValue };
+  });
+}
+
+/** Fail closed before rendering target-controlled HTTP relay evidence. */
+export function normalizeHTTPResponse(value: unknown): HTTPResponse {
+  const response = httpResponseRecord(value);
+  const statusCode = response.statusCode;
+  const bytes = response.bytes;
+  if (!Number.isInteger(statusCode) || (statusCode as number) < 0 || (statusCode as number) > 999) {
+    malformedHTTPResponse();
+  }
+  if (
+    !Number.isSafeInteger(bytes) ||
+    (bytes as number) < 0 ||
+    (bytes as number) > httpResponseBodyMaxBytes
+  ) {
+    malformedHTTPResponse();
+  }
+  if (typeof response.truncated !== 'boolean') malformedHTTPResponse();
+  if (response.bodyEncoding !== 'text' && response.bodyEncoding !== 'base64') {
+    malformedHTTPResponse();
+  }
+  const body = httpResponseString(
+    response.body,
+    response.bodyEncoding === 'base64' ? httpResponseBase64MaxBytes : httpResponseBodyMaxBytes
+  );
+
+  if (!Array.isArray(response.redirects) || response.redirects.length > 10) {
+    malformedHTTPResponse();
+  }
+  const redirects = response.redirects.map((value) => {
+    const redirect = httpResponseRecord(value);
+    const redirectStatusCode = redirect.statusCode;
+    if (
+      !Number.isInteger(redirectStatusCode) ||
+      (redirectStatusCode as number) < 0 ||
+      (redirectStatusCode as number) > 999
+    ) {
+      malformedHTTPResponse();
+    }
+    return {
+      url: httpResponseString(redirect.url, 8 << 10, false),
+      status: httpResponseString(redirect.status, 512, false),
+      statusCode: redirectStatusCode as number,
+      location: httpResponseString(redirect.location, 8 << 10),
+    };
+  });
+
+  const timingValue = httpResponseRecord(response.timings);
+  const tlsValue = response.tls;
+  let tls: HTTPResponse['tls'] = null;
+  if (tlsValue !== null) {
+    const evidence = httpResponseRecord(tlsValue);
+    if (typeof evidence.verified !== 'boolean') malformedHTTPResponse();
+    tls = {
+      version: httpResponseString(evidence.version, 64, false),
+      cipherSuite: httpResponseString(evidence.cipherSuite, 256),
+      serverName: httpResponseString(evidence.serverName, 8 << 10),
+      peerSubject: httpResponseString(evidence.peerSubject, 16 << 10),
+      peerExpiresAt: httpResponseString(evidence.peerExpiresAt, 256),
+      verified: evidence.verified,
+    };
+  }
+
+  return {
+    status: httpResponseString(response.status, 512, false),
+    statusCode: statusCode as number,
+    proto: httpResponseString(response.proto, 64, false),
+    headers: normalizeHTTPHeaders(response.headers),
+    body,
+    bodyEncoding: response.bodyEncoding,
+    bytes: bytes as number,
+    truncated: response.truncated,
+    redirects,
+    remoteIp: httpResponseString(response.remoteIp, 512),
+    tls,
+    timings: {
+      dnsMs: httpResponseMilliseconds(timingValue.dnsMs),
+      connectMs: httpResponseMilliseconds(timingValue.connectMs),
+      tlsMs: httpResponseMilliseconds(timingValue.tlsMs),
+      ttfbMs: httpResponseMilliseconds(timingValue.ttfbMs),
+      totalMs: httpResponseMilliseconds(timingValue.totalMs),
+    },
+  };
+}
+
+export async function sendHTTPRequest(input: HTTPRequestInput, signal?: AbortSignal) {
+  const response = await fetchJSON<unknown>('api/http/request', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
     signal,
   });
+  return normalizeHTTPResponse(response);
 }
 
 export async function fetchWorkspaceProtoCatalog(sessionId: string) {

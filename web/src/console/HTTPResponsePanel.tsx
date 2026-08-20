@@ -1,5 +1,5 @@
 import { CircleAlert, Copy, LoaderCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 import type { HTTPResponse, HTTPTimings, MetadataEntry } from '@/shared/types';
 import { classNames, durationLabel } from '@/shared/utils';
@@ -16,7 +16,7 @@ const responseTabs: Array<{ value: HTTPResponseTab; label: string }> = [
   { value: 'status', label: 'Status' },
 ];
 
-export function HTTPResponsePanel({
+export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   response,
   loading,
   error,
@@ -26,10 +26,34 @@ export function HTTPResponsePanel({
   error: string | null;
 }) {
   const [tab, setTab] = useState<HTTPResponseTab>('body');
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+  const copyGenerationRef = useRef(0);
 
   useEffect(() => {
-    if (response) setTab('body');
+    copyGenerationRef.current++;
+    if (response) {
+      setTab('body');
+      setCopyState('idle');
+    }
+    return () => {
+      copyGenerationRef.current++;
+    };
   }, [response]);
+
+  async function copyResponseBody() {
+    const copyGeneration = copyGenerationRef.current + 1;
+    copyGenerationRef.current = copyGeneration;
+    if (!response || !navigator.clipboard?.writeText) {
+      if (copyGenerationRef.current === copyGeneration) setCopyState('error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(response.body);
+      if (copyGenerationRef.current === copyGeneration) setCopyState('copied');
+    } catch {
+      if (copyGenerationRef.current === copyGeneration) setCopyState('error');
+    }
+  }
 
   function renderResponseTab(value: HTTPResponseTab) {
     if (!response) return <HTTPResponseState loading={loading} error={error} />;
@@ -44,10 +68,16 @@ export function HTTPResponsePanel({
               </span>
               <button
                 type="button"
-                onClick={() => void navigator.clipboard.writeText(response.body)}
+                aria-label="Copy response body"
+                onClick={() => void copyResponseBody()}
               >
-                <Copy aria-hidden="true" /> Copy
+                <Copy aria-hidden="true" /> {copyState === 'copied' ? 'Copied' : 'Copy'}
               </button>
+              {copyState === 'error' ? (
+                <span role="alert">Could not copy response body. Check clipboard permission.</span>
+              ) : copyState === 'copied' ? (
+                <span role="status">Response body copied.</span>
+              ) : null}
             </div>
             <pre>{response.body || '(empty body)'}</pre>
           </>
@@ -114,7 +144,7 @@ export function HTTPResponsePanel({
 
   return (
     <section className="pp-http-response" aria-label="HTTP response evidence">
-      <div className="pp-http-response-summary" aria-live="polite">
+      <div className="pp-http-response-summary" aria-live="polite" aria-atomic="true">
         <span
           className={classNames(
             'pp-status-mark',
@@ -153,7 +183,7 @@ export function HTTPResponsePanel({
       </div>
     </section>
   );
-}
+});
 
 function HTTPResponseState({ loading, error }: { loading: boolean; error: string | null }) {
   if (loading) {

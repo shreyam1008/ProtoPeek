@@ -46,6 +46,29 @@ describe('public site navigation', () => {
 
     expect(screen.getByRole('button', { name: 'Copy Homebrew command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy Scoop command' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest github.com/shreyam1008/ProtoPeek/cmd/pp@latest'
+      )
+    ).toBeInTheDocument();
     expect(screen.getByText(/WinGet only after initial package feedback/)).toBeInTheDocument();
+  });
+
+  it('keeps cURL export in the shipped phase and only import in Next', () => {
+    render(<App />);
+
+    const shipped = screen
+      .getByRole('heading', { name: 'Protocol workbenches + bounded evidence' })
+      .closest<HTMLElement>('.pp-panel');
+    const next = screen
+      .getByRole('heading', { name: 'Close daily workflow gaps' })
+      .closest<HTMLElement>('.pp-panel');
+    expect(shipped).not.toBeNull();
+    expect(next).not.toBeNull();
+    if (!shipped || !next) return;
+
+    expect(within(shipped).getByText(/bounded cURL export/i)).toBeVisible();
+    expect(within(next).getByText(/bounded cURL import/i)).toBeVisible();
+    expect(within(next).queryByText(/cURL import\/export/i)).not.toBeInTheDocument();
   });
 });

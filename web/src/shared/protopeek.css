@@ -2397,7 +2397,8 @@
     font-weight: 750;
   }
 
-  .pp-http-header > div strong {
+  .pp-http-header > div h1 {
+    margin: 0;
     color: #aab9c0;
     font-size: 0.72rem;
   }
@@ -2558,7 +2559,8 @@
     box-shadow: 0 0 0 2px rgba(43, 203, 191, 0.18);
   }
 
-  .pp-http-replay-notice {
+  .pp-http-replay-notice,
+  .pp-http-curl-notice {
     display: flex;
     min-height: 2.25rem;
     align-items: center;
@@ -2568,6 +2570,11 @@
     background: var(--pp-accent-soft);
     color: var(--pp-text-muted);
     font-size: 0.66rem;
+  }
+
+  .pp-http-curl-notice.is-error {
+    background: var(--pp-danger-soft);
+    color: var(--pp-danger-signal);
   }
 
   .pp-http-notice-icon {
@@ -2650,6 +2657,24 @@
 
   .pp-http-request-settings svg {
     width: 0.72rem;
+  }
+
+  .pp-http-copy-curl {
+    display: inline-flex;
+    min-height: 1.85rem;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.3rem;
+    padding: 0.25rem 0.55rem;
+    background: var(--pp-surface-raised);
+    color: var(--pp-accent-signal);
+    font-weight: 750;
+    white-space: nowrap;
+  }
+
+  .pp-http-copy-curl:hover {
+    background: var(--pp-accent-soft);
   }
 
   .pp-http-request-settings input[type="number"] {
@@ -3097,7 +3122,17 @@
     padding: 0 0.55rem;
   }
 
-  .pp-http-header > div strong,
+  .pp-http-header > div h1,
+  .pp-http-header .pp-connection-fact {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
   .pp-http-header .pp-connection-fact {
     display: none;
   }
@@ -3135,8 +3170,8 @@
     display: flex;
     min-height: 2.8rem;
     align-items: stretch;
-    border-bottom: 1px solid #25343d;
-    background: #0b141a;
+    border-bottom: 1px solid var(--pp-stroke);
+    background: var(--pp-chrome);
   }
 
   .pp-http-mobile-tabs .pp-pane-tab {
@@ -3150,6 +3185,10 @@
 
   .pp-http-workspace > [role="tabpanel"] {
     height: 100%;
+  }
+
+  .pp-mobile-pane-hidden {
+    display: none;
   }
 
   .pp-http-request-settings {
@@ -4909,7 +4948,7 @@
     color: var(--pp-accent-signal);
   }
 
-  .pp-http-header > div strong,
+  .pp-http-header > div h1,
   .pp-http-history div > header,
   .pp-http-response-summary strong,
   .pp-http-key-values > header,

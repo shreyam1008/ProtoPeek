@@ -222,6 +222,16 @@ export type InvokeTimings = {
   totalMs: number;
 };
 
+export type InvokeLocalLimit = {
+  reason: 'response-count' | 'response-bytes' | 'duration' | 'invalid';
+  message: string;
+  retainedResponses: number;
+  retainedResponseBytes: number;
+  maxResponses: number;
+  maxResponseBytes: number;
+  maxDurationSeconds: number;
+};
+
 export type InvokeResponse = {
   headers: MetadataEntry[];
   error: InvokeError | null;
@@ -229,6 +239,7 @@ export type InvokeResponse = {
   requests: InvokeRequestStats | null;
   trailers: MetadataEntry[];
   timings: InvokeTimings | null;
+  localLimit: InvokeLocalLimit | null;
 };
 
 export type HealthServingStatus = {
@@ -381,7 +392,12 @@ export type RepeatConfig = {
   deadlineSeconds: number;
 };
 
-export type RepeatOutcome = 'ok' | 'grpc-error' | 'relay-transport-error' | 'cancelled';
+export type RepeatOutcome =
+  | 'ok'
+  | 'grpc-error'
+  | 'local-limit'
+  | 'relay-transport-error'
+  | 'cancelled';
 
 export type RepeatStopReason = 'completed' | 'user-cancelled' | 'aggregate-limit';
 
@@ -414,6 +430,7 @@ export type RepeatRun = {
   counts: {
     ok: number;
     grpcError: number;
+    localLimit: number;
     relayTransportError: number;
     cancelled: number;
   };

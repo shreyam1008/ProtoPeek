@@ -459,7 +459,7 @@ function Roadmap() {
       status: 'Shipped · v0.3.0',
       title: 'Protocol workbenches + bounded evidence',
       detail:
-        'Dashboard, themes, stable gRPC and HTTP workbenches, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, offline Nmap XML import, and owned Homebrew/Scoop channels.',
+        'Dashboard, themes, stable gRPC and HTTP workbenches, bounded cURL export with credential redaction, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, offline Nmap XML import, and owned Homebrew/Scoop channels.',
       icon: ShieldCheck,
     },
     {
@@ -467,7 +467,7 @@ function Roadmap() {
       status: 'Next',
       title: 'Close daily workflow gaps',
       detail:
-        'Incremental general gRPC stream delivery, saved HTTP requests and profiles, bounded cURL import/export, target DNS/TLS preflight, and WinGet only after initial package feedback.',
+        'Incremental general gRPC stream delivery, saved HTTP requests and profiles, bounded cURL import, target DNS/TLS preflight, and WinGet only after initial package feedback.',
       icon: Globe2,
     },
     {
@@ -542,7 +542,7 @@ function Install() {
     },
     {
       label: 'go install',
-      cmd: 'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest',
+      cmd: 'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest github.com/shreyam1008/ProtoPeek/cmd/pp@latest',
     },
   ];
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { HTTPResponse } from '@/shared/types';
@@ -35,10 +35,332 @@ function renderWorkbench() {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  Reflect.deleteProperty(navigator, 'clipboard');
   window.localStorage.clear();
 });
 
 describe('HTTPWorkbench', () => {
+  it('exposes the HTTP workbench with a level-one page heading', () => {
+    renderWorkbench();
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Request workbench' })).toBeVisible();
+  });
+
+  it('copies the current credential-redacted draft and discloses verbatim body handling', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.change(screen.getByLabelText('HTTP method'), { target: { value: 'POST' } });
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: {
+        value: 'https://example.test/items?tag=one&token=url-secret&tag=two',
+      },
+    });
+    const requestTabs = screen.getByRole('tablist', { name: 'HTTP request settings' });
+    fireEvent.click(within(requestTabs).getByRole('tab', { name: 'Headers' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.change(screen.getByLabelText('Request headers name 1'), {
+      target: { value: 'Authorization' },
+    });
+    fireEvent.change(screen.getByLabelText('Request headers value 1'), {
+      target: { value: 'Bearer header-secret' },
+    });
+    fireEvent.click(within(requestTabs).getByRole('tab', { name: 'Auth' }));
+    fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'bearer' } });
+    fireEvent.change(screen.getByLabelText('Token'), { target: { value: 'auth-secret' } });
+    fireEvent.click(within(requestTabs).getByRole('tab', { name: 'Body' }));
+    fireEvent.change(screen.getByLabelText('Body type'), { target: { value: 'json' } });
+    fireEvent.change(screen.getByLabelText('HTTP request body'), {
+      target: { value: '{"note":"user-authored secret"}' },
+    });
+    fireEvent.change(screen.getByLabelText(/Timeout/), { target: { value: '0.3' } });
+    expect(writeText).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    const command = String(writeText.mock.calls[0]?.[0]);
+    expect(command).toContain("--request 'POST'");
+    expect(command).toContain("--url 'https://example.test/items?tag=one&token=&tag=two'");
+    expect(command).toContain("--header 'Content-Type: application/json'");
+    expect(command).toContain("--max-time '0.3'");
+    expect(command).not.toContain('--location');
+    expect(command).toContain('--data-raw \'{"note":"user-authored secret"}\'');
+    expect(command).not.toContain('url-secret');
+    expect(command).not.toContain('header-secret');
+    expect(command).not.toContain('auth-secret');
+    expect(command).not.toContain('[redacted]');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /3 credential-like values were omitted.*body content was copied verbatim.*review/i
+    );
+  });
+
+  it('refuses redirect-enabled cURL export and explains how to make the draft exportable', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.click(screen.getByLabelText('Follow redirects'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /turn off Follow redirects.*cannot reproduce ProtoPeek's bounded redirect.*HTTPS downgrade policy/i
+    );
+  });
+
+  it('uses the same URL and timeout validation before Send and Copy', () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    const fetchMock = vi.fn();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://user:secret@example.test/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/credentials are not allowed in URLs/i)).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/credentials are not allowed in URLs/i)).toHaveLength(2);
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://example.test/' },
+    });
+    fireEvent.change(screen.getByLabelText(/Timeout/), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/timeout between 0.1 and 120 seconds/i)).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getAllByText(/timeout between 0.1 and 120 seconds/i)).toHaveLength(2);
+  });
+
+  it('clears prior response evidence before showing a new draft validation error', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () => ({ ok: true, json: async () => response, text: async () => '' }) as Response
+      )
+    );
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    const evidence = screen.getByRole('region', { name: 'HTTP response evidence' });
+    await waitFor(() => expect(within(evidence).getByText('{"ok":true}')).toBeVisible());
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://user:secret@example.test/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+
+    expect(within(evidence).getByRole('alert')).toHaveTextContent(
+      /credentials are not allowed in URLs/i
+    );
+    expect(within(evidence).queryByText('{"ok":true}')).not.toBeInTheDocument();
+    expect(within(evidence).getByText('No response yet')).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Response' })).toBeInTheDocument();
+  });
+
+  it('omits a redacted Basic auth placeholder from both Send and Copy', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true, json: async () => response, text: async () => '' }) as Response
+    );
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Auth' }));
+    fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'basic' } });
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'operator' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: '[redacted]' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      headers: Array<{ name: string; value: string }>;
+    };
+    expect(sent.headers).not.toContainEqual(expect.objectContaining({ name: 'Authorization' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/auth placeholder was not sent/i);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Request' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(String(writeText.mock.calls[0]?.[0])).not.toContain('Authorization');
+    expect(screen.getByText(/1 credential-like value was omitted/i)).toBeVisible();
+  });
+
+  it('clears stale cURL feedback when the request draft changes', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(await screen.findByText(/Copied cURL/i)).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://example.test/changed' },
+    });
+    await waitFor(() => expect(screen.queryByText(/Copied cURL/i)).not.toBeInTheDocument());
+  });
+
+  it('does not publish a stale clipboard result after the draft changes', async () => {
+    let resolveWrite: (() => void) | undefined;
+    const writeText = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveWrite = resolve;
+        })
+    );
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://example.test/new-draft' },
+    });
+    await act(async () => resolveWrite?.());
+
+    expect(screen.queryByText(/Copied cURL/i)).not.toBeInTheDocument();
+  });
+
+  it('hands narrow-screen focus to the visible Response tab after Send', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>(() => {
+            // Keep the request pending while focus moves to the response pane control.
+          })
+      )
+    );
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 760px)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Response' })).toHaveFocus());
+  });
+
+  it('reports unavailable and rejected clipboard access without throwing', async () => {
+    renderWorkbench();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/clipboard access is unavailable/i);
+
+    const writeText = vi.fn().mockRejectedValue(new DOMException('Denied', 'NotAllowedError'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /could not copy cURL.*allow clipboard access/i
+    );
+  });
+
+  it('does not write to the clipboard when URL or command-size validation fails', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'ftp://example.test/archive' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/absolute http:\/\/ or https:\/\/ URL/i);
+    expect(writeText).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://example.test/' },
+    });
+    fireEvent.change(screen.getByLabelText(/Timeout/), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/timeout between 0.1 and 120 seconds/i);
+    expect(writeText).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText(/Timeout/), { target: { value: '30' } });
+    fireEvent.click(
+      within(screen.getByRole('tablist', { name: 'HTTP request settings' })).getByRole('tab', {
+        name: 'Body',
+      })
+    );
+    fireEvent.change(screen.getByLabelText('Body type'), { target: { value: 'text' } });
+    fireEvent.change(screen.getByLabelText('HTTP request body'), {
+      target: { value: 'x'.repeat(512 * 1024) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/exceeds 512 KiB.*shorten/i);
+    expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it('keeps persistent history-storage failure visible after a successful copy', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    renderWorkbench();
+    expect(await screen.findByText(/HTTP history is session-only.*Quota exceeded/i)).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as cURL' }));
+
+    const copyNotice = await screen.findByText(
+      /Copied cURL.*0 credential-like values were omitted/i
+    );
+    expect(copyNotice.closest('[role="status"]')).not.toBeNull();
+    expect(screen.getByText(/HTTP history is session-only.*Quota exceeded/i)).toBeVisible();
+  });
+
   it('sends live auth but redacts it from automatic local history', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
     document.cookie = '_protopeek_csrf_token=test-token; path=/';
@@ -56,6 +378,7 @@ describe('HTTPWorkbench', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Auth' }));
     fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'bearer' } });
     fireEvent.change(screen.getByLabelText('Token'), { target: { value: 'super-secret' } });
+    fireEvent.change(screen.getByLabelText(/Timeout/), { target: { value: '0.3' } });
     fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
 
     await waitFor(() => expect(screen.getAllByText('200 OK').length).toBeGreaterThan(0));
@@ -63,8 +386,10 @@ describe('HTTPWorkbench', () => {
     const [, init] = fetchMock.mock.calls[0];
     const sent = JSON.parse(String(init?.body)) as {
       headers: Array<{ name: string; value: string }>;
+      timeoutMs: number;
     };
     expect(sent.headers).toContainEqual({ name: 'Authorization', value: 'Bearer super-secret' });
+    expect(sent.timeoutMs).toBe(300);
 
     const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
     expect(stored).not.toContain('super-secret');
@@ -80,6 +405,9 @@ describe('HTTPWorkbench', () => {
       'http-request-tab-params'
     );
     expect(screen.getByText('TLS verification on')).toBeInTheDocument();
+    const curlButton = screen.getByRole('button', { name: 'Copy as cURL' });
+    expect(curlButton).toHaveAttribute('aria-describedby', 'http-curl-shell-boundary');
+    expect(screen.getByText('POSIX shell export')).toBeVisible();
   });
 
   it('closes HTTP history after loading an entry', () => {
