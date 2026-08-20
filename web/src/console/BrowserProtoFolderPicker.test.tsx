@@ -167,7 +167,7 @@ describe('BrowserProtoFolderPicker', () => {
     expect(onChange).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(onBusyChange).toHaveBeenCalledWith(true);
-    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    await waitFor(() => expect(onBusyChange).toHaveBeenLastCalledWith(false));
   });
 
   it('invalidates a replacement when the parent disables the picker for a connection change', async () => {

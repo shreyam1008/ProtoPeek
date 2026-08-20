@@ -24,8 +24,7 @@ const publishedPages = [
     slug: 'feature-roadmap',
     title: 'Feature roadmap',
     section: 'Roadmap',
-    description:
-      'The shipped v0.3.0 protocol workbench and the gates for future transport-aware work.',
+    description: 'The shipped protocol workbench and the gates for future transport-aware work.',
     sourcePath: 'guides/feature-roadmap.md',
     sourceURL: `${repoRootURL}/blob/master/guides/feature-roadmap.md`,
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],

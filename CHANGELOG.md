@@ -5,6 +5,8 @@ version source of truth.
 
 ## Unreleased
 
+## v0.3.1 — 2026-08-20
+
 - Added explicit Copy as cURL export for the live HTTP draft. POSIX quoting preserves duplicate
   query parameters, Unicode, method, non-sensitive headers, timeout, and active body content after
   the same preparation used by Send; auth and credential-like headers are omitted and sensitive URL

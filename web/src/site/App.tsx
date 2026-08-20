@@ -154,7 +154,7 @@ function Hero() {
     <section className="pt-16 text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-pp-border bg-white px-4 py-1.5 text-xs font-medium text-pp-muted shadow-sm">
         <Zap className="size-3.5 text-pp-brand" />
-        v0.3.0 stable &middot; local-first
+        v0.3.1 stable &middot; local-first
       </div>
 
       <h1 className="mt-6 text-4xl font-bold tracking-tight text-pp-ink md:text-5xl lg:text-6xl">
@@ -456,7 +456,7 @@ function Roadmap() {
   const phases = [
     {
       phase: '01',
-      status: 'Shipped · v0.3.0',
+      status: 'Shipped · v0.3.1',
       title: 'Protocol workbenches + bounded evidence',
       detail:
         'Dashboard, themes, stable gRPC and HTTP workbenches, bounded cURL export with credential redaction, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, offline Nmap XML import, and owned Homebrew/Scoop channels.',
@@ -555,9 +555,9 @@ function Install() {
   return (
     <section id="install">
       <SectionHeader
-        label="Install · stable v0.3.0"
+        label="Install · stable v0.3.1"
         title="Start the local workbench"
-        subtitle="The owned Homebrew tap, Scoop bucket, and verified installers resolve v0.3.0 with the dashboard, native protocol workbenches, bounded diagnostics, and read-only evidence surfaces in one binary."
+        subtitle="The verified release installers resolve v0.3.1; the owned Homebrew tap and Scoop bucket remain on v0.3.0 until their independent package updates pass."
       />
 
       <div className="mt-8 space-y-3">
@@ -591,7 +591,7 @@ function Install() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-pp-muted">
-          With stable v0.3.0, run{' '}
+          With stable v0.3.1, run{' '}
           <code className="rounded bg-pp-bg-strong px-1.5 py-0.5 text-xs font-semibold text-pp-ink">
             pp
           </code>{' '}
