@@ -14,6 +14,21 @@ The screenshot is a real local Chrome capture of the embedded v0.3 dashboard. It
 
 ## Install
 
+Homebrew on macOS or Linux:
+
+```sh
+brew install shreyam1008/tap/protopeek
+```
+
+Scoop on Windows:
+
+```powershell
+scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
+scoop install shreyam/protopeek
+```
+
+Or use the verified release resolver on Unix:
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh
 ```
@@ -30,9 +45,9 @@ Windows PowerShell, per user:
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
-The installers verify the selected release archive against its published
-SHA-256 entry before extracting. See the [install guide](guides/INSTALLING.md)
-for pinned versions, upgrades, rollback, PATH behavior, and uninstall.
+The owned package definitions and installers pin the selected release archive
+to its published SHA-256 entry. See the [install guide](guides/INSTALLING.md)
+for package updates, pinned versions, rollback, PATH behavior, and uninstall.
 
 Go fallback:
 

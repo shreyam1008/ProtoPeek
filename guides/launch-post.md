@@ -43,7 +43,8 @@ Historical note:
 
 Notes:
 
-- Do not post this draft until v0.3.0 is publicly released and its Unix and
-  Windows installers pass clean-machine acceptance.
+- v0.3.0 is publicly released. Keep this draft private until its Unix and
+  Windows installers also pass the clean-machine acceptance sessions required
+  by the launch gate.
 - After release, adapt the technical detail and limitations to each community;
   do not broadcast identical promotional copy or solicit votes.

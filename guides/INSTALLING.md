@@ -3,6 +3,25 @@
 > v0.3.0 is the current public stable release. The default resolver installs it
 > from immutable GitHub release assets and never falls back to edge.
 
+## Install through an owned package channel
+
+Homebrew on macOS or Linux installs both `protopeek` and `pp`, plus both manpages:
+
+```sh
+brew install shreyam1008/tap/protopeek
+```
+
+Scoop on Windows installs both executable shims from the owned bucket:
+
+```powershell
+scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
+scoop install shreyam/protopeek
+```
+
+The formula and manifest pin the public v0.3.0 archives by SHA-256. Update with
+`brew upgrade protopeek` or `scoop update protopeek`; uninstall with
+`brew uninstall protopeek` or `scoop uninstall protopeek`.
+
 ## Install through the release resolver
 
 ```sh
@@ -48,21 +67,28 @@ prerelease. A stable-resolution failure never falls back to edge.
 
 ## Upgrade and rollback
 
-Repeat the verified install for the target version. To roll back, set
-`PROTOPEEK_VERSION` to the previous tag and rerun the matching installer after
-stopping ProtoPeek. Launch on loopback and reconnect a non-production target
-before normal use.
+Upgrade a package-manager installation with `brew upgrade protopeek` or
+`scoop update protopeek`. To switch to a pinned rollback, first uninstall that
+package through the same manager so command paths do not conflict.
+
+For a release-resolver installation, repeat the verified install for the target
+version. To roll back, set `PROTOPEEK_VERSION` to the previous tag and rerun the
+matching installer after stopping ProtoPeek. Launch on loopback and reconnect a
+non-production target before normal use.
 
 Saved launcher targets live in the local browser profile. Back up browser site
 data before a major launcher migration.
 
 ## Uninstall
 
-On Unix, remove `protopeek`, the ProtoPeek-owned `pp`, `.protopeek-install`, and
-the `protopeek.1` and `pp.1` files from the configured install/man directories.
-On Windows, remove `%LOCALAPPDATA%\Programs\ProtoPeek` and remove that directory
-from the user PATH. Never remove an unrelated `pp` command. Browser-saved
-targets remain until cleared through browser site-data controls.
+For package-manager installs, use `brew uninstall protopeek` or
+`scoop uninstall protopeek`. For a Unix release-resolver install, remove
+`protopeek`, the ProtoPeek-owned `pp`, `.protopeek-install`, and the
+`protopeek.1` and `pp.1` files from the configured install/man directories. For
+a PowerShell release-resolver install, remove
+`%LOCALAPPDATA%\Programs\ProtoPeek` and remove that directory from the user
+PATH. Never remove an unrelated `pp` command. Browser-saved targets remain
+until cleared through browser site-data controls.
 
 ## Docker
 

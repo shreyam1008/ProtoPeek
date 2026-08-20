@@ -99,6 +99,8 @@ describe('protocol routes', () => {
       await router.navigate({ to: '/roadmap' });
     });
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
+    expect(screen.getByText('Owned package channels')).toBeInTheDocument();
+    expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
     expect(screen.getByText('Traceroute / hop probes')).toBeInTheDocument();
   });

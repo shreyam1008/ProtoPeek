@@ -3,6 +3,14 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
+## Unreleased
+
+- Published owned Homebrew and Scoop definitions pinned to the v0.3.0 release checksums. Homebrew
+  CI covers style, strict audit, cross-platform readall, install, test, linkage, both command names,
+  and manpages on macOS and Linux. Scoop CI covers schema validation, checksum-backed install, both
+  command shims, update, uninstall, and three-architecture autoupdate on Windows. WinGet remains
+  gated on initial user feedback.
+
 ## v0.3.0 — 2026-08-20
 
 - Added explicit canonical `grpc.health.v1` Check and Watch diagnostics. Check preserves serving

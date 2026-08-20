@@ -40,4 +40,12 @@ describe('public site navigation', () => {
     expect(screen.getByRole('button', { name: 'Open site navigation' })).toHaveFocus();
     expect(document.getElementById('mobile-site-navigation')).toHaveAttribute('hidden');
   });
+
+  it('publishes owned package installs and keeps WinGet in the feedback-gated roadmap', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: 'Copy Homebrew command' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy Scoop command' })).toBeInTheDocument();
+    expect(screen.getByText(/WinGet only after initial package feedback/)).toBeInTheDocument();
+  });
 });
