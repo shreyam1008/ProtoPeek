@@ -5,6 +5,10 @@ version source of truth.
 
 ## Unreleased
 
+- Promoted the owned Homebrew tap and Scoop bucket to the public v0.3.2 archives after Homebrew's
+  audit, install, test, and linkage checks and Scoop's install, update, uninstall, and
+  multi-architecture autoupdate checks passed.
+
 ## v0.3.2 — 2026-08-21
 
 - Kept the Health Watch duration limit inside the ProtoPeek relay instead of propagating it as a

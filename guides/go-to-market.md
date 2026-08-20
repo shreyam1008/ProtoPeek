@@ -26,10 +26,10 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **the v0.3.2 release and matching website are public; the owned Homebrew
-tap and Scoop bucket remain public on v0.3.1 until their independent updates pass**. WinGet and
-community launch submissions remain gated on initial package/user feedback. No third-party
-submission or founder-authored community post should be made from an agent account.
+Current execution state: **the v0.3.2 release, matching website, owned Homebrew tap, and owned Scoop
+bucket are public and independently verified**. WinGet and community launch submissions remain
+gated on initial package/user feedback. No third-party submission or founder-authored community
+post should be made from an agent account.
 
 The owned feedback channels are live: use [Issues](https://github.com/shreyam1008/ProtoPeek/issues)
 for reproducible installer/runtime defects and
@@ -51,7 +51,7 @@ desktop operating systems can install and reach a successful request.
 
 ### 2. Native package discovery: owned channels live
 
-The owned Homebrew tap and Scoop bucket publish v0.3.1 from immutable release archives. Homebrew CI
+The owned Homebrew tap and Scoop bucket publish v0.3.2 from immutable release archives. Homebrew CI
 runs style, strict audit, cross-platform readall, install, test, linkage, both command checks, and
 manpage checks on macOS and Linux. Scoop CI runs schema validation, checksum-backed install, both
 command checks, update, uninstall, and three-architecture autoupdate validation on Windows. WinGet

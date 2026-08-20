@@ -18,10 +18,9 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest remain pinned to the public v0.3.1 archives until their
-independent v0.3.2 updates pass. Update with `brew upgrade protopeek` or
-`scoop update protopeek`; uninstall with `brew uninstall protopeek` or
-`scoop uninstall protopeek`.
+The formula and manifest pin the public v0.3.2 archives by SHA-256. Update with
+`brew upgrade protopeek` or `scoop update protopeek`; uninstall with
+`brew uninstall protopeek` or `scoop uninstall protopeek`.
 
 ## Install through the release resolver
 

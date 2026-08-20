@@ -51,9 +51,8 @@ describe('public site navigation', () => {
         'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest github.com/shreyam1008/ProtoPeek/cmd/pp@latest'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText(/release installers resolve v0\.3\.2/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/owned Homebrew and Scoop channels remain on v0\.3\.1/i)
+      screen.getByText(/release installers and owned Homebrew and Scoop channels resolve v0\.3\.2/i)
     ).toBeInTheDocument();
     expect(screen.getByText(/v0\.3\.2 stable/i)).toBeInTheDocument();
     expect(screen.getByText('Shipped · v0.3.1')).toBeInTheDocument();

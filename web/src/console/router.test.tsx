@@ -101,7 +101,7 @@ describe('protocol routes', () => {
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
     expect(screen.getByText('Owned package channels')).toBeInTheDocument();
     expect(
-      screen.getByText(/checksum-pinned v0\.3\.1 archives with both protopeek and pp/)
+      screen.getByText(/checksum-pinned v0\.3\.2 archives with both protopeek and pp/)
     ).toBeInTheDocument();
     expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
