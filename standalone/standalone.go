@@ -132,20 +132,20 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		PreserveHeaders: uiOpts.preserveHeaders,
 		EmitDefaults:    uiOpts.emitDefaults,
 		Verbosity:       uiOpts.invokeVerbosity,
+		MaxDuration:     uiOpts.invokeMaxDuration,
 	}
 	healthHandlers := newHealthHandlerSet(uiOpts.extraMetadata, uiOpts.preserveHeaders)
+	grpcInvokeAdmission := newAdmissionLimiter(maxConcurrentGRPCInvokes)
+	httpRelayAdmission := newAdmissionLimiter(maxConcurrentHTTPRelays)
+	routeLookupAdmission := newAdmissionLimiter(maxConcurrentRouteLookups)
 	mux.Handle("/api/health/check", healthHandlers.checkHandler(directHealthConnection(ch)))
 	mux.Handle("/api/health/watch", healthHandlers.watchHandler(directHealthConnection(ch)))
 	rpcInvokeHandler := http.StripPrefix("/invoke", grpcui.RPCInvokeHandlerWithOptions(ch, methods, invokeOpts))
 	mux.HandleFunc("/invoke/", func(w http.ResponseWriter, r *http.Request) {
-		// CSRF protection
-		c, _ := r.Cookie(csrfCookieName)
-		h := r.Header.Get(csrfHeaderName)
-		if c == nil || c.Value == "" || c.Value != h {
-			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+		if !validateAdmittedPOST(w, r) {
 			return
 		}
-		rpcInvokeHandler.ServeHTTP(w, r)
+		grpcInvokeAdmission.serveHTTP("gRPC invocation", w, r, rpcInvokeHandler)
 	})
 
 	rpcMetadataHandler := grpcui.RPCMetadataHandler(methods, files)
@@ -169,19 +169,22 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 		scanHandler.ServeHTTP(w, r)
 	})
+	httpRequestHandler := HTTPRequestHandler()
 	mux.HandleFunc("/api/http/request", func(w http.ResponseWriter, r *http.Request) {
-		if !validCSRF(r) {
-			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+		if !validateAdmittedPOST(w, r) {
 			return
 		}
-		HTTPRequestHandler().ServeHTTP(w, r)
+		httpRelayAdmission.serveHTTP("HTTP relay", w, r, httpRequestHandler)
 	})
+	routeLookupHandler := uiOpts.routeLookupHandler
+	if routeLookupHandler == nil {
+		routeLookupHandler = RouteLookupHandler()
+	}
 	mux.HandleFunc("/api/route/lookup", func(w http.ResponseWriter, r *http.Request) {
-		if !validCSRF(r) {
-			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+		if !validateAdmittedPOST(w, r) {
 			return
 		}
-		RouteLookupHandler().ServeHTTP(w, r)
+		routeLookupAdmission.serveHTTP("route lookup", w, r, routeLookupHandler)
 	})
 	mux.HandleFunc("/api/nmap/import", func(w http.ResponseWriter, r *http.Request) {
 		if !validCSRF(r) {
@@ -221,9 +224,10 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				session, err = uiOpts.workspaceManager.connectUploadedProtoFolder(r.Context(), reader)
 				if err != nil {
 					var maxBytesErr *http.MaxBytesError
-					var limitErr *workspaceUploadLimitError
+					var uploadLimitErr *workspaceUploadLimitError
+					var schemaLimitErr *workspaceSchemaLimitError
 					var busyErr *workspaceUploadBusyError
-					if errors.As(err, &maxBytesErr) || errors.As(err, &limitErr) {
+					if errors.As(err, &maxBytesErr) || errors.As(err, &uploadLimitErr) || errors.As(err, &schemaLimitErr) {
 						http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
 						return
 					}
@@ -245,6 +249,17 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				var err error
 				session, err = uiOpts.workspaceManager.Connect(r.Context(), payload.Target)
 				if err != nil {
+					var busyErr *workspaceSchemaBusyError
+					if errors.As(err, &busyErr) {
+						w.Header().Set("Retry-After", "1")
+						http.Error(w, err.Error(), http.StatusServiceUnavailable)
+						return
+					}
+					var limitErr *workspaceSchemaLimitError
+					if errors.As(err, &limitErr) {
+						http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+						return
+					}
 					http.Error(w, err.Error(), http.StatusBadRequest)
 					return
 				}
@@ -309,8 +324,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		})
 
 		mux.HandleFunc("/api/workspace/invoke/", func(w http.ResponseWriter, r *http.Request) {
-			if !validCSRF(r) {
-				http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
+			if !validateAdmittedPOST(w, r) {
 				return
 			}
 			session := uiOpts.workspaceManager.sessionFromRequest(r)
@@ -318,7 +332,8 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				http.Error(w, "Unknown workspace session", http.StatusNotFound)
 				return
 			}
-			http.StripPrefix("/api/workspace/invoke", grpcui.RPCInvokeHandlerWithOptions(session.cc, session.methods, invokeOpts)).ServeHTTP(w, r)
+			invokeHandler := http.StripPrefix("/api/workspace/invoke", grpcui.RPCInvokeHandlerWithOptions(session.cc, session.methods, invokeOpts))
+			grpcInvokeAdmission.serveHTTP("gRPC invocation", w, r, invokeHandler)
 		})
 	}
 

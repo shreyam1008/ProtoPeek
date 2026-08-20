@@ -3,6 +3,8 @@ package cli
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -13,8 +15,8 @@ func TestValidateWebBind(t *testing.T) {
 		bindAddress := bindAddress
 		t.Run("allows "+bindAddress, func(t *testing.T) {
 			t.Parallel()
-			if err := validateWebBind(bindAddress, false); err != nil {
-				t.Fatalf("validateWebBind(%q, false) returned %v", bindAddress, err)
+			if err := validateWebBind(bindAddress, false, false); err != nil {
+				t.Fatalf("validateWebBind(%q, false, false) returned %v", bindAddress, err)
 			}
 		})
 	}
@@ -23,13 +25,106 @@ func TestValidateWebBind(t *testing.T) {
 		bindAddress := bindAddress
 		t.Run("rejects "+bindAddress, func(t *testing.T) {
 			t.Parallel()
-			if err := validateWebBind(bindAddress, false); err == nil {
-				t.Fatalf("validateWebBind(%q, false) unexpectedly succeeded", bindAddress)
+			if err := validateWebBind(bindAddress, false, false); err == nil {
+				t.Fatalf("validateWebBind(%q, false, false) unexpectedly succeeded", bindAddress)
 			}
-			if err := validateWebBind(bindAddress, true); err != nil {
-				t.Fatalf("validateWebBind(%q, true) returned %v", bindAddress, err)
+			if err := validateWebBind(bindAddress, true, false); err != nil {
+				t.Fatalf("safe container bind %q was rejected: %v", bindAddress, err)
+			}
+			if err := validateWebBind(bindAddress, false, true); err != nil {
+				t.Fatalf("explicit unsafe remote bind %q was rejected: %v", bindAddress, err)
 			}
 		})
+	}
+}
+
+func TestSafeContainerBindKeepsLoopbackRequestPolicy(t *testing.T) {
+	t.Parallel()
+
+	if err := validateWebBind("0.0.0.0", true, false); err != nil {
+		t.Fatalf("safe container bind was rejected: %v", err)
+	}
+	handler := localAccessHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}), false)
+
+	for _, test := range []struct {
+		name string
+		host string
+		want int
+	}{
+		{name: "published loopback host", host: "127.0.0.1:8080", want: http.StatusNoContent},
+		{name: "DNS rebinding host", host: "attacker.example:8080", want: http.StatusForbidden},
+	} {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			request := httptest.NewRequest(http.MethodGet, "http://"+test.host+"/", nil)
+			request.Host = test.host
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != test.want {
+				t.Fatalf("status = %d, want %d", response.Code, test.want)
+			}
+		})
+	}
+}
+
+func TestDockerEntrypointUsesGuardedContainerBind(t *testing.T) {
+	t.Parallel()
+
+	contents, err := os.ReadFile("../../Dockerfile")
+	if err != nil {
+		t.Fatalf("read Dockerfile: %v", err)
+	}
+	entrypoint := ""
+	for _, line := range strings.Split(string(contents), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "ENTRYPOINT ") {
+			entrypoint = line
+			break
+		}
+	}
+	if entrypoint == "" {
+		t.Fatal("Dockerfile has no ENTRYPOINT")
+	}
+	if !strings.Contains(entrypoint, `"-allow-non-loopback-bind"`) {
+		t.Fatalf("Docker ENTRYPOINT does not enable the guarded container bind: %s", entrypoint)
+	}
+	if strings.Contains(entrypoint, `"-unsafe-allow-remote"`) {
+		t.Fatalf("Docker ENTRYPOINT disables the request Host policy: %s", entrypoint)
+	}
+
+	smoke, err := os.ReadFile("../../scripts/docker-smoke.sh")
+	if err != nil {
+		t.Fatalf("read Docker smoke script: %v", err)
+	}
+	if !strings.Contains(string(smoke), "--connect-timeout") || !strings.Contains(string(smoke), "--max-time") {
+		t.Fatal("Docker HTTP probes are not bounded by connect and total timeouts")
+	}
+	if strings.Contains(string(smoke), "*v*") || !strings.Contains(string(smoke), "expected_version_output") {
+		t.Fatal("Docker version probe does not compare against the exact expected build version")
+	}
+	makefile, err := os.ReadFile("../../Makefile")
+	if err != nil {
+		t.Fatalf("read Makefile: %v", err)
+	}
+	if !strings.Contains(string(makefile), `./scripts/docker-smoke.sh protopeek:dev "$(dev_build_version)"`) {
+		t.Fatal("Docker smoke target does not pass the exact build version to its probe")
+	}
+}
+
+func TestExplicitUnsafeRemoteModeAcceptsNonLoopbackHost(t *testing.T) {
+	t.Parallel()
+
+	handler := localAccessHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}), true)
+	request := httptest.NewRequest(http.MethodGet, "http://attacker.example:8080/", nil)
+	request.Host = "attacker.example:8080"
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("explicit unsafe remote status = %d, want %d", response.Code, http.StatusNoContent)
 	}
 }
 

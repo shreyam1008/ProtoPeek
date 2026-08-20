@@ -30,7 +30,21 @@ import (
 	"github.com/shreyam1008/ProtoPeek/internal"
 )
 
-const maxInvokeRequestBodyBytes = 8 << 20
+const (
+	maxInvokeRequestBodyBytes      = 8 << 20
+	maxInvokeRetainedResponses     = 512
+	maxInvokeRetainedResponseBytes = 8 << 20
+	maxInvokeDuration              = 60 * time.Second
+	invokeLimitResponseCount       = "response-count"
+	invokeLimitResponseBytes       = "response-bytes"
+	invokeLimitDuration            = "duration"
+)
+
+var (
+	errInvokeResponseCountLimit = errors.New("ProtoPeek retained response count limit reached")
+	errInvokeResponseBytesLimit = errors.New("ProtoPeek retained response byte limit reached")
+	errInvokeDurationLimit      = errors.New("ProtoPeek invoke duration limit reached")
+)
 
 // RPCInvokeHandler returns an HTTP handler that can be used to invoke RPCs. The
 // request includes request data, header metadata, and an optional timeout.
@@ -65,6 +79,9 @@ type InvokeOptions struct {
 	PreserveHeaders []string
 	// Whether or not default values should be emitted in the JSON response
 	EmitDefaults bool
+	// MaxDuration is a ProtoPeek-owned wall for one invocation. Zero uses the
+	// built-in 60-second safety wall; larger values are capped at that wall.
+	MaxDuration time.Duration
 	// If verbosity is greater than zero, the handler may log events, such as
 	// cases where the request included metadata that conflicts with the
 	// ExtraMetadata and PreserveHeaders fields above. It is an int, instead
@@ -77,6 +94,14 @@ type InvokeOptions struct {
 // accepts an additional argument, options. This can be used to add extra
 // request metadata to all RPCs invoked.
 func RPCInvokeHandlerWithOptions(ch grpc.ClientConnInterface, descs []*desc.MethodDescriptor, options InvokeOptions) http.Handler {
+	return rpcInvokeHandlerWithLimits(ch, descs, options, invokeSafetyLimits{maxDuration: options.MaxDuration})
+}
+
+type invokeSafetyLimits struct {
+	maxDuration time.Duration
+}
+
+func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.MethodDescriptor, options InvokeOptions, limits invokeSafetyLimits) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.Header().Set("Allow", "POST")
@@ -103,7 +128,7 @@ func RPCInvokeHandlerWithOptions(ch grpc.ClientConnInterface, descs []*desc.Meth
 					http.Error(w, "Failed to create descriptor source: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
-				results, err := invokeRPC(r.Context(), method, ch, descSource, r.Header, r.Body, &options)
+				results, err := invokeRPCWithLimits(r.Context(), method, ch, descSource, r.Header, r.Body, &options, limits)
 				if err != nil {
 					var maxBytesErr *http.MaxBytesError
 					if errors.As(err, &maxBytesErr) {
@@ -434,6 +459,10 @@ func (e errReadFail) Unwrap() error {
 }
 
 func invokeRPC(ctx context.Context, methodName string, ch grpc.ClientConnInterface, descSource grpcurl.DescriptorSource, reqHdrs http.Header, body io.Reader, options *InvokeOptions) (*rpcResult, error) {
+	return invokeRPCWithLimits(ctx, methodName, ch, descSource, reqHdrs, body, options, invokeSafetyLimits{maxDuration: maxInvokeDuration})
+}
+
+func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientConnInterface, descSource grpcurl.DescriptorSource, reqHdrs http.Header, body io.Reader, options *InvokeOptions, limits invokeSafetyLimits) (*rpcResult, error) {
 	js, err := io.ReadAll(body)
 	if err != nil {
 		return nil, errReadFail{err: err}
@@ -466,20 +495,47 @@ func invokeRPC(ctx context.Context, methodName string, ch grpc.ClientConnInterfa
 	}
 	invokeHdrs := options.computeHeaders(reqHdrs, webFormHdrs)
 
-	if input.TimeoutSeconds > 0 {
-		var cancel context.CancelFunc
-		timeout := time.Duration(input.TimeoutSeconds * float32(time.Second))
-		// If the timeout is too huge that it overflows int64, cap it off.
-		if timeout < 0 {
-			timeout = time.Duration(math.MaxInt64)
-		}
-		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
+	if limits.maxDuration <= 0 || limits.maxDuration > maxInvokeDuration {
+		limits.maxDuration = maxInvokeDuration
 	}
+	requestedTimeout := time.Duration(input.TimeoutSeconds * float32(time.Second))
+	// If the timeout is too huge that it overflows int64, cap it off.
+	if input.TimeoutSeconds > 0 && requestedTimeout < 0 {
+		requestedTimeout = time.Duration(math.MaxInt64)
+	}
+	var cancelDeadline context.CancelFunc
+	if requestedTimeout > 0 && requestedTimeout <= limits.maxDuration {
+		ctx, cancelDeadline = context.WithTimeout(ctx, requestedTimeout)
+	} else {
+		var cancelOwnedWall context.CancelCauseFunc
+		ctx, cancelOwnedWall = context.WithCancelCause(ctx)
+		ownedWall := time.AfterFunc(limits.maxDuration, func() {
+			cancelOwnedWall(errInvokeDurationLimit)
+		})
+		cancelDeadline = func() {
+			ownedWall.Stop()
+			cancelOwnedWall(nil)
+		}
+	}
+	defer cancelDeadline()
 
+	ctx, cancelLocalLimit := context.WithCancelCause(ctx)
+	defer cancelLocalLimit(nil)
 	result := newRPCResult(descSource, options.EmitDefaults, &reqStats)
+	result.maxDuration = limits.maxDuration
+	result.cancelLocalLimit = cancelLocalLimit
+	result.contextCause = func() error { return context.Cause(ctx) }
 	invokeErr := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc)
+	// Disarm the local wall as soon as transport work returns. If a transport
+	// error wins just before the wall, the timer must not relabel it while the
+	// result is being finalized. A wall that actually fired has already won the
+	// CancelCauseFunc race, so this remains a no-op for genuine local limits.
+	cancelDeadline()
 	result.finish()
+	result.applyDurationLimit(limits.maxDuration)
+	if result.LocalLimit != nil {
+		return &result, nil
+	}
 	if invokeErr != nil {
 		return nil, invokeErr
 	}
@@ -567,17 +623,33 @@ type rpcTimings struct {
 	TotalMs        float64  `json:"totalMs"`
 }
 
+type rpcLocalLimit struct {
+	Reason                string  `json:"reason"`
+	Message               string  `json:"message"`
+	RetainedResponses     int     `json:"retainedResponses"`
+	RetainedResponseBytes int     `json:"retainedResponseBytes"`
+	MaxResponses          int     `json:"maxResponses"`
+	MaxResponseBytes      int     `json:"maxResponseBytes"`
+	MaxDurationSeconds    float64 `json:"maxDurationSeconds"`
+}
+
 type rpcResult struct {
-	descSource   grpcurl.DescriptorSource
-	emitDefaults bool
-	startedAt    time.Time
-	now          func() time.Time
-	Headers      []rpcMetadata        `json:"headers"`
-	Error        *rpcError            `json:"error"`
-	Responses    []rpcResponseElement `json:"responses"`
-	Requests     *rpcRequestStats     `json:"requests"`
-	Trailers     []rpcMetadata        `json:"trailers"`
-	Timings      rpcTimings           `json:"timings"`
+	descSource       grpcurl.DescriptorSource
+	emitDefaults     bool
+	startedAt        time.Time
+	now              func() time.Time
+	cancelLocalLimit context.CancelCauseFunc
+	contextCause     func() error
+	retainedBytes    int
+	maxDuration      time.Duration
+	finalStatusSeen  bool
+	Headers          []rpcMetadata        `json:"headers"`
+	Error            *rpcError            `json:"error"`
+	Responses        []rpcResponseElement `json:"responses"`
+	Requests         *rpcRequestStats     `json:"requests"`
+	Trailers         []rpcMetadata        `json:"trailers"`
+	Timings          rpcTimings           `json:"timings"`
+	LocalLimit       *rpcLocalLimit       `json:"localLimit"`
 }
 
 func newRPCResult(descSource grpcurl.DescriptorSource, emitDefaults bool, requests *rpcRequestStats) rpcResult {
@@ -590,6 +662,7 @@ func newRPCResultWithClock(descSource grpcurl.DescriptorSource, emitDefaults boo
 		emitDefaults: emitDefaults,
 		startedAt:    now(),
 		now:          now,
+		maxDuration:  maxInvokeDuration,
 		Headers:      make([]rpcMetadata, 0),
 		Responses:    make([]rpcResponseElement, 0),
 		Requests:     requests,
@@ -610,6 +683,13 @@ func (r *rpcResult) OnReceiveHeaders(md metadata.MD) {
 }
 
 func (r *rpcResult) OnReceiveResponse(m proto.Message) {
+	if r.LocalLimit != nil {
+		return
+	}
+	if len(r.Responses) >= maxInvokeRetainedResponses {
+		r.stopAtLocalLimit(invokeLimitResponseCount, errInvokeResponseCountLimit)
+		return
+	}
 	elapsedMs := r.elapsedMilliseconds()
 	if r.Timings.FirstMessageMs == nil {
 		r.Timings.FirstMessageMs = &elapsedMs
@@ -618,10 +698,69 @@ func (r *rpcResult) OnReceiveResponse(m proto.Message) {
 	response.Sequence = len(r.Responses) + 1
 	responseElapsedMs := int64(elapsedMs)
 	response.ElapsedMs = &responseElapsedMs
+	if len(response.Data) > maxInvokeRetainedResponseBytes-r.retainedBytes {
+		r.stopAtLocalLimit(invokeLimitResponseBytes, errInvokeResponseBytesLimit)
+		return
+	}
 	r.Responses = append(r.Responses, response)
+	r.retainedBytes += len(response.Data)
+}
+
+func (r *rpcResult) stopAtLocalLimit(reason string, cause error) {
+	if r.LocalLimit != nil {
+		return
+	}
+	r.LocalLimit = &rpcLocalLimit{
+		Reason: reason,
+		Message: fmt.Sprintf(
+			"ProtoPeek stopped this RPC after retaining %d response messages (%d serialized bytes); the server's final gRPC status was not observed.",
+			len(r.Responses),
+			r.retainedBytes,
+		),
+		RetainedResponses:     len(r.Responses),
+		RetainedResponseBytes: r.retainedBytes,
+		MaxResponses:          maxInvokeRetainedResponses,
+		MaxResponseBytes:      maxInvokeRetainedResponseBytes,
+		MaxDurationSeconds:    r.maxDuration.Seconds(),
+	}
+	if r.cancelLocalLimit != nil {
+		r.cancelLocalLimit(cause)
+	}
+}
+
+func (r *rpcResult) stopAtDurationLimit(duration time.Duration) {
+	r.Error = nil
+	r.Trailers = make([]rpcMetadata, 0)
+	r.Timings.TrailersMs = nil
+	r.LocalLimit = &rpcLocalLimit{
+		Reason: invokeLimitDuration,
+		Message: fmt.Sprintf(
+			"ProtoPeek stopped this RPC at its %g-second local wall limit; the server's final gRPC status was not observed.",
+			duration.Seconds(),
+		),
+		RetainedResponses:     len(r.Responses),
+		RetainedResponseBytes: r.retainedBytes,
+		MaxResponses:          maxInvokeRetainedResponses,
+		MaxResponseBytes:      maxInvokeRetainedResponseBytes,
+		MaxDurationSeconds:    duration.Seconds(),
+	}
+}
+
+func (r *rpcResult) applyDurationLimit(duration time.Duration) {
+	if r.finalStatusSeen || r.contextCause == nil || !errors.Is(r.contextCause(), errInvokeDurationLimit) {
+		return
+	}
+	r.stopAtDurationLimit(duration)
 }
 
 func (r *rpcResult) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
+	if r.LocalLimit != nil {
+		return
+	}
+	if r.contextCause != nil && errors.Is(r.contextCause(), errInvokeDurationLimit) {
+		return
+	}
+	r.finalStatusSeen = true
 	elapsedMs := r.elapsedMilliseconds()
 	if r.Timings.TrailersMs == nil {
 		r.Timings.TrailersMs = &elapsedMs

@@ -8,11 +8,11 @@ import (
 	"strings"
 )
 
-func validateWebBind(bindAddress string, unsafeAllowRemote bool) error {
-	if unsafeAllowRemote || isLoopbackHost(bindAddress) {
+func validateWebBind(bindAddress string, allowNonLoopbackBind, unsafeAllowRemote bool) error {
+	if allowNonLoopbackBind || unsafeAllowRemote || isLoopbackHost(bindAddress) {
 		return nil
 	}
-	return fmt.Errorf("refusing non-loopback web bind %q without -unsafe-allow-remote", bindAddress)
+	return fmt.Errorf("refusing non-loopback web bind %q without -allow-non-loopback-bind or -unsafe-allow-remote", bindAddress)
 }
 
 func localAccessHandler(next http.Handler, unsafeAllowRemote bool) http.Handler {

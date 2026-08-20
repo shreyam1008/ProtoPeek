@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"net/http"
 	"path"
+	"time"
 )
 
 // WebFormContainerTemplateData is the param type for templates that embed the webform HTML.
@@ -203,6 +205,14 @@ func WithInvokeVerbosity(verbosity int) HandlerOption {
 	})
 }
 
+// WithInvokeMaxDuration applies a ProtoPeek-owned wall to ordinary direct and
+// workspace invokes. Zero selects the built-in safety wall.
+func WithInvokeMaxDuration(duration time.Duration) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.invokeMaxDuration = duration
+	})
+}
+
 // WithDebug enables console logging in the client JS. This prints extra
 // information as the UI processes user input.
 //
@@ -275,6 +285,7 @@ type handlerOptions struct {
 	preserveHeaders     []string
 	emitDefaults        bool
 	invokeVerbosity     int
+	invokeMaxDuration   time.Duration
 	debug               *bool
 	gRPCurlOptions      []string
 	version             string
@@ -283,6 +294,7 @@ type handlerOptions struct {
 	launcherMode        bool
 	initialScanTarget   string
 	targetDefaults      WorkspaceTargetConfig
+	routeLookupHandler  http.Handler
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

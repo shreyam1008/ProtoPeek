@@ -42,4 +42,4 @@ COPY --from=go-builder /out/protopeek /bin/pp
 USER protopeek
 EXPOSE 8080
 
-ENTRYPOINT ["/bin/protopeek", "-bind=0.0.0.0", "-unsafe-allow-remote", "-port=8080", "-open-browser=false"]
+ENTRYPOINT ["/bin/protopeek", "-bind=0.0.0.0", "-allow-non-loopback-bind", "-port=8080", "-open-browser=false"]

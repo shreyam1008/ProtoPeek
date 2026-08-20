@@ -125,8 +125,10 @@ var (
 		is received for this same period then the connection is closed and the
 		operation fails.`))
 	maxTime = flags.Float64("max-time", 0, prettify(`
-		The maximum total time a single RPC invocation is allowed to take, in
-		seconds.`))
+		The maximum ProtoPeek-owned local wall for one ordinary RPC invocation,
+		in seconds. When reached, the handler returns bounded partial evidence
+		without presenting local cancellation as a server gRPC status. Zero or a
+		value above 60 seconds uses the built-in 60-second safety wall.`))
 	maxMsgSz = flags.Int("max-msg-sz", 0, prettify(`
 		The maximum encoded size of a message that grpcui will accept. If not
 		specified, defaults to 4mb.`))
@@ -668,22 +670,11 @@ func main() {
 	handlerOpts = append(handlerOpts, configureJSandCSS(extraCSS, standalone.AddCSSFile)...)
 	handlerOpts = append(handlerOpts, configureAssets(otherAssets)...)
 	handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
+	if *maxTime > 0 {
+		handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
+	}
 
 	handler := standalone.Handler(cc, target, methods, allFiles, handlerOpts...)
-	if *maxTime > 0 {
-		timeout := floatSecondsToDuration(*maxTime)
-		// enforce the timeout by wrapping the handler and inserting a
-		// context timeout for invocation calls
-		orig := handler
-		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/invoke/") {
-				ctx, cancel := context.WithTimeout(r.Context(), timeout)
-				defer cancel()
-				r = r.WithContext(ctx)
-			}
-			orig.ServeHTTP(w, r)
-		})
-	}
 
 	if verbosity > 0 {
 		// wrap the handler with one that performs more logging of what's going on

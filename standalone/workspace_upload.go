@@ -142,14 +142,17 @@ func (m *WorkspaceManager) connectUploadedProtoFolder(ctx context.Context, reade
 	uploadContextErr := ctx.Err()
 	clearWorkspaceUploadContents(contents)
 	contents = nil
-	releaseUpload()
-	released = true
 	if err != nil {
 		return nil, sanitizeWorkspaceUploadError(err)
 	}
 	if uploadContextErr != nil {
 		return nil, uploadContextErr
 	}
+	if err := validateWorkspaceSchemaResources(ctx, methods, files, m.schemaLimits); err != nil {
+		return nil, err
+	}
+	releaseUpload()
+	released = true
 
 	dialCtx := requestContext
 	var cancel context.CancelFunc
