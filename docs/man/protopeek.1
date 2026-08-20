@@ -17,9 +17,13 @@ its stated or default port. The gRPC, HTTP, route, scan, and roadmap surfaces ar
 available from the local browser interface.
 .PP
 The listener binds to 127.0.0.1 by default. Do not expose it to an untrusted
-network. A non-loopback bind requires the explicit
+network. For a container published only on host loopback,
+.B \-allow-non-loopback-bind
+permits the container-interface listener while retaining the loopback request
+Host and Origin policy. The separate
 .B \-unsafe-allow-remote
-option and an external access-control boundary.
+option accepts non-loopback browser Hosts and requires an external TLS,
+authentication, and rate-limit boundary.
 .SH COMMON OPTIONS
 .TP
 .B \-help
@@ -73,10 +77,18 @@ Add metadata only to reflection requests.
 Limit initial connection time.
 .TP
 .BI \-max-time " seconds"
-Limit the total duration of an invocation.
+Set the ProtoPeek-owned local wall for one ordinary RPC invocation. When the
+wall is reached, return bounded partial evidence without presenting local
+cancellation as a server gRPC status. Zero or a value above 60 seconds uses the
+built-in 60-second safety wall.
 .TP
 .BI \-bind " address"
 Bind the browser listener. Defaults to 127.0.0.1.
+.TP
+.B \-allow-non-loopback-bind
+Permit a non-loopback container listener while still accepting browser
+requests only for loopback Hosts and matching Origins. Use only when the outer
+container port is published on host loopback.
 .TP
 .BI \-port " port"
 Choose the browser listener port. Zero selects an available port.
@@ -85,8 +97,9 @@ Choose the browser listener port. Zero selects an available port.
 Enable or disable automatic browser opening.
 .TP
 .B \-unsafe-allow-remote
-Permit a non-loopback browser listener. The listener has no built-in user
-authentication; use only behind an explicit trusted boundary.
+Permit a non-loopback browser listener and accept non-loopback browser Hosts.
+The listener has no built-in user authentication; use only behind an explicit
+TLS, authentication, and rate-limit boundary.
 .SH EXAMPLES
 .TP
 Open the Protocol Peek dashboard:

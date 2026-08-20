@@ -117,9 +117,32 @@ live auth input, raw body, timeout, redirect choice, cancellation, and a native 
 It uses Go's standard HTTP stack and accepts only `http` and `https` URLs. TLS verification is on
 and redirect following is off by default.
 
+Bounded cURL export is available in this build. Send and Copy validate the same prepared draft; one
+explicit click then exports its method, duplicate query parameters, non-sensitive headers, timeout,
+and active body with POSIX-safe quoting. Credential-like URL values become blank and auth/sensitive
+headers are omitted; the UI reports the omission count. Redirect-enabled drafts are refused because
+one portable command cannot reproduce ProtoPeek's bounded redirect policy. Export inspects at most
+64 effective headers and caps the UTF-8 command at 512 KiB. An active request body is copied verbatim
+and must be reviewed before the command is shared or run. The shell's DNS, network namespace,
+proxies, trust roots, cURL version, and implicit headers may differ from the ProtoPeek relay.
+
 This slice deliberately excludes OpenAPI discovery, a cookie jar, cloud sync, script runners, mock
 servers, OAuth app marketplaces, and team workspaces. Those features are not implied by the HTTP
 surface and would require separate product and security review.
+
+The live handler applies one shared low-end-friendly admission budget per operation class: eight
+ordinary gRPC invokes across direct and workspace sessions, four HTTP relays, and two native route
+requests. Admission happens only after method and CSRF checks and before request-body or network
+work. Saturation is an explicit non-cacheable `429`; completion, validation/error, cancellation,
+panic unwinding, and workspace deletion free the slot. Existing per-request fan-out and evidence
+limits remain in force inside each admitted operation.
+
+Ordinary invokes also have a retention boundary independent of admission: 512 response messages,
+8 MiB of serialized response-message JSON, and a 60-second handler wall when the requested deadline
+is absent or larger. Equality may complete normally; only message 513, a message that would cross
+the byte cap, or the local wall cancels the RPC. The console preserves bounded partial evidence and
+labels the server's final status as unobserved rather than converting local cancellation into a
+gRPC result.
 
 ### Milestone 2 — next-hop and offline Nmap evidence (available in this build)
 
@@ -148,6 +171,16 @@ surface and would require separate product and security review.
 - Host proto/protoset and certificate paths remain process-authority inputs in separate labeled
   modes. A browser-folder profile is pathless and requires the folder to be selected again after a
   reload or import.
+- Non-upload workspace schema connects share two manager slots. Host schema configuration is capped
+  at 128 proto entry paths, 64 import roots, or 32 protosets, with 4,096-byte paths and a 32 KiB
+  aggregate. Explicit entry/protoset files are preflighted at 4 MiB each and 16 MiB total before
+  dial/parse; import roots are host authority for referenced imports, not recursively pre-read input.
+- Reflection fetches descriptor graphs incrementally and stops at the first limit. All workspace
+  sources must fit 512 retained services, 10,000 methods, 1,024 files, 10,000 messages, 50,000
+  fields, 4,096 enums, 50,000 enum values, 32 levels of message nesting, 8 MiB of serialized
+  descriptors, and a 16 MiB catalog before publication. Structural counts run before catalog
+  materialization. Cancellation is observed between fetches and before dial/publication, and schema
+  contents or metadata values are not copied into errors.
 - Bounded Unary Repeat and callback-observed lifecycle timing close a common evidence gap without
   pretending to be packet timing or a load generator.
 
@@ -180,7 +213,7 @@ surface and would require separate product and security review.
 
 - incremental delivery in the general gRPC response lab with bounded retention;
 - saved HTTP requests and profiles;
-- bounded cURL import/export;
+- bounded cURL import (export is available);
 - target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.
 
 ### Exploring — evidence and protocol fit
@@ -254,7 +287,7 @@ Before an adapter is called shipped:
 - README, website, roadmap, product metadata, and screenshots all describe the same current state;
 - the adapter has a rollback flag or can be omitted from the default binary.
 
-### v0.3.0 bundle evidence
+### v0.3.0 bundle evidence and regression budgets
 
 The final v0.3.0 production console build measures 304.24 kB / 97.56 kB gzip for the shared entry,
 107.35 kB / 28.22 kB gzip for the lazy gRPC workspace, and 130.98 kB / 23.84 kB gzip for shared CSS.
@@ -268,8 +301,17 @@ gzip for canonical Health Check/Watch and bounded evidence handling, while CSS a
 the Health inspector, responsive states, contrast, and motion safeguards. No frontend dependency was
 added. Future adapters must preserve these lazy boundaries and the no-heavy-chart-library budget.
 
+The canonical `bun run build` now measures every emitted console JavaScript/CSS asset and fails when
+one of these ceilings is crossed: shared entry 320 KiB / 105 KiB gzip, lazy gRPC workspace 116 KiB /
+32 KiB gzip, lazy HTTP workspace 50 KiB / 15 KiB gzip, lazy scan dialog 15 KiB / 5 KiB gzip, shared
+CSS 140 KiB / 27 KiB gzip, and all JavaScript combined 560 KiB / 175 KiB gzip. Single-chunk rules
+also fail on a missing or duplicate match, so renamed or accidentally eager boundaries cannot evade
+the check. The limits leave modest maintenance headroom over the measured v0.3.0 artifacts without
+normalizing large dependency or architecture regressions.
+
 ## Research trail
 
+- [ProtoPeek competitive workflow decisions](/competitive-landscape/)
 - [gRPC guides](https://grpc.io/docs/guides/)
 - [gRPC debugging](https://grpc.io/docs/guides/debugging/)
 - [gRPC health checking](https://grpc.io/docs/guides/health-checking/)

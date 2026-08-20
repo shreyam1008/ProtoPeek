@@ -92,8 +92,6 @@ until cleared through browser site-data controls.
 
 ## Docker
 
-Keep the published host port on loopback:
-
 No public container image is claimed. Build the local development image, then
 keep its published host port on loopback:
 
@@ -101,3 +99,8 @@ keep its published host port on loopback:
 make docker
 docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev
 ```
+
+The image's `-allow-non-loopback-bind` flag permits its container-interface
+listener but keeps browser requests limited to loopback Hosts and matching
+Origins. It is distinct from `-unsafe-allow-remote`, which disables that guard
+and requires an authenticated, TLS-terminated, rate-limited boundary.

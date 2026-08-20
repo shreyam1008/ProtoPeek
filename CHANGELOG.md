@@ -5,6 +5,31 @@ version source of truth.
 
 ## Unreleased
 
+- Added explicit Copy as cURL export for the live HTTP draft. POSIX quoting preserves duplicate
+  query parameters, Unicode, method, non-sensitive headers, timeout, and active body content after
+  the same preparation used by Send; auth and credential-like headers are omitted and sensitive URL
+  values are left blank. Export rejects redirect-enabled drafts, non-HTTP(S) URLs, more than 64
+  effective headers, and commands over 512 KiB, reports omissions and clipboard failures
+  accessibly, and warns that bodies are copied verbatim and shell transport context can differ.
+  cURL import remains future work.
+- Bounded ordinary direct and workspace gRPC invokes to 512 retained responses, 8 MiB of serialized
+  response-message JSON, and a 60-second local wall when a deadline is absent or excessive. Local
+  stops cancel the RPC, preserve bounded partial evidence, and never masquerade as a server gRPC
+  status in the console, assertions, history, or Unary Repeat.
+- Separated container-interface binding from unsafe remote access. The scratch image now keeps the
+  loopback request Host and Origin policy on its documented loopback-published path, preventing a
+  browser DNS-rebinding Host from reaching scan, relay, or invocation APIs. Explicit remote mode
+  remains available only through `-unsafe-allow-remote` and still requires an external trusted
+  boundary.
+- Added an executable console bundle budget to the canonical build. It guards the shared entry,
+  lazy gRPC, HTTP, and scan boundaries, shared CSS, and aggregate JavaScript in both raw and gzip
+  bytes without adding a runtime dependency.
+- Added handler-wide admission limits for ordinary gRPC invokes, HTTP relays, and native route
+  requests, plus pre-publication workspace schema limits for path/file bytes, services, methods,
+  descriptors, messages, fields, enums, enum values, nesting depth, and catalog size. Reflection
+  resolves incrementally; structural counts run before recursive catalog materialization.
+- Fixed the website's source-install fallback so one `go install` command installs both the primary
+  `protopeek` binary and the documented `pp` alias.
 - Published owned Homebrew and Scoop definitions pinned to the v0.3.0 release checksums. Homebrew
   CI covers style, strict audit, cross-platform readall, install, test, linkage, both command names,
   and manpages on macOS and Linux. Scoop CI covers schema validation, checksum-backed install, both
