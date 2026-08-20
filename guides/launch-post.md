@@ -43,8 +43,9 @@ Historical note:
 
 Notes:
 
-- v0.3.1 and its owned package updates are public and independently verified.
-  Keep this draft private until initial user feedback confirms the three-minute
-  install-to-request path and Shreyam personally approves the final text.
+- v0.3.2 is public and independently verified. Keep this draft private until
+  its owned package updates pass, initial user feedback confirms the
+  three-minute install-to-request path, and Shreyam personally approves the
+  final text.
 - After release, adapt the technical detail and limitations to each community;
   do not broadcast identical promotional copy or solicit votes.
