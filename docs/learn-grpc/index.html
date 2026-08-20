@@ -12,8 +12,8 @@
     <meta property="og:title" content="Learn gRPC | ProtoPeek" />
     <meta property="og:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/learn-grpc/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -21,7 +21,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Learn gRPC | ProtoPeek" />
     <meta name="twitter:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>
@@ -243,7 +243,10 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 #   ...
 # }</code></pre>
 <p>Without reflection, a UI either needs explicit schema files from the user or it becomes blind. ProtoPeek keeps both paths:</p>
-<ul><li><strong>Reflection</strong> for the happy path where the server cooperates</li><li><strong>Proto source files</strong> for locked-down services that disable reflection</li><li><strong>Protoset files</strong> for pre-compiled descriptor sets from build pipelines</li></ul>
+<ul><li><strong>Reflection</strong> for the happy path where the server cooperates</li><li><strong>Browser folder</strong> for a user-selected, temporary <code>.proto</code> snapshot. Relative imports must remain</li></ul>
+<p>inside the selected root (apart from built-in Google well-known protos); the bounded snapshot goes to the current ProtoPeek process, never to the gRPC target. Its in-memory upload buffers are cleared before the target is dialed or the session is published. Folder access and bytes are not saved, so reconnecting after reload requires a repick.</p>
+<ul><li><strong>Host proto paths</strong> for locked-down services when the ProtoPeek process can read the source tree</li><li><strong>Host protoset paths</strong> for pre-compiled descriptor sets from build pipelines</li></ul>
+<p>That browser/host distinction matters in Docker and remote-console setups. A folder chosen in the browser is uploaded as a one-shot snapshot. A host path is interpreted on the machine or container running ProtoPeek; it is never secretly remapped to the browser computer.</p>
 <h2 id="7-grpc-status-codes">7. gRPC status codes</h2>
 <p>Every gRPC call ends with a status code. Knowing which code maps to which situation saves time:</p>
 <table><thead><tr><th>Code</th><th>Name</th><th>When it appears</th></tr></thead><tbody><tr><td>0</td><td>OK</td><td>Success</td></tr><tr><td>1</td><td>CANCELLED</td><td>Client cancelled the call</td></tr><tr><td>2</td><td>UNKNOWN</td><td>Server threw an exception without a status</td></tr><tr><td>3</td><td>INVALID_ARGUMENT</td><td>Client sent a bad request</td></tr><tr><td>4</td><td>DEADLINE_EXCEEDED</td><td>Timeout before server responded</td></tr><tr><td>5</td><td>NOT_FOUND</td><td>Requested entity does not exist</td></tr><tr><td>6</td><td>ALREADY_EXISTS</td><td>Create conflict</td></tr><tr><td>7</td><td>PERMISSION_DENIED</td><td>Auth succeeded but the caller lacks permission</td></tr><tr><td>8</td><td>RESOURCE_EXHAUSTED</td><td>Rate limit or quota hit</td></tr><tr><td>9</td><td>FAILED_PRECONDITION</td><td>System not in valid state for the request</td></tr><tr><td>10</td><td>ABORTED</td><td>Concurrency conflict (optimistic lock failure)</td></tr><tr><td>11</td><td>OUT_OF_RANGE</td><td>Operation outside valid range</td></tr><tr><td>12</td><td>UNIMPLEMENTED</td><td>Method exists in the proto but server has no handler</td></tr><tr><td>13</td><td>INTERNAL</td><td>Server-side bug</td></tr><tr><td>14</td><td>UNAVAILABLE</td><td>Server not ready — often transient, retry is appropriate</td></tr><tr><td>15</td><td>DATA_LOSS</td><td>Unrecoverable data issue</td></tr><tr><td>16</td><td>UNAUTHENTICATED</td><td>Missing or invalid auth credentials</td></tr></tbody></table>

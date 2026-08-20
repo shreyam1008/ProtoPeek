@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/proto"  //lint:ignore SA1019 we have to import this because it appears in grpcurl APIs used herein
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc/protoprint"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -191,6 +192,7 @@ type schema struct {
 	RequestStream bool                    `json:"requestStream"`
 	MessageTypes  map[string][]fieldDef   `json:"messageTypes"`
 	EnumTypes     map[string][]enumValDef `json:"enumTypes"`
+	protoPrinter  protoprint.Printer
 }
 
 type fieldDef struct {
@@ -255,6 +257,7 @@ func gatherAllMessageMetadata(files []*desc.FileDescriptor) *schema {
 	result := &schema{
 		MessageTypes: map[string][]fieldDef{},
 		EnumTypes:    map[string][]enumValDef{},
+		protoPrinter: newProtoPrinter(),
 	}
 	for _, fd := range files {
 		gatherAllMessages(fd.GetMessageTypes(), result)
@@ -276,6 +279,7 @@ func gatherMetadataForMethod(md *desc.MethodDescriptor) (*schema, error) {
 		RequestStream: md.IsClientStreaming(),
 		MessageTypes:  map[string][]fieldDef{},
 		EnumTypes:     map[string][]enumValDef{},
+		protoPrinter:  newProtoPrinter(),
 	}
 
 	result.visitMessage(msg)
@@ -362,7 +366,7 @@ func (s *schema) processField(fd *desc.FieldDescriptor) fieldDef {
 		def.Type = typeMap[fd.GetType()]
 	}
 
-	desc, err := protoPrinter.PrintProtoToString(fd)
+	desc, err := s.protoPrinter.PrintProtoToString(fd)
 	if err != nil {
 		// generate simple description with no comments or options
 		var label string

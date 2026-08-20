@@ -27,6 +27,10 @@ const roadmap = [
         'Offline Nmap XML import',
         'Bounded hints from an existing nmap -oX file. Nmap is not required for import; literal-IP endpoints are verified before opening a workbench.',
       ],
+      [
+        'Browser proto folders',
+        'Review and upload a bounded relative-path .proto manifest to the running ProtoPeek instance; folder access and schema bytes are never saved in profiles.',
+      ],
     ],
   },
   {
@@ -45,10 +49,6 @@ const roadmap = [
       [
         'cURL import/export',
         'Translate bounded HTTP requests without silently accepting unsafe shell behavior.',
-      ],
-      [
-        'Open proto folder upload',
-        'Preserve relative imports from a folder you choose, with a reviewable import root.',
       ],
       [
         'Target DNS + TLS preflight',

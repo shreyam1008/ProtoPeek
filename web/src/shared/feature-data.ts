@@ -38,6 +38,14 @@ export const featureIdeas: FeatureIdea[] = [
       'gRPC debugging often starts with the contract, so ProtoPeek now exposes file-level structure instead of limiting users to per-method request forms.',
   },
   {
+    name: 'Browser proto folders',
+    summary:
+      'Choose a bounded local .proto tree, review its relative-path manifest, and upload a temporary schema snapshot when connecting.',
+    status: 'Shipped',
+    rationale:
+      'Teams often have descriptors in a checkout that is not mounted into the ProtoPeek host. Folder selection keeps relative imports intact without persisting handles, file bytes, root names, or local paths.',
+  },
+  {
     name: 'Metadata presets',
     summary:
       'Keep auth and request metadata editable for live calls while redacting sensitive values before history or default export.',

@@ -65,12 +65,8 @@ type bootstrapResponse struct {
 	Services          []bootstrapService      `json:"services"`
 }
 
-var bootstrapProtoPrinter = protoprint.Printer{
-	Compact: true,
-	Indent:  "  ",
-}
-
 func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handlerOptions) ([]byte, error) {
+	printer := protoprint.Printer{Compact: true, Indent: "  "}
 	servicesByName := map[string]*bootstrapService{}
 
 	for _, md := range methods {
@@ -80,7 +76,7 @@ func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handl
 		if !ok {
 			service = &bootstrapService{
 				Name:        name,
-				Description: serviceDescription(sd),
+				Description: serviceDescription(&printer, sd),
 			}
 			servicesByName[name] = service
 		}
@@ -88,7 +84,7 @@ func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handl
 		service.Methods = append(service.Methods, bootstrapMethod{
 			Name:            md.GetName(),
 			FullName:        md.GetFullyQualifiedName(),
-			Description:     methodDescription(md),
+			Description:     methodDescription(&printer, md),
 			ClientStreaming: md.IsClientStreaming(),
 			ServerStreaming: md.IsServerStreaming(),
 			RequestType:     md.GetInputType().GetFullyQualifiedName(),
@@ -155,8 +151,8 @@ func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handl
 	})
 }
 
-func methodDescription(md *desc.MethodDescriptor) string {
-	description, err := bootstrapProtoPrinter.PrintProtoToString(md)
+func methodDescription(printer *protoprint.Printer, md *desc.MethodDescriptor) string {
+	description, err := printer.PrintProtoToString(md)
 	if err == nil {
 		return strings.TrimSpace(description)
 	}
@@ -179,7 +175,7 @@ func methodDescription(md *desc.MethodDescriptor) string {
 	)
 }
 
-func serviceDescription(sd *desc.ServiceDescriptor) string {
+func serviceDescription(printer *protoprint.Printer, sd *desc.ServiceDescriptor) string {
 	sb, err := builder.FromService(sd)
 	if err != nil {
 		return fmt.Sprintf("service %s { ... }", sd.GetName())
@@ -194,7 +190,7 @@ func serviceDescription(sd *desc.ServiceDescriptor) string {
 		return fmt.Sprintf("service %s { ... }", sd.GetName())
 	}
 
-	description, err := bootstrapProtoPrinter.PrintProtoToString(stripped)
+	description, err := printer.PrintProtoToString(stripped)
 	if err != nil {
 		return fmt.Sprintf("service %s { ... }", sd.GetName())
 	}

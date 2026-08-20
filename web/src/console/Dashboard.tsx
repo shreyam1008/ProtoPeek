@@ -103,7 +103,7 @@ export function Dashboard() {
               <h2 id="protocols-title">Workbench surfaces</h2>
             </div>
             <span className="pp-local-indicator">
-              <LockKeyhole aria-hidden="true" /> Session data stays local
+              <LockKeyhole aria-hidden="true" /> No account · no cloud sync
             </span>
           </header>
           <div className="pp-protocol-cards">
@@ -113,7 +113,10 @@ export function Dashboard() {
                 <small>Stable</small>
                 <strong>gRPC</strong>
               </span>
-              <p>Reflection, proto files, protosets, deadlines, streams, headers, trailers.</p>
+              <p>
+                Reflection, browser folders, host proto/protosets, deadlines, streams, headers,
+                trailers.
+              </p>
               <ArrowRight aria-hidden="true" />
             </Link>
             <Link to="/http" className="pp-protocol-card">

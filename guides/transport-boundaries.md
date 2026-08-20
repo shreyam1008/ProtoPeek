@@ -13,7 +13,8 @@ and transport story.
 - Every session runs locally, without an account, remote sync, or external database.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.
-- Reflection, proto files, and protosets remain first-class gRPC schema paths.
+- Reflection, temporary browser-folder snapshots, host proto paths, and host protoset paths remain
+  first-class gRPC schema paths. Their authority boundaries stay visibly separate.
 - Automatic discovery is loopback-only. Explicit private or link-local destinations require a
   per-scan opt-in. An explicit public IP or hostname is one user-entered target, never permission
   for port-range expansion. Hostnames are resolved once, all returned addresses are classified,
@@ -47,7 +48,7 @@ pp CLI / local web server
         |
 console session manager
         |
-        +-- gRPC adapter       reflection | .proto | protoset
+        +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | bounded stdlib client
         +-- route evidence     kernel-selected next hop | no probe packets
         +-- Nmap import        offline XML hints -> bounded verification
@@ -77,9 +78,9 @@ message counts consistently, while a protocol inspector renders the actual seman
 ### 1. Finish the gRPC local-console contract
 
 Keep the current slice as the reference adapter: bounded loopback discovery, deterministic
-sessions, reflection headers, proto/protoset compatibility, request/response split view, explicit
-cancellation, callback-observed response timing, and visible headers, trailers, deadlines, streaming
-mode, and status. Headers, first message, final status, and invoke return are handler lifecycle
+sessions, reflection headers, browser-folder/host-proto/protoset compatibility, request/response
+split view, explicit cancellation, callback-observed response timing, and visible headers, trailers,
+deadlines, streaming mode, and status. Headers, first message, final status, and invoke return are handler lifecycle
 boundaries, not packet-arrival, server-processing, or TTFB measurements; unary callbacks may cluster
 after transport completion.
 
@@ -124,11 +125,23 @@ that touch unresolved recovery are paused. Browser read failures are called out 
 their original bytes cannot be captured.
 
 Imported target IDs are detached from any live session and no imported target connects
-automatically. Proto/protoset/import-root/CA/client-certificate/client-key values name files on the
-machine running ProtoPeek—not paths on the browser machine. An explicit later connection grants the
-ProtoPeek process local file-read authority for those paths, and the import result warns about that
-boundary. A successful target-profile replacement invalidates pending connection work and returns any
-active profile session to the launcher before an imported profile can be used.
+automatically. Host proto/protoset/import-root/CA/client-certificate/client-key values name files on
+the machine running ProtoPeek—not paths on the browser machine. An explicit later connection grants
+the ProtoPeek process local file-read authority for those paths, and the import result warns about
+that boundary. Browser-folder profiles are different: storage and workspace export contain only the
+pathless profile configuration. A browser must choose the folder again before connection; handles,
+bytes, root names, browser paths, and server filesystem paths never persist. A successful target-profile
+replacement invalidates pending connection work and returns any active profile session to the
+launcher before an imported profile can be used.
+
+Browser-folder connect is one CSRF-protected multipart transaction on the existing workspace
+endpoint. The client mirrors limits for fast feedback, but the server independently enforces the
+20 MiB envelope, 512-file, 4 MiB per-file, 16 MiB aggregate, and portable-relative-path bounds. Only
+the exact manifest may satisfy imports; absolute, backslash, traversal, duplicate, case-colliding,
+reserved, and non-`.proto` paths fail before compilation. Google well-known protos are the only
+non-manifest fallback. The server clears bounded in-memory upload buffers before the target is dialed
+or the session is published and writes no schema staging files. Snapshot bytes go only to the
+current ProtoPeek process or container and never to the gRPC target.
 
 New saved requests and automatic gRPC history carry target-profile ID plus target address. Replay
 requires the method to exist and the stored scope to match. Legacy records without scope may be

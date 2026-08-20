@@ -3,8 +3,20 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
-## Unreleased — v0.3 milestone 2
+## Unreleased — v0.3
 
+- Direct `/grpc`, `/http`, `/routes`, and `/roadmap` links now canonicalize to the hash-routed
+  workbench, including when ProtoPeek is mounted below a base path. Refreshing or sharing a protocol
+  surface no longer falls through to a server 404 or silently renders Home.
+- Added real browser proto-folder snapshots for reflection-disabled services. File System Access
+  uses an explicit user gesture where supported with directory-input fallback; only lowercase
+  `.proto` files are included, nested import paths are preserved, and profiles persist no handle,
+  bytes, root name, browser path, or staging path. The server independently enforces a 20 MiB
+  multipart envelope, 512 files, 4 MiB per file, 16 MiB aggregate, and a portable path grammar. A
+  manifest-only resolver prevents imports from escaping the snapshot, while built-in Google
+  well-known protos remain available. Bounded upload buffers are cleared before target dial/session
+  publication, no schema file is written on the server, and browser-folder targets require a fresh
+  selection after reload.
 - Replaced the browser Simulation surface with bounded Unary Repeat: 2–50 strictly sequential calls,
   0–5000 ms between-call delay, an explicit 0.1–30 s per-call deadline, one cancellable run, and a
   60 s wall cap with partial results. Results keep OK, gRPC status, relay/transport, and cancellation

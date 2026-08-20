@@ -12,8 +12,8 @@
     <meta property="og:title" content="Launch post draft | ProtoPeek" />
     <meta property="og:description" content="Positioning copy for introducing ProtoPeek as an independent local gRPC and HTTP workbench." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/launch-post/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -21,7 +21,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Launch post draft | ProtoPeek" />
     <meta name="twitter:description" content="Positioning copy for introducing ProtoPeek as an independent local gRPC and HTTP workbench." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>
@@ -95,11 +95,14 @@
             <div class="pp-doc-prose">
               <p>Title: ProtoPeek: a local gRPC and HTTP workbench for debugging the real protocol</p>
 <p>ProtoPeek is an independent local workbench focused on the parts teams need when debugging gRPC and HTTP services:</p>
-<ul><li>A responsive, search-first method rail</li><li>Reflected schema visibility</li><li>JSON starter payload generation</li><li>Local collections and history</li><li>A response lab that keeps headers, trailers, payloads, and status together</li><li>Bounded sequential Unary Repeat with cancellation, separate gRPC status and relay/transport failures, and explicit handler-vs-console timing—never presented as a load benchmark</li><li>A separate HTTP(S) editor with redirects off and TLS verification on by default</li><li>HTTP status, protocol, headers, text/base64 body, redirects, peer/TLS context, and phase timings</li><li>A public learn page that explains gRPC, gRPC-Web, Envoy, and why debugging gets hard</li></ul>
+<ul><li>A responsive, search-first method rail</li><li>Reflected schema visibility</li><li>One-shot browser proto-folder snapshots for reflection-disabled services, with nested imports and</li></ul>
+<p>no persisted folder authority</p>
+<ul><li>JSON starter payload generation</li><li>Local collections and history</li><li>A response lab that keeps headers, trailers, payloads, and status together</li><li>Bounded sequential Unary Repeat with cancellation, separate gRPC status and relay/transport failures, and explicit handler-vs-console timing—never presented as a load benchmark</li><li>A separate HTTP(S) editor with redirects off and TLS verification on by default</li><li>HTTP status, protocol, headers, text/base64 body, redirects, peer/TLS context, and phase timings</li><li>A public learn page that explains gRPC, gRPC-Web, Envoy, and why debugging gets hard</li></ul>
 <p>Why rebuild it?</p>
 <p>Because gRPC is not just “REST with different syntax,” and HTTP is not gRPC without descriptors. The workbench keeps the transport model and evidence for each surface visible instead of flattening both into one JSON client.</p>
 <p>ProtoPeek tries to stay small and practical:</p>
 <ul><li>Single Go binary</li><li>Scratch-friendly Docker image</li><li>Local-first workspace model</li><li>Modern TypeScript frontend with a measured embedded asset budget</li></ul>
+<p>Browser folder means a bounded snapshot uploaded to the running ProtoPeek process, not background filesystem access and not an upload to the gRPC service. Host proto/protoset paths remain a separate process-authority mode.</p>
 <p>Project links:</p>
 <ul><li>Repo: <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">https://github.com/shreyam1008/ProtoPeek</a></li><li>Site: <a href="https://protopeek.shreyam1008.com.np/" rel="noreferrer" target="_blank">https://protopeek.shreyam1008.com.np/</a></li></ul>
 <p>Historical note:</p>

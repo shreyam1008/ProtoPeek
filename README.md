@@ -7,9 +7,10 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > **Latest stable:** v0.2.0. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
-> **v0.3 source build:** the dashboard, themes, expanded discovery, next-hop evidence, and Nmap
-> XML import documented below are available in this checkout and remain release-candidate features
-> until the v0.3 tag, archives, installers, and public site are published together.
+> **v0.3 source build:** the dashboard, themes, expanded discovery, browser proto-folder snapshots,
+> callback-observed gRPC timing, bounded Unary Repeat, next-hop evidence, and Nmap XML import
+> documented below are available in this checkout and remain release-candidate features until the
+> v0.3 tag, archives, installers, and public site are published together.
 
 ![ProtoPeek local gRPC console showing a successful request and response evidence](https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg)
 
@@ -53,7 +54,20 @@ pp https://api.example.test       # dashboard + probe of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 ```
 
-With no target, the dashboard opens at `/`. The protocol rail keeps gRPC (`/grpc`), HTTP (`/http`), next-hop evidence (`/routes`), and the in-app roadmap (`/roadmap`) one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
+With no target, the dashboard opens at `/`. The protocol rail keeps gRPC (`/grpc`), HTTP (`/http`), next-hop evidence (`/routes`), and the in-app roadmap (`/roadmap`) one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a browser-folder snapshot, host proto paths, or host protoset paths), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
+
+For a server without reflection, choose **Browser folder** and then **Choose folder**. ProtoPeek
+preserves relative imports and uploads only lowercase `.proto` files when Connect is pressed. The
+snapshot is bounded to 512 files, 4 MiB per file, and 16 MiB total. It goes to the machine or
+container running this ProtoPeek instance, never to the gRPC target. ProtoPeek compiles the bounded
+bytes in memory and clears the upload buffers before dialing or publishing the session. Every import
+must resolve inside the selected root (apart from built-in Google well-known protos). Folder handles,
+file bytes, root names, and temporary paths are never saved; a saved browser-folder target therefore
+requires a fresh selection after reload.
+
+**Host proto paths** and **Host protoset paths** remain separate advanced modes. Those values are
+read by the ProtoPeek process, so a path in a remotely opened or containerized console is not a
+path on the browser machine.
 
 Ambient discovery checks only a fixed list of loopback candidates. A private or link-local IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Hostnames are resolved once, every returned address is classified against that opt-in, and probes dial a validated numeric address so DNS cannot silently change the destination between policy and connection. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. Scans are cancellable, never follow redirects, and never send a state-changing request.
 
@@ -71,6 +85,7 @@ The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -
 | **Next-hop evidence** | Read one kernel-selected route per resolved address from the ProtoPeek process without hop probes, polling, privilege, or route mutation |
 | **Offline Nmap import** | Parse bounded `nmap -oX` host/port hints and require ProtoPeek verification before opening a workbench |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
+| **Browser proto folder** | Upload one bounded, temporary `.proto` snapshot with nested imports while keeping browser handles and server paths out of saved profiles |
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
 | **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |
 | **Saved gRPC requests** | Keep secret-sanitized gRPC recipes locally, replay them, and import/export workspace JSON |
@@ -102,9 +117,10 @@ contains saved requests, environments, assertions, and inactive target profiles,
 automatic RPC history. Saved request bodies are deliberate workspace data, so review them before
 sharing a file. Import rejects files larger than 4 MiB before reading them, validates bounded
 collections and strings, contains errors inside the running console, and never connects an imported
-target. Imported proto, protoset, CA, client-certificate, and key paths are paths on the machine
+target. Imported host proto, protoset, CA, client-certificate, and key paths are paths on the machine
 running ProtoPeek; explicitly connecting that profile authorizes the ProtoPeek process to read those
-local paths.
+local paths. Browser-folder profiles contain no folder handle, file bytes, root name, or path and
+remain inactive until the user chooses a fresh folder and explicitly connects.
 
 Every deliberate workspace write is validated before it reaches browser storage. Full saved-request,
 environment, and target lists refuse the new item instead of evicting an older one. If an existing
@@ -130,7 +146,7 @@ cancellation, and its native inspector.
 
 | Adapter | Status | First useful slice |
 |---|---|---|
-| gRPC | Stable · v0.2 | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
+| gRPC | Stable · v0.2, expanded in v0.3 source | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
 | HTTP / REST | Stable · v0.2 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
 | Next-hop route evidence | Available in this v0.3 build | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
 | Nmap XML evidence | Available in this v0.3 build · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
@@ -163,8 +179,10 @@ make docker
 docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev
 ```
 
-Scratch-compatible image: static Go binary, embedded web app, CA certs, non-root user. The
-image listens on its container interface, so keep the host-side port mapped to loopback as shown.
+Scratch-compatible image: static Go binary, embedded web app, CA certs, and a non-root user. The
+image listens on its container interface, so keep the host-side port mapped to loopback as shown. A
+browser-folder snapshot is uploaded to this container and compiled through bounded in-memory
+buffers; it is never written to a schema staging directory.
 
 ## Project origin
 

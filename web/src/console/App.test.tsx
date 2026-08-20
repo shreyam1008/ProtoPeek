@@ -197,6 +197,12 @@ function workspaceFile(
   return read;
 }
 
+function protoFolderFile(name: string, text: string, relativePath: string) {
+  const file = new File([text], name, { type: 'text/plain' });
+  Object.defineProperty(file, 'webkitRelativePath', { value: relativePath });
+  return file;
+}
+
 function deferredWorkspaceFile(input: HTMLInputElement, text: string) {
   let resolveRead: ((value: string) => void) | undefined;
   const read = vi.fn(
@@ -330,6 +336,105 @@ describe('gRPC launcher recents', () => {
     expect(window.localStorage.getItem(appStorageKeys.targets)).toBe('[]');
   });
 
+  it('cancels an in-flight folder upload while freezing draft mutations and preserving the prior session', async () => {
+    let connectCount = 0;
+    let resolveReplacement: ((value: Response) => void) | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(launcherBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/api/scan')) return Promise.resolve(response([]));
+      if (path.endsWith('/api/workspace/connect')) {
+        connectCount++;
+        if (connectCount === 1) {
+          return Promise.resolve(
+            response({
+              sessionId: 'session-old',
+              bootstrap: { ...directBootstrap, launcherMode: false },
+            })
+          );
+        }
+        return new Promise<Response>((resolve) => {
+          resolveReplacement = resolve;
+        });
+      }
+      if (path.endsWith('/api/workspace/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/workspace/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.endsWith('/api/workspace/session') && init?.method === 'DELETE') {
+        return Promise.resolve(response(null));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<App />);
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'localhost:50051' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Manage targets' }));
+
+    fireEvent.change(screen.getByLabelText('Address'), {
+      target: { value: 'replacement.test:50051' },
+    });
+    fireEvent.change(screen.getByLabelText('Schema source'), {
+      target: { value: 'browser-proto-folder' },
+    });
+    const folderInput = container.querySelector<HTMLInputElement>('input[webkitdirectory]');
+    const proto = protoFolderFile('service.proto', 'service', 'replacement/service.proto');
+    Object.defineProperty(folderInput, 'files', { configurable: true, value: [proto] });
+    fireEvent.change(folderInput as HTMLInputElement);
+    await screen.findByText('replacement');
+    const targetPanel = screen.getByLabelText('Address').closest('.space-y-4');
+    expect(targetPanel).not.toBeNull();
+    fireEvent.click(within(targetPanel as HTMLElement).getByRole('button', { name: 'Connect' }));
+
+    await waitFor(() => expect(connectCount).toBe(2));
+    const replacementCall = fetchMock.mock.calls.filter(([request]) =>
+      String(request).includes('/api/workspace/connect')
+    )[1];
+    const signal = replacementCall?.[1]?.signal as AbortSignal;
+    expect(screen.getByLabelText('Address')).toBeDisabled();
+    expect(screen.getByLabelText('Schema source')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Delete localhost:50051/ })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel connection' }));
+
+    expect(signal.aborted).toBe(true);
+    expect(screen.getByText('Active')).toBeVisible();
+    expect(screen.getByLabelText('Address')).toBeEnabled();
+    resolveReplacement?.(
+      response({
+        sessionId: 'session-new-late',
+        bootstrap: { ...directBootstrap, target: 'replacement.test:50051' },
+      })
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([request, init]) => {
+          const url = String(request);
+          return (
+            url.includes('/api/workspace/session') &&
+            url.includes('session-new-late') &&
+            init?.method === 'DELETE'
+          );
+        })
+      ).toBe(true)
+    );
+    expect(
+      fetchMock.mock.calls.some(([request, init]) => {
+        const url = String(request);
+        return (
+          url.includes('/api/workspace/session') &&
+          url.includes('session-old') &&
+          init?.method === 'DELETE'
+        );
+      })
+    ).toBe(false);
+  });
+
   it('automatically probes a bounded positional CLI target', async () => {
     const fetchMock = installLauncherFetch({
       connectOK: false,
@@ -360,6 +465,154 @@ describe('gRPC launcher recents', () => {
 
     await screen.findByText('connection refused');
     expect(JSON.parse(window.localStorage.getItem(appStorageKeys.targets) ?? '[]')).toEqual([]);
+  });
+
+  it('connects a deterministic browser-folder manifest and persists only a pathless profile', async () => {
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<App />);
+
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'localhost:50051' },
+    });
+    fireEvent.change(screen.getByLabelText('Schema source'), {
+      target: { value: 'browser-proto-folder' },
+    });
+    expect(screen.getByText('Folder required')).toBeVisible();
+    expect(screen.getAllByText(/never to the gRPC target/i)).toHaveLength(2);
+    expect(
+      screen.getByText(/schema snapshots go only to this running ProtoPeek instance/i)
+    ).toBeVisible();
+    const folderInput = container.querySelector<HTMLInputElement>(
+      'input[type="file"][webkitdirectory]'
+    );
+    const zeta = protoFolderFile('zeta.proto', 'zeta', 'private-checkout/zeta.proto');
+    const alpha = protoFolderFile('alpha.proto', 'alpha', 'private-checkout/nested/alpha.proto');
+    Object.defineProperty(folderInput, 'files', {
+      configurable: true,
+      value: [zeta, alpha],
+    });
+    fireEvent.change(folderInput as HTMLInputElement);
+    expect(await screen.findByText('2 proto files · 9 B')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([input]) =>
+        String(input).includes('/api/workspace/connect')
+      );
+      expect(call?.[1]?.body).toBeInstanceOf(FormData);
+      const entries = Array.from((call?.[1]?.body as FormData).entries());
+      expect(entries.map(([name]) => name)).toEqual(['target', 'manifest', 'file.0', 'file.1']);
+      expect(JSON.parse(String(entries[0][1]))).toMatchObject({
+        schemaSource: 'browser-proto-folder',
+        protoFiles: [],
+        importPaths: [],
+        protosets: [],
+      });
+      expect(JSON.parse(String(entries[1][1]))).toEqual({
+        version: 1,
+        files: [
+          { path: 'nested/alpha.proto', size: 5 },
+          { path: 'zeta.proto', size: 4 },
+        ],
+      });
+    });
+    await screen.findByText('1 recent');
+    const stored = JSON.parse(window.localStorage.getItem(appStorageKeys.targets) ?? '[]') as Array<
+      Record<string, unknown>
+    >;
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      schemaSource: 'browser-proto-folder',
+      protoFiles: [],
+      importPaths: [],
+      protosets: [],
+    });
+    expect(stored[0]).not.toHaveProperty('rootName');
+    expect(stored[0]).not.toHaveProperty('files');
+    expect(JSON.stringify(stored)).not.toContain('private-checkout');
+  });
+
+  it('reloads a saved browser-folder profile as Folder required and never reconnects it directly', async () => {
+    window.localStorage.setItem(
+      appStorageKeys.targets,
+      JSON.stringify([
+        savedTarget('browser-target', 'localhost:50051', {
+          name: 'Browser protos',
+          schemaSource: 'browser-proto-folder',
+        }),
+      ])
+    );
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+
+    expect((await screen.findAllByText('Browser folder')).length).toBeGreaterThanOrEqual(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Repick folder' }));
+
+    expect(screen.getByLabelText('Schema source')).toHaveValue('browser-proto-folder');
+    expect(screen.getByText('Folder required')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled();
+    expect(
+      await screen.findByText(/Choose the proto folder again before connecting/i)
+    ).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+  });
+
+  it('disables Connect during replacement and discards a late folder after the source changes', async () => {
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<App />);
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'localhost:50051' },
+    });
+    fireEvent.change(screen.getByLabelText('Schema source'), {
+      target: { value: 'browser-proto-folder' },
+    });
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    const original = protoFolderFile('original.proto', 'old', 'original/original.proto');
+    Object.defineProperty(input, 'files', { configurable: true, value: [original] });
+    fireEvent.change(input as HTMLInputElement);
+    expect(await screen.findByText('original')).toBeVisible();
+
+    let resolveReplacement: ((file: File) => void) | undefined;
+    const replacement = new Promise<File>((resolve) => {
+      resolveReplacement = resolve;
+    });
+    const getFile = vi.fn(() => replacement);
+    vi.stubGlobal(
+      'showDirectoryPicker',
+      vi.fn(async () => ({
+        kind: 'directory',
+        name: 'replacement',
+        async *values() {
+          yield { kind: 'file', name: 'replacement.proto', getFile };
+        },
+      }))
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace proto folder' }));
+    await waitFor(() => expect(getFile).toHaveBeenCalledOnce());
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Schema source'), {
+      target: { value: 'reflection' },
+    });
+    resolveReplacement?.(protoFolderFile('replacement.proto', 'new', 'replacement.proto'));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    fireEvent.change(screen.getByLabelText('Schema source'), {
+      target: { value: 'browser-proto-folder' },
+    });
+
+    expect(screen.getByText('Folder required')).toBeVisible();
+    expect(screen.queryByText('replacement')).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([request]) => String(request).includes('/api/workspace/connect'))
+    ).toBe(false);
   });
 
   it('refuses a 51st target without evicting a successful connection', async () => {
@@ -816,6 +1069,34 @@ describe('workspace import boundaries', () => {
     const read = workspaceFile(input, '{}', workspaceImportMaxBytes + 1);
     expect(await screen.findByText(/exceeds the 4 MiB/)).toBeInTheDocument();
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it('imports browser-folder profiles without snapshots and requires a repick', async () => {
+    const fetchMock = installDirectFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    if (!input) return;
+    const workspace = {
+      ...emptyWorkspace,
+      targets: [
+        savedTarget('imported-browser-folder', 'localhost:50052', {
+          schemaSource: 'browser-proto-folder' as const,
+        }),
+      ],
+    };
+
+    workspaceFile(input, JSON.stringify(workspace));
+
+    expect(
+      await screen.findByText(/include no schema snapshot bytes, folder handle/i)
+    ).toBeVisible();
+    expect(screen.getByText(/must be repicked before connecting/i)).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([request]) => String(request).includes('/api/workspace/connect'))
+    ).toBe(false);
   });
 
   it('keeps imported targets inactive and warns about ProtoPeek host file-read authority', async () => {

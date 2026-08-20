@@ -24,7 +24,7 @@ import {
   useRef,
   useState,
 } from 'react';
-
+import type { BrowserProtoFolderSelection } from '@/shared/proto-folder';
 import type {
   AssertionResult,
   AssertionRule,
@@ -86,6 +86,7 @@ import {
   validateWorkspaceImport,
   workspaceImportLimits,
   workspaceImportMaxBytes,
+  workspaceSchemaSourceLabel,
   workspaceTargetReferenceError,
 } from '@/shared/utils';
 
@@ -102,6 +103,7 @@ import {
   invokeWorkspaceMethod,
   type ScanResult,
 } from './api';
+import { BrowserProtoFolderPicker } from './BrowserProtoFolderPicker';
 import { CallWorkspace } from './CallWorkspace';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { DiscoveryPanel } from './DiscoveryScanner';
@@ -306,10 +308,6 @@ function parseMultilineValues(value: string) {
     .filter(Boolean);
 }
 
-function schemaSourceLabel(value: WorkspaceTargetProfile['schemaSource']) {
-  return value === 'proto-files' ? 'Proto files' : value === 'protoset' ? 'Protoset' : 'Reflection';
-}
-
 function countMessages(msgs: ProtoMessageSummary[]): number {
   return msgs.reduce((t, m) => t + 1 + countMessages(m.messages), 0);
 }
@@ -403,6 +401,10 @@ export function App() {
     useState<StoredWorkspaceRecovery[]>(initialRecoveries);
   const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(initialWorkspace.targets.value);
   const [targetDraft, setTargetDraft] = useState<WorkspaceTargetProfile>(newTargetDraft());
+  const [browserProtoFolder, setBrowserProtoFolder] = useState<BrowserProtoFolderSelection | null>(
+    null
+  );
+  const [browserProtoFolderBusy, setBrowserProtoFolderBusy] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [protoCatalog, setProtoCatalog] = useState<ProtoCatalogResponse | null>(null);
   const [selectedProtoFile, setSelectedProtoFile] = useState('');
@@ -816,7 +818,21 @@ export function App() {
     active?.abort();
   }
 
-  async function handleConnectTarget(target: WorkspaceTargetProfile) {
+  function handleCancelConnection() {
+    const active = connectAbortRef.current;
+    if (!active) return;
+    const requestId = connectRequestRef.current;
+    connectRequestRef.current = requestId + 1;
+    connectAbortRef.current = null;
+    active.abort();
+    dispatchSession({ type: 'connect.cancelled', requestId });
+    setWorkspaceError(null);
+  }
+
+  async function handleConnectTarget(
+    target: WorkspaceTargetProfile,
+    folder?: BrowserProtoFolderSelection
+  ) {
     invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
@@ -843,7 +859,8 @@ export function App() {
           importPaths: target.importPaths,
           protosets: target.protosets,
         },
-        controller.signal
+        controller.signal,
+        folder
       );
       if (connectRequestRef.current !== requestId) {
         void disconnectWorkspaceSession(r.sessionId);
@@ -879,6 +896,7 @@ export function App() {
   }
 
   function materializeTarget(p: WorkspaceTargetProfile) {
+    const browserFolderSource = p.schemaSource === 'browser-proto-folder';
     return toWorkspaceTargetProfile({
       id: p.id,
       name: p.name.trim() || p.address || 'Untitled',
@@ -892,9 +910,9 @@ export function App() {
         certPath: p.certPath.trim(),
         keyPath: p.keyPath.trim(),
         schemaSource: p.schemaSource,
-        protoFiles: p.protoFiles,
-        importPaths: p.importPaths,
-        protosets: p.protosets,
+        protoFiles: browserFolderSource ? [] : p.protoFiles,
+        importPaths: browserFolderSource ? [] : p.importPaths,
+        protosets: browserFolderSource ? [] : p.protosets,
       },
     });
   }
@@ -912,6 +930,8 @@ export function App() {
       return;
     }
     setTargets(next);
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
@@ -920,13 +940,38 @@ export function App() {
       setWorkspaceError('Address required.');
       return;
     }
+    if (targetDraft.schemaSource === 'browser-proto-folder') {
+      if (browserProtoFolderBusy) {
+        setWorkspaceError('Wait for the folder scan to finish before connecting.');
+        return;
+      }
+      if (!browserProtoFolder) {
+        setWorkspaceError('Folder required. Choose the proto folder again before connecting.');
+        return;
+      }
+    }
     const t = reuseExistingTargetID(materializeTarget(targetDraft), targets);
-    if (await handleConnectTarget(t)) persistTarget(t);
+    const folder = t.schemaSource === 'browser-proto-folder' ? browserProtoFolder : undefined;
+    if (await handleConnectTarget(t, folder ?? undefined)) persistTarget(t);
   }
 
   async function handleConnectRecent(target: WorkspaceTargetProfile) {
     const materialized = materializeTarget(target);
+    if (materialized.schemaSource === 'browser-proto-folder') {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setTargetDraft(materialized);
+      setWorkspaceError('Folder required. Choose the proto folder again before connecting.');
+      return;
+    }
     if (await handleConnectTarget(materialized)) persistTarget(materialized);
+  }
+
+  function handleEditTarget(target: WorkspaceTargetProfile) {
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
+    setWorkspaceError(null);
+    setTargetDraft(materializeTarget(target));
   }
 
   async function handleOpenDiscovered(result: ScanResult) {
@@ -955,7 +1000,11 @@ export function App() {
       dispatchSession({ type: 'connection.cleared' });
       if (rootBootstrap) applyBootstrap(rootBootstrap);
     }
-    if (targetDraft.id === id) setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
+    if (targetDraft.id === id) {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
+    }
   }
 
   function handleResetToLauncher() {
@@ -968,6 +1017,8 @@ export function App() {
     if (sessionId) void disconnectWorkspaceSession(sessionId);
     dispatchSession({ type: 'connection.cleared' });
     setWorkspaceError(null);
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
     if (rootBootstrap) {
       if (sessionId) applyBootstrap(rootBootstrap);
       setTargetDraft(newTargetDraft(rootBootstrap.targetDefaults));
@@ -975,7 +1026,23 @@ export function App() {
   }
 
   function updateDraft(next: Partial<WorkspaceTargetProfile>) {
-    setTargetDraft((x) => ({ ...x, ...next }));
+    if (next.schemaSource && next.schemaSource !== targetDraft.schemaSource) {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setWorkspaceError(null);
+    }
+    setTargetDraft((current) => ({
+      ...current,
+      ...next,
+      ...(next.schemaSource === 'browser-proto-folder'
+        ? { protoFiles: [], importPaths: [], protosets: [] }
+        : {}),
+    }));
+  }
+
+  function handleBrowserProtoFolderChange(selection: BrowserProtoFolderSelection | null) {
+    setBrowserProtoFolder(selection);
+    if (selection) setWorkspaceError(null);
   }
 
   function downloadFile(name: string, content: string, type = 'text/plain') {
@@ -1657,6 +1724,9 @@ export function App() {
         return;
       }
       const imported = remapImportedTargetIDs(validated.value, targets);
+      const hasBrowserFolderProfiles = imported.targets.some(
+        (target) => target.schemaSource === 'browser-proto-folder'
+      );
       const writes: Array<[string, unknown]> = [];
       if (imported.sections.assertions) {
         writes.push([appStorageKeys.assertions, imported.assertions]);
@@ -1709,9 +1779,15 @@ export function App() {
       setOperationMessage({
         tone: 'info',
         title: imported.legacy ? 'Legacy workspace imported safely' : 'Workspace imported',
-        description: imported.hasHostFilePaths
-          ? 'No target was connected. Imported proto, protoset, certificate, and key paths refer to paths on the ProtoPeek host; connecting that target grants the ProtoPeek process local file-read authority for those paths.'
-          : 'No target was connected. Imported targets remain inactive until you explicitly connect one.',
+        description: `${
+          imported.hasHostFilePaths
+            ? 'No target was connected. Imported proto, protoset, certificate, and key paths refer to paths on the ProtoPeek host; connecting that target grants the ProtoPeek process local file-read authority for those paths.'
+            : 'No target was connected. Imported targets remain inactive until you explicitly connect one.'
+        }${
+          hasBrowserFolderProfiles
+            ? ' Browser-folder profiles include no schema snapshot bytes, folder handle, root name, or local path. They show Folder required and must be repicked before connecting.'
+            : ''
+        }`,
       });
     } catch (error) {
       setOperationMessage({
@@ -1836,16 +1912,21 @@ export function App() {
         targets={targets}
         activeTargetId={activeTargetId}
         draft={targetDraft}
+        browserProtoFolder={browserProtoFolder}
+        browserProtoFolderBusy={browserProtoFolderBusy}
         busy={workspaceBusy}
         error={workspaceError}
         onChangeDraft={updateDraft}
+        onBrowserProtoFolderChange={handleBrowserProtoFolderChange}
+        onBrowserProtoFolderBusyChange={setBrowserProtoFolderBusy}
         onSaveAndConnect={() => {
           void handleSaveAndConnect();
         }}
+        onCancelConnect={handleCancelConnection}
         onConnect={(t) => {
           void handleConnectRecent(t);
         }}
-        onEdit={setTargetDraft}
+        onEdit={handleEditTarget}
         onDelete={handleDeleteTarget}
         onOpenDiscovered={(result) => {
           void handleOpenDiscovered(result);
@@ -2017,17 +2098,22 @@ export function App() {
               targets={targets}
               activeTargetId={activeTargetId}
               draft={targetDraft}
+              browserProtoFolder={browserProtoFolder}
+              browserProtoFolderBusy={browserProtoFolderBusy}
               busy={workspaceBusy}
               error={workspaceError}
               rootBootstrap={rootBootstrap}
               onChangeDraft={updateDraft}
+              onBrowserProtoFolderChange={handleBrowserProtoFolderChange}
+              onBrowserProtoFolderBusyChange={setBrowserProtoFolderBusy}
               onSaveAndConnect={() => {
                 void handleSaveAndConnect();
               }}
+              onCancelConnect={handleCancelConnection}
               onConnect={(t) => {
                 void handleConnectRecent(t);
               }}
-              onEdit={setTargetDraft}
+              onEdit={handleEditTarget}
               onDelete={handleDeleteTarget}
               onReset={handleResetToLauncher}
               onOpenDiscovered={(result) => {
@@ -3165,11 +3251,16 @@ function WorkspaceView({
   targets,
   activeTargetId,
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   error,
   rootBootstrap,
   onChangeDraft,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
   onConnect,
   onEdit,
   onDelete,
@@ -3179,11 +3270,16 @@ function WorkspaceView({
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   error: string | null;
   rootBootstrap: BootstrapResponse | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
@@ -3199,9 +3295,14 @@ function WorkspaceView({
           {error ? <StatusBanner tone="danger" title="Error" description={error} /> : null}
           <TargetForm
             draft={draft}
+            browserProtoFolder={browserProtoFolder}
+            browserProtoFolderBusy={browserProtoFolderBusy}
             busy={busy}
             onChange={onChangeDraft}
+            onBrowserProtoFolderChange={onBrowserProtoFolderChange}
+            onBrowserProtoFolderBusyChange={onBrowserProtoFolderBusyChange}
             onSaveAndConnect={onSaveAndConnect}
+            onCancelConnect={onCancelConnect}
           />
         </div>
         <div className="space-y-4">
@@ -3229,7 +3330,7 @@ function WorkspaceView({
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{workspaceSchemaSourceLabel(t.schemaSource)}</span>
                     <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
                     {t.insecure ? (
                       <span className="pp-badge text-amber-600">Skip verify</span>
@@ -3247,11 +3348,12 @@ function WorkspaceView({
                       ) : (
                         <Play className="size-3" />
                       )}
-                      Connect
+                      {t.schemaSource === 'browser-proto-folder' ? 'Repick folder' : 'Connect'}
                     </button>
                     <button
                       className="pp-button-secondary py-1 text-xs"
                       type="button"
+                      disabled={busy}
                       onClick={() => onEdit(t)}
                     >
                       Edit
@@ -3260,6 +3362,7 @@ function WorkspaceView({
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
                       aria-label={`Delete ${t.name}`}
+                      disabled={busy}
                       onClick={() => onDelete(t.id)}
                     >
                       <X className="size-3" />
@@ -3283,10 +3386,15 @@ function LauncherView({
   targets,
   activeTargetId,
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   error,
   onChangeDraft,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
   onConnect,
   onEdit,
   onDelete,
@@ -3297,10 +3405,15 @@ function LauncherView({
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   error: string | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
@@ -3325,7 +3438,7 @@ function LauncherView({
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
           <h1>Open a gRPC target.</h1>
-          <p>Reflection first. Proto files and protosets when you need them.</p>
+          <p>Reflection first. Browser folders or host descriptors when it is off.</p>
           <div className="pp-trust-row">
             <span>Auto-find loopback services</span>
             <span>
@@ -3347,9 +3460,14 @@ function LauncherView({
           ) : null}
           <TargetForm
             draft={draft}
+            browserProtoFolder={browserProtoFolder}
+            browserProtoFolderBusy={browserProtoFolderBusy}
             busy={busy}
             onChange={onChangeDraft}
+            onBrowserProtoFolderChange={onBrowserProtoFolderChange}
+            onBrowserProtoFolderBusyChange={onBrowserProtoFolderBusyChange}
             onSaveAndConnect={onSaveAndConnect}
+            onCancelConnect={onCancelConnect}
           />
         </section>
 
@@ -3385,7 +3503,7 @@ function LauncherView({
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{workspaceSchemaSourceLabel(t.schemaSource)}</span>
                     <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
                     {t.insecure ? (
                       <span className="pp-badge text-amber-600">Skip verify</span>
@@ -3403,11 +3521,12 @@ function LauncherView({
                       ) : (
                         <Play className="size-3" />
                       )}
-                      Connect
+                      {t.schemaSource === 'browser-proto-folder' ? 'Repick folder' : 'Connect'}
                     </button>
                     <button
                       className="pp-button-secondary py-1 text-xs"
                       type="button"
+                      disabled={busy}
                       onClick={() => onEdit(t)}
                     >
                       Edit
@@ -3416,6 +3535,7 @@ function LauncherView({
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
                       aria-label={`Delete ${t.name}`}
+                      disabled={busy}
                       onClick={() => onDelete(t.id)}
                     >
                       <X className="size-3" />
@@ -3428,7 +3548,8 @@ function LauncherView({
         </section>
       </div>
       <footer className="pp-launcher-footer">
-        Nothing leaves this device. ProtoPeek stores workspace preferences in this browser only.
+        Workspace preferences stay in this browser. Selected schema snapshots go only to this
+        running ProtoPeek instance, never to the gRPC target.
       </footer>
     </div>
   );
@@ -3438,186 +3559,214 @@ function LauncherView({
 
 function TargetForm({
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   onChange,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
 }: {
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   onChange: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
 }) {
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="pp-label">Address</span>
-          <input
-            className="pp-input mt-1"
-            value={draft.address}
-            onChange={(e) => onChange({ address: e.target.value })}
-            placeholder="localhost:50051"
-          />
-        </label>
-        <label className="block">
-          <span className="pp-label">
-            Name <small>optional</small>
-          </span>
-          <input
-            className="pp-input mt-1"
-            value={draft.name}
-            onChange={(e) => onChange({ name: e.target.value })}
-            placeholder="Local dev"
-          />
-        </label>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="pp-label">Schema source</span>
-          <select
-            className="pp-input mt-1"
-            value={draft.schemaSource}
-            onChange={(e) =>
-              onChange({ schemaSource: e.target.value as WorkspaceTargetProfile['schemaSource'] })
-            }
-          >
-            <option value="reflection">Reflection</option>
-            <option value="proto-files">Proto files</option>
-            <option value="protoset">Protoset</option>
-          </select>
-        </label>
-        <div className="pp-transport-choice">
-          <span className="pp-label">Transport</span>
-          <label className="flex items-center gap-2 text-sm">
+      <fieldset disabled={busy} className="min-w-0 space-y-3 border-0 p-0">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="pp-label">Address</span>
             <input
-              type="checkbox"
-              checked={draft.plaintext}
-              onChange={(e) =>
-                onChange({
-                  plaintext: e.target.checked,
-                  insecure: e.target.checked ? false : draft.insecure,
-                })
-              }
+              className="pp-input mt-1"
+              value={draft.address}
+              onChange={(e) => onChange({ address: e.target.value })}
+              placeholder="localhost:50051"
             />
-            {draft.plaintext ? 'Plaintext' : 'TLS'}
+          </label>
+          <label className="block">
+            <span className="pp-label">
+              Name <small>optional</small>
+            </span>
+            <input
+              className="pp-input mt-1"
+              value={draft.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+              placeholder="Local dev"
+            />
           </label>
         </div>
-      </div>
-      <details className="pp-target-advanced">
-        <summary>Advanced connection options</summary>
-        <div className="pp-target-advanced-body">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="pp-label">Authority</span>
-              <input
-                className="pp-input mt-1"
-                value={draft.authority}
-                onChange={(e) => onChange({ authority: e.target.value })}
-                placeholder="grpc.example.internal"
-              />
-            </label>
-            <label className="block">
-              <span className="pp-label">Notes</span>
-              <input
-                className="pp-input mt-1"
-                value={draft.notes}
-                onChange={(e) => onChange({ notes: e.target.value })}
-                placeholder="Optional context"
-              />
-            </label>
-          </div>
-          {!draft.plaintext ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="pp-label">Schema source</span>
+            <select
+              className="pp-input mt-1"
+              value={draft.schemaSource}
+              onChange={(e) =>
+                onChange({ schemaSource: e.target.value as WorkspaceTargetProfile['schemaSource'] })
+              }
+            >
+              <option value="reflection">Reflection</option>
+              <option value="browser-proto-folder">Browser folder</option>
+              <option value="proto-files">Host proto paths</option>
+              <option value="protoset">Host protoset paths</option>
+            </select>
+          </label>
+          <div className="pp-transport-choice">
+            <span className="pp-label">Transport</span>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={draft.insecure}
-                onChange={(e) => onChange({ insecure: e.target.checked })}
+                checked={draft.plaintext}
+                onChange={(e) =>
+                  onChange({
+                    plaintext: e.target.checked,
+                    insecure: e.target.checked ? false : draft.insecure,
+                  })
+                }
               />
-              Skip certificate verification
+              {draft.plaintext ? 'Plaintext' : 'TLS'}
             </label>
-          ) : null}
-          {!draft.plaintext ? (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block">
-                <span className="pp-label">CA cert</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.cacertPath}
-                  onChange={(e) => onChange({ cacertPath: e.target.value })}
-                  placeholder="/certs/ca.pem"
-                />
-              </label>
-              <label className="block">
-                <span className="pp-label">Client cert</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.certPath}
-                  onChange={(e) => onChange({ certPath: e.target.value })}
-                  placeholder="/certs/client.pem"
-                />
-              </label>
-              <label className="block">
-                <span className="pp-label">Client key</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.keyPath}
-                  onChange={(e) => onChange({ keyPath: e.target.value })}
-                  placeholder="/certs/key.pem"
-                />
-              </label>
-            </div>
-          ) : null}
-          {draft.schemaSource === 'proto-files' ? (
+          </div>
+        </div>
+        {draft.schemaSource === 'browser-proto-folder' ? (
+          <BrowserProtoFolderPicker
+            selection={browserProtoFolder}
+            onChange={onBrowserProtoFolderChange}
+            onBusyChange={onBrowserProtoFolderBusyChange}
+            disabled={busy}
+          />
+        ) : null}
+        <details className="pp-target-advanced">
+          <summary>Advanced connection options</summary>
+          <div className="pp-target-advanced-body">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="pp-label">Proto files</span>
-                <textarea
-                  className="pp-input mt-1 font-mono text-xs"
-                  rows={3}
-                  value={draft.protoFiles.join('\n')}
-                  onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
-                  placeholder="api/service.proto"
+                <span className="pp-label">Authority</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.authority}
+                  onChange={(e) => onChange({ authority: e.target.value })}
+                  placeholder="grpc.example.internal"
                 />
               </label>
               <label className="block">
-                <span className="pp-label">Import paths</span>
-                <textarea
-                  className="pp-input mt-1 font-mono text-xs"
-                  rows={3}
-                  value={draft.importPaths.join('\n')}
-                  onChange={(e) => onChange({ importPaths: parseMultilineValues(e.target.value) })}
-                  placeholder="proto"
+                <span className="pp-label">Notes</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.notes}
+                  onChange={(e) => onChange({ notes: e.target.value })}
+                  placeholder="Optional context"
                 />
               </label>
             </div>
-          ) : null}
-          {draft.schemaSource === 'protoset' ? (
-            <label className="block">
-              <span className="pp-label">Protoset files</span>
-              <textarea
-                className="pp-input mt-1 font-mono text-xs"
-                rows={3}
-                value={draft.protosets.join('\n')}
-                onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
-                placeholder="dist/service.protoset"
-              />
-            </label>
-          ) : null}
-        </div>
-      </details>
+            {!draft.plaintext ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.insecure}
+                  onChange={(e) => onChange({ insecure: e.target.checked })}
+                />
+                Skip certificate verification
+              </label>
+            ) : null}
+            {!draft.plaintext ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="block">
+                  <span className="pp-label">CA cert</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.cacertPath}
+                    onChange={(e) => onChange({ cacertPath: e.target.value })}
+                    placeholder="/certs/ca.pem"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Client cert</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.certPath}
+                    onChange={(e) => onChange({ certPath: e.target.value })}
+                    placeholder="/certs/client.pem"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Client key</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.keyPath}
+                    onChange={(e) => onChange({ keyPath: e.target.value })}
+                    placeholder="/certs/key.pem"
+                  />
+                </label>
+              </div>
+            ) : null}
+            {draft.schemaSource === 'proto-files' ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="pp-label">Proto files</span>
+                  <textarea
+                    className="pp-input mt-1 font-mono text-xs"
+                    rows={3}
+                    value={draft.protoFiles.join('\n')}
+                    onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
+                    placeholder="api/service.proto"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Import paths</span>
+                  <textarea
+                    className="pp-input mt-1 font-mono text-xs"
+                    rows={3}
+                    value={draft.importPaths.join('\n')}
+                    onChange={(e) =>
+                      onChange({ importPaths: parseMultilineValues(e.target.value) })
+                    }
+                    placeholder="proto"
+                  />
+                </label>
+              </div>
+            ) : null}
+            {draft.schemaSource === 'protoset' ? (
+              <label className="block">
+                <span className="pp-label">Protoset files</span>
+                <textarea
+                  className="pp-input mt-1 font-mono text-xs"
+                  rows={3}
+                  value={draft.protosets.join('\n')}
+                  onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
+                  placeholder="dist/service.protoset"
+                />
+              </label>
+            ) : null}
+          </div>
+        </details>
+      </fieldset>
       <div className="flex gap-2">
         <button
-          className="pp-button-primary"
+          className={busy ? 'pp-button-secondary' : 'pp-button-primary'}
           type="button"
-          disabled={busy}
-          onClick={onSaveAndConnect}
+          disabled={
+            !busy &&
+            (browserProtoFolderBusy ||
+              (draft.schemaSource === 'browser-proto-folder' && !browserProtoFolder))
+          }
+          aria-describedby={
+            !busy && draft.schemaSource === 'browser-proto-folder' && !browserProtoFolder
+              ? 'pp-browser-proto-folder-required'
+              : undefined
+          }
+          onClick={busy ? onCancelConnect : onSaveAndConnect}
         >
-          {busy ? (
-            <LoaderCircle className="size-3.5 animate-spin" />
-          ) : (
-            <Play className="size-3.5" />
-          )}
-          Connect
+          {busy ? <X className="size-3.5" /> : <Play className="size-3.5" />}
+          {busy ? 'Cancel connection' : 'Connect'}
         </button>
       </div>
     </div>

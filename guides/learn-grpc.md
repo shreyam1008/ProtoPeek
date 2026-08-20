@@ -233,8 +233,17 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 Without reflection, a UI either needs explicit schema files from the user or it becomes blind. ProtoPeek keeps both paths:
 
 - **Reflection** for the happy path where the server cooperates
-- **Proto source files** for locked-down services that disable reflection
-- **Protoset files** for pre-compiled descriptor sets from build pipelines
+- **Browser folder** for a user-selected, temporary `.proto` snapshot. Relative imports must remain
+  inside the selected root (apart from built-in Google well-known protos); the bounded snapshot goes
+  to the current ProtoPeek process, never to the gRPC target. Its in-memory upload buffers are cleared
+  before the target is dialed or the session is published. Folder access and bytes are not saved, so
+  reconnecting after reload requires a repick.
+- **Host proto paths** for locked-down services when the ProtoPeek process can read the source tree
+- **Host protoset paths** for pre-compiled descriptor sets from build pipelines
+
+That browser/host distinction matters in Docker and remote-console setups. A folder chosen in the
+browser is uploaded as a one-shot snapshot. A host path is interpreted on the machine or container
+running ProtoPeek; it is never secretly remapped to the browser computer.
 
 ## 7. gRPC status codes
 

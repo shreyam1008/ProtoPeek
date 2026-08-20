@@ -106,7 +106,7 @@ export type WorkspaceTargetConfig = {
   cacertPath: string;
   certPath: string;
   keyPath: string;
-  schemaSource: 'reflection' | 'proto-files' | 'protoset';
+  schemaSource: 'reflection' | 'browser-proto-folder' | 'proto-files' | 'protoset';
   protoFiles: string[];
   importPaths: string[];
   protosets: string[];

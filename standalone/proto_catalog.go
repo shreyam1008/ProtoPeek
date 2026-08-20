@@ -69,11 +69,8 @@ type protoEnumValue struct {
 	Number int32  `json:"number"`
 }
 
-var protoCatalogPrinter = protoprint.Printer{
-	Indent: "  ",
-}
-
 func buildProtoCatalog(files []*desc.FileDescriptor) ([]byte, error) {
+	printer := protoprint.Printer{Indent: "  "}
 	sortedFiles := append([]*desc.FileDescriptor(nil), files...)
 	sort.Slice(sortedFiles, func(i, j int) bool {
 		return sortedFiles[i].GetName() < sortedFiles[j].GetName()
@@ -81,7 +78,7 @@ func buildProtoCatalog(files []*desc.FileDescriptor) ([]byte, error) {
 
 	summaries := make([]protoFileSummary, 0, len(sortedFiles))
 	for _, fd := range sortedFiles {
-		protoText, err := protoCatalogPrinter.PrintProtoToString(fd)
+		protoText, err := printer.PrintProtoToString(fd)
 		if err != nil {
 			return nil, err
 		}

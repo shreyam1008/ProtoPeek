@@ -2,6 +2,7 @@ import { LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
 import type { RefObject } from 'react';
 import { modifierKeyLabel } from '@/shared/runtime';
 import type { BootstrapMethod, WorkspaceTargetProfile } from '@/shared/types';
+import { workspaceSchemaSourceLabel } from '@/shared/utils';
 
 import { ProtoPeekMark } from './ProtoPeekMark';
 
@@ -33,7 +34,7 @@ export function WorkbenchHeader({
   onOpenCommandPalette: () => void;
   onSwitchTarget: () => void;
 }) {
-  const source = targetProfile?.schemaSource ?? 'reflection';
+  const source = workspaceSchemaSourceLabel(targetProfile?.schemaSource ?? 'reflection');
   const transport = targetProfile?.plaintext === false ? 'TLS' : 'Plaintext';
   const modifier = modifierKeyLabel();
 

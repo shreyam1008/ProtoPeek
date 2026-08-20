@@ -26,7 +26,15 @@ import {
   validateWorkspaceImport,
   workspaceImportLimits,
   workspaceImportMaxBytes,
+  workspaceSchemaSourceLabel,
 } from './utils';
+
+it('uses explicit schema authority labels', () => {
+  expect(workspaceSchemaSourceLabel('reflection')).toBe('Reflection');
+  expect(workspaceSchemaSourceLabel('browser-proto-folder')).toBe('Browser folder');
+  expect(workspaceSchemaSourceLabel('proto-files')).toBe('Host proto paths');
+  expect(workspaceSchemaSourceLabel('protoset')).toBe('Host protoset paths');
+});
 
 describe('unary repeat configuration', () => {
   it('accepts only the explicit bounded repeat envelope', () => {
@@ -701,6 +709,83 @@ describe('workspace transfer validation', () => {
 
     expect(legacy.error).toBeNull();
     expect(legacy.value).toMatchObject({ legacy: true, hasHostFilePaths: true });
+  });
+
+  it('keeps browser-folder profiles pathless and strips transient picker fields', () => {
+    const imported = validateWorkspaceImport({
+      assertions: [],
+      collections: [],
+      environments: [],
+      history: [],
+      targets: [
+        {
+          id: 'browser-folder',
+          name: 'Browser protos',
+          notes: '',
+          updatedAt: '2026-08-20T00:00:00.000Z',
+          address: 'localhost:50051',
+          plaintext: true,
+          insecure: false,
+          authority: '',
+          cacertPath: '',
+          certPath: '',
+          keyPath: '',
+          schemaSource: 'browser-proto-folder',
+          protoFiles: [],
+          importPaths: [],
+          protosets: [],
+          rootName: 'private-checkout',
+          files: [{ path: 'private/service.proto' }],
+          directoryHandle: { kind: 'directory' },
+        },
+      ],
+    });
+
+    expect(imported.error).toBeNull();
+    expect(imported.value?.hasHostFilePaths).toBe(false);
+    expect(imported.value?.targets[0]).toEqual({
+      id: 'browser-folder',
+      name: 'Browser protos',
+      notes: '',
+      updatedAt: '2026-08-20T00:00:00.000Z',
+      address: 'localhost:50051',
+      plaintext: true,
+      insecure: false,
+      authority: '',
+      cacertPath: '',
+      certPath: '',
+      keyPath: '',
+      schemaSource: 'browser-proto-folder',
+      protoFiles: [],
+      importPaths: [],
+      protosets: [],
+    });
+  });
+
+  it('rejects host proto paths smuggled into a browser-folder profile', () => {
+    const imported = validateWorkspaceImport({
+      targets: [
+        {
+          id: 'browser-folder',
+          name: 'Browser protos',
+          notes: '',
+          updatedAt: '2026-08-20T00:00:00.000Z',
+          address: 'localhost:50051',
+          plaintext: true,
+          insecure: false,
+          authority: '',
+          cacertPath: '',
+          certPath: '',
+          keyPath: '',
+          schemaSource: 'browser-proto-folder',
+          protoFiles: ['/host/private.proto'],
+          importPaths: [],
+          protosets: [],
+        },
+      ],
+    });
+
+    expect(imported.error).toMatch(/browser folder.*host proto or protoset paths/i);
   });
 
   it('retains which legacy sections were actually present', () => {

@@ -367,7 +367,7 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           <h3>gRPC · available</h3>
           <ul>
             <li>Confirm plaintext versus verified TLS before invoking.</li>
-            <li>Use reflection, proto files, or protosets for the schema.</li>
+            <li>Use reflection, a browser folder, or host proto/protoset paths for the schema.</li>
             <li>Inspect response headers, messages, trailers, and final status separately.</li>
           </ul>
         </section>

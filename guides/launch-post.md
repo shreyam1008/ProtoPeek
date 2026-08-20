@@ -6,6 +6,8 @@ ProtoPeek is an independent local workbench focused on the parts teams need when
 
 - A responsive, search-first method rail
 - Reflected schema visibility
+- One-shot browser proto-folder snapshots for reflection-disabled services, with nested imports and
+  no persisted folder authority
 - JSON starter payload generation
 - Local collections and history
 - A response lab that keeps headers, trailers, payloads, and status together
@@ -24,6 +26,10 @@ ProtoPeek tries to stay small and practical:
 - Scratch-friendly Docker image
 - Local-first workspace model
 - Modern TypeScript frontend with a measured embedded asset budget
+
+Browser folder means a bounded snapshot uploaded to the running ProtoPeek process, not background
+filesystem access and not an upload to the gRPC service. Host proto/protoset paths remain a separate
+process-authority mode.
 
 Project links:
 

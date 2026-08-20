@@ -19,12 +19,11 @@ import (
 
 var (
 	webFormTemplate = template.Must(template.New("grpc web form").Parse(string(webform.Template())))
-
-	protoPrinter = protoprint.Printer{
-		Compact: true,
-		Indent:  "   ",
-	}
 )
+
+func newProtoPrinter() protoprint.Printer {
+	return protoprint.Printer{Compact: true, Indent: "   "}
+}
 
 // WebFormContents returns an HTML form that can be embedded into a web UI to
 // provide an interactive form for issuing RPCs.
@@ -80,6 +79,7 @@ type WebFormOptions struct {
 // code into debug logging and can also be used to define the set of metadata to
 // show in the web form by default (empty if unspecified).
 func WebFormContentsWithOptions(invokeURI, metadataURI string, target string, descs []*desc.MethodDescriptor, opts WebFormOptions) []byte {
+	protoPrinter := newProtoPrinter()
 	type metadataEntry struct {
 		Name, Value string
 	}

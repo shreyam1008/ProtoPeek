@@ -12,8 +12,8 @@
     <meta property="og:title" content="Feature roadmap | ProtoPeek" />
     <meta property="og:description" content="Stable gRPC and HTTP, the v0.3 source build, and the gates for future transport-aware work." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/feature-roadmap/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -21,7 +21,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Feature roadmap | ProtoPeek" />
     <meta name="twitter:description" content="Stable gRPC and HTTP, the v0.3 source build, and the gates for future transport-aware work." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>
@@ -108,7 +108,7 @@
 <p>they add meaningful binary, dependency, or security cost.</p>
 <h2 id="current-workbench-grpc-http-bounded-evidence">Current workbench: gRPC + HTTP + bounded evidence</h2>
 <p>The gRPC adapter remains the quality bar for protocol-native depth:</p>
-<ol><li><div class="pp-doc-list-title">Discover services through reflection, loopback scan, <code>.proto</code>, or protoset sources.</div></li><li><div class="pp-doc-list-title">Keep service and method selection visible in a searchable rail with unary, server-stream,</div><p>client-stream, and bidirectional modes.</p></li><li><div class="pp-doc-list-title">Generate an editable request payload from the reflected schema.</div></li><li><div class="pp-doc-list-title">Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.</div></li><li><div class="pp-doc-list-title">Render ordered response messages, headers, trailers, final status, and callback-observed handler</div><p>lifecycle timing together without presenting it as packet arrival, server processing, or TTFB.</p></li><li><div class="pp-doc-list-title">Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts</div><p>without a server account.</p></li><li><div class="pp-doc-list-title">Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public</div><p>network probing.</p></li></ol>
+<ol><li><div class="pp-doc-list-title">Discover services through reflection, loopback scan, a temporary browser-folder snapshot, host</div><p><code>.proto</code> paths, or host protoset paths.</p></li><li><div class="pp-doc-list-title">Keep service and method selection visible in a searchable rail with unary, server-stream,</div><p>client-stream, and bidirectional modes.</p></li><li><div class="pp-doc-list-title">Generate an editable request payload from the reflected schema.</div></li><li><div class="pp-doc-list-title">Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.</div></li><li><div class="pp-doc-list-title">Render ordered response messages, headers, trailers, final status, and callback-observed handler</div><p>lifecycle timing together without presenting it as packet arrival, server processing, or TTFB.</p></li><li><div class="pp-doc-list-title">Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts</div><p>without a server account.</p></li><li><div class="pp-doc-list-title">Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public</div><p>network probing.</p></li></ol>
 <p>The HTTP adapter is the first additional protocol slice:</p>
 <ol><li><div class="pp-doc-list-title">Send an explicit HTTP(S) method, URL, headers, and body through the local Go server.</div></li><li><div class="pp-doc-list-title">Keep TLS verification on and redirect following off by default.</div></li><li><div class="pp-doc-list-title">Bound request envelopes, request and response bodies, header counts, timeouts, and redirects.</div></li><li><div class="pp-doc-list-title">Support cancellation and show status, HTTP protocol, headers, text/base64 body, byte count,</div><p>truncation, redirect hops, remote address, TLS summary, and DNS/connect/TLS/TTFB/total timing.</p></li><li><div class="pp-doc-list-title">Keep automatic local history secret-safe; credentials remain editable for the live request but</div><p>are redacted before persistence or default export.</p></li><li><div class="pp-doc-list-title">Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.</div></li></ol>
 <p>The v0.3 source build adds two deliberately narrow evidence inputs:</p>
@@ -118,7 +118,7 @@
         |
 console shell: target -&gt; operation -&gt; request -&gt; response evidence
         |
-        +-- gRPC adapter       reflection | .proto | protoset
+        +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
         +-- route evidence     OS kernel query | one selected next hop
         +-- Nmap import        offline XML hints | explicit ProtoPeek verification
@@ -130,7 +130,7 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <h2 id="delivery-plan">Delivery plan</h2>
 <h3 id="phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</h3>
 <p>The reference adapter currently preserves:</p>
-<ul><li>reflection, proto, and protoset schema paths;</li><li>unary, client-streaming, server-streaming, and bidirectional invocation;</li><li>visible request metadata, deadlines, cancellation, response headers, messages, trailers, status,</li></ul>
+<ul><li>reflection, temporary browser-folder snapshots, host proto paths, and protoset schema paths;</li><li>unary, client-streaming, server-streaming, and bidirectional invocation;</li><li>visible request metadata, deadlines, cancellation, response headers, messages, trailers, status,</li></ul>
 <p>and timing;</p>
 <ul><li>bounded loopback discovery plus an explicit-target policy that reports reflection and transport</li></ul>
 <p>outcomes separately;</p>
@@ -148,8 +148,19 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <p>rejects external/entity input, and bounds bytes, XML work, hosts, ports, addresses, hostnames, and retained attributes. XML and inventory are never persisted.</p>
 <ul><li>The in-app roadmap names Available in this build, Next, Exploring, and Gated states without fake dates or</li></ul>
 <p>controls.</p>
+<h3 id="milestone-3-browser-schema-snapshots-and-repeatable-unary-evidence-available-in-this-build">Milestone 3 — browser schema snapshots and repeatable unary evidence (available in this build)</h3>
+<ul><li>A user-selected folder becomes one bounded, lowercase <code>.proto</code> snapshot: at most 512 files,</li></ul>
+<p>4 MiB per file, and 16 MiB total. Relative imports are preserved and must stay inside that selected root, apart from parser-provided Google well-known protos.</p>
+<ul><li>File System Access is used only when the browser exposes it; directory input remains the fallback.</li></ul>
+<p>Selection always requires a user gesture and ProtoPeek persists no handle, file byte, root name, browser path, or staging path.</p>
+<ul><li>Snapshot bytes go to the machine or container running the current ProtoPeek instance, never to the</li></ul>
+<p>gRPC target. The server validates the complete multipart contract again, compiles through a manifest-only in-memory resolver, clears the bounded upload buffers before dialing or publishing a session, and writes no schema staging files.</p>
+<ul><li>Host proto/protoset and certificate paths remain process-authority inputs in separate labeled</li></ul>
+<p>modes. A browser-folder profile is pathless and requires the folder to be selected again after a reload or import.</p>
+<ul><li>Bounded Unary Repeat and callback-observed lifecycle timing close a common evidence gap without</li></ul>
+<p>pretending to be packet timing or a load generator.</p>
 <h3 id="next-daily-workflow-gaps">Next — daily workflow gaps</h3>
-<ul><li>incremental gRPC stream delivery with bounded retention plus Health Check/Watch;</li><li>saved HTTP requests and profiles;</li><li>bounded cURL import/export;</li><li>open proto folder upload with explicit import roots;</li><li>target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.</li></ul>
+<ul><li>incremental gRPC stream delivery with bounded retention plus Health Check/Watch;</li><li>saved HTTP requests and profiles;</li><li>bounded cURL import/export;</li><li>target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.</li></ul>
 <h3 id="exploring-evidence-and-protocol-fit">Exploring — evidence and protocol fit</h3>
 <p>WebSocket/SSE timelines, bounded PCAP import with Wireshark/TShark handoff, Cap&#39;n Proto, and QUIC/HTTP3 remain research. Each must preserve native evidence and prove its runtime/dependency cost.</p>
 <h3 id="gated-operations-with-a-wider-safety-boundary">Gated — operations with a wider safety boundary</h3>
@@ -177,7 +188,7 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <h3 id="milestone-2-bundle-evidence">Milestone 2 bundle evidence</h3>
 <p>The v0.3 milestone 2 production console build measures 324.80 kB / 102.45 kB gzip for the shared entry and 110.43 kB / 20.65 kB gzip for CSS. The next-hop and roadmap workspaces stay lazy at 6.04 kB / 1.95 kB gzip and 4.43 kB / 2.10 kB gzip. Compared with the milestone 1 embedded build, the shared entry grew 12.46 kB raw / 3.68 kB gzip and CSS grew 12.64 kB raw / 2.27 kB gzip. No frontend dependency was added; <code>x/sys</code> was already a transitive Go dependency and is now direct for native route lookup. This measured increase is accepted for the bounded XML inventory UI, shared evidence styling, and OS-native route workbench. Future adapters must preserve the same lazy-loading and no-heavy-chart-library budget.</p>
 <h2 id="research-trail">Research trail</h2>
-<ul><li><a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">gRPC guides</a></li><li><a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">gRPC debugging</a></li><li><a href="https://grpc.io/docs/platforms/web/basics/" rel="noreferrer" target="_blank">gRPC-Web basics</a></li><li><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html" rel="noreferrer" target="_blank">Envoy gRPC overview</a></li><li><a href="https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/" rel="noreferrer" target="_blank">Postman gRPC request interface</a></li></ul>
+<ul><li><a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">gRPC guides</a></li><li><a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">gRPC debugging</a></li><li><a href="https://grpc.io/docs/platforms/web/basics/" rel="noreferrer" target="_blank">gRPC-Web basics</a></li><li><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html" rel="noreferrer" target="_blank">Envoy gRPC overview</a></li><li><a href="https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/" rel="noreferrer" target="_blank">Postman gRPC request interface</a></li><li><a href="https://wicg.github.io/file-system-access/" rel="noreferrer" target="_blank">File System Access specification</a></li><li><a href="https://xhr.spec.whatwg.org/#interface-formdata" rel="noreferrer" target="_blank">FormData entry-list specification</a></li></ul>
             </div>
           </article>
 
@@ -185,7 +196,7 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">On this page</div>
               <div class="pp-doc-toc">
-                <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-workbench-grpc-http-bounded-evidence">Current workbench: gRPC + HTTP + bounded evidence</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</a><a class="level-3" href="#milestone-2-next-hop-and-offline-nmap-evidence-available-in-this-build">Milestone 2 — next-hop and offline Nmap evidence (available in this build)</a><a class="level-3" href="#next-daily-workflow-gaps">Next — daily workflow gaps</a><a class="level-3" href="#exploring-evidence-and-protocol-fit">Exploring — evidence and protocol fit</a><a class="level-3" href="#gated-operations-with-a-wider-safety-boundary">Gated — operations with a wider safety boundary</a><a class="level-3" href="#later-experiment-cap-n-proto">Later experiment — Cap&#39;n Proto</a><a class="level-3" href="#protocol-shelf-later">Protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-3" href="#milestone-2-bundle-evidence">Milestone 2 bundle evidence</a><a class="level-2" href="#research-trail">Research trail</a>
+                <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-workbench-grpc-http-bounded-evidence">Current workbench: gRPC + HTTP + bounded evidence</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</a><a class="level-3" href="#milestone-2-next-hop-and-offline-nmap-evidence-available-in-this-build">Milestone 2 — next-hop and offline Nmap evidence (available in this build)</a><a class="level-3" href="#milestone-3-browser-schema-snapshots-and-repeatable-unary-evidence-available-in-this-build">Milestone 3 — browser schema snapshots and repeatable unary evidence (available in this build)</a><a class="level-3" href="#next-daily-workflow-gaps">Next — daily workflow gaps</a><a class="level-3" href="#exploring-evidence-and-protocol-fit">Exploring — evidence and protocol fit</a><a class="level-3" href="#gated-operations-with-a-wider-safety-boundary">Gated — operations with a wider safety boundary</a><a class="level-3" href="#later-experiment-cap-n-proto">Later experiment — Cap&#39;n Proto</a><a class="level-3" href="#protocol-shelf-later">Protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-3" href="#milestone-2-bundle-evidence">Milestone 2 bundle evidence</a><a class="level-2" href="#research-trail">Research trail</a>
               </div>
             </section>
 

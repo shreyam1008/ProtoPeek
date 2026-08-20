@@ -1,3 +1,8 @@
+import {
+  type BrowserProtoFolderSelection,
+  browserProtoFolderLimits,
+  buildBrowserProtoFolderSelection,
+} from '@/shared/proto-folder';
 import type {
   BootstrapResponse,
   ExampleResponse,
@@ -172,13 +177,69 @@ export async function fetchProtoCatalog() {
   return normalizeProtoCatalog(await fetchJSON<unknown>('api/protos'));
 }
 
-export async function connectWorkspaceTarget(target: WorkspaceTargetConfig, signal?: AbortSignal) {
+function byteLength(value: string) {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function browserProtoFolderBody(
+  target: WorkspaceTargetConfig,
+  folder: BrowserProtoFolderSelection | undefined
+) {
+  if (!folder) throw new Error('Folder required. Choose the proto folder again before connecting.');
+  if (target.protoFiles.length || target.importPaths.length || target.protosets.length) {
+    throw new Error('Browser folders cannot include host proto or protoset paths.');
+  }
+
+  const checked = buildBrowserProtoFolderSelection(
+    folder.rootName,
+    folder.files,
+    folder.ignoredFileCount
+  );
+  const targetJSON = JSON.stringify(target);
+  const manifestJSON = JSON.stringify({
+    version: 1,
+    files: checked.files.map((entry) => ({ path: entry.path, size: entry.file.size })),
+  });
+  const targetBytes = byteLength(targetJSON);
+  const manifestBytes = byteLength(manifestJSON);
+  if (targetBytes > browserProtoFolderLimits.maxTargetJSONBytes) {
+    throw new Error('Target configuration exceeds the 64 KiB upload cap.');
+  }
+  if (manifestBytes > browserProtoFolderLimits.maxManifestJSONBytes) {
+    throw new Error('Proto manifest exceeds the 512 KiB upload cap.');
+  }
+
+  // Browser boundaries are short, and filenames are fixed below. This intentionally
+  // overestimates headers so the 20 MiB server envelope is never the first cap users hit.
+  const conservativeEnvelopeBytes =
+    checked.totalBytes + targetBytes + manifestBytes + 4096 + (checked.files.length + 2) * 1024;
+  if (conservativeEnvelopeBytes > browserProtoFolderLimits.maxEnvelopeBytes) {
+    throw new Error('Browser proto upload exceeds the 20 MiB multipart envelope cap.');
+  }
+
+  const body = new FormData();
+  body.append('target', targetJSON);
+  body.append('manifest', manifestJSON);
+  for (const [index, entry] of checked.files.entries()) {
+    body.append(`file.${index}`, entry.file, 'proto');
+  }
+  return body;
+}
+
+export async function connectWorkspaceTarget(
+  target: WorkspaceTargetConfig,
+  signal?: AbortSignal,
+  browserFolder?: BrowserProtoFolderSelection
+) {
+  const browserUpload = target.schemaSource === 'browser-proto-folder';
   const response = await fetchJSON<WorkspaceConnectResponse>('api/workspace/connect', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ target }),
+    ...(browserUpload
+      ? { body: browserProtoFolderBody(target, browserFolder) }
+      : {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target }),
+        }),
     signal,
   });
   return { ...response, bootstrap: normalizeBootstrap(response.bootstrap) };

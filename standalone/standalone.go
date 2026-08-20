@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -41,6 +42,15 @@ const csrfCookieName = "_protopeek_csrf_token"
 const csrfHeaderName = "x-protopeek-csrf-token"
 
 const maxWorkspaceConnectBodyBytes = 256 << 10
+
+func isSPADeepLink(requestPath string) bool {
+	switch requestPath {
+	case "/grpc", "/http", "/routes", "/roadmap":
+		return true
+	default:
+		return false
+	}
+}
 
 // Handler returns an HTTP handler that provides a fully-functional gRPC web
 // UI, including the main index (with the HTML form), all needed CSS and JS
@@ -189,27 +199,65 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				return
 			}
 
-			var payload struct {
-				Target WorkspaceTargetConfig `json:"target"`
-			}
-			if !decodeJSONRequest(w, r, maxWorkspaceConnectBodyBytes, &payload) {
-				return
+			var session *workspaceSession
+			mediaType, _, mediaTypeErr := mime.ParseMediaType(r.Header.Get("Content-Type"))
+			if mediaTypeErr == nil && strings.EqualFold(mediaType, "multipart/form-data") {
+				r.Body = http.MaxBytesReader(w, r.Body, maxWorkspaceUploadBodyBytes)
+				if r.ContentLength > maxWorkspaceUploadBodyBytes {
+					http.Error(w, "multipart upload exceeds the 20 MiB envelope limit", http.StatusRequestEntityTooLarge)
+					return
+				}
+				reader, err := r.MultipartReader()
+				if err != nil {
+					http.Error(w, "Invalid multipart upload", http.StatusBadRequest)
+					return
+				}
+				session, err = uiOpts.workspaceManager.connectUploadedProtoFolder(r.Context(), reader)
+				if err != nil {
+					var maxBytesErr *http.MaxBytesError
+					var limitErr *workspaceUploadLimitError
+					var busyErr *workspaceUploadBusyError
+					if errors.As(err, &maxBytesErr) || errors.As(err, &limitErr) {
+						http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+						return
+					}
+					if errors.As(err, &busyErr) {
+						w.Header().Set("Retry-After", "1")
+						http.Error(w, err.Error(), http.StatusServiceUnavailable)
+						return
+					}
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+			} else {
+				var payload struct {
+					Target WorkspaceTargetConfig `json:"target"`
+				}
+				if !decodeJSONRequest(w, r, maxWorkspaceConnectBodyBytes, &payload) {
+					return
+				}
+				var err error
+				session, err = uiOpts.workspaceManager.Connect(r.Context(), payload.Target)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
 			}
 
-			session, err := uiOpts.workspaceManager.Connect(r.Context(), payload.Target)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+			if r.Context().Err() != nil {
+				uiOpts.workspaceManager.Disconnect(session.id)
 				return
 			}
-
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(struct {
+			if err := json.NewEncoder(w).Encode(struct {
 				SessionID string          `json:"sessionId"`
 				Bootstrap json.RawMessage `json:"bootstrap"`
 			}{
 				SessionID: session.id,
 				Bootstrap: json.RawMessage(session.bootstrapJSON),
-			})
+			}); err != nil {
+				uiOpts.workspaceManager.Disconnect(session.id)
+			}
 		})
 
 		mux.HandleFunc("/api/workspace/session", func(w http.ResponseWriter, r *http.Request) {
@@ -270,13 +318,26 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead {
+				http.NotFound(w, r)
+				return
+			}
 			indexResource.ServeHTTP(w, r)
+			return
+		}
+		if isSPADeepLink(r.URL.Path) {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Location", "./#"+r.URL.Path)
+			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}
 
 		cleanPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 		if cleanPath == "." || cleanPath == "" {
-			indexResource.ServeHTTP(w, r)
+			http.NotFound(w, r)
 			return
 		}
 		if _, err := fs.Stat(staticFS, cleanPath); err == nil {
@@ -437,6 +498,9 @@ func (res *resource) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if res.Len > 0 {
 		w.Header().Set("Content-Length", strconv.Itoa(res.Len))
+	}
+	if r.Method == http.MethodHead {
+		return
 	}
 	_, _ = io.Copy(w, reader)
 }

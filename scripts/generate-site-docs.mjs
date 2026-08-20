@@ -420,8 +420,8 @@ function renderPageTemplate({
     <meta property="og:title" content="${escapeAttr(documentTitle)}" />
     <meta property="og:description" content="${escapeAttr(description)}" />
     <meta property="og:url" content="${canonicalURL}" />
-    <meta property="og:image" content="${siteRoot}/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="${siteRoot}/protopeek-social.png" />
+    <meta property="og:image" content="${siteRoot}/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="${siteRoot}/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -429,7 +429,7 @@ function renderPageTemplate({
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeAttr(documentTitle)}" />
     <meta name="twitter:description" content="${escapeAttr(description)}" />
-    <meta name="twitter:image" content="${siteRoot}/protopeek-social.png" />
+    <meta name="twitter:image" content="${siteRoot}/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>

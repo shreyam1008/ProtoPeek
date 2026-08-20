@@ -28,7 +28,8 @@ transport events, and the final evidence stay close together.
 
 The gRPC adapter remains the quality bar for protocol-native depth:
 
-1. Discover services through reflection, loopback scan, `.proto`, or protoset sources.
+1. Discover services through reflection, loopback scan, a temporary browser-folder snapshot, host
+   `.proto` paths, or host protoset paths.
 2. Keep service and method selection visible in a searchable rail with unary, server-stream,
    client-stream, and bidirectional modes.
 3. Generate an editable request payload from the reflected schema.
@@ -68,7 +69,7 @@ local CLI / web server
         |
 console shell: target -> operation -> request -> response evidence
         |
-        +-- gRPC adapter       reflection | .proto | protoset
+        +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
         +-- route evidence     OS kernel query | one selected next hop
         +-- Nmap import        offline XML hints | explicit ProtoPeek verification
@@ -96,7 +97,7 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 The reference adapter currently preserves:
 
-- reflection, proto, and protoset schema paths;
+- reflection, temporary browser-folder snapshots, host proto paths, and protoset schema paths;
 - unary, client-streaming, server-streaming, and bidirectional invocation;
 - visible request metadata, deadlines, cancellation, response headers, messages, trailers, status,
   and timing;
@@ -130,12 +131,29 @@ surface and would require separate product and security review.
 - The in-app roadmap names Available in this build, Next, Exploring, and Gated states without fake dates or
   controls.
 
+### Milestone 3 — browser schema snapshots and repeatable unary evidence (available in this build)
+
+- A user-selected folder becomes one bounded, lowercase `.proto` snapshot: at most 512 files,
+  4 MiB per file, and 16 MiB total. Relative imports are preserved and must stay inside that selected
+  root, apart from parser-provided Google well-known protos.
+- File System Access is used only when the browser exposes it; directory input remains the fallback.
+  Selection always requires a user gesture and ProtoPeek persists no handle, file byte, root name,
+  browser path, or staging path.
+- Snapshot bytes go to the machine or container running the current ProtoPeek instance, never to the
+  gRPC target. The server validates the complete multipart contract again, compiles through a
+  manifest-only in-memory resolver, clears the bounded upload buffers before dialing or publishing a
+  session, and writes no schema staging files.
+- Host proto/protoset and certificate paths remain process-authority inputs in separate labeled
+  modes. A browser-folder profile is pathless and requires the folder to be selected again after a
+  reload or import.
+- Bounded Unary Repeat and callback-observed lifecycle timing close a common evidence gap without
+  pretending to be packet timing or a load generator.
+
 ### Next — daily workflow gaps
 
 - incremental gRPC stream delivery with bounded retention plus Health Check/Watch;
 - saved HTTP requests and profiles;
 - bounded cURL import/export;
-- open proto folder upload with explicit import roots;
 - target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.
 
 ### Exploring — evidence and protocol fit
@@ -227,3 +245,5 @@ and no-heavy-chart-library budget.
 - [gRPC-Web basics](https://grpc.io/docs/platforms/web/basics/)
 - [Envoy gRPC overview](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html)
 - [Postman gRPC request interface](https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/)
+- [File System Access specification](https://wicg.github.io/file-system-access/)
+- [FormData entry-list specification](https://xhr.spec.whatwg.org/#interface-formdata)

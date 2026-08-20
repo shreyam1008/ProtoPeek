@@ -58,9 +58,14 @@ type WorkspaceConnectResponse struct {
 }
 
 type WorkspaceManager struct {
-	mu       sync.RWMutex
-	sessions map[string]*workspaceSession
-	opts     WorkspaceManagerOptions
+	mu                     sync.RWMutex
+	sessions               map[string]*workspaceSession
+	activeUploads          map[uint64]context.CancelFunc
+	nextUploadID           uint64
+	uploadDescriptorLoader workspaceUploadDescriptorLoader
+	dialTargetOverride     func(context.Context, WorkspaceTargetConfig) (*grpc.ClientConn, error)
+	closed                 bool
+	opts                   WorkspaceManagerOptions
 }
 
 type workspaceSession struct {
@@ -85,8 +90,10 @@ func NewWorkspaceManager(opts WorkspaceManagerOptions) *WorkspaceManager {
 	}
 	opts.TargetDefaults = normalizedDefaults
 	return &WorkspaceManager{
-		sessions: map[string]*workspaceSession{},
-		opts:     opts,
+		sessions:               map[string]*workspaceSession{},
+		activeUploads:          map[uint64]context.CancelFunc{},
+		uploadDescriptorLoader: loadUploadedWorkspaceDescriptors,
+		opts:                   opts,
 	}
 }
 
@@ -118,7 +125,17 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 		_ = cc.Close()
 		return nil, err
 	}
+	return m.publishSession(ctx, normalized, cc, methods, files, descSource)
+}
 
+func (m *WorkspaceManager) publishSession(ctx context.Context, normalized WorkspaceTargetConfig, cc *grpc.ClientConn, methods []*desc.MethodDescriptor, files []*desc.FileDescriptor, descSource grpcurl.DescriptorSource) (*workspaceSession, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := ctx.Err(); err != nil {
+		_ = cc.Close()
+		return nil, err
+	}
 	protoCatalogJSON, err := buildProtoCatalog(files)
 	if err != nil {
 		_ = cc.Close()
@@ -158,6 +175,14 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		_ = cc.Close()
+		return nil, err
+	}
+	if m.closed {
+		_ = cc.Close()
+		return nil, fmt.Errorf("workspace manager is closed")
+	}
 	if len(m.sessions) >= m.opts.MaxSessions {
 		oldestID := ""
 		var oldest time.Time
@@ -168,7 +193,9 @@ func (m *WorkspaceManager) Connect(ctx context.Context, cfg WorkspaceTargetConfi
 			}
 		}
 		if oldestID != "" {
-			_ = m.sessions[oldestID].cc.Close()
+			if m.sessions[oldestID].cc != nil {
+				_ = m.sessions[oldestID].cc.Close()
+			}
 			delete(m.sessions, oldestID)
 		}
 	}
@@ -213,18 +240,41 @@ func (m *WorkspaceManager) sessionFromRequest(r *http.Request) *workspaceSession
 
 func (m *WorkspaceManager) Close() error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	firstClose := !m.closed
+	m.closed = true
+	sessions := make([]*workspaceSession, 0, len(m.sessions))
+	if firstClose {
+		for id, session := range m.sessions {
+			sessions = append(sessions, session)
+			delete(m.sessions, id)
+		}
+	}
+	uploadCancels := make([]context.CancelFunc, 0, len(m.activeUploads))
+	for id, cancel := range m.activeUploads {
+		uploadCancels = append(uploadCancels, cancel)
+		delete(m.activeUploads, id)
+	}
+	m.mu.Unlock()
+
 	var firstErr error
-	for id, session := range m.sessions {
+	for _, cancel := range uploadCancels {
+		cancel()
+	}
+	for _, session := range sessions {
+		if session.cc == nil {
+			continue
+		}
 		if err := session.cc.Close(); err != nil && firstErr == nil {
 			firstErr = err
 		}
-		delete(m.sessions, id)
 	}
 	return firstErr
 }
 
 func (m *WorkspaceManager) dialTarget(ctx context.Context, cfg WorkspaceTargetConfig) (*grpc.ClientConn, error) {
+	if m.dialTargetOverride != nil {
+		return m.dialTargetOverride(ctx, cfg)
+	}
 	var opts []grpc.DialOption
 	if m.opts.KeepaliveTime > 0 {
 		opts = append(opts, grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -276,17 +326,8 @@ func (cfg WorkspaceTargetConfig) normalized() WorkspaceTargetConfig {
 }
 
 func (cfg WorkspaceTargetConfig) validate() error {
-	if cfg.Address == "" {
-		return fmt.Errorf("target address is required")
-	}
-	if cfg.Plaintext && cfg.Insecure {
-		return fmt.Errorf("plaintext and insecure cannot both be enabled")
-	}
-	if cfg.Plaintext && (cfg.CACertPath != "" || cfg.CertPath != "" || cfg.KeyPath != "") {
-		return fmt.Errorf("TLS certificate paths cannot be used with plaintext targets")
-	}
-	if (cfg.CertPath == "") != (cfg.KeyPath == "") {
-		return fmt.Errorf("client certificate and key must be provided together")
+	if err := cfg.validateConnection(); err != nil {
+		return err
 	}
 
 	switch cfg.SchemaSource {
@@ -299,8 +340,26 @@ func (cfg WorkspaceTargetConfig) validate() error {
 		if len(cfg.Protosets) == 0 {
 			return fmt.Errorf("at least one protoset file is required when schema source is protoset")
 		}
+	case "browser-proto-folder":
+		return fmt.Errorf("browser-proto-folder schema requires a multipart upload")
 	default:
 		return fmt.Errorf("unsupported schema source %q", cfg.SchemaSource)
+	}
+	return nil
+}
+
+func (cfg WorkspaceTargetConfig) validateConnection() error {
+	if cfg.Address == "" {
+		return fmt.Errorf("target address is required")
+	}
+	if cfg.Plaintext && cfg.Insecure {
+		return fmt.Errorf("plaintext and insecure cannot both be enabled")
+	}
+	if cfg.Plaintext && (cfg.CACertPath != "" || cfg.CertPath != "" || cfg.KeyPath != "") {
+		return fmt.Errorf("TLS certificate paths cannot be used with plaintext targets")
+	}
+	if (cfg.CertPath == "") != (cfg.KeyPath == "") {
+		return fmt.Errorf("client certificate and key must be provided together")
 	}
 	return nil
 }

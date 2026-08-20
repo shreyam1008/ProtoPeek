@@ -376,7 +376,7 @@ function Roadmap() {
       status: 'Available in v0.3 source',
       title: 'Protocol workbenches + bounded evidence',
       detail:
-        'Dashboard, themes, stable gRPC and HTTP workbenches, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
+        'Dashboard, themes, stable gRPC and HTTP workbenches, browser proto-folder snapshots, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
       icon: ShieldCheck,
     },
     {
@@ -384,7 +384,7 @@ function Roadmap() {
       status: 'Next',
       title: 'Close daily workflow gaps',
       detail:
-        'Incremental gRPC stream delivery and Health Check/Watch, saved HTTP requests and profiles, bounded cURL import/export, open proto folder upload, and target DNS/TLS preflight.',
+        'Incremental gRPC stream delivery and Health Check/Watch, saved HTTP requests and profiles, bounded cURL import/export, and target DNS/TLS preflight.',
       icon: Globe2,
     },
     {

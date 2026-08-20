@@ -40,6 +40,13 @@ export const redactedValue = '[redacted]';
 export const workspaceImportMaxBytes = 4 * 1024 * 1024;
 export const workspaceExportVersion = 1 as const;
 
+export function workspaceSchemaSourceLabel(value: WorkspaceTargetConfig['schemaSource']) {
+  if (value === 'browser-proto-folder') return 'Browser folder';
+  if (value === 'proto-files') return 'Host proto paths';
+  if (value === 'protoset') return 'Host protoset paths';
+  return 'Reflection';
+}
+
 export const workspaceImportLimits = {
   assertions: 100,
   collections: 100,
@@ -985,8 +992,19 @@ function parseWorkspaceTargets(value: unknown): WorkspaceTargetProfile[] {
         `${path}.schemaSource`,
         32
       ) as WorkspaceTargetProfile['schemaSource'];
-      if (!['reflection', 'proto-files', 'protoset'].includes(schemaSource)) {
+      if (
+        !['reflection', 'browser-proto-folder', 'proto-files', 'protoset'].includes(schemaSource)
+      ) {
         throw new Error(`${path}.schemaSource is not supported.`);
+      }
+      const protoFiles = workspacePathList(target.protoFiles, `${path}.protoFiles`);
+      const importPaths = workspacePathList(target.importPaths, `${path}.importPaths`);
+      const protosets = workspacePathList(target.protosets, `${path}.protosets`);
+      if (
+        schemaSource === 'browser-proto-folder' &&
+        (protoFiles.length > 0 || importPaths.length > 0 || protosets.length > 0)
+      ) {
+        throw new Error(`${path} browser folder cannot include host proto or protoset paths.`);
       }
       return {
         id: workspaceString(target.id, `${path}.id`, workspaceStringLimits.id, false).trim(),
@@ -1014,9 +1032,9 @@ function parseWorkspaceTargets(value: unknown): WorkspaceTargetProfile[] {
         certPath: workspaceString(target.certPath, `${path}.certPath`, workspaceStringLimits.path),
         keyPath: workspaceString(target.keyPath, `${path}.keyPath`, workspaceStringLimits.path),
         schemaSource,
-        protoFiles: workspacePathList(target.protoFiles, `${path}.protoFiles`),
-        importPaths: workspacePathList(target.importPaths, `${path}.importPaths`),
-        protosets: workspacePathList(target.protosets, `${path}.protosets`),
+        protoFiles,
+        importPaths,
+        protosets,
       };
     }
   );
