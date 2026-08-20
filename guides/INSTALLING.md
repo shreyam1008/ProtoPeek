@@ -18,7 +18,7 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest pin the public v0.3.0 archives by SHA-256. Update with
+The formula and manifest pin the public v0.3.1 archives by SHA-256. Update with
 `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
 

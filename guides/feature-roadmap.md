@@ -202,10 +202,10 @@ gRPC result.
 
 ### Distribution — owned package channels (available)
 
-- The owned Homebrew tap installs the same checked v0.3.0 archives as `protopeek` and `pp` on macOS
+- The owned Homebrew tap installs the same checked v0.3.1 archives as `protopeek` and `pp` on macOS
   and Linux, with both manpages.
-- The owned Scoop bucket installs the checked Windows archives with both command shims and a
-  checksum-backed autoupdate contract.
+- The owned Scoop bucket installs the checked v0.3.1 Windows archives with both command shims and
+  a checksum-backed autoupdate contract.
 - WinGet is next only after these owned paths and the PowerShell installer accumulate initial user
   feedback. Community submission remains an explicit owner action.
 
