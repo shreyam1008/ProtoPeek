@@ -55,7 +55,7 @@ Use owned repositories first so package updates remain reversible and testable:
 1. `shreyam1008/homebrew-tap`: add `Formula/protopeek.rb`, pin each macOS/Linux archive by version
    and SHA-256, install both `protopeek` and `pp`, and run `brew audit --strict --online` plus an
    actual `pp -version` smoke test on Intel and Apple Silicon.
-2. `shreyam1008/scoop-protopeek`: add `bucket/protopeek.json`, pin amd64 and arm64 Windows ZIPs and
+2. `shreyam1008/scoop-bucket`: add `bucket/protopeek.json`, pin amd64 and arm64 Windows ZIPs and
    hashes, expose both binaries, declare `checkver`/`autoupdate`, then test clean install, update,
    shim resolution, and uninstall in Windows Sandbox.
 3. WinGet community manifests: generate version, installer, and locale YAML only after the owned
