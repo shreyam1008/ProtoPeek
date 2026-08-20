@@ -204,21 +204,43 @@ export async function invokeWorkspaceMethod(
 export type ScanResult = {
   address: string;
   alive: boolean;
+  tcp: boolean;
   grpc: boolean;
+  http: boolean;
+  protocols: Array<'tcp' | 'grpc' | 'http'> | null;
   reflection: 'available' | 'unavailable' | 'not-checked';
   transport: 'plaintext' | 'tls' | 'auto' | 'none' | '';
   services: string[] | null;
-  failure: 'unreachable' | 'non-grpc' | 'blocked' | 'request' | '';
+  httpTransport: 'plaintext' | 'tls' | '';
+  httpProtocol: string;
+  httpStatus: string;
+  httpStatusCode: number;
+  httpServer: string;
+  failure:
+    | 'unreachable'
+    | 'non-grpc'
+    | 'blocked'
+    | 'request'
+    | 'timeout'
+    | 'cancelled'
+    | 'indeterminate'
+    | '';
   error: string | null;
   details: string[] | null;
   latencyMs: number;
 };
 
-export function scanAddresses(addresses: string[], allowPrivateNetwork = false, explicit = false) {
+export function scanAddresses(
+  addresses: string[],
+  allowPrivateNetwork = false,
+  explicit = false,
+  signal?: AbortSignal
+) {
   return fetchJSON<ScanResult[]>('api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ addresses, allowPrivateNetwork, explicit }),
+    signal,
   });
 }
 

@@ -1,10 +1,13 @@
 package standalone
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -114,7 +117,7 @@ func TestProbeGRPCReportsReflectionAndTransportTruthfully(t *testing.T) {
 		go func() { _ = server.Serve(listener) }()
 		defer server.Stop()
 
-		result := probeGRPC(context.Background(), scanCandidate{Address: listener.Addr().String(), Transport: "auto"})
+		result := probeCandidate(context.Background(), scanCandidate{Address: listener.Addr().String(), Transport: "auto"})
 		if !result.GRPC || result.Reflection != "available" || result.Transport != "plaintext" {
 			t.Fatalf("result = %#v", result)
 		}
@@ -129,7 +132,7 @@ func TestProbeGRPCReportsReflectionAndTransportTruthfully(t *testing.T) {
 		go func() { _ = server.Serve(listener) }()
 		defer server.Stop()
 
-		result := probeGRPC(context.Background(), scanCandidate{Address: listener.Addr().String(), Transport: "plaintext"})
+		result := probeCandidate(context.Background(), scanCandidate{Address: listener.Addr().String(), Transport: "plaintext"})
 		if !result.GRPC || result.Reflection != "unavailable" || result.Error == "" {
 			t.Fatalf("result = %#v", result)
 		}
@@ -140,11 +143,128 @@ func TestProbeGRPCReportsReflectionAndTransportTruthfully(t *testing.T) {
 			_, _ = w.Write([]byte("plain HTTP"))
 		}))
 		defer target.Close()
-		result := probeGRPC(context.Background(), scanCandidate{Address: target.Listener.Addr().String(), Transport: "plaintext"})
-		if result.GRPC || !result.Alive || result.Failure == "" || len(result.Details) == 0 {
+		result := probeCandidate(context.Background(), scanCandidate{Address: target.Listener.Addr().String(), Transport: "plaintext"})
+		if result.GRPC || !result.Alive || !result.TCP || !result.HTTP || result.HTTPProtocol != "HTTP/1.1" || len(result.Details) == 0 {
 			t.Fatalf("result = %#v", result)
 		}
 	})
+
+	t.Run("open TCP only", func(t *testing.T) {
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("listen: %v", err)
+		}
+		done := make(chan struct{})
+		connections := make(chan net.Conn, 8)
+		go func() {
+			defer close(done)
+			for {
+				conn, acceptErr := listener.Accept()
+				if acceptErr != nil {
+					return
+				}
+				connections <- conn
+			}
+		}()
+
+		result := probeCandidate(context.Background(), scanCandidate{Address: listener.Addr().String(), Transport: "plaintext"})
+		_ = listener.Close()
+		<-done
+		close(connections)
+		for conn := range connections {
+			_ = conn.Close()
+		}
+		if !result.Alive || !result.TCP || result.GRPC || result.HTTP || len(result.Protocols) != 1 || result.Protocols[0] != "tcp" {
+			t.Fatalf("result = %#v", result)
+		}
+	})
+}
+
+func TestScanHandlerReportsMultiProtocolResultsWithoutFollowingRedirects(t *testing.T) {
+	t.Parallel()
+
+	grpcListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen for gRPC: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	reflection.Register(grpcServer)
+	go func() { _ = grpcServer.Serve(grpcListener) }()
+	defer grpcServer.Stop()
+
+	var redirected atomic.Bool
+	var sawHead atomic.Bool
+	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/changed" {
+			redirected.Store(true)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.Method == http.MethodHead {
+			sawHead.Store(true)
+		}
+		if r.Method != http.MethodHead && r.Method != "PRI" {
+			t.Errorf("scan used unexpected method %s", r.Method)
+		}
+		w.Header().Set("Location", "/changed")
+		w.Header().Set("Server", "scan-fixture")
+		w.WriteHeader(http.StatusFound)
+	}))
+	defer httpServer.Close()
+
+	body, err := json.Marshal(ScanRequest{
+		Addresses: []string{grpcListener.Addr().String(), httpServer.URL},
+	})
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/scan", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	ScanHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", response.Code, response.Body.String())
+	}
+
+	var results []ScanResult
+	if err := json.Unmarshal(response.Body.Bytes(), &results); err != nil {
+		t.Fatalf("decode results: %v", err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("results = %#v", results)
+	}
+	if !results[0].GRPC || !results[0].TCP || results[0].Reflection != "available" {
+		t.Fatalf("gRPC result = %#v", results[0])
+	}
+	if !results[1].HTTP || !results[1].TCP || results[1].HTTPStatusCode != http.StatusFound || results[1].HTTPServer != "scan-fixture" {
+		t.Fatalf("HTTP result = %#v", results[1])
+	}
+	if redirected.Load() {
+		t.Fatal("scan followed an HTTP redirect")
+	}
+	if !sawHead.Load() {
+		t.Fatal("scan did not make its bounded HEAD request")
+	}
+}
+
+func TestScanHandlerHonorsRequestCancellation(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	body := bytes.NewBufferString(`{"addresses":["127.0.0.1:50051"]}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/scan", body).WithContext(ctx)
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	ScanHandler().ServeHTTP(response, request)
+
+	var results []ScanResult
+	if err := json.Unmarshal(response.Body.Bytes(), &results); err != nil {
+		t.Fatalf("decode results: %v", err)
+	}
+	if len(results) != 1 || results[0].Failure != "cancelled" {
+		t.Fatalf("results = %#v", results)
+	}
 }
 
 func TestProbeFailureClassificationNeverConfirmsGRPC(t *testing.T) {

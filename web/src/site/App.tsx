@@ -284,8 +284,8 @@ function Features() {
   const features = [
     {
       icon: SearchCode,
-      title: 'Bounded gRPC discovery',
-      desc: 'Check fixed loopback candidates, opt into a literal private IP, or enter one public target. See reflection, transport, and non-gRPC failures honestly.',
+      title: 'Bounded protocol discovery',
+      desc: 'Check fixed loopback candidates, opt into a literal private IP, or enter one public target. See verified gRPC, safe HTTP HEAD, or open TCP evidence honestly.',
     },
     {
       icon: Layers3,

@@ -1,8 +1,10 @@
-import { Activity, LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
+import { LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
 import type { RefObject } from 'react';
 
 import type { BootstrapMethod, WorkspaceTargetProfile } from '@/shared/types';
 import { modifierKeyLabel } from '@/shared/utils';
+
+import { ProtoPeekMark } from './ProtoPeekMark';
 
 function methodMode(method: BootstrapMethod) {
   if (method.clientStreaming && method.serverStreaming) return 'Bidirectional stream';
@@ -49,7 +51,7 @@ export function WorkbenchHeader({
         <Menu aria-hidden="true" />
       </button>
       <div className="pp-mobile-brand" aria-hidden="true">
-        <Activity />
+        <ProtoPeekMark />
       </div>
       <button type="button" className="pp-target-switch" onClick={onSwitchTarget}>
         <Server aria-hidden="true" />

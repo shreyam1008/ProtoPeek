@@ -6,6 +6,7 @@ import type { HTTPResponse } from '@/shared/types';
 import { appStorageKeys } from '@/shared/utils';
 
 import { HTTPWorkbench } from './HTTPWorkbench';
+import { protocolShellEvents } from './ProtocolShellContext';
 
 const response: HTTPResponse = {
   status: '200 OK',
@@ -109,5 +110,27 @@ describe('HTTPWorkbench', () => {
 
     expect(details.open).toBe(false);
     expect(screen.getByLabelText('Request URL')).toHaveValue('http://localhost:8080/from-history');
+  });
+
+  it('accepts a discovery handoff while the HTTP workbench is already mounted', () => {
+    window.localStorage.setItem(
+      appStorageKeys.pendingHTTPURL,
+      JSON.stringify('https://127.0.0.1:8443/')
+    );
+    renderWorkbench();
+
+    window.localStorage.setItem(
+      appStorageKeys.pendingHTTPURL,
+      JSON.stringify('http://127.0.0.1:8081/')
+    );
+    fireEvent(
+      window,
+      new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, {
+        detail: 'http://127.0.0.1:8081/',
+      })
+    );
+
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8081/');
+    expect(window.localStorage.getItem(appStorageKeys.pendingHTTPURL)).toBeNull();
   });
 });

@@ -3,6 +3,17 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
+## Unreleased — v0.3 milestone 1
+
+- Added a light-first Protocol Peek dashboard at `/`, moved the gRPC console to `/grpc`, retained
+  `/http`, and kept exact `host:port` CLI startup opening directly into gRPC.
+- Added a compact global command entry, protocol activity rail, shared keyboard-contained scan
+  dialog, local recent discoveries, and guarded versioned light/dark preference storage.
+- Extended bounded discovery to report independent gRPC, safe non-following HTTP `HEAD`, and open
+  TCP evidence with fixed candidate/deadline limits and request cancellation.
+- Kept route trace and Cap'n Proto gated and labeled Nmap and packet evidence as optional rather
+  than presenting unimplemented diagnostics.
+
 ## v0.2.0 — 2026-08-20
 
 - Rebuilt the local launcher and gRPC call workspace around explicit request,

@@ -14,9 +14,9 @@ export const featureIdeas: FeatureIdea[] = [
       'Postman emphasizes discoverable method selection for gRPC requests, so ProtoPeek keeps service discovery visible instead of burying it in dropdowns.',
   },
   {
-    name: 'Workspace launcher and target registry',
+    name: 'Protocol dashboard and target registry',
     summary:
-      'Start ProtoPeek with no server argument, save multiple gRPC targets, and reconnect without restarting the console.',
+      'Start ProtoPeek at a protocol dashboard, scan a bounded target, save multiple gRPC targets, and reconnect without restarting the console.',
     status: 'Shipped',
     rationale:
       'Postman-style launch ergonomics matter, but ProtoPeek keeps them transport-aware by storing reflection mode, descriptor inputs, and TLS flags per target.',

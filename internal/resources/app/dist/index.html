@@ -9,9 +9,19 @@
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>ProtoPeek Console</title>
-
-    <script type="module" crossorigin src="./assets/index-CAXAstqT.js"></script>
-    <link rel="stylesheet" href="./assets/index-DdzBfIp0.css">
+    <script>
+      (() => {
+        let theme = 'light';
+        try {
+          const preference = JSON.parse(localStorage.getItem('protopeek.theme.v1') || 'null');
+          if (preference?.version === 1 && preference?.theme === 'dark') theme = 'dark';
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-BEoFE7Af.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/ProtocolShellContext-C9oWadZY.js">
+    <link rel="stylesheet" href="./assets/index-BBTQMKMy.css">
   </head>
   <body>
     <div id="root"></div>

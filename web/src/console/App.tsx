@@ -1,5 +1,4 @@
 import {
-  Activity,
   CheckCircle2,
   CircleAlert,
   Clock3,
@@ -54,6 +53,7 @@ import {
   classNames,
   commandPreview,
   compactDate,
+  displayBuildVersion,
   durationLabel,
   evaluateAssertions,
   generateRequestTemplate,
@@ -61,6 +61,7 @@ import {
   matchesMethodFilter,
   modifierKeyLabel,
   prettyJson,
+  removeStoredValue,
   safeParseJson,
   sanitizeAssertionForPersistence,
   sanitizeMetadataForPersistence,
@@ -86,10 +87,12 @@ import {
   invokeMethod,
   invokeWorkspaceMethod,
   type ScanResult,
-  scanAddresses,
 } from './api';
 import { CallWorkspace } from './CallWorkspace';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
+import { DiscoveryPanel } from './DiscoveryScanner';
+import { protocolShellEvents } from './ProtocolShellContext';
+import { ProtoPeekMark } from './ProtoPeekMark';
 import { ServiceNavigator, type WorkbenchView } from './ServiceNavigator';
 import { initialConsoleSession, sessionReducer } from './session';
 import { WorkbenchHeader } from './WorkbenchHeader';
@@ -351,6 +354,10 @@ export function App() {
   }
 
   const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse) => applyBootstrap(next));
+  const openDiscoveredEffect = useEffectEvent((result: ScanResult) => {
+    removeStoredValue(appStorageKeys.pendingGRPCTarget);
+    void handleOpenDiscovered(result);
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -361,7 +368,20 @@ export function App() {
         dispatchSession({ type: 'bootstrap.loaded', bootstrap: b });
         applyBootstrapEffect(b);
         setExamples(e);
-        setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
+        const pendingTarget = loadStoredValue<{ address: string; plaintext: boolean } | null>(
+          appStorageKeys.pendingGRPCTarget,
+          null
+        );
+        if (pendingTarget?.address) {
+          setTargetDraft({
+            ...newTargetDraft(b.targetDefaults),
+            address: pendingTarget.address,
+            plaintext: pendingTarget.plaintext,
+          });
+          removeStoredValue(appStorageKeys.pendingGRPCTarget);
+        } else {
+          setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
+        }
       } catch (err) {
         if (!cancelled)
           setBootError(err instanceof Error ? err.message : 'Failed to load ProtoPeek.');
@@ -371,6 +391,16 @@ export function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    function handleDiscovery(event: Event) {
+      const result = (event as CustomEvent<ScanResult>).detail;
+      if (!result?.address) return;
+      openDiscoveredEffect(result);
+    }
+    window.addEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
+    return () => window.removeEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
   }, []);
 
   useEffect(() => {
@@ -2200,7 +2230,7 @@ function WorkspaceView({
 }) {
   return (
     <div className="space-y-6">
-      <ScanPanel onOpen={onOpenDiscovered} />
+      <DiscoveryPanel onOpenGRPC={onOpenDiscovered} />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <h3 className="pp-heading text-base">Target connection</h3>
@@ -2283,223 +2313,6 @@ function WorkspaceView({
   );
 }
 
-// ─── Scan panel ────────────────────────────────────────────────
-
-function ScanPanel({
-  onOpen,
-  autoStart = false,
-  initialTarget = '',
-}: {
-  onOpen: (result: ScanResult) => void;
-  autoStart?: boolean;
-  initialTarget?: string;
-}) {
-  const ambientAddresses = [
-    'localhost:50051',
-    'localhost:9090',
-    'localhost:6565',
-    'localhost:7000',
-    'localhost:8080',
-    '127.0.0.1:50051',
-  ];
-  const [scanInput, setScanInput] = useState(initialTarget);
-  const [scanning, setScanning] = useState(false);
-  const [results, setResults] = useState<ScanResult[]>([]);
-  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
-  const [lastScanWasExplicit, setLastScanWasExplicit] = useState(false);
-  const autoStartedRef = useRef(false);
-
-  const runScan = useEffectEvent(async (explicit: boolean) => {
-    const address = scanInput.trim();
-    const addresses = explicit && address ? [address] : ambientAddresses;
-    setScanning(true);
-    setLastScanWasExplicit(explicit && Boolean(address));
-    setResults([]);
-    try {
-      const res = await scanAddresses(addresses, allowPrivateNetwork, explicit && Boolean(address));
-      setResults(res);
-    } catch (error) {
-      setResults([
-        {
-          address: addresses[0],
-          alive: false,
-          grpc: false,
-          reflection: 'not-checked',
-          transport: '',
-          services: null,
-          failure: 'request',
-          error:
-            error instanceof Error && error.message.trim()
-              ? error.message.trim()
-              : 'Scan request failed',
-          details: null,
-          latencyMs: 0,
-        },
-      ]);
-    } finally {
-      setScanning(false);
-    }
-  });
-
-  useEffect(() => {
-    if (!autoStart || autoStartedRef.current) return;
-    autoStartedRef.current = true;
-    void runScan(Boolean(initialTarget.trim()));
-  }, [autoStart, initialTarget]);
-
-  const routineFailures = lastScanWasExplicit
-    ? []
-    : results.filter((result) => !result.alive && result.failure === 'unreachable');
-  const visibleResults = lastScanWasExplicit
-    ? results
-    : results.filter((result) => result.alive || result.failure !== 'unreachable');
-
-  return (
-    <div className="pp-panel pp-discovery-panel">
-      <div className="pp-card-heading">
-        <div>
-          <span className="pp-kicker">Nearby</span>
-          <h3>Discover local gRPC</h3>
-        </div>
-        <span className="pp-local-indicator">
-          <LockKeyhole aria-hidden="true" /> Loopback by default
-        </span>
-      </div>
-      <p className="pp-muted">
-        Ambient discovery checks six fixed loopback endpoints. An explicit host without a port
-        checks only 50051 plaintext and 443 with verified TLS.
-      </p>
-      <div className="pp-discovery-controls">
-        <input
-          className="pp-input font-mono text-xs"
-          value={scanInput}
-          onChange={(e) => setScanInput(e.target.value)}
-          placeholder="Explicit host, URL, or host:port"
-          aria-label="Explicit gRPC target to probe"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void runScan(Boolean(scanInput.trim()));
-          }}
-        />
-        <button
-          className="pp-button-primary shrink-0"
-          type="button"
-          disabled={scanning}
-          onClick={() => void runScan(Boolean(scanInput.trim()))}
-        >
-          {scanning ? (
-            <LoaderCircle className="size-4 animate-spin" />
-          ) : (
-            <Search className="size-4" />
-          )}
-          {scanInput.trim() ? 'Probe target' : 'Scan loopback'}
-        </button>
-      </div>
-      <label className="pp-private-scan-toggle">
-        <input
-          type="checkbox"
-          checked={allowPrivateNetwork}
-          onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
-        />
-        Allow this explicit private IP
-      </label>
-      {visibleResults.length > 0 ? (
-        <div className="pp-discovery-results">
-          {visibleResults.map((result) => (
-            <ScanResultCard
-              key={`${result.address}-${result.transport}`}
-              result={result}
-              onOpen={onOpen}
-            />
-          ))}
-        </div>
-      ) : null}
-      {routineFailures.length > 0 ? (
-        <details className="pp-scan-failures">
-          <summary>{routineFailures.length} routine loopback probes were not reachable</summary>
-          <ul>
-            {routineFailures.map((result) => (
-              <li key={result.address}>
-                <code>{result.address}</code>
-                <span>{result.details?.[0] ?? result.error ?? 'Not reachable'}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </div>
-  );
-}
-
-function ScanResultCard({
-  result,
-  onOpen,
-}: {
-  result: ScanResult;
-  onOpen: (result: ScanResult) => void;
-}) {
-  const canOpen =
-    result.grpc && result.reflection === 'available' && Boolean(result.services?.length);
-  const transport = result.transport === 'tls' ? 'TLS' : 'Plaintext';
-  return (
-    <div
-      className={classNames(
-        'pp-discovery-result',
-        result.grpc && 'is-grpc',
-        result.alive && !result.grpc && 'is-open'
-      )}
-    >
-      <div className="pp-discovery-result-head">
-        <div>
-          <span
-            className={classNames(
-              'pp-discovery-dot',
-              result.grpc ? 'bg-pp-ok' : result.alive ? 'bg-pp-accent' : 'bg-pp-muted'
-            )}
-          />
-          <strong>{result.address}</strong>
-          <small>{result.latencyMs}ms</small>
-        </div>
-        {canOpen ? (
-          <button
-            className="pp-button-primary py-1 text-xs"
-            type="button"
-            aria-label={`Open ${result.address}`}
-            onClick={() => onOpen(result)}
-          >
-            Open
-          </button>
-        ) : null}
-      </div>
-      <p className="pp-muted">
-        {result.reflection === 'available'
-          ? `Reflection available · ${transport}`
-          : result.grpc
-            ? `gRPC confirmed · reflection unavailable · ${transport}`
-            : (result.error ?? 'No gRPC transport detected')}
-      </p>
-      {result.services && result.services.length > 0 ? (
-        <div className="pp-discovered-services">
-          {result.services.map((service) => (
-            <span key={service} className="pp-badge">
-              {service}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {result.details && result.details.length > 0 ? (
-        <details className="pp-probe-details">
-          <summary>Probe details</summary>
-          <ul>
-            {result.details.map((detail) => (
-              <li key={detail}>{detail}</li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </div>
-  );
-}
-
 // ─── Launcher view (no services discovered yet) ────────────────
 
 function LauncherView({
@@ -2534,10 +2347,10 @@ function LauncherView({
       <header className="pp-launcher-header">
         <div className="pp-wordmark">
           <span className="pp-wordmark-icon">
-            <Activity aria-hidden="true" />
+            <ProtoPeekMark />
           </span>
           <span>ProtoPeek</span>
-          <span className="pp-version">{bootstrap.version}</span>
+          <span className="pp-version">{displayBuildVersion(bootstrap.version)}</span>
         </div>
         <span className="pp-local-indicator">
           <LockKeyhole aria-hidden="true" /> Local only
@@ -2575,10 +2388,10 @@ function LauncherView({
           />
         </section>
 
-        <ScanPanel
+        <DiscoveryPanel
           autoStart
           initialTarget={bootstrap.initialScanTarget}
-          onOpen={onOpenDiscovered}
+          onOpenGRPC={onOpenDiscovered}
         />
 
         <section className="pp-saved-targets" aria-labelledby="saved-targets-title">

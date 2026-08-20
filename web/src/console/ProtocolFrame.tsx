@@ -1,53 +1,285 @@
-import { Link, Outlet } from '@tanstack/react-router';
-import { Server, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, Outlet, useNavigate } from '@tanstack/react-router';
+import { CircleHelp, Home, Moon, Radar, Route, Server, Sun, TerminalSquare, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import {
+  applyTheme,
+  type ProtoPeekTheme,
+  persistThemePreference,
+  readThemePreference,
+} from '@/shared/theme';
+import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/utils';
+
+import type { ScanResult } from './api';
+import { CommandPalette, type PaletteAction } from './CommandPalette';
+import { scanResultHTTPURL } from './DiscoveryScanner';
+import {
+  ProtocolShellContext,
+  protocolShellEvents,
+  type RecentDiscovery,
+  type ScanDialogRequest,
+} from './ProtocolShellContext';
+import { ProtoPeekMark } from './ProtoPeekMark';
+import { ScanTargetDialog } from './ScanTargetDialog';
 
 export function ProtocolFrame() {
+  const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanRequest, setScanRequest] = useState<ScanDialogRequest>({});
+  const [scanGeneration, setScanGeneration] = useState(0);
+  const [theme, setThemeState] = useState<ProtoPeekTheme>(() => readThemePreference());
+  const [discoveries, setDiscoveries] = useState<RecentDiscovery[]>(() =>
+    loadStoredValue<RecentDiscovery[]>(appStorageKeys.discoveries, []).slice(0, 12)
+  );
   const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const modifier = modifierKeyLabel();
+
+  const setTheme = useCallback((nextTheme: ProtoPeekTheme) => {
+    setThemeState(nextTheme);
+    applyTheme(nextTheme, document.documentElement);
+    persistThemePreference(nextTheme);
+  }, []);
+
+  useEffect(() => {
+    applyTheme(theme, document.documentElement);
+  }, [theme]);
+
+  useEffect(() => {
+    storeValue(appStorageKeys.discoveries, discoveries);
+  }, [discoveries]);
+
+  const openScan = useCallback((request: ScanDialogRequest = {}) => {
+    setScanRequest(request);
+    setScanGeneration((generation) => generation + 1);
+    setScanOpen(true);
+  }, []);
+
+  const recordResults = useCallback((results: ScanResult[]) => {
+    const detected = results.filter((result) => result.alive);
+    if (!detected.length) return;
+    const discoveredAt = new Date().toISOString();
+    setDiscoveries((current) => {
+      const next = detected.map((result) => ({ ...result, discoveredAt }));
+      const addresses = new Set(next.map((result) => result.address));
+      return [...next, ...current.filter((result) => !addresses.has(result.address))].slice(0, 12);
+    });
+  }, []);
+
+  const openGRPCDiscovery = useCallback(
+    (result: ScanResult) => {
+      storeValue(appStorageKeys.pendingGRPCTarget, {
+        address: result.address,
+        plaintext: result.transport !== 'tls',
+      });
+      window.dispatchEvent(
+        new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
+      );
+      setScanOpen(false);
+      void navigate({ to: '/grpc' });
+    },
+    [navigate]
+  );
+
+  const openHTTPDiscovery = useCallback(
+    (result: ScanResult) => {
+      const url = scanResultHTTPURL(result);
+      storeValue(appStorageKeys.pendingHTTPURL, url);
+      window.dispatchEvent(
+        new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, { detail: url })
+      );
+      setScanOpen(false);
+      void navigate({ to: '/http' });
+    },
+    [navigate]
+  );
+
+  const actions = useMemo<PaletteAction[]>(
+    () => [
+      {
+        id: 'home',
+        label: 'Open Protocol Peek dashboard',
+        keywords: 'home protocols',
+        run: () => void navigate({ to: '/' }),
+      },
+      {
+        id: 'grpc',
+        label: 'Open gRPC workbench',
+        keywords: 'reflection proto protoset streams trailers',
+        run: () => void navigate({ to: '/grpc' }),
+      },
+      {
+        id: 'http',
+        label: 'Open HTTP workbench',
+        keywords: 'rest request response headers tls',
+        run: () => void navigate({ to: '/http' }),
+      },
+      {
+        id: 'scan',
+        label: 'Scan a target',
+        keywords: 'discover grpc http tcp',
+        run: () => openScan(),
+      },
+      {
+        id: 'theme',
+        label: `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`,
+        keywords: 'appearance color mode',
+        run: () => setTheme(theme === 'light' ? 'dark' : 'light'),
+      },
+      {
+        id: 'help',
+        label: 'Open protocol checklist',
+        keywords: 'help evidence transport',
+        run: () => setHelpOpen(true),
+      },
+    ],
+    [navigate, openScan, setTheme, theme]
+  );
+
+  useEffect(() => {
+    function handleGlobalShortcut(event: KeyboardEvent) {
+      if ((!event.metaKey && !event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setCommandOpen((open) => !open);
+    }
+    window.addEventListener('keydown', handleGlobalShortcut, true);
+    return () => window.removeEventListener('keydown', handleGlobalShortcut, true);
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      theme,
+      setTheme,
+      discoveries,
+      openScan,
+      openGRPCDiscovery,
+      openHTTPDiscovery,
+    }),
+    [discoveries, openGRPCDiscovery, openHTTPDiscovery, openScan, setTheme, theme]
+  );
 
   return (
-    <div className="pp-protocol-frame">
-      <nav className="pp-protocol-rail" aria-label="Request protocols">
-        <div className="pp-protocol-mark" aria-hidden="true">
-          P
+    <ProtocolShellContext.Provider value={contextValue}>
+      <div className="pp-protocol-frame">
+        <nav className="pp-protocol-rail" aria-label="Protocol activity">
+          <Link
+            to="/"
+            className="pp-protocol-mark"
+            aria-label="Open Protocol Peek dashboard"
+            activeOptions={{ exact: true }}
+          >
+            <ProtoPeekMark />
+          </Link>
+          <span className="pp-rail-label">Protocol</span>
+          <Link
+            to="/"
+            activeOptions={{ exact: true }}
+            activeProps={{ className: 'is-active' }}
+            aria-label="Open dashboard"
+          >
+            <Home aria-hidden="true" />
+            <span>Home</span>
+          </Link>
+          <Link
+            to="/grpc"
+            activeProps={{ className: 'is-active' }}
+            aria-label="Open the gRPC workbench"
+          >
+            <Server aria-hidden="true" />
+            <span>gRPC</span>
+          </Link>
+          <Link
+            to="/http"
+            activeProps={{ className: 'is-active' }}
+            aria-label="Open the HTTP workbench"
+          >
+            <i className="pp-protocol-glyph" aria-hidden="true">
+              H
+            </i>
+            <span>HTTP</span>
+          </Link>
+          <button type="button" className="pp-rail-scan" onClick={() => openScan()}>
+            <Radar aria-hidden="true" />
+            <span>Scan</span>
+          </button>
+          <span className="pp-rail-divider" aria-hidden="true" />
+          <button type="button" className="pp-rail-gated" disabled title="Gated for milestone 2">
+            <Route aria-hidden="true" />
+            <span>Routes</span>
+          </button>
+          <button
+            type="button"
+            className="pp-rail-gated"
+            disabled
+            title="Optional capture workflow"
+          >
+            <TerminalSquare aria-hidden="true" />
+            <span>Packet</span>
+          </button>
+          <button
+            type="button"
+            className="pp-rail-help"
+            aria-label="Open ProtoPeek help"
+            aria-expanded={helpOpen}
+            onClick={() => setHelpOpen(true)}
+          >
+            <CircleHelp aria-hidden="true" />
+            <span>Help</span>
+          </button>
+        </nav>
+
+        <div className="pp-protocol-column">
+          <header className="pp-global-header">
+            <Link to="/" className="pp-global-brand">
+              <span>ProtoPeek</span>
+              <small>local protocol console</small>
+            </Link>
+            <span className="pp-global-local">
+              <i aria-hidden="true" /> Local process
+            </span>
+            <button
+              type="button"
+              className="pp-global-command"
+              aria-label="Open global command menu"
+              onClick={() => setCommandOpen(true)}
+            >
+              <span>Jump to a protocol or command</span>
+              <kbd>{modifier} K</kbd>
+            </button>
+            <button
+              type="button"
+              className="pp-theme-toggle"
+              aria-label={`Use ${theme === 'light' ? 'dark' : 'light'} theme`}
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            >
+              {theme === 'light' ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
+            </button>
+          </header>
+          <main className="pp-protocol-surface">
+            <Outlet />
+          </main>
         </div>
-        <span className="pp-rail-label">Requests</span>
-        <Link
-          to="/"
-          activeOptions={{ exact: true }}
-          activeProps={{ className: 'is-active' }}
-          aria-label="Open the gRPC workbench"
-        >
-          <Server aria-hidden="true" />
-          <span>gRPC</span>
-        </Link>
-        <Link
-          to="/http"
-          activeProps={{ className: 'is-active' }}
-          aria-label="Open the HTTP workbench"
-        >
-          <i className="pp-protocol-glyph" aria-hidden="true">
-            H
-          </i>
-          <span>HTTP</span>
-        </Link>
-        <button
-          type="button"
-          className="pp-rail-help"
-          aria-label="Open ProtoPeek help"
-          aria-expanded={helpOpen}
-          onClick={() => setHelpOpen(true)}
-        >
-          <i aria-hidden="true">?</i>
-          <span>Help</span>
-        </button>
-      </nav>
-      <main className="pp-protocol-surface">
-        <Outlet />
-      </main>
-      <HelpDrawer open={helpOpen} onClose={closeHelp} />
-    </div>
+
+        <ScanTargetDialog
+          key={scanGeneration}
+          open={scanOpen}
+          initialTarget={scanRequest.initialTarget}
+          autoStart={scanRequest.autoStart}
+          onClose={() => setScanOpen(false)}
+          onResults={recordResults}
+          onOpenGRPC={openGRPCDiscovery}
+          onOpenHTTP={openHTTPDiscovery}
+        />
+        <CommandPalette
+          open={commandOpen}
+          actions={actions}
+          onClose={() => setCommandOpen(false)}
+        />
+        <HelpDrawer open={helpOpen} onClose={closeHelp} />
+      </div>
+    </ProtocolShellContext.Provider>
   );
 }
 
@@ -73,18 +305,15 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
         ) ?? []
       );
-      if (!focusable.length) {
-        event.preventDefault();
-        return;
-      }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
-        last?.focus();
+        last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
-        first?.focus();
+        first.focus();
       }
     }
 
@@ -121,7 +350,7 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </button>
         </header>
         <section>
-          <h3>gRPC</h3>
+          <h3>gRPC · shipped</h3>
           <ul>
             <li>Confirm plaintext versus verified TLS before invoking.</li>
             <li>Use reflection, proto files, or protosets for the schema.</li>
@@ -129,18 +358,19 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </ul>
         </section>
         <section>
-          <h3>HTTP / REST</h3>
+          <h3>HTTP · shipped</h3>
           <ul>
             <li>Redirects are off and certificate verification is on by default.</li>
-            <li>
-              Check the negotiated protocol, remote peer, timing phases, and truncation marker.
-            </li>
-            <li>Auth values stay in the live editor and are redacted from local history.</li>
+            <li>Inspect negotiated protocol, remote peer, timing phases, and truncation.</li>
+            <li>Auth values remain in the live editor and are redacted from local history.</li>
           </ul>
         </section>
         <section className="pp-help-planned">
-          <h3>Planned, not clickable</h3>
-          <p>Cap&apos;n Proto, route trace, and LAN discovery remain gated roadmap work.</p>
+          <h3>Gated or optional</h3>
+          <p>
+            Route trace and Cap&apos;n Proto are gated. Nmap and packet evidence require explicit
+            optional integrations; neither runs in this milestone.
+          </p>
         </section>
       </aside>
     </div>

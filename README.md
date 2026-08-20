@@ -43,15 +43,15 @@ go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 ## Usage
 
 ```sh
-pp                                # launcher + bounded automatic loopback discovery
-pp localhost                      # prefill + probe only localhost:50051 and localhost:443
-pp https://api.example.test       # prefill + probe the stated/default verified-TLS port
-pp -plaintext localhost:50051     # exact direct single-target mode
+pp                                # Protocol Peek dashboard
+pp localhost                      # dashboard + bounded probe of localhost:50051 and :443
+pp https://api.example.test       # dashboard + probe of the stated/default verified-TLS port
+pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 ```
 
-In launcher mode each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Open the HTTP surface from the request rail to send an explicit `http://` or `https://` request through the same local server.
+With no target, the dashboard opens at `/` and the protocol rail keeps the shipped gRPC (`/grpc`) and HTTP (`/http`) surfaces one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, proto files, or protoset), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
 
-Ambient discovery checks only a fixed list of loopback candidates. A literal private IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Passing that explicit target to the CLI opens the same visible launcher probe. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port.
+Ambient discovery checks only a fixed list of loopback candidates. A literal private IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. Scans are cancellable, never follow redirects, and never send a state-changing request.
 
 ## Capabilities
 
@@ -59,7 +59,7 @@ Ambient discovery checks only a fixed list of loopback candidates. A literal pri
 |---|---|
 | **Method rail** | Search and filter reflected services/methods with clear unary and streaming modes |
 | **Target registry** | Save and switch gRPC endpoints without restarting |
-| **Local discovery** | Distinguish reflection, gRPC-without-reflection, and non-gRPC results with bounded loopback and explicit-target policies |
+| **Local discovery** | Distinguish reflection, gRPC-without-reflection, safe HTTP response evidence, and open TCP with bounded loopback and explicit-target policies |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
 | **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |

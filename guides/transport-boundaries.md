@@ -6,9 +6,10 @@ and transport story.
 
 ## Product contract
 
-- `pp host:port` and `protopeek host:port` keep their direct gRPC-compatible CLI meaning. A bare
-  host or HTTP(S) authority opens the gRPC launcher with that one target prefilled and visibly
-  probed. The browser request rail selects either the gRPC or HTTP adapter explicitly.
+- `pp host:port` and `protopeek host:port` keep their direct gRPC-compatible CLI meaning and open
+  the `/grpc` workbench. With no target the browser opens the Protocol Peek dashboard at `/`. A
+  bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and
+  visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.
 - Every session runs locally, without an account, remote sync, or external database.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.
@@ -17,6 +18,10 @@ and transport story.
   public IP or hostname is one user-entered target, never permission for port-range expansion. An
   explicit host without a port has only the visible `50051` plaintext and `443` verified-TLS
   candidates. CIDR expansion and ambient network crawling are outside this boundary.
+- Scan evidence is independently labeled as verified gRPC, safe HTTP, or open TCP. HTTP evidence
+  uses only `HEAD /`, verified TLS where applicable, fixed per-protocol and whole-request deadlines,
+  no body, no authentication, and no redirect following. Closing or cancelling the dialog cancels
+  the request context.
 - New transports must not add a heavy runtime or materially grow the browser bundle without a
   measured reason. The first HTTP adapter uses the Go standard library.
 
@@ -37,6 +42,9 @@ console session manager
         |
 ordered transport events -> protocol-specific inspector
 ```
+
+Route trace and Cap'n Proto remain gated. Nmap and packet evidence are optional integrations, not
+bundled capabilities, and do not run in the background.
 
 The shared boundary should stay deliberately small:
 

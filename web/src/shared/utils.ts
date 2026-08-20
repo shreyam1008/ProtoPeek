@@ -28,6 +28,9 @@ export const appStorageKeys = {
   simulation: 'protopeek.simulation.v1',
   targets: 'protopeek.targets.v1',
   activeTargetId: 'protopeek.activeTargetId.v1',
+  discoveries: 'protopeek.discoveries.v1',
+  pendingGRPCTarget: 'protopeek.pendingGRPCTarget.v1',
+  pendingHTTPURL: 'protopeek.pendingHTTPURL.v1',
 };
 
 export const redactedValue = '[redacted]';
@@ -105,12 +108,11 @@ export function loadStoredValue<T>(key: string, fallback: T): T {
     return fallback;
   }
 
-  const raw = window.localStorage.getItem(key);
-  if (!raw) {
-    return fallback;
-  }
-
   try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return fallback;
+    }
     return JSON.parse(raw) as T;
   } catch {
     return fallback;
@@ -122,7 +124,23 @@ export function storeValue(key: string, value: unknown) {
     return;
   }
 
-  window.localStorage.setItem(key, JSON.stringify(value));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Preferences are an enhancement; storage denial must not break the console.
+  }
+}
+
+export function removeStoredValue(key: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Keep the live session usable when browser storage is unavailable.
+  }
 }
 
 export function uid(prefix: string) {
@@ -542,6 +560,12 @@ export function commandPreview(args: {
     /\s+/g,
     ' '
   );
+}
+
+export function displayBuildVersion(version: string) {
+  const value = version.trim();
+  if (!value || value.includes('<no version set>')) return 'development';
+  return value;
 }
 
 export function sparklinePath(values: number[], width: number, height: number) {

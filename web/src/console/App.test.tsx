@@ -5,6 +5,8 @@ import type { BootstrapResponse } from '@/shared/types';
 import { appStorageKeys } from '@/shared/utils';
 
 import { App } from './App';
+import type { ScanResult } from './api';
+import { protocolShellEvents } from './ProtocolShellContext';
 
 const launcherBootstrap: BootstrapResponse = {
   appName: 'ProtoPeek',
@@ -86,7 +88,7 @@ describe('gRPC launcher recents', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<App />);
 
-    expect(await screen.findByLabelText('Explicit gRPC target to probe')).toHaveValue('localhost');
+    expect(await screen.findByLabelText('Scan target')).toHaveValue('localhost');
     await waitFor(() => {
       const scanCall = fetchMock.mock.calls.find(([input]) => String(input).includes('/api/scan'));
       expect(scanCall).toBeTruthy();
@@ -128,7 +130,7 @@ describe('gRPC launcher recents', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open 127.0.0.1:50051' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
     await screen.findByText('1 recent');
 
     const connectCall = fetchMock.mock.calls.find(([input]) =>
@@ -191,7 +193,7 @@ describe('gRPC launcher recents', () => {
     );
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open 127.0.0.1:50051' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
 
     await waitFor(() => {
       const stored = JSON.parse(
@@ -200,5 +202,53 @@ describe('gRPC launcher recents', () => {
       expect(stored).toHaveLength(1);
       expect(stored[0]?.id).toBe('existing-target');
     });
+  });
+
+  it('accepts a discovery handoff while the gRPC workbench is already mounted', async () => {
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('heading', { name: 'Open a gRPC target.' });
+
+    const result: ScanResult = {
+      address: '127.0.0.1:50052',
+      alive: true,
+      tcp: true,
+      grpc: true,
+      http: false,
+      protocols: ['tcp', 'grpc'],
+      reflection: 'available',
+      transport: 'plaintext',
+      services: ['demo.Echo'],
+      httpTransport: '',
+      httpProtocol: '',
+      httpStatus: '',
+      httpStatusCode: 0,
+      httpServer: '',
+      failure: '',
+      error: '',
+      details: ['gRPC plaintext: reflection available'],
+      latencyMs: 2,
+    };
+    window.localStorage.setItem(
+      appStorageKeys.pendingGRPCTarget,
+      JSON.stringify({ address: result.address, plaintext: true })
+    );
+    fireEvent(
+      window,
+      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
+    );
+
+    await waitFor(() => {
+      const connectCall = fetchMock.mock.calls.find(([input]) =>
+        String(input).includes('/api/workspace/connect')
+      );
+      expect(connectCall).toBeTruthy();
+      const sent = JSON.parse(String(connectCall?.[1]?.body)) as {
+        target: { address: string };
+      };
+      expect(sent.target.address).toBe('127.0.0.1:50052');
+    });
+    expect(window.localStorage.getItem(appStorageKeys.pendingGRPCTarget)).toBeNull();
   });
 });

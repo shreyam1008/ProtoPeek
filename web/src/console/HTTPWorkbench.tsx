@@ -15,6 +15,7 @@ import {
   loadStoredValue,
   modifierKeyLabel,
   redactedValue,
+  removeStoredValue,
   sanitizeMetadataForPersistence,
   sanitizeURLForPersistence,
   storeValue,
@@ -24,6 +25,7 @@ import {
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
+import { protocolShellEvents } from './ProtocolShellContext';
 
 type RequestTab = 'params' | 'headers' | 'auth' | 'body';
 type BodyMode = 'none' | 'json' | 'text';
@@ -40,7 +42,11 @@ const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 export function HTTPWorkbench() {
   const [method, setMethod] = useState('GET');
-  const [url, setURL] = useState('http://localhost:8080/');
+  const [url, setURL] = useState(() => {
+    const pendingURL = loadStoredValue<string>(appStorageKeys.pendingHTTPURL, '');
+    if (pendingURL) removeStoredValue(appStorageKeys.pendingHTTPURL);
+    return pendingURL || 'http://localhost:8080/';
+  });
   const [params, setParams] = useState<MetadataEntry[]>([]);
   const [headers, setHeaders] = useState<MetadataEntry[]>([]);
   const [authMode, setAuthMode] = useState<AuthMode>('none');
@@ -76,6 +82,17 @@ export function HTTPWorkbench() {
   useEffect(() => {
     storeValue(appStorageKeys.httpHistory, history);
   }, [history]);
+
+  useEffect(() => {
+    function handleDiscovery(event: Event) {
+      const nextURL = (event as CustomEvent<string>).detail;
+      if (!nextURL) return;
+      removeStoredValue(appStorageKeys.pendingHTTPURL);
+      setURL(nextURL);
+    }
+    window.addEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
+    return () => window.removeEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
+  }, []);
 
   function buildURL() {
     const parsed = new URL(url.trim());

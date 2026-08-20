@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   commandPreview,
+  displayBuildVersion,
   evaluateAssertions,
   generateRequestTemplate,
   matchesMethodFilter,
@@ -13,6 +14,13 @@ import {
   sanitizeURLForPersistence,
   simulationSummary,
 } from './utils';
+
+describe('displayBuildVersion', () => {
+  it('keeps internal linker placeholders out of the product UI', () => {
+    expect(displayBuildVersion('dev build <no version set>')).toBe('development');
+    expect(displayBuildVersion('v0.3.0')).toBe('v0.3.0');
+  });
+});
 
 describe('persistence redaction', () => {
   it('redacts auth, cookies, binary values, and token-like metadata', () => {
