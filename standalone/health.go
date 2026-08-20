@@ -46,6 +46,8 @@ const (
 	maxHealthNDJSONLineBytes               = 64 << 10
 )
 
+var errHealthWatchDurationLimit = errors.New("ProtoPeek Health Watch duration limit reached")
+
 type healthMetadata struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -283,8 +285,26 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 
 		started := time.Now()
 		startedAt := started.UTC().Format(time.RFC3339Nano)
-		callContext, cancel := context.WithTimeout(request.Context(), duration)
-		defer cancel()
+		callContext, cancelCall := context.WithCancelCause(request.Context())
+		durationTimerDone := make(chan struct{})
+		durationTimer := time.AfterFunc(duration, func() {
+			cancelCall(errHealthWatchDurationLimit)
+			close(durationTimerDone)
+		})
+		durationTimerStopped := false
+		stopDurationTimer := func() {
+			if durationTimerStopped {
+				return
+			}
+			durationTimerStopped = true
+			if !durationTimer.Stop() {
+				<-durationTimerDone
+			}
+		}
+		defer func() {
+			stopDurationTimer()
+			cancelCall(nil)
+		}()
 		base := func(eventType string, observedAt time.Time) healthWatchEventBase {
 			return healthWatchEventBase{
 				Type:             eventType,
@@ -311,12 +331,16 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 			outgoingContext,
 			&healthpb.HealthCheckRequest{Service: input.Service},
 		)
+		if watchErr != nil {
+			stopDurationTimer()
+		}
 		watchObservedAt := time.Now()
 		if watchErr != nil {
+			reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, watchErr, false)
 			_ = events.write(healthWatchEndedEvent{
 				healthWatchEventBase: base("ended", watchObservedAt),
-				Reason:               healthWatchReason(request.Context(), callContext, watchErr, false),
-				GRPCStatus:           healthStatusFromError(watchErr),
+				Reason:               reason,
+				GRPCStatus:           healthStatusFromError(evidenceErr),
 				Trailers:             make([]healthMetadata, 0),
 				TrailersTruncated:    true,
 			})
@@ -324,13 +348,17 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 		}
 
 		headers, headerErr := stream.Header()
+		if headerErr != nil {
+			stopDurationTimer()
+		}
 		headerObservedAt := time.Now()
 		if headerErr != nil {
 			trailers, trailersTruncated, _ := boundedHealthMetadata(stream.Trailer(), maxHealthResponseMetadataBytes)
+			reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, headerErr, false)
 			_ = events.write(healthWatchEndedEvent{
 				healthWatchEventBase: base("ended", headerObservedAt),
-				Reason:               healthWatchReason(request.Context(), callContext, headerErr, false),
-				GRPCStatus:           healthStatusFromError(headerErr),
+				Reason:               reason,
+				GRPCStatus:           healthStatusFromError(evidenceErr),
 				Trailers:             trailers,
 				TrailersTruncated:    trailersTruncated,
 			})
@@ -351,6 +379,9 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 		observationLimit := false
 		for {
 			response, recvErr := stream.Recv()
+			if recvErr != nil {
+				stopDurationTimer()
+			}
 			recvObservedAt := time.Now()
 			if recvErr != nil {
 				terminalObservedAt = recvObservedAt
@@ -362,6 +393,10 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 				break
 			}
 			observations++
+			reachedObservationLimit := observations >= maxHealthWatchObservations
+			if reachedObservationLimit {
+				stopDurationTimer()
+			}
 			if err := events.write(healthWatchStatusEvent{
 				healthWatchEventBase: base("status-observed", recvObservedAt),
 				Sequence:             observations,
@@ -369,9 +404,9 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 			}); err != nil {
 				return
 			}
-			if observations >= maxHealthWatchObservations {
+			if reachedObservationLimit {
 				observationLimit = true
-				cancel()
+				cancelCall(nil)
 				terminalErr = status.Error(codes.Canceled, "health watch observation limit reached")
 				terminalObservedAt = recvObservedAt
 				break
@@ -383,11 +418,12 @@ func (handlers *healthHandlerSet) watchHandler(resolve healthConnectionResolver)
 		if !observationLimit {
 			trailers, trailersTruncated, _ = boundedHealthMetadata(stream.Trailer(), maxHealthResponseMetadataBytes-headerBytes)
 		}
+		reason, evidenceErr := healthWatchTerminalEvidence(request.Context(), callContext, terminalErr, observationLimit)
 		_ = events.write(healthWatchEndedEvent{
 			healthWatchEventBase: base("ended", terminalObservedAt),
-			Reason:               healthWatchReason(request.Context(), callContext, terminalErr, observationLimit),
+			Reason:               reason,
 			ObservationCount:     observations,
-			GRPCStatus:           healthStatusFromError(terminalErr),
+			GRPCStatus:           healthStatusFromError(evidenceErr),
 			Trailers:             trailers,
 			TrailersTruncated:    trailersTruncated,
 		})
@@ -523,9 +559,6 @@ func healthWatchReason(requestContext, callContext context.Context, terminalErr 
 		return "observation-limit"
 	}
 	terminalCode := status.Code(terminalErr)
-	if errors.Is(callContext.Err(), context.DeadlineExceeded) && terminalCode == codes.DeadlineExceeded {
-		return "duration-limit"
-	}
 	if (requestContext.Err() != nil || errors.Is(callContext.Err(), context.Canceled)) && terminalCode == codes.Canceled {
 		return "canceled"
 	}
@@ -536,6 +569,14 @@ func healthWatchReason(requestContext, callContext context.Context, terminalErr 
 		return "unsupported"
 	}
 	return "rpc-error"
+}
+
+func healthWatchTerminalEvidence(requestContext, callContext context.Context, terminalErr error, observationLimit bool) (string, error) {
+	if !observationLimit && errors.Is(context.Cause(callContext), errHealthWatchDurationLimit) &&
+		(status.Code(terminalErr) == codes.Canceled || errors.Is(terminalErr, context.Canceled)) {
+		return "duration-limit", status.Error(codes.DeadlineExceeded, errHealthWatchDurationLimit.Error())
+	}
+	return healthWatchReason(requestContext, callContext, terminalErr, observationLimit), terminalErr
 }
 
 func validateHealthService(service string) error {
