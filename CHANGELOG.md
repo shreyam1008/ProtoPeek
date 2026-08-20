@@ -3,7 +3,7 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
-## Unreleased
+## v0.2.0 — 2026-08-20
 
 - Rebuilt the local launcher and gRPC call workspace around explicit request,
   response, metadata, headers, trailers, deadline, and status inspection.
