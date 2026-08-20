@@ -45,11 +45,11 @@ Windows PowerShell, per user:
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
-The owned package definitions and installers pin the selected release archive
-to its published SHA-256 entry. The release resolvers move to v0.3.1 with the
-stable release; Homebrew and Scoop remain on v0.3.0 until their independent
-package updates pass. See the [install guide](guides/INSTALLING.md) for package
-updates, pinned versions, rollback, PATH behavior, and uninstall.
+The verified release installers and owned Homebrew and Scoop channels resolve
+v0.3.1 from immutable archives pinned to their published SHA-256 entries. Each
+package update passed its independent default-branch install checks. See the
+[install guide](guides/INSTALLING.md) for package updates, pinned versions,
+rollback, PATH behavior, and uninstall.
 
 Go fallback:
 

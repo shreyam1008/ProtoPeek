@@ -5,6 +5,13 @@ version source of truth.
 
 ## Unreleased
 
+- Promoted the owned Homebrew tap and Scoop bucket to the public v0.3.1 archives after their
+  independent default-branch install, update, uninstall, checksum, and multi-architecture checks
+  passed.
+- Kept the Health Watch duration limit inside the ProtoPeek relay instead of propagating it as a
+  downstream gRPC deadline. Timer ownership is fixed before terminal evidence is classified, so a
+  server-owned `DeadlineExceeded` or `Canceled` result cannot be relabeled as a local duration stop.
+
 ## v0.3.1 — 2026-08-20
 
 - Added explicit Copy as cURL export for the live HTTP draft. POSIX quoting preserves duplicate

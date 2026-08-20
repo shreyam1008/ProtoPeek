@@ -10,12 +10,12 @@ Last checked: 20 August 2026
 | GitHub Releases | v0.3.1 | **Live stable** | The public latest release has eight platform archives, eight matching SBOMs, checksums, both installers, and provenance for the archive/SBOM subjects. |
 | Edge release | v0.0.0-edge | **Rolling prerelease** | Edge remains an explicit opt-in channel and is never a stable-resolution fallback. |
 | Docker registry | — | **Not published** | The repository builds `protopeek:dev` locally; no public image is claimed. |
-| Homebrew tap | v0.3.0 | **Live owned package** | `shreyam1008/tap/protopeek` pins the four macOS/Linux archives and installs both commands and manpages. |
-| Scoop bucket | v0.3.0 | **Live owned package** | `shreyam/protopeek` pins all three Windows archives, exposes both shims, and carries a checked autoupdate contract. |
+| Homebrew tap | v0.3.1 | **Live owned package** | Main `dc37b5f8` pins all four macOS/Linux archives; Formula CI `32400982314` passed audit, install, test, linkage, both commands, and both manpages on macOS and Linux. |
+| Scoop bucket | v0.3.1 | **Live owned package** | Main `3f4f866c` pins all three Windows archives; Bucket CI `32400759894` passed schema, install, both commands, update, uninstall, and three-architecture autoupdate checks. |
 | WinGet | — | **Planned after feedback** | Prepare and owner-submit community manifests only after the owned Scoop path and installer have accumulated initial user feedback. |
 | AUR / Chocolatey | — | **Not published** | Later candidates; no package is claimed. |
 
-v0.3.1 is the current stable release of the protocol workbench. Its website, installers, archives,
-checksums, SBOMs, attestations, and three-OS CI describe that version. The owned Homebrew and Scoop
-definitions deliberately remain on v0.3.0 until their independent version bumps and package CI
-pass; this lag is recorded rather than hidden.
+v0.3.1 is the current stable release of the protocol workbench. Its website, release installers,
+archives, checksums, SBOMs, attestations, three-OS CI, and owned Homebrew and Scoop definitions now
+describe that version. WinGet and community launch submissions remain gated on initial user
+feedback rather than being presented as shipped.

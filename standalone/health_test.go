@@ -61,6 +61,15 @@ type deadlineCheckHealthService struct {
 	healthpb.UnimplementedHealthServer
 }
 
+type localDurationHealthService struct {
+	healthpb.UnimplementedHealthServer
+	deadlineObserved chan bool
+}
+
+type serverDeadlineHealthService struct {
+	healthpb.UnimplementedHealthServer
+}
+
 type healthFlushErrorWriter struct {
 	*httptest.ResponseRecorder
 	err        error
@@ -118,6 +127,26 @@ func (*deadlineCheckHealthService) Check(ctx context.Context, _ *healthpb.Health
 	return nil, status.FromContextError(ctx.Err()).Err()
 }
 
+func (service *localDurationHealthService) Watch(_ *healthpb.HealthCheckRequest, stream grpc.ServerStreamingServer[healthpb.HealthCheckResponse]) error {
+	if err := stream.SendHeader(metadata.Pairs("x-watch-header", "ready")); err != nil {
+		return err
+	}
+	if err := stream.Send(&healthpb.HealthCheckResponse{Status: healthpb.HealthCheckResponse_SERVING}); err != nil {
+		return err
+	}
+	_, hasDeadline := stream.Context().Deadline()
+	service.deadlineObserved <- hasDeadline
+	<-stream.Context().Done()
+	return status.FromContextError(stream.Context().Err()).Err()
+}
+
+func (*serverDeadlineHealthService) Watch(_ *healthpb.HealthCheckRequest, stream grpc.ServerStreamingServer[healthpb.HealthCheckResponse]) error {
+	if err := stream.SendHeader(metadata.Pairs("x-watch-header", "ready")); err != nil {
+		return err
+	}
+	return status.Error(codes.DeadlineExceeded, "server-owned deadline")
+}
+
 func largeHealthHeaders() metadata.MD {
 	return metadata.Pairs(
 		"x-header-a", strings.Repeat("h", 20<<10),
@@ -137,12 +166,51 @@ type fakeHealthClient struct {
 	watch func(context.Context, *healthpb.HealthCheckRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[healthpb.HealthCheckResponse], error)
 }
 
+type delayedTrailerHealthStream struct {
+	ctx          context.Context
+	trailerDelay time.Duration
+	trailerReady chan struct{}
+}
+
 func (client *fakeHealthClient) Check(ctx context.Context, request *healthpb.HealthCheckRequest, options ...grpc.CallOption) (*healthpb.HealthCheckResponse, error) {
 	return client.check(ctx, request, options...)
 }
 
 func (client *fakeHealthClient) Watch(ctx context.Context, request *healthpb.HealthCheckRequest, options ...grpc.CallOption) (grpc.ServerStreamingClient[healthpb.HealthCheckResponse], error) {
 	return client.watch(ctx, request, options...)
+}
+
+func (*delayedTrailerHealthStream) Header() (metadata.MD, error) {
+	return metadata.Pairs("x-watch-header", "ready"), nil
+}
+
+func (stream *delayedTrailerHealthStream) Trailer() metadata.MD {
+	if stream.trailerReady != nil {
+		close(stream.trailerReady)
+		<-stream.ctx.Done()
+	}
+	time.Sleep(stream.trailerDelay)
+	return metadata.Pairs("x-watch-trailer", "server-canceled")
+}
+
+func (*delayedTrailerHealthStream) CloseSend() error {
+	return nil
+}
+
+func (stream *delayedTrailerHealthStream) Context() context.Context {
+	return stream.ctx
+}
+
+func (*delayedTrailerHealthStream) SendMsg(any) error {
+	return nil
+}
+
+func (*delayedTrailerHealthStream) RecvMsg(any) error {
+	return status.Error(codes.Canceled, "server canceled before local duration")
+}
+
+func (*delayedTrailerHealthStream) Recv() (*healthpb.HealthCheckResponse, error) {
+	return nil, status.Error(codes.Canceled, "server canceled before local duration")
 }
 
 func (s *blockingHealthService) Watch(request *healthpb.HealthCheckRequest, stream grpc.ServerStreamingServer[healthpb.HealthCheckResponse]) error {
@@ -1023,6 +1091,101 @@ func TestHealthWatchCancellationAndDurationAreExplicit(t *testing.T) {
 	})
 }
 
+func TestHealthWatchLocalDurationOwnsCancellationWithoutPropagatingDeadline(t *testing.T) {
+	t.Parallel()
+
+	service := &localDurationHealthService{deadlineObserved: make(chan bool, 1)}
+	connection := startHealthGRPCTarget(t, service)
+	handler := Handler(connection, "health-target", nil, nil)
+	response := performHealthJSONRequest(t, handler, "/api/health/watch", `{"service":"duration-owner","duration_seconds":1}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if hasDeadline := waitHealthSignal(t, service.deadlineObserved, "downstream Health Watch deadline observation"); hasDeadline {
+		t.Fatal("ProtoPeek local duration was propagated as a downstream gRPC deadline")
+	}
+	ended := lastHealthWatchEvent(t, response.Body.String())
+	if ended.Reason != "duration-limit" || ended.GRPCStatus.Code != int32(codes.DeadlineExceeded) || ended.GRPCStatus.Message != "ProtoPeek Health Watch duration limit reached" {
+		t.Fatalf("duration ended = %#v", ended)
+	}
+}
+
+func TestHealthWatchServerDeadlineExceededRemainsRPCError(t *testing.T) {
+	t.Parallel()
+
+	connection := startHealthGRPCTarget(t, &serverDeadlineHealthService{})
+	handler := Handler(connection, "health-target", nil, nil)
+	response := performHealthJSONRequest(t, handler, "/api/health/watch", `{"service":"server-deadline","duration_seconds":10}`)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	ended := lastHealthWatchEvent(t, response.Body.String())
+	if ended.Reason != "rpc-error" || ended.GRPCStatus.Code != int32(codes.DeadlineExceeded) || ended.GRPCStatus.Message != "server-owned deadline" {
+		t.Fatalf("server deadline ended = %#v", ended)
+	}
+}
+
+func TestHealthWatchServerTerminalBeforeDurationCannotBeRelabeledWhileReadingTrailers(t *testing.T) {
+	t.Parallel()
+
+	handlers := newHealthHandlerSet(nil, nil)
+	handlers.clientFactory = func(grpc.ClientConnInterface) healthClient {
+		return &fakeHealthClient{
+			watch: func(ctx context.Context, _ *healthpb.HealthCheckRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[healthpb.HealthCheckResponse], error) {
+				return &delayedTrailerHealthStream{ctx: ctx, trailerDelay: 2 * time.Second}, nil
+			},
+		}
+	}
+	handler := handlers.watchHandler(func(*http.Request) (grpc.ClientConnInterface, *healthRequestError) {
+		return nil, nil
+	})
+	cookie := &http.Cookie{Name: csrfCookieName, Value: "health-token"}
+	request := newHealthJSONRequest(context.Background(), cookie, "/api/health/watch", strings.NewReader(`{"service":"terminal-owner","duration_seconds":1}`))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	ended := lastHealthWatchEvent(t, response.Body.String())
+	if ended.Reason != "rpc-error" || ended.GRPCStatus.Code != int32(codes.Canceled) || ended.GRPCStatus.Message != "server canceled before local duration" {
+		t.Fatalf("server-canceled ended = %#v", ended)
+	}
+}
+
+func TestHealthWatchRequestCancellationAfterServerTerminalCannotRelabelEvidence(t *testing.T) {
+	t.Parallel()
+
+	trailerReady := make(chan struct{})
+	handlers := newHealthHandlerSet(nil, nil)
+	handlers.clientFactory = func(grpc.ClientConnInterface) healthClient {
+		return &fakeHealthClient{
+			watch: func(ctx context.Context, _ *healthpb.HealthCheckRequest, _ ...grpc.CallOption) (grpc.ServerStreamingClient[healthpb.HealthCheckResponse], error) {
+				return &delayedTrailerHealthStream{ctx: ctx, trailerReady: trailerReady}, nil
+			},
+		}
+	}
+	handler := handlers.watchHandler(func(*http.Request) (grpc.ClientConnInterface, *healthRequestError) {
+		return nil, nil
+	})
+	cookie := &http.Cookie{Name: csrfCookieName, Value: "health-token"}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	request := newHealthJSONRequest(ctx, cookie, "/api/health/watch", strings.NewReader(`{"service":"terminal-owner","duration_seconds":10}`))
+	response := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		handler.ServeHTTP(response, request)
+		close(done)
+	}()
+	waitHealthSignal(t, trailerReady, "server terminal before delayed trailers")
+	cancel()
+	waitHealthSignal(t, done, "Health Watch completion after request cancellation")
+	ended := lastHealthWatchEvent(t, response.Body.String())
+	if ended.Reason != "rpc-error" || ended.GRPCStatus.Code != int32(codes.Canceled) || ended.GRPCStatus.Message != "server canceled before local duration" {
+		t.Fatalf("server-canceled ended = %#v", ended)
+	}
+}
+
 func TestHealthWatchStopsAtObservationLimit(t *testing.T) {
 	t.Parallel()
 
@@ -1138,27 +1301,30 @@ func TestHealthWatchReasonKeepsLocalAndGRPCEvidenceConsistent(t *testing.T) {
 	cancelRequest()
 	canceledCall, cancelCall := context.WithCancel(context.Background())
 	cancelCall()
-	deadlineCall, cancelDeadline := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
-	defer cancelDeadline()
+	durationCall, cancelDuration := context.WithCancelCause(context.Background())
+	cancelDuration(errHealthWatchDurationLimit)
 	tests := []struct {
 		name       string
 		request    context.Context
 		call       context.Context
 		terminal   error
 		wantReason string
+		wantCode   codes.Code
 	}{
-		{"matching request cancellation", canceledRequest, canceledCall, status.Error(codes.Canceled, "canceled"), "canceled"},
-		{"cancellation race preserves unsupported", canceledRequest, canceledCall, status.Error(codes.Unimplemented, "unsupported"), "unsupported"},
-		{"cancellation race preserves server failure", canceledRequest, canceledCall, status.Error(codes.Unavailable, "gone"), "rpc-error"},
-		{"matching duration limit", context.Background(), deadlineCall, status.Error(codes.DeadlineExceeded, "deadline"), "duration-limit"},
-		{"deadline race preserves server failure", context.Background(), deadlineCall, status.Error(codes.Unavailable, "gone"), "rpc-error"},
-		{"server canceled", context.Background(), context.Background(), status.Error(codes.Canceled, "server"), "rpc-error"},
-		{"clean completion", context.Background(), context.Background(), nil, "completed"},
+		{"matching request cancellation", canceledRequest, canceledCall, status.Error(codes.Canceled, "canceled"), "canceled", codes.Canceled},
+		{"cancellation race preserves unsupported", canceledRequest, canceledCall, status.Error(codes.Unimplemented, "unsupported"), "unsupported", codes.Unimplemented},
+		{"cancellation race preserves server failure", canceledRequest, canceledCall, status.Error(codes.Unavailable, "gone"), "rpc-error", codes.Unavailable},
+		{"matching duration limit", context.Background(), durationCall, status.Error(codes.Canceled, "canceled"), "duration-limit", codes.DeadlineExceeded},
+		{"duration race preserves server deadline", context.Background(), durationCall, status.Error(codes.DeadlineExceeded, "server deadline"), "rpc-error", codes.DeadlineExceeded},
+		{"duration race preserves server failure", context.Background(), durationCall, status.Error(codes.Unavailable, "gone"), "rpc-error", codes.Unavailable},
+		{"server canceled", context.Background(), context.Background(), status.Error(codes.Canceled, "server"), "rpc-error", codes.Canceled},
+		{"clean completion", context.Background(), context.Background(), nil, "completed", codes.OK},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if got := healthWatchReason(test.request, test.call, test.terminal, false); got != test.wantReason {
-				t.Fatalf("reason = %q, want %q", got, test.wantReason)
+			reason, evidenceErr := healthWatchTerminalEvidence(test.request, test.call, test.terminal, false)
+			if reason != test.wantReason || status.Code(evidenceErr) != test.wantCode {
+				t.Fatalf("evidence = (%q, %v), want (%q, %v)", reason, status.Code(evidenceErr), test.wantReason, test.wantCode)
 			}
 		})
 	}

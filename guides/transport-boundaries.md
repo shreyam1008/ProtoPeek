@@ -114,12 +114,15 @@ after transport completion.
 Health is a separate, explicit gRPC diagnostic rather than a background liveness monitor. Check
 accepts a 0.1–30 second deadline (5 seconds by default). Watch accepts a 1–600 second duration
 (60 seconds by default), performs no retry or polling, and shares four stream slots across direct
-and workspace sessions. The server accepts at most a 64 KiB JSON envelope, 1,024 UTF-8 bytes for a
-service name, and 64 request-body metadata entries / 32 KiB aggregate. Configured CLI metadata and
-explicitly preserved relay headers still follow the existing Invoke precedence. It emits at most 512 status
-observations; each flushed NDJSON line is at most 64 KiB and response headers plus trailers share a
-32 KiB retained evidence budget. The browser validates event order and attribution, retains the
-latest 200 transitions with a dropped count, and treats missing terminal evidence as truncation.
+and workspace sessions. The Watch duration is owned by the ProtoPeek relay and is not propagated as
+a downstream gRPC deadline. Only that owned cancellation becomes `duration-limit` evidence; a
+server-owned `DeadlineExceeded` or `Canceled` remains an RPC error. The server accepts at most a
+64 KiB JSON envelope, 1,024 UTF-8 bytes for a service name, and 64 request-body metadata entries /
+32 KiB aggregate. Configured CLI metadata and explicitly preserved relay headers still follow the
+existing Invoke precedence. It emits at most 512 status observations; each flushed NDJSON line is
+at most 64 KiB and response headers plus trailers share a 32 KiB retained evidence budget. The
+browser validates event order and attribution, retains the latest 200 transitions with a dropped
+count, and treats missing terminal evidence as truncation.
 
 Blank service means overall server health. Unknown service semantics are not normalized away:
 Check has no fabricated serving enum and ends `NOT_FOUND`; Watch reports `SERVICE_UNKNOWN` and stays

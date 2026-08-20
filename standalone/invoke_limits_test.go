@@ -12,6 +12,7 @@ import (
 
 	"github.com/jhump/protoreflect/desc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/connectivity"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
@@ -144,8 +145,13 @@ func TestHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testing.T) {
 func TestWorkspaceHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testing.T) {
 	t.Parallel()
 
-	service := &workspaceWallHealthService{canceled: make(chan struct{})}
+	const configuredWall = 500 * time.Millisecond
+	service := &workspaceWallHealthService{
+		started:  make(chan struct{}),
+		canceled: make(chan struct{}),
+	}
 	connection := startHealthGRPCTarget(t, service)
+	waitForGRPCConnectionReady(t, connection)
 	file, err := desc.LoadFileDescriptor("grpc/health/v1/health.proto")
 	if err != nil {
 		t.Fatalf("load health descriptor: %v", err)
@@ -165,7 +171,7 @@ func TestWorkspaceHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testin
 		nil,
 		nil,
 		WithWorkspaceManager(manager),
-		WithInvokeMaxDuration(20*time.Millisecond),
+		WithInvokeMaxDuration(configuredWall),
 	)
 	cookie := workspaceUploadCSRFCookie(t, handler)
 	request := httptest.NewRequest(
@@ -193,15 +199,20 @@ func TestWorkspaceHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testin
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if result.LocalLimit == nil || result.LocalLimit.Reason != "duration" || result.LocalLimit.MaxDurationSeconds != 0.02 {
+	if result.LocalLimit == nil || result.LocalLimit.Reason != "duration" || result.LocalLimit.MaxDurationSeconds != configuredWall.Seconds() {
 		t.Fatalf("workspace configured local wall evidence = %#v", result.LocalLimit)
 	}
 	if result.Error != nil || len(result.Trailers) != 0 {
 		t.Fatalf("workspace configured local wall fabricated final status = error %#v, trailers %#v", result.Error, result.Trailers)
 	}
 	select {
+	case <-service.started:
+	default:
+		t.Fatal("workspace target did not start before the configured local wall")
+	}
+	select {
 	case <-service.canceled:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("workspace target did not observe configured local-wall cancellation")
 	}
 }
@@ -214,14 +225,35 @@ type workspaceRetentionHealthService struct {
 
 type workspaceWallHealthService struct {
 	healthpb.UnimplementedHealthServer
-	canceled chan struct{}
-	once     sync.Once
+	started      chan struct{}
+	canceled     chan struct{}
+	startedOnce  sync.Once
+	canceledOnce sync.Once
 }
 
 func (s *workspaceWallHealthService) Watch(_ *healthpb.HealthCheckRequest, stream grpc.ServerStreamingServer[healthpb.HealthCheckResponse]) error {
+	if s.started != nil {
+		s.startedOnce.Do(func() { close(s.started) })
+	}
 	<-stream.Context().Done()
-	s.once.Do(func() { close(s.canceled) })
+	s.canceledOnce.Do(func() { close(s.canceled) })
 	return context.Cause(stream.Context())
+}
+
+func waitForGRPCConnectionReady(t *testing.T, connection *grpc.ClientConn) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	connection.Connect()
+	for {
+		state := connection.GetState()
+		if state == connectivity.Ready {
+			return
+		}
+		if !connection.WaitForStateChange(ctx, state) {
+			t.Fatalf("gRPC connection did not become ready: %v", context.Cause(ctx))
+		}
+	}
 }
 
 func (s *workspaceRetentionHealthService) Watch(_ *healthpb.HealthCheckRequest, stream grpc.ServerStreamingServer[healthpb.HealthCheckResponse]) error {

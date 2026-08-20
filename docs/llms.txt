@@ -5,7 +5,7 @@ ProtoPeek (Protocol Peek) is a lightweight local-first protocol workbench and in
 Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
 Repository: https://github.com/shreyam1008/ProtoPeek
-Release status: v0.3.1 is the current public stable release. The verified release resolvers install v0.3.1; the owned Homebrew and Scoop definitions remain on v0.3.0 until their independent updates pass.
+Release status: v0.3.1 is the current public stable release. The verified release resolvers and owned Homebrew and Scoop definitions all install checksum-pinned v0.3.1 archives.
 
 Summary:
 - Launch ProtoPeek with no target and define one or more saved gRPC endpoints from the UI.
