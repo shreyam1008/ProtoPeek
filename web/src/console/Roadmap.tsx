@@ -35,6 +35,10 @@ const roadmap = [
         'gRPC Health Check + Watch',
         'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
       ],
+      [
+        'Owned package channels',
+        'Homebrew on macOS/Linux and Scoop on Windows install the same checksum-pinned v0.3.0 archives with both protopeek and pp.',
+      ],
     ],
   },
   {
@@ -57,6 +61,10 @@ const roadmap = [
       [
         'Target DNS + TLS preflight',
         'Explain resolution, SNI, ALPN, certificate verification, and handshake timing before an RPC or HTTP request.',
+      ],
+      [
+        'WinGet package',
+        'Prepare and owner-submit a schema-valid Windows package only after the owned Scoop path and installer have initial user feedback.',
       ],
     ],
   },

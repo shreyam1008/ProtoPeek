@@ -167,6 +167,15 @@ surface and would require separate product and security review.
   handler/relay and one selected backend connection; they are not packet, server-emission,
   dependency, replica-set, or fleet-health evidence.
 
+### Distribution — owned package channels (available)
+
+- The owned Homebrew tap installs the same checked v0.3.0 archives as `protopeek` and `pp` on macOS
+  and Linux, with both manpages.
+- The owned Scoop bucket installs the checked Windows archives with both command shims and a
+  checksum-backed autoupdate contract.
+- WinGet is next only after these owned paths and the PowerShell installer accumulate initial user
+  feedback. Community submission remains an explicit owner action.
+
 ### Next — daily workflow gaps
 
 - incremental delivery in the general gRPC response lab with bounded retention;

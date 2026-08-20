@@ -14,7 +14,7 @@ Summary:
 - Inspect metadata, trailers, status, callback-observed lifecycle timing, and explicit canonical Health; use bounded sequential repetition only as a local diagnostic.
 - Send explicit HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect choice, and native response evidence.
 - Keep automatic history and default exports secret-safe while each adapter preserves its native request and response concepts.
-- Install with `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh` or the matching `wget` form.
+- Install with Homebrew (`brew install shreyam1008/tap/protopeek`), Scoop (`scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket` then `scoop install shreyam/protopeek`), or the checksum-verifying shell/PowerShell release resolvers.
 
 Preferred docs:
 - https://protopeek.shreyam1008.com.np/

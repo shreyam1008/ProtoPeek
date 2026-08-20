@@ -34,6 +34,20 @@
       "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.0",
       "version": "0.3.0",
       "verifiedAt": "2026-08-20"
+    },
+    {
+      "channel": "Homebrew Tap",
+      "status": "live",
+      "url": "https://github.com/shreyam1008/homebrew-tap/blob/main/Formula/protopeek.rb",
+      "version": "0.3.0",
+      "verifiedAt": "2026-08-20"
+    },
+    {
+      "channel": "Scoop Bucket",
+      "status": "live",
+      "url": "https://github.com/shreyam1008/scoop-bucket/blob/main/bucket/protopeek.json",
+      "version": "0.3.0",
+      "verifiedAt": "2026-08-20"
     }
   ]
 }

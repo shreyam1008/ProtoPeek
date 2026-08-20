@@ -12,7 +12,7 @@ Do not send launch traffic to `master`, an edge build, or a draft. Launch only
 after all of these are true for the same stable tag:
 
 - GitHub Actions passes on Linux, macOS, and Windows.
-- The draft contains eight OS/architecture archives, checksums, SBOMs, and
+- The published stable release contains eight OS/architecture archives, checksums, SBOMs, and
   provenance attestations.
 - `protopeek` and `pp` start correctly from clean Linux, macOS, and Windows
   installs; upgrades and uninstall are also checked.
@@ -26,14 +26,16 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **deferred until the v0.3.0 stable archives and checksums exist**. A formula
-or manifest published earlier would either point at v0.2 or at mutable preview artifacts. No
-third-party submission or founder-authored community post should be made from an agent account.
+Current execution state: **the v0.3.0 release, matching website, owned Homebrew tap, and owned Scoop
+bucket are public**. WinGet and community launch submissions remain gated on initial package/user
+feedback. No third-party submission or founder-authored community post should be made from an agent
+account.
 
 ### 1. Direct release: day zero
 
-- Publish the tested GitHub release and deploy the matching website.
-- Keep the verified shell and PowerShell installers as the canonical paths.
+- The tested v0.3.0 GitHub release and matching website are public.
+- Keep the verified shell and PowerShell installers as canonical fallbacks alongside the owned
+  package channels.
 - Update Shreyam's portfolio entry from “gRPC Tooling” to “local gRPC + HTTP
   protocol workbench.”
 - Submit the custom-domain sitemap in Google Search Console after deployment.
@@ -41,7 +43,14 @@ third-party submission or founder-authored community post should be made from an
 The first goal is not maximum reach. It is proving that real users on all three
 desktop operating systems can install and reach a successful request.
 
-### 2. Native package discovery: after the stable assets hold
+### 2. Native package discovery: owned channels live
+
+The owned Homebrew tap and Scoop bucket publish v0.3.0 from immutable release archives. Homebrew CI
+runs style, strict audit, cross-platform readall, install, test, linkage, both command checks, and
+manpage checks on macOS and Linux. Scoop CI runs schema validation, checksum-backed install, both
+command checks, update, uninstall, and three-architecture autoupdate validation on Windows. WinGet
+remains the next package channel after initial feedback; no community package-manager submission is
+claimed.
 
 | Channel | Why it earns a place | Release rule |
 | --- | --- | --- |
@@ -52,17 +61,17 @@ desktop operating systems can install and reach a successful request.
 
 Use owned repositories first so package updates remain reversible and testable:
 
-1. `shreyam1008/homebrew-tap`: add `Formula/protopeek.rb`, pin each macOS/Linux archive by version
-   and SHA-256, install both `protopeek` and `pp`, and run `brew audit --strict --online` plus an
-   actual `pp -version` smoke test on Intel and Apple Silicon.
-2. `shreyam1008/scoop-bucket`: add `bucket/protopeek.json`, pin amd64 and arm64 Windows ZIPs and
-   hashes, expose both binaries, declare `checkver`/`autoupdate`, then test clean install, update,
-   shim resolution, and uninstall in Windows Sandbox.
+1. `shreyam1008/homebrew-tap`: `Formula/protopeek.rb` pins each supported macOS/Linux archive by
+   version and SHA-256, installs `protopeek`, `pp`, and both manpages, and is tested on macOS and
+   Linux.
+2. `shreyam1008/scoop-bucket`: `bucket/protopeek.json` pins amd64, arm64, and x86 Windows ZIPs and
+   hashes, exposes both shims, declares `checkver`/`autoupdate`, and is tested through install,
+   update, and uninstall on Windows.
 3. WinGet community manifests: generate version, installer, and locale YAML only after the owned
    Scoop path and PowerShell installer have survived user feedback. Validate with `winget validate`
    and Windows Sandbox before Shreyam submits the PR from his account.
 
-Release automation may open draft changes in the two owned repositories after assets exist. It
+The owned repositories run package checks on pull requests and default-branch pushes. Automation
 must stop before creating a WinGet/community PR unless Shreyam explicitly approves the exact
 manifest and public text.
 

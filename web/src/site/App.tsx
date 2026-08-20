@@ -459,7 +459,7 @@ function Roadmap() {
       status: 'Shipped · v0.3.0',
       title: 'Protocol workbenches + bounded evidence',
       detail:
-        'Dashboard, themes, stable gRPC and HTTP workbenches, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
+        'Dashboard, themes, stable gRPC and HTTP workbenches, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, offline Nmap XML import, and owned Homebrew/Scoop channels.',
       icon: ShieldCheck,
     },
     {
@@ -467,7 +467,7 @@ function Roadmap() {
       status: 'Next',
       title: 'Close daily workflow gaps',
       detail:
-        'Incremental general gRPC stream delivery, saved HTTP requests and profiles, bounded cURL import/export, and target DNS/TLS preflight.',
+        'Incremental general gRPC stream delivery, saved HTTP requests and profiles, bounded cURL import/export, target DNS/TLS preflight, and WinGet only after initial package feedback.',
       icon: Globe2,
     },
     {
@@ -521,6 +521,14 @@ function Install() {
 
   const options = [
     {
+      label: 'Homebrew',
+      cmd: 'brew install shreyam1008/tap/protopeek',
+    },
+    {
+      label: 'Scoop',
+      cmd: 'scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket; scoop install shreyam/protopeek',
+    },
+    {
       label: 'curl',
       cmd: 'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
     },
@@ -549,7 +557,7 @@ function Install() {
       <SectionHeader
         label="Install · stable v0.3.0"
         title="Start the local workbench"
-        subtitle="The verified installers resolve v0.3.0 with the dashboard, native protocol workbenches, bounded diagnostics, and read-only evidence surfaces in one binary."
+        subtitle="The owned Homebrew tap, Scoop bucket, and verified installers resolve v0.3.0 with the dashboard, native protocol workbenches, bounded diagnostics, and read-only evidence surfaces in one binary."
       />
 
       <div className="mt-8 space-y-3">
