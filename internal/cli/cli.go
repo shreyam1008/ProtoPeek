@@ -832,7 +832,11 @@ func Run() {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	url := browserURL(*bind, listener.Addr().(*net.TCPAddr).Port, path)
+	appRoute := "/"
+	if !launcherMode {
+		appRoute = "/grpc"
+	}
+	url := browserURL(*bind, listener.Addr().(*net.TCPAddr).Port, path, appRoute)
 	printLaunchBanner(url, target)
 
 	if *openBrowser {
@@ -874,8 +878,12 @@ func Run() {
 	}
 }
 
-func browserURL(bindAddress string, port int, path string) string {
-	return fmt.Sprintf("http://%s%s", net.JoinHostPort(requestHostname(bindAddress), strconv.Itoa(port)), path)
+func browserURL(bindAddress string, port int, path, appRoute string) string {
+	baseURL := fmt.Sprintf("http://%s%s", net.JoinHostPort(requestHostname(bindAddress), strconv.Itoa(port)), path)
+	if appRoute == "" || appRoute == "/" {
+		return baseURL
+	}
+	return baseURL + "#" + appRoute
 }
 
 func printLaunchBanner(url, target string) {
@@ -905,8 +913,8 @@ If a host:port address is provided, ProtoPeek connects directly to that target
 and opens the console in single-target mode. A bare host or HTTP(S) authority
 opens the launcher and probes only its explicit bounded candidates.
 
-If no address is provided, ProtoPeek opens in workspace launcher mode so you can
-define and switch between one or more gRPC targets from the UI.
+If no address is provided, ProtoPeek opens the Protocol Peek dashboard. The
+gRPC and HTTP workbenches remain available from the protocol activity rail.
 
 An exact address has the form "host:port", where port is numeric or a service
 name. A bare host checks only port 50051 with plaintext and port 443 with

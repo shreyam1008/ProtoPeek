@@ -3,6 +3,87 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
+## v0.3.0 — 2026-08-20
+
+- Added explicit canonical `grpc.health.v1` Check and Watch diagnostics. Check preserves serving
+  status, headers, trailers, final gRPC status, and handler-observed duration; Watch flushes one
+  bounded NDJSON epoch with status transitions, cancellation, trailers, and terminal evidence.
+  Blank-service, unknown-service, and `UNIMPLEMENTED` semantics remain canonical. Watch never polls
+  or retries, is capped at four concurrent streams per console, 1–600 seconds, and 512 observations,
+  while the browser retains the latest 200 with a dropped count. Request metadata is used live but
+  never echoed, persisted, or exported.
+- Direct `/grpc`, `/http`, `/routes`, and `/roadmap` links now canonicalize to the hash-routed
+  workbench, including when ProtoPeek is mounted below a base path. Refreshing or sharing a protocol
+  surface no longer falls through to a server 404 or silently renders Home.
+- Bounded the discovery relay against target-controlled evidence: two scan requests may run at once;
+  reflection receive/header data, retained service names, HTTP protocol/status/server values,
+  diagnostic details, and errors have explicit byte ceilings. Additive truncation flags keep a
+  genuine oversized reflection response distinguishable from absent or fabricated evidence.
+- Added real browser proto-folder snapshots for reflection-disabled services. File System Access
+  uses an explicit user gesture where supported with directory-input fallback; only lowercase
+  `.proto` files are included, nested import paths are preserved, and profiles persist no handle,
+  bytes, root name, browser path, or staging path. The server independently enforces a 20 MiB
+  multipart envelope, 512 files, 4 MiB per file, 16 MiB aggregate, and a portable path grammar. A
+  manifest-only resolver prevents imports from escaping the snapshot, while built-in Google
+  well-known protos remain available. Bounded upload buffers are cleared before target dial/session
+  publication, no schema file is written on the server, and browser-folder targets require a fresh
+  selection after reload.
+- Replaced the browser Simulation surface with bounded Unary Repeat: 2–50 strictly sequential calls,
+  0–5000 ms between-call delay, an explicit 0.1–30 s per-call deadline, one cancellable run, and a
+  60 s wall cap with partial results. Results keep OK, gRPC status, relay/transport, and cancellation
+  separate. Export includes method, target, run ID/start timestamp, frozen configuration, counts,
+  per-attempt offsets/timings, classifications, and error/status text, but never request bodies or
+  metadata; target/internal addresses and service/relay text must be reviewed before sharing.
+  Latency summaries prefer ProtoPeek handler invoke duration when present, visibly fall back to
+  console round trip, and withhold p95 until 20 measured samples. The handler duration includes
+  JSON/protobuf conversion and callbacks, but excludes the browser and HTTP relay. Assertions and
+  overlapping Invoke are blocked while Repeat owns the request; leaving Checks cancels the run and
+  preserves partial evidence. Completed results show their start time and frozen configuration,
+  mark changed controls as a previous run, and warn that every attempt is a potentially mutating RPC.
+- Labeled gRPC timing as callback-observed lifecycle boundaries: headers, first message, final status,
+  and invoke return. Unary callbacks may cluster after transport completion; these values are not
+  packet-arrival, server-processing, or TTFB measurements.
+- Added safe, target-scoped gRPC replay: persisted redaction markers are never invoked, legacy
+  records bind safely on first replay, unavailable/cross-target records fail in place, and browser
+  storage failures are visible for saves and imports.
+- Versioned workspace JSON as `protopeek-workspace` v1, removed automatic RPC history from default
+  exports, and bounded imports to 4 MiB with structural, type, count, and string validation. Imported
+  target paths stay inactive and are explicitly identified as ProtoPeek-host file-read authority.
+- Added fail-safe browser-storage recovery: valid bounded records are salvaged without overwriting
+  the exact readable original, every normal workspace write is schema-checked, full lists refuse new
+  entries instead of evicting old ones, and normal import/export pauses until recovery is resolved.
+- Made HTTP history credential-redacting and deterministic with a strict retained-header allowlist,
+  no request body, URL user-info removal, credential-like query redaction, and a full reset of body,
+  auth, timeout, redirect choice, prior errors, and response evidence before replay or a discovered
+  origin handoff. Prior requests are cancelled and generation-guarded against stale completion.
+- Added a lazy next-hop workbench backed by one read-only kernel route selection: direct Linux
+  `RTM_GETROUTE`, Darwin routing sockets, and Windows `GetBestRoute2`, with bounded DNS, deadlines,
+  concurrency, per-address failures, source/interface/gateway evidence, and no packets or privilege.
+- Added streaming, non-persistent `nmap -oX` import with strict XML and collection bounds. Imported
+  service labels remain untrusted hints and must pass the existing explicit bounded scanner before
+  gRPC or HTTP can open; ProtoPeek never locates or runs Nmap/Npcap.
+- Added a lazy in-app roadmap with Available in this build, Next, Exploring, and Gated states, and updated dashboard,
+  help, README, site source, and detailed guides to distinguish next-hop lookup from traceroute and
+  Nmap XML import from active Nmap execution.
+- Unified the console, website, favicon, and install icons around the ProtoPeek waveform mark; added
+  real light, persisted-dark, and 390 px dashboard captures; and aligned v0.3.0 canonical, social,
+  manifest, sitemap, and structured metadata. Internal launch/runbook pages remain in the repository
+  but are no longer indexed as end-user product documentation.
+- Made the repository CI gate ignore tool caches, pin its analyzers into a local tools directory,
+  and pass gofmt, vet, staticcheck, ineffassign, predeclared, Go tests, frontend tests, and a
+  deterministic production build after release tooling has populated `.tmp`.
+
+### Milestone 1 foundation
+
+- Added a light-first Protocol Peek dashboard at `/`, moved the gRPC console to `/grpc`, retained
+  `/http`, and kept exact `host:port` CLI startup opening directly into gRPC.
+- Added a compact global command entry, protocol activity rail, shared keyboard-contained scan
+  dialog, local recent discoveries, and guarded versioned light/dark preference storage.
+- Extended bounded discovery to report independent gRPC, safe non-following HTTP `HEAD`, and open
+  TCP evidence with fixed candidate/deadline limits and request cancellation.
+- Kept traceroute/hop probes and Cap'n Proto gated and labeled Nmap and packet evidence as optional rather
+  than presenting unimplemented diagnostics.
+
 ## v0.2.0 — 2026-08-20
 
 - Rebuilt the local launcher and gRPC call workspace around explicit request,

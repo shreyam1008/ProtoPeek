@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	oldproto "github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -33,6 +34,55 @@ func TestNewRPCResultMarshalsCollectionsAsArrays(t *testing.T) {
 		if len(value) != 0 {
 			t.Fatalf("%s length = %d, want 0", key, len(value))
 		}
+	}
+	timings, ok := payload["timings"].(map[string]any)
+	if !ok {
+		t.Fatalf("timings = %#v, want JSON object", payload["timings"])
+	}
+	for _, key := range []string{"headersMs", "firstMessageMs", "trailersMs"} {
+		if value, present := timings[key]; !present || value != nil {
+			t.Fatalf("timings.%s = %#v (present %t), want explicit null", key, value, present)
+		}
+	}
+	if total, ok := timings["totalMs"].(float64); !ok || total != 0 {
+		t.Fatalf("timings.totalMs = %#v, want numeric zero before completion", timings["totalMs"])
+	}
+}
+
+func TestRPCResultMarshalsMeasuredZeroAndOmitsUnavailableElapsedTime(t *testing.T) {
+	t.Parallel()
+
+	clock := &rpcTestClock{current: time.Unix(1_700_000_000, 0)}
+	result := newRPCResultWithClock(nil, false, nil, clock.Now)
+	clock.Advance(500 * time.Microsecond)
+	result.OnReceiveResponse(&timingProtoMessage{})
+	result.Error = &rpcError{
+		Details: []rpcResponseElement{{Data: json.RawMessage(`{}`)}},
+	}
+
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("marshal result: %v", err)
+	}
+	var payload struct {
+		Responses []map[string]json.RawMessage `json:"responses"`
+		Error     struct {
+			Details []map[string]json.RawMessage `json:"details"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(encoded, &payload); err != nil {
+		t.Fatalf("unmarshal result: %v", err)
+	}
+	if len(payload.Responses) != 1 || len(payload.Error.Details) != 1 {
+		t.Fatalf("response/detail lengths = %d/%d, want 1/1", len(payload.Responses), len(payload.Error.Details))
+	}
+
+	responseElapsed, present := payload.Responses[0]["elapsedMs"]
+	if !present || string(responseElapsed) != "0" {
+		t.Fatalf("response elapsedMs = %s (present %t), want integer zero", responseElapsed, present)
+	}
+	if detailElapsed, present := payload.Error.Details[0]["elapsedMs"]; present {
+		t.Fatalf("unmeasured error detail elapsedMs = %s, want field omitted", detailElapsed)
 	}
 }
 

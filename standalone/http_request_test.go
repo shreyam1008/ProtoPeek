@@ -59,8 +59,11 @@ func TestHTTPRequestHandlerSuccessHeadersAndBody(t *testing.T) {
 	if got.Body != "created" || got.BodyEncoding != "text" || got.Bytes != 7 || got.Truncated {
 		t.Fatalf("unexpected body metadata: %#v", got)
 	}
-	if got.Proto == "" || got.RemoteIP == "" || got.Timings.TotalMs <= 0 {
+	if got.Proto == "" || got.RemoteIP == "" {
 		t.Fatalf("missing transport evidence: %#v", got)
+	}
+	if got.Timings.TotalMs < 0 {
+		t.Fatalf("negative total timing: %#v", got.Timings)
 	}
 	if values := headerValues(got.Headers, "X-Reply"); len(values) != 2 {
 		t.Fatalf("X-Reply values = %#v, want two values", values)

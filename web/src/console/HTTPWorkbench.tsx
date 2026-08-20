@@ -12,11 +12,14 @@ import {
   appStorageKeys,
   classNames,
   compactDate,
+  filterMetadataForInvoke,
+  isRedactedValue,
   loadStoredValue,
   modifierKeyLabel,
-  redactedValue,
-  sanitizeMetadataForPersistence,
-  sanitizeURLForPersistence,
+  normalizeHTTPHistory,
+  prepareMetadataForReplay,
+  prepareURLForReplay,
+  removeStoredValue,
   storeValue,
   toHTTPHistoryEntry,
 } from '@/shared/utils';
@@ -24,6 +27,7 @@ import {
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
+import { protocolShellEvents } from './ProtocolShellContext';
 
 type RequestTab = 'params' | 'headers' | 'auth' | 'body';
 type BodyMode = 'none' | 'json' | 'text';
@@ -40,7 +44,11 @@ const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 export function HTTPWorkbench() {
   const [method, setMethod] = useState('GET');
-  const [url, setURL] = useState('http://localhost:8080/');
+  const [url, setURL] = useState(() => {
+    const pendingURL = loadStoredValue<string>(appStorageKeys.pendingHTTPURL, '');
+    if (pendingURL) removeStoredValue(appStorageKeys.pendingHTTPURL);
+    return pendingURL || 'http://localhost:8080/';
+  });
   const [params, setParams] = useState<MetadataEntry[]>([]);
   const [headers, setHeaders] = useState<MetadataEntry[]>([]);
   const [authMode, setAuthMode] = useState<AuthMode>('none');
@@ -55,15 +63,15 @@ export function HTTPWorkbench() {
   const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
   const [response, setResponse] = useState<HTTPResponse | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null);
+  const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
-    loadStoredValue<HTTPHistoryEntry[]>(appStorageKeys.httpHistory, []).map((entry) => ({
-      ...entry,
-      url: sanitizeURLForPersistence(entry.url),
-      requestHeaders: sanitizeMetadataForPersistence(entry.requestHeaders ?? []),
-    }))
+    normalizeHTTPHistory(loadStoredValue<unknown>(appStorageKeys.httpHistory, []))
   );
   const abortRef = useRef<AbortController | null>(null);
+  const requestGenerationRef = useRef(0);
   const historyRef = useRef<HTMLDetailsElement | null>(null);
+  const urlInputRef = useRef<HTMLInputElement | null>(null);
   const modifier = modifierKeyLabel();
   const mutation = useMutation<
     HTTPResponse,
@@ -72,10 +80,70 @@ export function HTTPWorkbench() {
   >({
     mutationFn: ({ input, signal }) => sendHTTPRequest(input, signal),
   });
+  const applyDiscoveryURL = useEffectEvent((nextURL: string) => {
+    try {
+      const parsed = new URL(nextURL);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+    } catch {
+      return;
+    }
+    requestGenerationRef.current++;
+    const active = abortRef.current;
+    abortRef.current = null;
+    active?.abort();
+    mutation.reset();
+    removeStoredValue(appStorageKeys.pendingHTTPURL);
+    setMethod('GET');
+    setURL(nextURL);
+    setParams([]);
+    setHeaders([]);
+    setAuthMode('none');
+    setAuthName('X-API-Key');
+    setAuthUser('');
+    setAuthSecret('');
+    setBodyMode('none');
+    setBody('');
+    setTimeoutSeconds(30);
+    setFollowRedirects(false);
+    setResponse(null);
+    setValidationError(null);
+    setHistoryNotice(null);
+    setRequestTab('params');
+    setMobilePane('request');
+    if (historyRef.current) historyRef.current.open = false;
+    requestAnimationFrame(() => urlInputRef.current?.focus());
+  });
 
   useEffect(() => {
-    storeValue(appStorageKeys.httpHistory, history);
+    const stored = storeValue(appStorageKeys.httpHistory, history);
+    if (!stored.ok) {
+      setHistoryStorageError(
+        `HTTP history is session-only because browser storage failed: ${stored.error}`
+      );
+    } else {
+      setHistoryStorageError(null);
+    }
   }, [history]);
+
+  useEffect(
+    () => () => {
+      requestGenerationRef.current++;
+      const active = abortRef.current;
+      abortRef.current = null;
+      active?.abort();
+    },
+    []
+  );
+
+  useEffect(() => {
+    function handleDiscovery(event: Event) {
+      const nextURL = (event as CustomEvent<string>).detail;
+      if (!nextURL) return;
+      applyDiscoveryURL(nextURL);
+    }
+    window.addEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
+    return () => window.removeEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
+  }, []);
 
   function buildURL() {
     const parsed = new URL(url.trim());
@@ -87,16 +155,17 @@ export function HTTPWorkbench() {
   }
 
   function buildHeaders() {
-    const result = headers.filter((header) => header.name.trim()).map((header) => ({ ...header }));
-    if (authMode === 'bearer' && authSecret) {
-      result.push({ name: 'Authorization', value: `Bearer ${authSecret}` });
-    } else if (authMode === 'basic' && (authUser || authSecret)) {
+    const result = filterMetadataForInvoke(headers).map((header) => ({ ...header }));
+    const usableAuthSecret = isRedactedValue(authSecret) ? '' : authSecret;
+    if (authMode === 'bearer' && usableAuthSecret) {
+      result.push({ name: 'Authorization', value: `Bearer ${usableAuthSecret}` });
+    } else if (authMode === 'basic' && (authUser || usableAuthSecret)) {
       result.push({
         name: 'Authorization',
-        value: `Basic ${encodeBasicAuth(authUser, authSecret)}`,
+        value: `Basic ${encodeBasicAuth(authUser, usableAuthSecret)}`,
       });
-    } else if (authMode === 'api-key' && authName.trim() && authSecret) {
-      result.push({ name: authName.trim(), value: authSecret });
+    } else if (authMode === 'api-key' && authName.trim() && usableAuthSecret) {
+      result.push({ name: authName.trim(), value: usableAuthSecret });
     }
     if (
       bodyMode !== 'none' &&
@@ -111,12 +180,21 @@ export function HTTPWorkbench() {
   }
 
   async function handleSend() {
-    if (mutation.isPending) return;
+    if (abortRef.current || mutation.isPending) return;
     setValidationError(null);
     mutation.reset();
     let requestURL: string;
     try {
-      requestURL = buildURL();
+      const prepared = prepareURLForReplay(buildURL());
+      requestURL = prepared.url;
+      if (prepared.redactedCount > 0) {
+        setHistoryNotice(
+          `${prepared.redactedCount} redacted query ${prepared.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before sending if the endpoint requires them.`
+        );
+      }
+      if (authMode !== 'none' && isRedactedValue(authSecret)) {
+        setHistoryNotice('The [redacted] auth placeholder was not sent. Re-enter the credential.');
+      }
     } catch {
       setValidationError('Enter an absolute http:// or https:// URL.');
       return;
@@ -131,14 +209,21 @@ export function HTTPWorkbench() {
       followRedirects,
     };
     const controller = new AbortController();
+    const requestGeneration = requestGenerationRef.current + 1;
+    requestGenerationRef.current = requestGeneration;
     abortRef.current = controller;
     setResponse(null);
     setMobilePane('response');
     try {
       const result = await mutation.mutateAsync({ input, signal: controller.signal });
+      if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
+        return;
+      }
+      if (controller.signal.aborted)
+        throw new DOMException('HTTP request cancelled.', 'AbortError');
       setResponse(result);
       setHistory((entries) =>
-        [
+        normalizeHTTPHistory([
           toHTTPHistoryEntry({
             method,
             url: requestURL,
@@ -148,9 +233,12 @@ export function HTTPWorkbench() {
             totalMs: result.timings.totalMs,
           }),
           ...entries,
-        ].slice(0, 50)
+        ])
       );
     } catch (error) {
+      if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
+        return;
+      }
       if (controller.signal.aborted) {
         setValidationError('HTTP request cancelled.');
       } else if (!(error instanceof Error)) {
@@ -162,7 +250,7 @@ export function HTTPWorkbench() {
   }
 
   const sendFromShortcut = useEffectEvent(() => {
-    if (mutation.isPending) abortRef.current?.abort();
+    if (abortRef.current) abortRef.current.abort();
     else void handleSend();
   });
 
@@ -179,16 +267,40 @@ export function HTTPWorkbench() {
   const requestError =
     validationError ??
     (mutation.error ? mutation.error.message.trim() || 'HTTP request failed.' : null);
+  const visibleHistoryNotice = historyStorageError ?? historyNotice;
 
   function loadHistory(entry: HTTPHistoryEntry) {
+    requestGenerationRef.current++;
+    const active = abortRef.current;
+    abortRef.current = null;
+    active?.abort();
+    const replayURL = prepareURLForReplay(entry.url);
+    const replayHeaders = prepareMetadataForReplay(entry.requestHeaders);
     setMethod(entry.method);
-    setURL(entry.url);
+    setURL(replayURL.url);
     setParams([]);
-    setHeaders(entry.requestHeaders.filter((header) => header.value !== redactedValue));
+    setHeaders(replayHeaders.metadata.filter((header) => header.value !== ''));
     setAuthMode('none');
+    setAuthName('X-API-Key');
+    setAuthUser('');
     setAuthSecret('');
+    setBodyMode('none');
+    setBody('');
+    setTimeoutSeconds(30);
+    setFollowRedirects(false);
+    setResponse(null);
+    setValidationError(null);
+    mutation.reset();
+    const redactedCount = replayURL.redactedCount + replayHeaders.redactedCount;
+    setHistoryNotice(
+      redactedCount > 0
+        ? `${redactedCount} redacted ${redactedCount === 1 ? 'value was' : 'values were'} omitted from replay. Re-enter credentials before sending.`
+        : null
+    );
+    setRequestTab('params');
     setMobilePane('request');
     if (historyRef.current) historyRef.current.open = false;
+    urlInputRef.current?.focus();
   }
 
   return (
@@ -244,6 +356,7 @@ export function HTTPWorkbench() {
           ))}
         </select>
         <input
+          ref={urlInputRef}
           value={url}
           onChange={(event) => setURL(event.target.value)}
           aria-label="Request URL"
@@ -260,6 +373,23 @@ export function HTTPWorkbench() {
           <kbd>{modifier} ↵</kbd>
         </button>
       </div>
+
+      {visibleHistoryNotice ? (
+        <div className="pp-http-replay-notice" role="status">
+          <KeyRound className="pp-http-notice-icon" aria-hidden="true" />
+          <span>{visibleHistoryNotice}</span>
+          {!historyStorageError ? (
+            <button
+              type="button"
+              className="pp-http-notice-dismiss"
+              aria-label="Dismiss HTTP history notice"
+              onClick={() => setHistoryNotice(null)}
+            >
+              <X className="pp-http-notice-icon" aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <AccessibleTabs
         id="http-mobile-pane"

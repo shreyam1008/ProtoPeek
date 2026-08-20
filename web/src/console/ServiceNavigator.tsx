@@ -11,9 +11,8 @@ import {
   Upload,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
+import { classNames } from '@/shared/runtime';
 import type { BootstrapService, MethodFilter } from '@/shared/types';
-import { classNames } from '@/shared/utils';
 
 export type WorkbenchView =
   | 'compose'

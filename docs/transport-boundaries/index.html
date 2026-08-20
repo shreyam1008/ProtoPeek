@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transport boundaries | ProtoPeek</title>
+    <meta name="description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/transport-boundaries/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Transport boundaries | ProtoPeek" />
+    <meta property="og:description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/transport-boundaries/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Transport boundaries | ProtoPeek" />
+    <meta name="twitter:description" content="The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Transport boundaries","description":"The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.","url":"https://protopeek.shreyam1008.com.np/transport-boundaries/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/transport-boundaries/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+  </head>
+  <body>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-orb pp-doc-orb-a"></div>
+      <div class="pp-doc-orb pp-doc-orb-b"></div>
+      <div class="pp-doc-container">
+        <header class="pp-doc-topbar">
+          <a class="pp-doc-brand" href="/">ProtoPeek</a>
+          <nav class="pp-doc-nav">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/learn-grpc/">Learn gRPC</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+          </nav>
+        </header>
+
+        <section class="pp-doc-hero">
+          <div class="pp-doc-eyebrow">Architecture</div>
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1>Transport boundaries</h1>
+              <p>The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.</p>
+              <div class="pp-doc-chip-row">
+                <span>Local-first shell</span><span>Native evidence</span><span>Release gates</span>
+              </div>
+            </div>
+
+    <div class="pp-doc-visual">
+      <div class="pp-doc-visual-card">
+        <div class="pp-doc-visual-label">Reading path</div>
+        <div class="pp-doc-visual-title">Transport boundaries</div>
+        <svg viewBox="0 0 300 120" aria-hidden="true">
+          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
+          <circle cx="12" cy="88" r="6" />
+          <circle cx="196" cy="74" r="6" />
+          <circle cx="288" cy="32" r="6" />
+        </svg>
+      </div>
+      <div class="pp-doc-visual-metrics">
+
+        <div class="pp-doc-visual-row" style="animation-delay:0ms">
+          <span>Local-first shell</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-1"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:140ms">
+          <span>Native evidence</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-2"></div>
+          </div>
+        </div>
+
+        <div class="pp-doc-visual-row" style="animation-delay:280ms">
+          <span>Release gates</span>
+          <div class="pp-doc-visual-bar">
+            <div class="pp-doc-visual-fill fill-3"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+          </div>
+        </section>
+
+        <main class="pp-doc-main">
+          <article class="pp-doc-article">
+            <div class="pp-doc-prose">
+              <p>ProtoPeek is Protocol Peek: a local protocol console, not a general collaboration client. Its durable product advantage is the short path from a real target to an explainable request, response, and transport story.</p>
+<h2 id="product-contract">Product contract</h2>
+<ul><li><code>pp host:port</code> and <code>protopeek host:port</code> keep their direct gRPC-compatible CLI meaning and open</li></ul>
+<p>the <code>/grpc</code> workbench. With no target the browser opens the Protocol Peek dashboard at <code>/</code>. A bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.</p>
+<ul><li>Every session runs locally, without an account, remote sync, or external database.</li><li>Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,</li></ul>
+<p>Cap&#39;n Proto capabilities, or HTTP status and headers into a misleading common response object.</p>
+<ul><li>Reflection, temporary browser-folder snapshots, host proto paths, and host protoset paths remain</li></ul>
+<p>first-class gRPC schema paths. Their authority boundaries stay visibly separate.</p>
+<ul><li>Automatic discovery is loopback-only. Explicit private or link-local destinations require a</li></ul>
+<p>per-scan opt-in. An explicit public IP or hostname is one user-entered target, never permission for port-range expansion. Hostnames are resolved once, all returned addresses are classified, and probes dial a validated numeric address to avoid a policy-to-dial DNS change. An explicit host without a port has only the visible <code>50051</code> plaintext and <code>443</code> verified-TLS candidates. CIDR expansion and ambient network crawling are outside this boundary.</p>
+<ul><li>Scan evidence is independently labeled as verified gRPC, safe HTTP, or open TCP. HTTP evidence</li></ul>
+<p>uses only <code>HEAD /</code>, verified TLS where applicable, fixed per-protocol and whole-request deadlines, no body, no authentication, and no redirect following. Closing or cancelling the dialog cancels the request context. The handler admits two scan requests at once and rejects excess work before reading its body. One request accepts at most 20 inputs expanding to 24 candidates and has a four-second wall deadline. Each retained service name is at most 1 KiB, with 64 names and 32 KiB aggregate; reflection receive and response-header evidence are each capped at 64 KiB. Diagnostic details and the primary error are capped at 2 KiB each, while HTTP protocol, status, and Server evidence are capped at 64, 512, and 256 bytes. Truncation is explicit in the result rather than silently presented as complete evidence.</p>
+<ul><li>Next-hop evidence is one read-only kernel-selected route per resolved address from the ProtoPeek</li></ul>
+<p>process. It sends no hop probes (hostnames may still resolve through DNS), does not trace hops, does not poll or mutate routes, and requires no elevation. Its UI permanently states that VPNs, proxies, policy routing, ECMP, and later changes can alter a real connection path.</p>
+<ul><li>Nmap is not required to import an existing XML file. To create new XML, users obtain and run Nmap</li></ul>
+<p>separately. ProtoPeek only imports bounded <code>nmap -oX</code> XML, retains no command arguments/scripts/OS/trace data, persists no inventory, and treats service names as hints until the existing bounded scanner verifies a literal-IP endpoint.</p>
+<ul><li>New transports must not add a heavy runtime or materially grow the browser bundle without a</li></ul>
+<p>measured reason. The first HTTP adapter uses the Go standard library.</p>
+<h2 id="architecture">Architecture</h2>
+<p>The console shell owns target selection, the split request/response workspace, local history, and session lifecycle. A transport adapter owns discovery, schema loading, request validation, invocation, cancellation, and transport events.</p>
+<pre class="pp-doc-code"><code data-lang="text">pp CLI / local web server
+        |
+console session manager
+        |
+        +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
+        +-- HTTP adapter       explicit HTTP(S) URL | bounded stdlib client
+        +-- route evidence     kernel-selected next hop | no probe packets
+        +-- Nmap import        offline XML hints -&gt; bounded verification
+        +-- Cap&#39;n Proto adapter exploring: schema file | capability bootstrap
+        |
+ordered transport events -&gt; protocol-specific inspector</code></pre>
+<p>Bundled Nmap execution is not planned for the core binary; traceroute/hop probes, LAN range expansion, and live capture remain gated. Offline Nmap XML import ships in v0.3.0, but Nmap itself is not bundled or invoked. Next-hop evidence ships in the same release, but it is not traceroute/hop probing.</p>
+<p>The shared boundary should stay deliberately small:</p>
+<ol><li><div class="pp-doc-list-title"><code>Target</code>: transport kind plus adapter-owned connection configuration.</div></li><li><div class="pp-doc-list-title"><code>Operation</code>: a selectable RPC or HTTP operation with an adapter-owned schema.</div></li><li><div class="pp-doc-list-title"><code>Invocation</code>: deadline, metadata, and one or more request messages.</div></li><li><div class="pp-doc-list-title"><code>TransportEvent</code>: ordered events such as connected, headers, request message, response message,</div><p>trailers, status, capability resolution, or HTTP body chunk.</p></li></ol>
+<p>Adapters return their native detail alongside these events. The shell can render timing and message counts consistently, while a protocol inspector renders the actual semantics.</p>
+<h2 id="delivery-slices">Delivery slices</h2>
+<h3 id="1-finish-the-grpc-local-console-contract">1. Finish the gRPC local-console contract</h3>
+<p>Keep the current slice as the reference adapter: bounded loopback discovery, deterministic sessions, reflection headers, browser-folder/host-proto/protoset compatibility, request/response split view, explicit cancellation, callback-observed response timing, and visible headers, trailers, deadlines, streaming mode, and status. Headers, first message, final status, and invoke return are handler lifecycle boundaries, not packet-arrival, server-processing, or TTFB measurements; unary callbacks may cluster after transport completion.</p>
+<p>Health is a separate, explicit gRPC diagnostic rather than a background liveness monitor. Check accepts a 0.1–30 second deadline (5 seconds by default). Watch accepts a 1–600 second duration (60 seconds by default), performs no retry or polling, and shares four stream slots across direct and workspace sessions. The server accepts at most a 64 KiB JSON envelope, 1,024 UTF-8 bytes for a service name, and 64 request-body metadata entries / 32 KiB aggregate. Configured CLI metadata and explicitly preserved relay headers still follow the existing Invoke precedence. It emits at most 512 status observations; each flushed NDJSON line is at most 64 KiB and response headers plus trailers share a 32 KiB retained evidence budget. The browser validates event order and attribution, retains the latest 200 transitions with a dropped count, and treats missing terminal evidence as truncation.</p>
+<p>Blank service means overall server health. Unknown service semantics are not normalized away: Check has no fabricated serving enum and ends <code>NOT_FOUND</code>; Watch reports <code>SERVICE_UNKNOWN</code> and stays open. <code>UNIMPLEMENTED</code> ends the one Watch epoch without retry. Live request metadata follows Invoke precedence and binary decoding but is never returned, persisted, or exported. Every timestamp is a ProtoPeek handler/relay observation against one selected connection, not packet arrival, server emission, dependency health, load-balancer coverage, or fleet health.</p>
+<h3 id="2-keep-the-http-slice-bounded">2. Keep the HTTP slice bounded</h3>
+<p>The live HTTP surface accepts method, URL, headers, body, timeout, and redirect choice. It accepts only <code>http</code> and <code>https</code>, keeps TLS verification on, leaves redirects off by default, supports cancellation, and bounds envelopes, bodies, headers, redirects, and deadlines. Its inspector owns status, HTTP protocol, response headers, text/base64 body, byte and truncation evidence, redirect hops, peer/TLS context, and phase timings.</p>
+<p>Automatic HTTP history keeps only method, sanitized URL, status, total time, and values from a small header allowlist (<code>Accept*</code>, cache/conditional controls, <code>Content-Type</code>, range/preference, trace context, and request/correlation IDs). Every other header value is replaced with <code>[redacted]</code>; URL user info is removed and credential-like query names are redacted. It never retains the request body. Replaying an entry resets params, auth, body mode/body, timeout, redirect choice, validation state, and previous response before restoring those persisted fields, so a stale editor value cannot silently join the replayed request.</p>
+<h3 id="3-bound-workspace-transfer-and-replay">3. Bound workspace transfer and replay</h3>
+<p>The default workspace export is the explicit <code>protopeek-workspace</code> version 1 JSON format. It includes saved requests, environments, assertions, and target profiles, but excludes automatic RPC history. Metadata is sanitized again at export time. Saved request bodies are intentionally included and must be reviewed before a file is shared.</p>
+<p>Import checks the file&#39;s reported size before reading any text and rejects files over 4 MiB. Both version 1 and the previous unversioned export shape pass through the same validator: at most 100 assertions, 100 saved requests, 50 environments, 50 history entries, 50 targets, 64 metadata entries per record, and 32 entries in each target path list. Request JSON is capped at 512 KiB; metadata values at 64 KiB; notes at 16 KiB; and target paths at 4,096 characters. Wrong container types, unsupported versions/enums, duplicate IDs, non-finite/out-of-range numbers, and oversized strings are refused without replacing the console with a boot error.</p>
+<p>Normal workspace writes pass through the same bounded schema before persistence. Hitting a target, environment, or saved-request limit refuses the new record; it does not discard an older record. On startup, one malformed, duplicate, or over-limit stored record does not erase the entire section: valid bounded records remain usable in the live session while the exact readable source string stays untouched in its original key. A persistent recovery banner can download the raw, deliberately non-importable source or explicitly replace it with the recovered records. Imports and normal exports that touch unresolved recovery are paused. Browser read failures are called out separately because their original bytes cannot be captured.</p>
+<p>Imported target IDs are detached from any live session and no imported target connects automatically. Host proto/protoset/import-root/CA/client-certificate/client-key values name files on the machine running ProtoPeek—not paths on the browser machine. An explicit later connection grants the ProtoPeek process local file-read authority for those paths, and the import result warns about that boundary. Browser-folder profiles are different: storage and workspace export contain only the pathless profile configuration. A browser must choose the folder again before connection; handles, bytes, root names, browser paths, and server filesystem paths never persist. A successful target-profile replacement invalidates pending connection work and returns any active profile session to the launcher before an imported profile can be used.</p>
+<p>Browser-folder connect is one CSRF-protected multipart transaction on the existing workspace endpoint. The client mirrors limits for fast feedback, but the server independently enforces the 20 MiB envelope, 512-file, 4 MiB per-file, 16 MiB aggregate, and portable-relative-path bounds. Only the exact manifest may satisfy imports; absolute, backslash, traversal, duplicate, case-colliding, reserved, and non-<code>.proto</code> paths fail before compilation. Google well-known protos are the only non-manifest fallback. The server clears bounded in-memory upload buffers before the target is dialed or the session is published and writes no schema staging files. Snapshot bytes go only to the current ProtoPeek process or container and never to the gRPC target.</p>
+<p>New saved requests and automatic gRPC history carry target-profile ID plus target address. Replay requires the method to exist and the stored scope to match. Legacy records without scope may be applied only to a method available on the current target, then bind to that target on first replay. Persisted <code>[redacted]</code> metadata values restore as blank inputs with a re-entry warning. Invocation filters out blank sensitive values and the sentinel again at the send boundary; Unary Repeat applies the same filtering. Repeat JSON exports contain the method, target, run ID/start timestamp, frozen configuration, counts, per-attempt offsets/timings, classifications, and error/status text—never the request body or metadata. Review target/internal addresses and service/relay text before sharing. <code>handlerInvokeMs</code> includes JSON/protobuf conversion and callbacks but excludes the browser/HTTP relay; <code>consoleRoundTripMs</code> includes that relay and response parsing.</p>
+<h3 id="4-keep-route-and-imported-evidence-read-only">4. Keep route and imported evidence read-only</h3>
+<p>Use OS-native route APIs for one selected next hop and bounded streaming XML for offline Nmap evidence. Preserve source/interface/gateway and table/probed confidence, but require a fresh ProtoPeek scan before an imported hint can open a workbench. See <a href="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" rel="noreferrer" target="_blank">the route and Nmap evidence guide</a> for exact limits and platform behavior.</p>
+<h3 id="5-cap-n-proto-experiment-exploring">5. Cap&#39;n Proto experiment (exploring)</h3>
+<p>Build one local, schema-file-driven unary/capability call path behind an explicit experimental flag. Show capability resolution and message segments in its own inspector. Measure binary and bundle cost before deciding whether it belongs in the main binary or an optional companion.</p>
+<h3 id="6-traceroute-and-lan-expansion-gated">6. Traceroute and LAN expansion (gated)</h3>
+<p>Traceroute requires consent, a bounded probe source, explicit uncertainty, and partial-failure tests. LAN discovery requires a user-enabled, previewed private scope plus strict candidate/time budgets and cancellation. Neither is a clickable surface today; public or ambient network crawling remains out of scope.</p>
+<h2 id="release-gates-for-any-adapter">Release gates for any adapter</h2>
+<ul><li>Default gRPC startup time and bundle size do not materially regress.</li><li>The adapter works without a database or network service other than the target being inspected.</li><li>Cancellation and session teardown release connections and subprocesses.</li><li>Authorization, cookies, proxy authorization, binary metadata, and API-key/token-like metadata are</li></ul>
+<p>redacted from automatic history and default exports.</p>
+<ul><li>The inspector names the real protocol concepts instead of using generic labels.</li></ul>
+            </div>
+          </article>
+
+          <aside class="pp-doc-aside">
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">On this page</div>
+              <div class="pp-doc-toc">
+                <a class="level-2" href="#product-contract">Product contract</a><a class="level-2" href="#architecture">Architecture</a><a class="level-2" href="#delivery-slices">Delivery slices</a><a class="level-3" href="#1-finish-the-grpc-local-console-contract">1. Finish the gRPC local-console contract</a><a class="level-3" href="#2-keep-the-http-slice-bounded">2. Keep the HTTP slice bounded</a><a class="level-3" href="#3-bound-workspace-transfer-and-replay">3. Bound workspace transfer and replay</a><a class="level-3" href="#4-keep-route-and-imported-evidence-read-only">4. Keep route and imported evidence read-only</a><a class="level-3" href="#5-cap-n-proto-experiment-exploring">5. Cap&#39;n Proto experiment (exploring)</a><a class="level-3" href="#6-traceroute-and-lan-expansion-gated">6. Traceroute and LAN expansion (gated)</a><a class="level-2" href="#release-gates-for-any-adapter">Release gates for any adapter</a>
+              </div>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">Source</div>
+              <div class="pp-doc-source-path">guides/transport-boundaries.md</div>
+              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md" rel="noreferrer" target="_blank">Open source markdown</a>
+            </section>
+
+            <section class="pp-doc-side-card">
+              <div class="pp-doc-side-label">More ProtoPeek docs</div>
+              <div class="pp-doc-related">
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/route-and-nmap-evidence/"><strong>Route and Nmap evidence</strong><span>Guide</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
+              </div>
+            </section>
+          </aside>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -3,20 +3,28 @@
   "status": "captured-locally",
   "screenshots": [
     {
-      "file": "../web/site/public/assets/protopeek-console.jpg",
-      "alt": "ProtoPeek local gRPC console with a reflected bidirectional-stream request workspace",
+      "file": "../web/site/public/assets/protopeek-dashboard.png",
+      "alt": "ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces",
       "platform": "desktop",
-      "capturedVersion": "unreleased",
-      "capturedAt": "2026-08-17",
-      "workflow": "Real local Chrome capture against the repository KitchenSink reflection server. Recapture for each release candidate."
+      "capturedVersion": "v0.3.0",
+      "capturedAt": "2026-08-20",
+      "workflow": "Real local headless Chrome capture against the final embedded dashboard, built with the v0.3.0 version stamp."
     },
     {
-      "file": "../web/site/public/assets/protopeek-console-response.jpg",
-      "alt": "ProtoPeek local gRPC console showing a successful Ping response with headers, status, timeline, and latency",
-      "platform": "desktop",
-      "capturedVersion": "unreleased",
-      "capturedAt": "2026-08-17",
-      "workflow": "Real local Chrome capture against the repository KitchenSink reflection server. Recapture for each release candidate."
+      "file": "../web/site/public/assets/protopeek-dashboard-dark.png",
+      "alt": "ProtoPeek v0.3 Protocol Peek dashboard in the persisted dark theme",
+      "platform": "desktop-dark",
+      "capturedVersion": "v0.3.0",
+      "capturedAt": "2026-08-20",
+      "workflow": "Real local Chrome DevTools capture after setting the versioned dark-theme preference and reloading the embedded dashboard."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-dashboard-mobile.png",
+      "alt": "ProtoPeek v0.3 Protocol Peek dashboard at a 390 by 844 mobile viewport",
+      "platform": "mobile",
+      "capturedVersion": "v0.3.0",
+      "capturedAt": "2026-08-20",
+      "workflow": "Real local headless Chrome capture against the final embedded dashboard at 390 by 844 CSS pixels."
     }
   ]
 }

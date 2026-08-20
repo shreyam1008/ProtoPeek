@@ -58,6 +58,12 @@ function streamMode(method: BootstrapMethod) {
   return 'Unary';
 }
 
+function timingLabel(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? durationLabel(value)
+    : '—';
+}
+
 export function CallWorkspace({
   method,
   schema,
@@ -131,6 +137,15 @@ export function CallWorkspace({
     ? (response?.responses[visibleSelectedIndex] ?? null)
     : null;
   const mode = streamMode(method);
+  const responseStatus = invokeState.loading
+    ? method.serverStreaming || method.clientStreaming
+      ? 'STREAMING'
+      : 'IN FLIGHT'
+    : invokeState.error || response?.error
+      ? 'ERROR'
+      : response
+        ? 'OK'
+        : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -180,7 +195,6 @@ export function CallWorkspace({
             filtered={filteredResponses}
             selectedIndex={visibleSelectedIndex}
             selected={selected}
-            totalLatencyMs={invokeState.latencyMs}
             onSelect={setSelectedResponse}
           />
         );
@@ -353,7 +367,6 @@ export function CallWorkspace({
         id="grpc-mobile-pane-panel-response"
         role="tabpanel"
         aria-labelledby="grpc-mobile-pane-tab-response"
-        aria-live="polite"
       >
         <div className="pp-response-summary">
           <span
@@ -362,18 +375,19 @@ export function CallWorkspace({
               (invokeState.error || response?.error) && 'pp-status-mark-error',
               invokeState.loading && 'pp-status-mark-running'
             )}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={`RPC status ${responseStatus}`}
           >
-            {invokeState.loading
-              ? method.serverStreaming || method.clientStreaming
-                ? 'STREAMING'
-                : 'IN FLIGHT'
-              : invokeState.error || response?.error
-                ? 'ERROR'
-                : response
-                  ? 'OK'
-                  : 'READY'}
+            {responseStatus}
           </span>
-          <span>{invokeState.latencyMs > 0 ? durationLabel(invokeState.latencyMs) : '—'}</span>
+          <span title="ProtoPeek handler invoke duration; includes conversion and callbacks, but excludes the browser and HTTP relay">
+            Handler {timingLabel(response?.timings?.totalMs)}
+          </span>
+          <span title="Browser request through the ProtoPeek console relay">
+            Console {response ? timingLabel(invokeState.latencyMs) : '—'}
+          </span>
           <span>{response?.responses.length ?? 0} messages</span>
           <label className="pp-response-filter">
             <Search aria-hidden="true" />
@@ -524,14 +538,12 @@ function ResponseMessages({
   filtered,
   selectedIndex,
   selected,
-  totalLatencyMs,
   onSelect,
 }: {
   responses: InvokeResponse['responses'];
   filtered: Array<{ item: InvokeResponse['responses'][number]; index: number }>;
   selectedIndex: number;
   selected: InvokeResponse['responses'][number] | null;
-  totalLatencyMs: number;
   onSelect: (index: number) => void;
 }) {
   if (!responses.length) return <ResponsePlaceholder>No response messages.</ResponsePlaceholder>;
@@ -542,10 +554,20 @@ function ResponseMessages({
         <div className="pp-message-row pp-message-heading">
           <span>#</span>
           <span>Message</span>
-          <span>Time</span>
+          <span title="Callback-observed message boundaries, not packet arrival or TTFB">
+            Observed / +gap
+          </span>
         </div>
         {filtered.map(({ item, index }) => {
-          const elapsed = item.elapsedMs || (totalLatencyMs / responses.length) * (index + 1);
+          const cumulativeMs = item.elapsedMs;
+          const previousCumulativeMs = index === 0 ? 0 : responses[index - 1]?.elapsedMs;
+          const gapMs =
+            cumulativeMs !== null &&
+            previousCumulativeMs !== null &&
+            previousCumulativeMs !== undefined &&
+            cumulativeMs >= previousCumulativeMs
+              ? cumulativeMs - previousCumulativeMs
+              : null;
           return (
             <button
               key={`${item.sequence}-${index}`}
@@ -557,7 +579,10 @@ function ResponseMessages({
               <span>
                 <i aria-hidden="true" /> Message {item.sequence || index + 1}
               </span>
-              <span>{durationLabel(elapsed)}</span>
+              <span className="pp-message-time">
+                <span>{timingLabel(cumulativeMs)}</span>
+                <small>{gapMs === null ? '+—' : `+${timingLabel(gapMs)}`}</small>
+              </span>
             </button>
           );
         })}
@@ -609,28 +634,47 @@ function MetadataGrid({ title, values }: { title: string; values: MetadataEntry[
 }
 
 function StatusGrid({ response, latencyMs }: { response: InvokeResponse; latencyMs: number }) {
+  const timings = [
+    ['Headers observed', response.timings?.headersMs],
+    ['First message observed', response.timings?.firstMessageMs],
+    ['Final status observed', response.timings?.trailersMs],
+    ['Invoke returned', response.timings?.totalMs],
+    ['Console round trip', latencyMs],
+  ] as const;
   return (
-    <div className="pp-status-grid">
-      <div>
-        <span>Code</span>
-        <strong className={response.error ? 'pp-error-text' : 'pp-ok-text'}>
-          {response.error ? `${response.error.name} (${response.error.code})` : 'OK (0)'}
-        </strong>
+    <div className="pp-status-evidence">
+      <div className="pp-status-grid">
+        <div>
+          <span>Code</span>
+          <strong className={response.error ? 'pp-error-text' : 'pp-ok-text'}>
+            {response.error ? `${response.error.name} (${response.error.code})` : 'OK (0)'}
+          </strong>
+        </div>
+        <div>
+          <span>Details</span>
+          <strong>{response.error?.message || 'RPC completed successfully.'}</strong>
+        </div>
+        <div>
+          <span>Requests</span>
+          <strong>
+            {response.requests ? `${response.requests.sent}/${response.requests.total} sent` : '—'}
+          </strong>
+        </div>
       </div>
-      <div>
-        <span>Details</span>
-        <strong>{response.error?.message || 'RPC completed successfully.'}</strong>
-      </div>
-      <div>
-        <span>Elapsed</span>
-        <strong>{durationLabel(latencyMs)}</strong>
-      </div>
-      <div>
-        <span>Requests</span>
-        <strong>
-          {response.requests ? `${response.requests.sent}/${response.requests.total} sent` : '—'}
-        </strong>
-      </div>
+      <section className="pp-grpc-timing-grid" aria-label="gRPC timing evidence">
+        {timings.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong>{timingLabel(value)}</strong>
+          </div>
+        ))}
+      </section>
+      <p className="pp-grpc-timing-note">
+        Callback-observed lifecycle boundaries, cumulative from invoke start. Unary callbacks can
+        cluster after transport completion; these are not packet arrival, server processing, or TTFB
+        measurements. Handler invoke includes JSON/protobuf conversion and callbacks, but excludes
+        the browser and HTTP relay. Console round trip includes that relay and response parsing.
+      </p>
     </div>
   );
 }

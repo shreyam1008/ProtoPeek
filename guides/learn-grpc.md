@@ -233,8 +233,17 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 Without reflection, a UI either needs explicit schema files from the user or it becomes blind. ProtoPeek keeps both paths:
 
 - **Reflection** for the happy path where the server cooperates
-- **Proto source files** for locked-down services that disable reflection
-- **Protoset files** for pre-compiled descriptor sets from build pipelines
+- **Browser folder** for a user-selected, temporary `.proto` snapshot. Relative imports must remain
+  inside the selected root (apart from built-in Google well-known protos); the bounded snapshot goes
+  to the current ProtoPeek process, never to the gRPC target. Its in-memory upload buffers are cleared
+  before the target is dialed or the session is published. Folder access and bytes are not saved, so
+  reconnecting after reload requires a repick.
+- **Host proto paths** for locked-down services when the ProtoPeek process can read the source tree
+- **Host protoset paths** for pre-compiled descriptor sets from build pipelines
+
+That browser/host distinction matters in Docker and remote-console setups. A folder chosen in the
+browser is uploaded as a one-shot snapshot. A host path is interpreted on the machine or container
+running ProtoPeek; it is never secretly remapped to the browser computer.
 
 ## 7. gRPC status codes
 
@@ -313,16 +322,62 @@ There is no universal "gRPC is X times faster" number worth trusting outside a s
 - **Retries and deadlines** — retry storms can mask the real throughput ceiling
 - **Client and server implementation** — Go, Java, Rust, and C++ gRPC runtimes have different performance profiles
 
-ProtoPeek's simulation studio can repeat a bounded set of unary calls and show browser-observed p50,
-p95, p99, and request-rate output for debugging. It is not a load generator or a defensible service
-benchmark: browser scheduling, the local relay, connection reuse, and the selected payload all shape
-the result. Use it to spot a local anomaly, then confirm performance with a controlled load tool.
+ProtoPeek's Unary Repeat can run 2–50 calls strictly one at a time, with an optional between-call
+delay, a separate 0.1–30 second deadline for each call, cancellation, and a 60 second wall cap that
+preserves partial results. It separates successful RPCs, non-OK gRPC statuses, local relay/transport
+failures, and cancellation instead of collapsing unlike outcomes into one error count.
+
+The console retains both ProtoPeek handler invoke duration and browser console round trip for each
+completed attempt. Handler invoke includes JSON/protobuf conversion and callbacks, but excludes the
+browser and HTTP relay. Headers, first message, and final status are cumulative lifecycle boundaries
+observed by handler callbacks. Unary callbacks may cluster after transport completion; these values
+are not packet-arrival, server-processing, or TTFB measurements. Console round trip includes the
+browser/HTTP relay and response parsing.
+
+Min, median, and max name their source; p95 appears only with at least 20 samples. When handler timing
+is unavailable for a legacy response, the summary visibly says it uses the console round-trip
+fallback. Repeat is not a load generator or a defensible service benchmark: browser scheduling, the
+local relay, connection reuse, and the selected payload still shape what the console observes. Use
+it to spot a local anomaly, then confirm performance with a controlled load tool.
+
+Every Repeat attempt is a real RPC and may mutate service data. Protobuf descriptors do not reliably
+guarantee idempotency, so inspect the method and payload before repeating it.
+
+Repeat owns the request while active: assertions are disabled and an ordinary Invoke asks you to
+cancel Repeat first. Navigating away from Checks cancels the run and preserves partial evidence, so
+RPCs never continue hidden in another view. The result header keeps the run-start timestamp and its
+frozen count, think time, and per-call deadline. If current controls differ, ProtoPeek labels the
+evidence as a previous run; the payload and metadata were snapshotted at run start but are not
+retained in results or exports.
 
 > [!TIP]
-> Start with the smallest preset for a local sanity check. Treat larger presets as debugging aids,
-> not production capacity evidence.
+> Start with Quick for a local sanity check. Use Tail sample when p95 is useful, and treat every
+> result as debugging evidence rather than production capacity evidence.
 
-## 10. Why debugging gets hard fast
+## 10. Health Check and Watch are protocol calls, not magic
+
+The standard `grpc.health.v1.Health` service has two deliberately different methods:
+
+- `Check` returns one serving status for a service name. An empty name asks for overall server
+  health. An unknown non-empty name ends with gRPC `NOT_FOUND`; there is no serving enum to invent.
+- `Watch` is a server stream. It reports the current status immediately and then changes. An unknown
+  service reports `SERVICE_UNKNOWN` and remains open. A server that does not implement Watch returns
+  `UNIMPLEMENTED`.
+
+ProtoPeek exposes both only as user-started diagnostics. Check uses a bounded deadline. Watch opens
+one real stream for a bounded duration, does not poll or retry, keeps headers, each observed status,
+trailers, cancellation, and the final gRPC status separate, and reports when older retained
+transitions were dropped. Request metadata is sent live but never copied into Health evidence or
+browser storage.
+
+A healthy response is evidence from one selected backend connection at one moment. It does not prove
+that dependencies are healthy, that every replica is reachable, or that a load balancer would choose
+the same backend next time. ProtoPeek's offsets mark when its handler/relay observed each event; they
+are not packet timestamps or the server's emission clock. gRPC Health is also distinct from HTTP/2
+keepalive: keepalive tests whether a connection remains usable, while Health reports application
+status chosen by the service.
+
+## 11. Why debugging gets hard fast
 
 The painful gRPC bugs are rarely serialization bugs. They are transport and configuration issues:
 
@@ -333,19 +388,22 @@ The painful gRPC bugs are rarely serialization bugs. They are transport and conf
 | No RPCs discovered | Server reflection disabled, or proto files not loaded | Proto structure explorer |
 | `UNAUTHENTICATED` on every call | Missing or malformed auth header | Metadata editor |
 | `UNAVAILABLE` after deployment | TLS cert mismatch, wrong port, DNS resolution | Target registry settings |
-| `DEADLINE_EXCEEDED` under load | Server too slow, or deadline set too aggressively | Simulation studio |
+| `DEADLINE_EXCEEDED` during repetition | Server too slow, or per-call deadline set too aggressively | Unary Repeat |
 | Works locally, fails in staging | Authority override needed, or different TLS config | Target registry per-environment |
 | Browser client behaves differently | gRPC-Web proxy issue, not backend | Transport lens |
 | Streaming closes unexpectedly | Keepalive timeout, proxy idle timeout | Response lab trailers |
-| Latency spikes at p99 | Concurrency bottleneck, connection pool exhaustion | Simulation sparkline chart |
+| Readiness differs by backend | One replica, dependency, or load-balancer path is unhealthy | Explicit Health Check/Watch, then backend-aware infrastructure evidence |
+| One sequential call is much slower | Backend variance, proxy delay, or connection setup | Unary Repeat timing and attempt evidence |
 
 That is why ProtoPeek combines request authoring, response inspection, metadata visibility, bounded browser repetition, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
 
-## 11. Further reading
+## 12. Further reading
 
 **Official gRPC documentation:**
 
 - [gRPC core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/) — services, messages, deadlines, metadata
+- [gRPC health checking](https://grpc.io/docs/guides/health-checking/) — canonical Check/Watch behavior and client configuration
+- [Health protocol definition](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto) — the canonical service and serving-status enum
 - [gRPC guides](https://grpc.io/docs/guides/) — auth, error handling, performance, benchmarking, keepalive
 - [gRPC debugging guide](https://grpc.io/docs/guides/debugging/) — admin services, channelz, `grpcdebug`
 - [gRPC status codes](https://grpc.io/docs/guides/status-codes/) — canonical error code semantics

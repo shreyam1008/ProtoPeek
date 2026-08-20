@@ -106,7 +106,7 @@ export type WorkspaceTargetConfig = {
   cacertPath: string;
   certPath: string;
   keyPath: string;
-  schemaSource: 'reflection' | 'proto-files' | 'protoset';
+  schemaSource: 'reflection' | 'browser-proto-folder' | 'proto-files' | 'protoset';
   protoFiles: string[];
   importPaths: string[];
   protosets: string[];
@@ -200,7 +200,7 @@ export type InvokeResponseElement = {
   message: unknown;
   isError: boolean;
   sequence: number;
-  elapsedMs: number;
+  elapsedMs: number | null;
 };
 
 export type InvokeError = {
@@ -215,13 +215,104 @@ export type InvokeRequestStats = {
   sent: number;
 };
 
+export type InvokeTimings = {
+  headersMs: number | null;
+  firstMessageMs: number | null;
+  trailersMs: number | null;
+  totalMs: number;
+};
+
 export type InvokeResponse = {
   headers: MetadataEntry[];
   error: InvokeError | null;
   responses: InvokeResponseElement[];
   requests: InvokeRequestStats | null;
   trailers: MetadataEntry[];
+  timings: InvokeTimings | null;
 };
+
+export type HealthServingStatus = {
+  code: number;
+  name: string;
+};
+
+export type HealthGRPCStatus = {
+  code: number;
+  name: string;
+  message: string;
+  messageTruncated: boolean;
+};
+
+export type HealthCheckRequest = {
+  service: string;
+  timeout_seconds: number;
+  metadata: MetadataEntry[];
+};
+
+export type HealthCheckResponse = {
+  service: string;
+  startedAt: string;
+  handlerInvokeMs: number;
+  servingStatus: HealthServingStatus | null;
+  grpcStatus: HealthGRPCStatus;
+  headers: MetadataEntry[];
+  trailers: MetadataEntry[];
+  headersTruncated: boolean;
+  trailersTruncated: boolean;
+};
+
+export type HealthWatchRequest = {
+  service: string;
+  duration_seconds: number;
+  metadata: MetadataEntry[];
+};
+
+type HealthWatchEventBase = {
+  service: string;
+  startedAt: string;
+  observedOffsetMs: number;
+};
+
+export type HealthWatchStartedEvent = HealthWatchEventBase & {
+  type: 'started';
+  durationSeconds: number;
+  metadataCount: number;
+};
+
+export type HealthWatchHeadersEvent = HealthWatchEventBase & {
+  type: 'headers-observed';
+  headers: MetadataEntry[];
+  headersTruncated: boolean;
+};
+
+export type HealthWatchStatusEvent = HealthWatchEventBase & {
+  type: 'status-observed';
+  sequence: number;
+  servingStatus: HealthServingStatus;
+};
+
+export type HealthWatchEndReason =
+  | 'completed'
+  | 'rpc-error'
+  | 'unsupported'
+  | 'duration-limit'
+  | 'observation-limit'
+  | 'canceled';
+
+export type HealthWatchEndedEvent = HealthWatchEventBase & {
+  type: 'ended';
+  reason: HealthWatchEndReason;
+  observationCount: number;
+  grpcStatus: HealthGRPCStatus;
+  trailers: MetadataEntry[];
+  trailersTruncated: boolean;
+};
+
+export type HealthWatchEvent =
+  | HealthWatchStartedEvent
+  | HealthWatchHeadersEvent
+  | HealthWatchStatusEvent
+  | HealthWatchEndedEvent;
 
 export type SavedCollection = {
   id: string;
@@ -234,6 +325,10 @@ export type SavedCollection = {
   metadata: MetadataEntry[];
   timeoutSeconds: number;
   requestText: string;
+  /** Present on records created after workspace-scoped replay was introduced. */
+  targetId?: string;
+  /** Target address guards direct-mode and migrated records when no profile ID exists. */
+  targetAddress?: string;
 };
 
 export type RequestHistoryEntry = {
@@ -247,27 +342,97 @@ export type RequestHistoryEntry = {
   responsePreview: string;
   metadata: MetadataEntry[];
   timeoutSeconds: number;
+  /** Present on records created after workspace-scoped replay was introduced. */
+  targetId?: string;
+  /** Target address guards direct-mode and migrated records when no profile ID exists. */
+  targetAddress?: string;
 };
 
-export type SimulationConfig = {
-  runs: number;
-  concurrency: number;
+export type WorkspaceExportV1 = {
+  format: 'protopeek-workspace';
+  version: 1;
+  exportedAt: string;
+  assertions: AssertionRule[];
+  collections: SavedCollection[];
+  environments: EnvironmentPreset[];
+  targets: WorkspaceTargetProfile[];
+};
+
+export type ValidatedWorkspaceImport = {
+  legacy: boolean;
+  sections: {
+    assertions: boolean;
+    collections: boolean;
+    environments: boolean;
+    history: boolean;
+    targets: boolean;
+  };
+  assertions: AssertionRule[];
+  collections: SavedCollection[];
+  environments: EnvironmentPreset[];
+  history?: RequestHistoryEntry[];
+  targets: WorkspaceTargetProfile[];
+  hasHostFilePaths: boolean;
+};
+
+export type RepeatConfig = {
+  count: number;
   thinkTimeMs: number;
+  deadlineSeconds: number;
 };
 
-export type SimulationRun = {
+export type RepeatOutcome = 'ok' | 'grpc-error' | 'relay-transport-error' | 'cancelled';
+
+export type RepeatStopReason = 'completed' | 'user-cancelled' | 'aggregate-limit';
+
+export type RepeatAttempt = {
+  sequence: number;
+  startedOffsetMs: number;
+  consoleRoundTripMs: number;
+  handlerInvokeMs: number | null;
+  outcome: RepeatOutcome;
+  responseCount: number;
+  headerCount: number;
+  trailerCount: number;
+  grpcStatus: {
+    code: number;
+    name: string;
+    message: string;
+  } | null;
+  error: string;
+};
+
+export type RepeatRun = {
   id: string;
   createdAt: string;
   method: string;
-  config: SimulationConfig;
+  target: string;
+  config: RepeatConfig;
+  requestedCount: number;
   totalMs: number;
-  successCount: number;
-  errorCount: number;
-  throughputRps: number;
-  latencies: number[];
-  p50: number;
-  p95: number;
-  p99: number;
+  stopReason: RepeatStopReason;
+  counts: {
+    ok: number;
+    grpcError: number;
+    relayTransportError: number;
+    cancelled: number;
+  };
+  latency: {
+    sampleCount: number;
+    source: 'handler-invoke' | 'console-round-trip';
+    minMs: number | null;
+    medianMs: number | null;
+    p95Ms: number | null;
+    maxMs: number | null;
+  };
+  attempts: RepeatAttempt[];
+};
+
+export type RepeatExportV1 = {
+  format: 'protopeek-repeat';
+  version: 1;
+  exportedAt: string;
+  run: RepeatRun;
 };
 
 export type EnvironmentPreset = {

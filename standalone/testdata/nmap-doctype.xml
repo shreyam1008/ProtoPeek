@@ -1,0 +1,3 @@
+<?xml version="1.0"?>
+<!DOCTYPE nmaprun [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+<nmaprun scanner="nmap"><host><hostnames><hostname name="&xxe;"/></hostnames></host></nmaprun>

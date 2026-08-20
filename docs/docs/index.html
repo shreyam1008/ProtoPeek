@@ -4,25 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Docs hub | ProtoPeek</title>
-    <meta name="description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, roadmap planning, extension design, and contributor rules." />
+    <meta name="description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/docs/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="Docs hub | ProtoPeek" />
-    <meta property="og:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, roadmap planning, extension design, and contributor rules." />
+    <meta property="og:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/docs/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Docs hub | ProtoPeek" />
-    <meta name="twitter:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, roadmap planning, extension design, and contributor rules." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","headline":"Docs hub","description":"Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design.","url":"https://protopeek.shreyam1008.com.np/docs/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/docs/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -111,7 +121,7 @@
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for the gRPC tutorial, roadmap, extension plan, launch runbook, and contributor rules.</p>
+          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
           <a href="/learn-grpc/">Start with Learn gRPC</a>
         </article>
       </div>
@@ -136,13 +146,39 @@
               <article class="pp-doc-card">
                 <div class="pp-doc-pill">Roadmap</div>
                 <h3>Feature roadmap</h3>
-                <p>The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work.</p>
+                <p>The shipped v0.3.0 protocol workbench and the gates for future transport-aware work.</p>
                 <div class="pp-doc-chip-row">
                   <span>gRPC + HTTP</span><span>Safety boundaries</span><span>Gated plans</span>
                 </div>
                 <div class="pp-doc-card-links">
                   <a href="/feature-roadmap/">Open page</a>
                   <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md" rel="noreferrer" target="_blank">Source markdown</a>
+                </div>
+              </article>
+
+              <article class="pp-doc-card">
+                <div class="pp-doc-pill">Guide</div>
+                <h3>Route and Nmap evidence</h3>
+                <p>Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.</p>
+                <div class="pp-doc-chip-row">
+                  <span>Kernel next hop</span><span>Offline Nmap XML</span><span>No hidden execution</span>
+                </div>
+                <div class="pp-doc-card-links">
+                  <a href="/route-and-nmap-evidence/">Open page</a>
+                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md" rel="noreferrer" target="_blank">Source markdown</a>
+                </div>
+              </article>
+
+              <article class="pp-doc-card">
+                <div class="pp-doc-pill">Architecture</div>
+                <h3>Transport boundaries</h3>
+                <p>The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.</p>
+                <div class="pp-doc-chip-row">
+                  <span>Local-first shell</span><span>Native evidence</span><span>Release gates</span>
+                </div>
+                <div class="pp-doc-card-links">
+                  <a href="/transport-boundaries/">Open page</a>
+                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md" rel="noreferrer" target="_blank">Source markdown</a>
                 </div>
               </article>
 
@@ -156,45 +192,6 @@
                 <div class="pp-doc-card-links">
                   <a href="/vscode-extension-spec/">Open page</a>
                   <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/vscode-extension-spec.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
-
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Launch</div>
-                <h3>Launch post draft</h3>
-                <p>Positioning copy for introducing ProtoPeek as an independent local gRPC and HTTP workbench.</p>
-                <div class="pp-doc-chip-row">
-                  <span>gRPC + HTTP</span><span>Independent branding</span><span>Protocol-native story</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/launch-post/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/launch-post.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
-
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Launch</div>
-                <h3>Go-to-market runbook</h3>
-                <p>A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Release gate</span><span>Package channels</span><span>Human launch voice</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/go-to-market/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/go-to-market.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
-
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Rules</div>
-                <h3>Contributor rules</h3>
-                <p>The engineering and product constraints that keep ProtoPeek dependency-conscious, transport-aware, and reliable under production debugging pressure.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Dependency budget</span><span>gRPC-aware UX</span><span>Docs stay aligned</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/contributor-rules/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/AGENTS.md" rel="noreferrer" target="_blank">Source markdown</a>
                 </div>
               </article>
 
@@ -214,14 +211,14 @@
 
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/ + AGENTS.md</div>
+              <div class="pp-doc-source-path">guides/</div>
               <a href="https://github.com/shreyam1008/ProtoPeek/tree/master/guides" rel="noreferrer" target="_blank">Open source markdown</a>
             </section>
 
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">More ProtoPeek docs</div>
               <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/route-and-nmap-evidence/"><strong>Route and Nmap evidence</strong><span>Guide</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
               </div>
             </section>
           </aside>

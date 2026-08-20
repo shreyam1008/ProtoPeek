@@ -25,10 +25,30 @@ const publishedPages = [
     title: 'Feature roadmap',
     section: 'Roadmap',
     description:
-      'The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work.',
+      'The shipped v0.3.0 protocol workbench and the gates for future transport-aware work.',
     sourcePath: 'guides/feature-roadmap.md',
     sourceURL: `${repoRootURL}/blob/master/guides/feature-roadmap.md`,
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
+  },
+  {
+    slug: 'route-and-nmap-evidence',
+    title: 'Route and Nmap evidence',
+    section: 'Guide',
+    description:
+      'Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.',
+    sourcePath: 'guides/route-and-nmap-evidence.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/route-and-nmap-evidence.md`,
+    highlights: ['Kernel next hop', 'Offline Nmap XML', 'No hidden execution'],
+  },
+  {
+    slug: 'transport-boundaries',
+    title: 'Transport boundaries',
+    section: 'Architecture',
+    description:
+      'The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.',
+    sourcePath: 'guides/transport-boundaries.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/transport-boundaries.md`,
+    highlights: ['Local-first shell', 'Native evidence', 'Release gates'],
   },
   {
     slug: 'vscode-extension-spec',
@@ -40,43 +60,10 @@ const publishedPages = [
     sourceURL: `${repoRootURL}/blob/master/guides/vscode-extension-spec.md`,
     highlights: ['Launch helper', '1 MB target', 'No duplicate client'],
   },
-  {
-    slug: 'launch-post',
-    title: 'Launch post draft',
-    section: 'Launch',
-    description:
-      'Positioning copy for introducing ProtoPeek as an independent local gRPC and HTTP workbench.',
-    sourcePath: 'guides/launch-post.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/launch-post.md`,
-    highlights: ['gRPC + HTTP', 'Independent branding', 'Protocol-native story'],
-  },
-  {
-    slug: 'go-to-market',
-    title: 'Go-to-market runbook',
-    section: 'Launch',
-    description:
-      'A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt.',
-    sourcePath: 'guides/go-to-market.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/go-to-market.md`,
-    highlights: ['Release gate', 'Package channels', 'Human launch voice'],
-  },
-  {
-    slug: 'contributor-rules',
-    title: 'Contributor rules',
-    section: 'Rules',
-    description:
-      'The engineering and product constraints that keep ProtoPeek dependency-conscious, transport-aware, and reliable under production debugging pressure.',
-    sourcePath: 'AGENTS.md',
-    sourceURL: `${repoRootURL}/blob/master/AGENTS.md`,
-    highlights: ['Dependency budget', 'gRPC-aware UX', 'Docs stay aligned'],
-  },
 ];
 
 async function main() {
-  await Promise.all([
-    ...publishedPages.map((page) => writeMarkdownPage(page)),
-    writeDocsHubPage(),
-  ]);
+  await Promise.all([...publishedPages.map((page) => writeMarkdownPage(page)), writeDocsHubPage()]);
 }
 
 async function writeMarkdownPage(page) {
@@ -99,7 +86,7 @@ async function writeMarkdownPage(page) {
       sourcePath: page.sourcePath,
       highlights: page.highlights,
       heroVisual: renderHeroVisual(title, page.highlights),
-    }),
+    })
   );
 }
 
@@ -124,7 +111,7 @@ async function writeDocsHubPage() {
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for the gRPC tutorial, roadmap, extension plan, launch runbook, and contributor rules.</p>
+          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
           <a href="${siteBase}/learn-grpc/">Start with Learn gRPC</a>
         </article>
       </div>
@@ -149,7 +136,7 @@ async function writeDocsHubPage() {
                   <a href="${page.sourceURL}" rel="noreferrer" target="_blank">Source markdown</a>
                 </div>
               </article>
-            `,
+            `
           )
           .join('')}
       </div>
@@ -162,24 +149,19 @@ async function writeDocsHubPage() {
       title: 'Docs hub',
       documentTitle: 'Docs hub | ProtoPeek',
       description:
-        'Published ProtoPeek guides for gRPC, HTTP boundaries, roadmap planning, extension design, and contributor rules.',
+        'Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design.',
       canonicalPath: '/docs/',
       section: 'Docs',
       intro:
         'ProtoPeek now publishes its guides as first-class pages instead of leaving them buried as raw markdown in the repository.',
       body,
-      toc: [
-        { id: 'published-guides', text: 'Published guides', level: 2 },
-      ],
+      toc: [{ id: 'published-guides', text: 'Published guides', level: 2 }],
       sourceURL: `${repoRootURL}/tree/master/guides`,
-      sourcePath: 'guides/ + AGENTS.md',
+      sourcePath: 'guides/',
       highlights: ['Published pages', 'SEO-friendly routes', 'GitHub source links'],
-      heroVisual: renderHeroVisual('Docs hub', [
-        'Homepage',
-        'Published guides',
-        'Source markdown',
-      ]),
-    }),
+      heroVisual: renderHeroVisual('Docs hub', ['Homepage', 'Published guides', 'Source markdown']),
+      schemaType: 'CollectionPage',
+    })
   );
 }
 
@@ -241,8 +223,8 @@ function renderMarkdownPage(markdown, page) {
       }
       html.push(
         `<pre class="pp-doc-code"><code data-lang="${escapeAttr(language)}">${escapeHtml(
-          code.join('\n'),
-        )}</code></pre>`,
+          code.join('\n')
+        )}</code></pre>`
       );
       continue;
     }
@@ -277,7 +259,7 @@ function renderMarkdownPage(markdown, page) {
         `<div class="pp-doc-callout pp-doc-callout-${kind}">` +
           `<div class="pp-doc-callout-label">${calloutLabels[kind]}</div>` +
           `<div>${renderInline(calloutLines.join(' ').trim())}</div>` +
-          `</div>`,
+          `</div>`
       );
       continue;
     }
@@ -286,7 +268,11 @@ function renderMarkdownPage(markdown, page) {
     if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
       flushParagraph();
       const tableLines = [];
-      while (index < lines.length && lines[index].trim().startsWith('|') && lines[index].trim().endsWith('|')) {
+      while (
+        index < lines.length &&
+        lines[index].trim().startsWith('|') &&
+        lines[index].trim().endsWith('|')
+      ) {
         tableLines.push(lines[index].trim());
         index += 1;
       }
@@ -303,7 +289,14 @@ function renderMarkdownPage(markdown, page) {
         const thead = `<thead><tr>${headerCells.map((c) => `<th>${renderInline(c)}</th>`).join('')}</tr></thead>`;
         const tbody =
           bodyRows.length > 0
-            ? `<tbody>${bodyRows.map((row) => `<tr>${parseRow(row).map((c) => `<td>${renderInline(c)}</td>`).join('')}</tr>`).join('')}</tbody>`
+            ? `<tbody>${bodyRows
+                .map(
+                  (row) =>
+                    `<tr>${parseRow(row)
+                      .map((c) => `<td>${renderInline(c)}</td>`)
+                      .join('')}</tr>`
+                )
+                .join('')}</tbody>`
             : '';
         html.push(`<table>${thead}${tbody}</table>`);
       }
@@ -382,8 +375,27 @@ function renderPageTemplate({
   sourcePath,
   highlights,
   heroVisual,
+  schemaType = 'TechArticle',
 }) {
   const canonicalURL = `${siteRoot}${canonicalPath}`;
+  const structuredData = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': schemaType,
+    headline: title,
+    description,
+    url: canonicalURL,
+    mainEntityOfPage: canonicalURL,
+    author: {
+      '@type': 'Person',
+      name: 'Shreyam Adhikari',
+      url: 'https://shreyam1008.com.np/',
+    },
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'ProtoPeek',
+      url: `${siteRoot}/`,
+    },
+  }).replaceAll('<', '\\u003c');
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -391,24 +403,34 @@ function renderPageTemplate({
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(documentTitle)}</title>
     <meta name="description" content="${escapeAttr(description)}" />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="${canonicalURL}" />
     <link rel="icon" type="image/svg+xml" href="${siteBase}/favicon.svg" />
+    <link rel="manifest" href="${siteBase}/site.webmanifest" />
     <link rel="stylesheet" href="${siteBase}/docs.css" />
     <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="${escapeAttr(documentTitle)}" />
     <meta property="og:description" content="${escapeAttr(description)}" />
     <meta property="og:url" content="${canonicalURL}" />
-    <meta property="og:image" content="${siteRoot}/protopeek-social.png" />
-    <meta property="og:image:secure_url" content="${siteRoot}/protopeek-social.png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="${siteRoot}/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="${siteRoot}/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeAttr(documentTitle)}" />
     <meta name="twitter:description" content="${escapeAttr(description)}" />
-    <meta name="twitter:image" content="${siteRoot}/protopeek-social.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:image" content="${siteRoot}/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -455,7 +477,7 @@ function renderPageTemplate({
                     ? toc
                         .map(
                           (item) =>
-                            `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`,
+                            `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`
                         )
                         .join('')
                     : '<span class="pp-doc-empty">No section headings in this page.</span>'
@@ -476,7 +498,7 @@ function renderPageTemplate({
                   .filter((item) => item.title !== title)
                   .map(
                     (item) =>
-                      `<a href="${siteBase}/${item.slug}/"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.section)}</span></a>`,
+                      `<a href="${siteBase}/${item.slug}/"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.section)}</span></a>`
                   )
                   .join('')}
               </div>
@@ -501,7 +523,7 @@ function renderHeroVisual(title, highlights) {
             <div class="pp-doc-visual-fill fill-${index + 1}"></div>
           </div>
         </div>
-      `,
+      `
     )
     .join('');
 
@@ -529,7 +551,7 @@ function renderInline(text) {
   let value = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
     const key = `__PP_TOKEN_${tokens.length}__`;
     tokens.push(
-      `<a href="${escapeAttr(href)}"${isExternal(href) ? ' rel="noreferrer" target="_blank"' : ''}>${escapeHtml(label)}</a>`,
+      `<a href="${escapeAttr(href)}"${isExternal(href) ? ' rel="noreferrer" target="_blank"' : ''}>${escapeHtml(label)}</a>`
     );
     return key;
   });
@@ -544,7 +566,7 @@ function renderInline(text) {
   value = value.replace(
     /(^|[\s(])(https?:\/\/[^\s)]+)(?=($|[\s).]))/g,
     (_, prefix, url) =>
-      `${prefix}<a href="${escapeAttr(url)}" rel="noreferrer" target="_blank">${escapeHtml(url)}</a>`,
+      `${prefix}<a href="${escapeAttr(url)}" rel="noreferrer" target="_blank">${escapeHtml(url)}</a>`
   );
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -562,10 +584,12 @@ function uniqueSlug(base, counts) {
 }
 
 function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'section';
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'section'
+  );
 }
 
 function escapeHtml(text) {

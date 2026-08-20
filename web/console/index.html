@@ -9,7 +9,16 @@
     />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>ProtoPeek Console</title>
-
+    <script>
+      (() => {
+        let theme = 'light';
+        try {
+          const preference = JSON.parse(localStorage.getItem('protopeek.theme.v1') || 'null');
+          if (preference?.version === 1 && preference?.theme === 'dark') theme = 'dark';
+        } catch {}
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

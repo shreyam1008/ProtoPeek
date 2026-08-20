@@ -1,5 +1,4 @@
 import {
-  Activity,
   CheckCircle2,
   CircleAlert,
   Clock3,
@@ -16,15 +15,17 @@ import {
 } from 'lucide-react';
 import {
   type ChangeEvent,
+  type ReactNode,
   startTransition,
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useMemo,
   useReducer,
   useRef,
   useState,
 } from 'react';
-
+import type { BrowserProtoFolderSelection } from '@/shared/proto-folder';
 import type {
   AssertionResult,
   AssertionRule,
@@ -40,45 +41,60 @@ import type {
   ProtoEnumSummary,
   ProtoFileSummary,
   ProtoMessageSummary,
+  RepeatAttempt,
+  RepeatConfig,
+  RepeatRun,
+  RepeatStopReason,
   RequestHistoryEntry,
   SavedCollection,
   SchemaResponse,
-  SimulationConfig,
-  SimulationRun,
   WorkspaceTargetConfig,
   WorkspaceTargetProfile,
 } from '@/shared/types';
 import {
   appStorageKeys,
-  clampSimulationConfig,
+  buildRepeatRun,
   classNames,
-  commandPreview,
   compactDate,
+  displayBuildVersion,
   durationLabel,
   evaluateAssertions,
+  filterMetadataForInvoke,
   generateRequestTemplate,
   loadStoredValue,
+  loadStoredWorkspaceSection,
   matchesMethodFilter,
   modifierKeyLabel,
+  prepareMetadataForReplay,
   prettyJson,
+  redactedValue,
+  removeStoredValue,
+  type StoredWorkspaceRecovery,
   safeParseJson,
   sanitizeAssertionForPersistence,
-  sanitizeMetadataForPersistence,
-  simulationSummary,
+  serializeRepeatRun,
+  serializeWorkspaceExport,
   sparklinePath,
   storeValue,
+  storeValuesAtomically,
   toCollection,
   toEnvironmentPreset,
   toHistoryEntry,
   toWorkspaceTargetProfile,
   uid,
+  validateRepeatConfig,
+  validateWorkspaceImport,
+  workspaceImportLimits,
+  workspaceImportMaxBytes,
+  workspaceSchemaSourceLabel,
+  workspaceTargetReferenceError,
 } from '@/shared/utils';
 
 import {
+  checkHealth,
   connectWorkspaceTarget,
   disconnectWorkspaceSession,
   fetchBootstrap,
-  fetchExamples,
   fetchProtoCatalog,
   fetchSchema,
   fetchWorkspaceProtoCatalog,
@@ -86,17 +102,138 @@ import {
   invokeMethod,
   invokeWorkspaceMethod,
   type ScanResult,
-  scanAddresses,
+  watchHealth,
 } from './api';
+import { BrowserProtoFolderPicker } from './BrowserProtoFolderPicker';
 import { CallWorkspace } from './CallWorkspace';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
+import { DiscoveryPanel } from './DiscoveryScanner';
+import { HealthPanel } from './HealthPanel';
+import {
+  applyHealthCheckResult,
+  applyHealthWatchEvent,
+  finishHealthRun,
+  type HealthRun,
+  type HealthRunEndReason,
+  hasCanonicalHealthDescriptor,
+} from './health';
+import { protocolShellEvents } from './ProtocolShellContext';
+import { ProtoPeekMark } from './ProtoPeekMark';
 import { ServiceNavigator, type WorkbenchView } from './ServiceNavigator';
 import { initialConsoleSession, sessionReducer } from './session';
 import { WorkbenchHeader } from './WorkbenchHeader';
 
 type ActiveView = WorkbenchView;
 
-const defaultSimulation: SimulationConfig = { runs: 25, concurrency: 5, thinkTimeMs: 0 };
+type OperationMessage = {
+  tone: 'danger' | 'info';
+  title: string;
+  description: string;
+  actions?: Array<{ label: string; run: () => void }>;
+};
+
+type WorkspaceStorageSection =
+  | 'assertions'
+  | 'collections'
+  | 'environments'
+  | 'history'
+  | 'targets';
+
+const workspaceSectionByStorageKey = new Map<string, WorkspaceStorageSection>([
+  [appStorageKeys.assertions, 'assertions'],
+  [appStorageKeys.collections, 'collections'],
+  [appStorageKeys.environments, 'environments'],
+  [appStorageKeys.history, 'history'],
+  [appStorageKeys.targets, 'targets'],
+]);
+
+function prepareWorkspaceStorageValue(key: string, value: unknown) {
+  const section = workspaceSectionByStorageKey.get(key);
+  if (!section) {
+    return { ok: false as const, error: 'Unknown workspace storage section.' };
+  }
+  const validated = validateWorkspaceImport({ [section]: value });
+  if (validated.error || !validated.value) {
+    return {
+      ok: false as const,
+      error: validated.error || `Invalid ${section} workspace data.`,
+    };
+  }
+  return { ok: true as const, value: validated.value[section] ?? [] };
+}
+
+function prepareWorkspaceStorageWrites(entries: Array<[string, unknown]>) {
+  const values: Array<[string, unknown]> = [];
+  for (const [key, value] of entries) {
+    const prepared = prepareWorkspaceStorageValue(key, value);
+    if (!prepared.ok) return prepared;
+    values.push([key, prepared.value]);
+  }
+  return { ok: true as const, values };
+}
+
+const repeatAggregateLimitMs = 60_000;
+const repeatErrorMessageLimit = 2048;
+const defaultRepeat: RepeatConfig = { count: 5, thinkTimeMs: 0, deadlineSeconds: 5 };
+
+type ActiveRepeat = {
+  controller: AbortController;
+  stopReason: RepeatStopReason | null;
+};
+
+type LocalHealthStopReason = Extract<
+  HealthRunEndReason,
+  'user-cancelled' | 'navigation' | 'context-changed' | 'relay-error' | 'protocol-error'
+>;
+
+type ActiveHealth = {
+  controller: AbortController;
+  generation: number;
+  operation: 'check' | 'watch';
+};
+
+function repeatAbortError() {
+  return new DOMException('Repeat cancelled.', 'AbortError');
+}
+
+function awaitWithAbort<T>(promise: Promise<T>, signal: AbortSignal) {
+  if (signal.aborted) return Promise.reject(repeatAbortError());
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(repeatAbortError());
+    signal.addEventListener('abort', abort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', abort);
+        reject(error);
+      }
+    );
+  });
+}
+
+function waitForRepeatDelay(delayMs: number, signal: AbortSignal) {
+  if (delayMs <= 0) return Promise.resolve();
+  if (signal.aborted) return Promise.reject(repeatAbortError());
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, delayMs);
+    const abort = () => {
+      window.clearTimeout(timer);
+      reject(repeatAbortError());
+    };
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+function boundedRepeatError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message.trim() : '';
+  return (message || fallback).slice(0, repeatErrorMessageLimit);
+}
 
 const defaultAssertions: AssertionRule[] = [
   {
@@ -117,10 +254,10 @@ const defaultAssertions: AssertionRule[] = [
   },
 ];
 
-const simulationPresets: Array<{ label: string; config: SimulationConfig }> = [
-  { label: 'Quick', config: { runs: 12, concurrency: 3, thinkTimeMs: 0 } },
-  { label: 'Burst', config: { runs: 60, concurrency: 12, thinkTimeMs: 0 } },
-  { label: 'Soak', config: { runs: 120, concurrency: 8, thinkTimeMs: 120 } },
+const repeatPresets: Array<{ label: string; config: RepeatConfig }> = [
+  { label: 'Quick', config: { count: 5, thinkTimeMs: 0, deadlineSeconds: 5 } },
+  { label: 'Tail sample', config: { count: 20, thinkTimeMs: 0, deadlineSeconds: 5 } },
+  { label: 'Paced', config: { count: 20, thinkTimeMs: 250, deadlineSeconds: 5 } },
 ];
 
 const assertionKindOptions: Array<{ value: AssertionRule['kind']; label: string }> = [
@@ -192,16 +329,63 @@ function parseMultilineValues(value: string) {
     .filter(Boolean);
 }
 
-function schemaSourceLabel(value: WorkspaceTargetProfile['schemaSource']) {
-  return value === 'proto-files' ? 'Proto files' : value === 'protoset' ? 'Protoset' : 'Reflection';
-}
-
 function countMessages(msgs: ProtoMessageSummary[]): number {
   return msgs.reduce((t, m) => t + 1 + countMessages(m.messages), 0);
 }
 
 function countEnums(msgs: ProtoMessageSummary[], enums: ProtoEnumSummary[]): number {
   return enums.length + msgs.reduce((t, m) => t + countEnums(m.messages, m.enums), 0);
+}
+
+function remapImportedTargetIDs(
+  data: NonNullable<ReturnType<typeof validateWorkspaceImport>['value']>,
+  currentTargets: WorkspaceTargetProfile[]
+) {
+  const referenceError = workspaceTargetReferenceError(
+    [...data.collections, ...(data.history ?? [])],
+    data.sections.targets ? data.targets : currentTargets
+  );
+  if (referenceError) throw new Error(referenceError);
+  const targetIDs = new Map<string, string>();
+  const importedTargetsByID = new Map<string, WorkspaceTargetProfile>();
+  const targets = data.targets.map((target) => {
+    const nextID = uid('target');
+    targetIDs.set(target.id.trim(), nextID);
+    importedTargetsByID.set(target.id.trim(), target);
+    return { ...target, id: nextID };
+  });
+  const currentTargetsByID = new Map(currentTargets.map((target) => [target.id.trim(), target]));
+  const remapScope = <T extends { targetId?: string; targetAddress?: string }>(entry: T): T => {
+    const targetId = entry.targetId?.trim();
+    const targetAddress = entry.targetAddress?.trim() || undefined;
+    if (!targetId) return { ...entry, targetId: undefined, targetAddress };
+    if (targetIDs.has(targetId)) {
+      const target = importedTargetsByID.get(targetId);
+      if (targetAddress && target && targetAddress !== target.address.trim()) {
+        throw new Error(`Saved request target address conflicts with profile ${targetId}.`);
+      }
+      return { ...entry, targetId: targetIDs.get(targetId), targetAddress };
+    }
+    if (!data.sections.targets && currentTargetsByID.has(targetId)) {
+      const target = currentTargetsByID.get(targetId);
+      if (targetAddress && target && targetAddress !== target.address.trim()) {
+        throw new Error(`Saved request target address conflicts with profile ${targetId}.`);
+      }
+      return { ...entry, targetId, targetAddress };
+    }
+    if (!targetAddress) {
+      throw new Error(
+        `Saved request target ${targetId} is not present and has no address fallback.`
+      );
+    }
+    return { ...entry, targetId, targetAddress };
+  };
+  return {
+    ...data,
+    targets,
+    collections: data.collections.map(remapScope),
+    history: data.history?.map(remapScope),
+  };
 }
 
 export function App() {
@@ -211,16 +395,36 @@ export function App() {
   const workspaceSessionId = consoleSession.sessionId;
   const activeTargetId = consoleSession.activeTargetId;
   const workspaceBusy = consoleSession.connectStatus === 'connecting';
-  const [examples, setExamples] = useState<ExampleResponse[]>([]);
   const [schemaResource, setSchemaResource] = useState<{
     method: string;
     sessionId: string;
     data: SchemaResponse | null;
   }>({ method: '', sessionId: '', data: null });
-  const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(
-    loadStoredValue(appStorageKeys.targets, [])
+  const [initialWorkspace] = useState(() => ({
+    assertions: loadStoredWorkspaceSection(
+      appStorageKeys.assertions,
+      'assertions',
+      defaultAssertions
+    ),
+    collections: loadStoredWorkspaceSection(appStorageKeys.collections, 'collections', []),
+    environments: loadStoredWorkspaceSection(appStorageKeys.environments, 'environments', []),
+    history: loadStoredWorkspaceSection(appStorageKeys.history, 'history', []),
+    targets: loadStoredWorkspaceSection(appStorageKeys.targets, 'targets', []),
+  }));
+  const initialRecoveries = Object.values(initialWorkspace)
+    .map((entry) => entry.recovery)
+    .filter((entry): entry is StoredWorkspaceRecovery => entry !== null);
+  const blockedWorkspaceStorageRef = useRef(
+    new Set(initialRecoveries.map((recovery) => recovery.key))
   );
+  const [workspaceRecoveries, setWorkspaceRecoveries] =
+    useState<StoredWorkspaceRecovery[]>(initialRecoveries);
+  const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(initialWorkspace.targets.value);
   const [targetDraft, setTargetDraft] = useState<WorkspaceTargetProfile>(newTargetDraft());
+  const [browserProtoFolder, setBrowserProtoFolder] = useState<BrowserProtoFolderSelection | null>(
+    null
+  );
+  const [browserProtoFolderBusy, setBrowserProtoFolderBusy] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [protoCatalog, setProtoCatalog] = useState<ProtoCatalogResponse | null>(null);
   const [selectedProtoFile, setSelectedProtoFile] = useState('');
@@ -242,31 +446,18 @@ export function App() {
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [metadata, setMetadata] = useState<MetadataEntry[]>([]);
   const [collections, setCollections] = useState<SavedCollection[]>(
-    loadStoredValue<SavedCollection[]>(appStorageKeys.collections, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
+    initialWorkspace.collections.value
   );
   const [environments, setEnvironments] = useState<EnvironmentPreset[]>(
-    loadStoredValue<EnvironmentPreset[]>(appStorageKeys.environments, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
+    initialWorkspace.environments.value
   );
-  const [history, setHistory] = useState<RequestHistoryEntry[]>(
-    loadStoredValue<RequestHistoryEntry[]>(appStorageKeys.history, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
-  );
+  const [history, setHistory] = useState<RequestHistoryEntry[]>(initialWorkspace.history.value);
   const [collectionName, setCollectionName] = useState('');
   const [collectionNotes, setCollectionNotes] = useState('');
   const [environmentName, setEnvironmentName] = useState('');
   const [environmentNotes, setEnvironmentNotes] = useState('');
   const [assertionRules, setAssertionRules] = useState<AssertionRule[]>(
-    loadStoredValue<AssertionRule[]>(appStorageKeys.assertions, defaultAssertions).map(
-      sanitizeAssertionForPersistence
-    )
+    initialWorkspace.assertions.value
   );
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const [invokeState, setInvokeState] = useState<{
@@ -275,13 +466,19 @@ export function App() {
     result: InvokeResponse | null;
     latencyMs: number;
   }>({ loading: false, error: null, result: null, latencyMs: 0 });
-  const [simulationConfig, setSimulationConfig] = useState(
-    loadStoredValue(appStorageKeys.simulation, defaultSimulation)
-  );
-  const [simulationRun, setSimulationRun] = useState<SimulationRun | null>(null);
-  const [simulationBusy, setSimulationBusy] = useState(false);
-  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const [repeatConfig, setRepeatConfig] = useState<RepeatConfig>(defaultRepeat);
+  const [repeatRun, setRepeatRun] = useState<RepeatRun | null>(null);
+  const [repeatBusy, setRepeatBusy] = useState(false);
+  const [repeatError, setRepeatError] = useState<string | null>(null);
+  const [repeatProgress, setRepeatProgress] = useState({ attempted: 0, requested: 0 });
+  const [healthService, setHealthService] = useState('');
+  const [healthCheckDeadlineSeconds, setHealthCheckDeadlineSeconds] = useState(5);
+  const [healthWatchDurationSeconds, setHealthWatchDurationSeconds] = useState(60);
+  const [healthRun, setHealthRun] = useState<HealthRun | null>(null);
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [operationMessage, setOperationMessage] = useState<OperationMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -291,11 +488,41 @@ export function App() {
     metadata: MetadataEntry[];
     timeoutSeconds: number;
     requestText: string;
+    redactedCount: number;
+    legacyScope: boolean;
+    migrationError?: string;
   } | null>(null);
   const connectRequestRef = useRef(0);
   const connectAbortRef = useRef<AbortController | null>(null);
   const invokeAbortRef = useRef<AbortController | null>(null);
+  const repeatRef = useRef<ActiveRepeat | null>(null);
+  const healthRef = useRef<ActiveHealth | null>(null);
+  const healthGenerationRef = useRef(0);
+  const workspaceSessionIdRef = useRef(workspaceSessionId);
+  workspaceSessionIdRef.current = workspaceSessionId;
   const deferredSearchText = useDeferredValue(searchText);
+
+  useEffect(
+    () => () => {
+      connectRequestRef.current++;
+      const connection = connectAbortRef.current;
+      connectAbortRef.current = null;
+      connection?.abort();
+      const invocation = invokeAbortRef.current;
+      invokeAbortRef.current = null;
+      invocation?.abort();
+      const repeat = repeatRef.current;
+      repeatRef.current = null;
+      repeat?.controller.abort();
+      healthGenerationRef.current++;
+      const health = healthRef.current;
+      healthRef.current = null;
+      health?.controller.abort();
+      const sessionId = workspaceSessionIdRef.current;
+      if (sessionId) void disconnectWorkspaceSession(sessionId).catch(() => undefined);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -330,6 +557,9 @@ export function App() {
   }, []);
 
   function applyBootstrap(next: BootstrapResponse) {
+    cancelActiveHealth('context-changed');
+    invalidateActiveRepeat();
+    pendingDraftRef.current = null;
     const methods = next.services.flatMap((s) => s.methods);
     const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
     const lowFriction =
@@ -351,17 +581,59 @@ export function App() {
   }
 
   const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse) => applyBootstrap(next));
+  const openDiscoveredEffect = useEffectEvent((result: ScanResult) => {
+    removeStoredValue(appStorageKeys.pendingGRPCTarget);
+    void handleOpenDiscovered(result);
+  });
+  function storeWorkspaceValue(key: string, value: unknown) {
+    if (blockedWorkspaceStorageRef.current.has(key)) {
+      return {
+        ok: false as const,
+        error:
+          'Resolve the recovered workspace data before replacing this browser-storage section.',
+      };
+    }
+    const prepared = prepareWorkspaceStorageValue(key, value);
+    if (!prepared.ok) return prepared;
+    return storeValue(key, prepared.value);
+  }
+  const persistWorkspaceEffect = useEffectEvent((key: string, value: unknown) => {
+    if (blockedWorkspaceStorageRef.current.has(key)) return;
+    const stored = storeWorkspaceValue(key, value);
+    if (stored.ok) return;
+    setOperationMessage((current) =>
+      current?.tone === 'danger'
+        ? current
+        : {
+            tone: 'danger',
+            title: 'Workspace changes are session-only',
+            description: `Workspace validation or browser storage refused the write: ${stored.error}`,
+          }
+    );
+  });
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [b, e] = await Promise.all([fetchBootstrap(), fetchExamples()]);
+        const b = await fetchBootstrap();
         if (cancelled) return;
         dispatchSession({ type: 'bootstrap.loaded', bootstrap: b });
         applyBootstrapEffect(b);
-        setExamples(e);
-        setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
+        const pendingTarget = loadStoredValue<{ address: string; plaintext: boolean } | null>(
+          appStorageKeys.pendingGRPCTarget,
+          null
+        );
+        if (pendingTarget?.address) {
+          setTargetDraft({
+            ...newTargetDraft(b.targetDefaults),
+            address: pendingTarget.address,
+            plaintext: pendingTarget.plaintext,
+          });
+          removeStoredValue(appStorageKeys.pendingGRPCTarget);
+        } else {
+          setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
+        }
       } catch (err) {
         if (!cancelled)
           setBootError(err instanceof Error ? err.message : 'Failed to load ProtoPeek.');
@@ -371,6 +643,16 @@ export function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    function handleDiscovery(event: Event) {
+      const result = (event as CustomEvent<ScanResult>).detail;
+      if (!result?.address) return;
+      openDiscoveredEffect(result);
+    }
+    window.addEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
+    return () => window.removeEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
   }, []);
 
   useEffect(() => {
@@ -392,6 +674,26 @@ export function App() {
         if (pending) {
           setMetadata(pending.metadata);
           setTimeoutSeconds(pending.timeoutSeconds);
+          if (pending.migrationError) {
+            setOperationMessage({
+              tone: 'danger',
+              title: 'Legacy replay was not migrated',
+              description: pending.migrationError,
+            });
+          } else if (pending.redactedCount > 0) {
+            setOperationMessage({
+              tone: 'info',
+              title: 'Sensitive metadata omitted',
+              description: `${pending.redactedCount} redacted metadata ${pending.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before invoking; blank or [redacted] sensitive values are never sent.${pending.legacyScope ? ' This legacy record is now scoped to the current target.' : ''}`,
+            });
+          } else if (pending.legacyScope) {
+            setOperationMessage({
+              tone: 'info',
+              title: 'Legacy replay scoped',
+              description:
+                'This unscoped legacy record was applied to an available method and is now bound to the current target/profile.',
+            });
+          }
           pendingDraftRef.current = null;
         }
         setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
@@ -407,25 +709,25 @@ export function App() {
   }, [bootstrap, selectedMethod, workspaceSessionId]);
 
   useEffect(() => {
-    storeValue(appStorageKeys.collections, collections);
+    persistWorkspaceEffect(appStorageKeys.collections, collections);
   }, [collections]);
   useEffect(() => {
-    storeValue(appStorageKeys.environments, environments);
+    persistWorkspaceEffect(appStorageKeys.environments, environments);
   }, [environments]);
   useEffect(() => {
-    storeValue(appStorageKeys.history, history);
+    persistWorkspaceEffect(appStorageKeys.history, history);
   }, [history]);
   useEffect(() => {
-    storeValue(appStorageKeys.assertions, assertionRules.map(sanitizeAssertionForPersistence));
+    persistWorkspaceEffect(
+      appStorageKeys.assertions,
+      assertionRules.map(sanitizeAssertionForPersistence)
+    );
   }, [assertionRules]);
-  useEffect(() => {
-    storeValue(appStorageKeys.simulation, simulationConfig);
-  }, [simulationConfig]);
   useEffect(() => {
     storeValue(appStorageKeys.methodFilter, methodFilter);
   }, [methodFilter]);
   useEffect(() => {
-    storeValue(appStorageKeys.targets, targets);
+    persistWorkspaceEffect(appStorageKeys.targets, targets);
   }, [targets]);
   useEffect(() => {
     storeValue(appStorageKeys.activeTargetId, activeTargetId);
@@ -454,59 +756,152 @@ export function App() {
     };
   }, [bootstrap, showWellKnownProto, workspaceSessionId]);
 
-  const currentService =
-    bootstrap?.services.find((s) => s.methods.some((m) => m.fullName === selectedMethod)) ?? null;
-  const currentMethod = currentService?.methods.find((m) => m.fullName === selectedMethod) ?? null;
-  const _matchingExamples = examples.filter(
-    (e) =>
-      `${e.service}.${e.method}` === selectedMethod || `${e.service}/${e.method}` === selectedMethod
+  const selectedMethodContext = useMemo(() => {
+    for (const service of bootstrap?.services ?? []) {
+      const method = service.methods.find((candidate) => candidate.fullName === selectedMethod);
+      if (method) return { service, method };
+    }
+    return { service: null, method: null };
+  }, [bootstrap?.services, selectedMethod]);
+  const currentService = selectedMethodContext.service;
+  const currentMethod = selectedMethodContext.method;
+  const healthServices = bootstrap?.services;
+  const healthCatalog = useMemo(
+    () => ({
+      serviceSuggestions: (healthServices ?? []).map((service) => service.name),
+      advertised: healthServices ? hasCanonicalHealthDescriptor(healthServices) : false,
+    }),
+    [healthServices]
   );
+  const healthContextKey = workspaceSessionId
+    ? `workspace:${workspaceSessionId}`
+    : `direct:${bootstrap?.target ?? ''}:${consoleSession.requestId}`;
+  const activeTarget = targets.find((target) => target.id === activeTargetId) ?? null;
+  const currentReplayScope = {
+    targetId: activeTarget?.id,
+    targetAddress: (activeTarget?.address || bootstrap?.target || '').trim(),
+  };
   const q = deferredSearchText.trim().toLowerCase();
-  const visibleServices = (bootstrap?.services ?? [])
-    .map((s) => {
-      const sMatch = !q || s.name.toLowerCase().includes(q);
-      return {
-        ...s,
-        methods: s.methods.filter(
-          (m) =>
-            matchesMethodFilter(m, methodFilter) &&
-            (sMatch ||
-              !q ||
-              m.name.toLowerCase().includes(q) ||
-              m.fullName.toLowerCase().includes(q))
-        ),
-      };
-    })
-    .filter((s) => s.methods.length > 0);
-  const filteredProtoFiles = (protoCatalog?.files ?? []).filter((f) => {
-    if (!showWellKnownProto && f.wellKnown) return false;
-    const pq = protoSearchText.trim().toLowerCase();
-    if (!pq) return true;
-    return (
-      f.name.toLowerCase().includes(pq) ||
-      f.package.toLowerCase().includes(pq) ||
-      f.services.some((s) => s.fullName.toLowerCase().includes(pq)) ||
-      f.messages.some((m) => m.fullName.toLowerCase().includes(pq))
-    );
-  });
-  const selectedProto = filteredProtoFiles.find((f) => f.name === selectedProtoFile) ?? null;
-  const _grpcCommand =
-    bootstrap && currentMethod
-      ? commandPreview({
-          target: bootstrap.target,
-          method: currentMethod.fullName,
-          metadata,
-          timeoutSeconds,
-          requestText,
-          grpcurlOptions: bootstrap.grpcurlOptions,
+  const visibleServices = useMemo(
+    () =>
+      (bootstrap?.services ?? [])
+        .map((service) => {
+          const serviceMatches = !q || service.name.toLowerCase().includes(q);
+          return {
+            ...service,
+            methods: service.methods.filter(
+              (method) =>
+                matchesMethodFilter(method, methodFilter) &&
+                (serviceMatches ||
+                  !q ||
+                  method.name.toLowerCase().includes(q) ||
+                  method.fullName.toLowerCase().includes(q))
+            ),
+          };
         })
-      : '';
-  const responsePayload = invokeState.result?.responses.map((e) => e.message) ?? [];
-  const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 200, 48);
+        .filter((service) => service.methods.length > 0),
+    [bootstrap?.services, methodFilter, q]
+  );
+  const filteredProtoFiles = useMemo(() => {
+    const protoQuery = protoSearchText.trim().toLowerCase();
+    return (protoCatalog?.files ?? []).filter((file) => {
+      if (!showWellKnownProto && file.wellKnown) return false;
+      if (!protoQuery) return true;
+      return (
+        file.name.toLowerCase().includes(protoQuery) ||
+        file.package.toLowerCase().includes(protoQuery) ||
+        file.services.some((service) => service.fullName.toLowerCase().includes(protoQuery)) ||
+        file.messages.some((message) => message.fullName.toLowerCase().includes(protoQuery))
+      );
+    });
+  }, [protoCatalog?.files, protoSearchText, showWellKnownProto]);
+  const selectedProto = useMemo(
+    () => filteredProtoFiles.find((file) => file.name === selectedProtoFile) ?? null,
+    [filteredProtoFiles, selectedProtoFile]
+  );
+  const responsePayload = useMemo(
+    () => invokeState.result?.responses.map((entry) => entry.message) ?? [],
+    [invokeState.result]
+  );
+  const repeatLatencySparkline = sparklinePath(
+    repeatRun?.attempts
+      .filter(
+        (attempt) =>
+          (attempt.outcome === 'ok' || attempt.outcome === 'grpc-error') &&
+          (repeatRun.latency.source === 'console-round-trip' || attempt.handlerInvokeMs !== null)
+      )
+      .map((attempt) =>
+        repeatRun.latency.source === 'handler-invoke'
+          ? (attempt.handlerInvokeMs ?? 0)
+          : attempt.consoleRoundTripMs
+      ) ?? [],
+    200,
+    48
+  );
   const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
-  async function handleConnectTarget(target: WorkspaceTargetProfile) {
-    invokeAbortRef.current?.abort();
+  function cancelActiveInvokeSilently() {
+    const active = invokeAbortRef.current;
+    invokeAbortRef.current = null;
+    active?.abort();
+  }
+
+  function invalidateActiveRepeat(preserveCompleted = false) {
+    const active = repeatRef.current;
+    if (!active && preserveCompleted) return;
+    repeatRef.current = null;
+    active?.controller.abort();
+    setRepeatBusy(false);
+    setRepeatError(null);
+    setRepeatRun(null);
+    setRepeatProgress({ attempted: 0, requested: 0 });
+  }
+
+  function cancelActiveHealth(reason: LocalHealthStopReason) {
+    const active = healthRef.current;
+    if (!active) return;
+    healthGenerationRef.current++;
+    healthRef.current = null;
+    active.controller.abort();
+    setHealthBusy(false);
+    setHealthError(null);
+    setHealthRun((current) =>
+      current?.phase === 'running' ? finishHealthRun(current, reason) : current
+    );
+  }
+
+  function healthFailureReason(error: unknown): 'relay-error' | 'protocol-error' {
+    return error instanceof Error && /Invalid gRPC Health evidence/i.test(error.message)
+      ? 'protocol-error'
+      : 'relay-error';
+  }
+
+  function invalidateConnectionAttempt() {
+    connectRequestRef.current++;
+    const active = connectAbortRef.current;
+    connectAbortRef.current = null;
+    active?.abort();
+  }
+
+  function handleCancelConnection() {
+    const active = connectAbortRef.current;
+    if (!active) return;
+    const requestId = connectRequestRef.current;
+    connectRequestRef.current = requestId + 1;
+    connectAbortRef.current = null;
+    active.abort();
+    dispatchSession({ type: 'connect.cancelled', requestId });
+    setWorkspaceError(null);
+  }
+
+  async function handleConnectTarget(
+    target: WorkspaceTargetProfile,
+    folder?: BrowserProtoFolderSelection
+  ) {
+    cancelActiveHealth('context-changed');
+    invalidateActiveRepeat();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
     const requestId = connectRequestRef.current + 1;
     connectRequestRef.current = requestId;
     connectAbortRef.current?.abort();
@@ -530,12 +925,14 @@ export function App() {
           importPaths: target.importPaths,
           protosets: target.protosets,
         },
-        controller.signal
+        controller.signal,
+        folder
       );
       if (connectRequestRef.current !== requestId) {
         void disconnectWorkspaceSession(r.sessionId);
         return false;
       }
+      workspaceSessionIdRef.current = r.sessionId;
       dispatchSession({
         type: 'connect.succeeded',
         requestId,
@@ -559,10 +956,13 @@ export function App() {
       dispatchSession({ type: 'connect.failed', requestId, message });
       setWorkspaceError(message);
       return false;
+    } finally {
+      if (connectAbortRef.current === controller) connectAbortRef.current = null;
     }
   }
 
   function materializeTarget(p: WorkspaceTargetProfile) {
+    const browserFolderSource = p.schemaSource === 'browser-proto-folder';
     return toWorkspaceTargetProfile({
       id: p.id,
       name: p.name.trim() || p.address || 'Untitled',
@@ -576,15 +976,28 @@ export function App() {
         certPath: p.certPath.trim(),
         keyPath: p.keyPath.trim(),
         schemaSource: p.schemaSource,
-        protoFiles: p.protoFiles,
-        importPaths: p.importPaths,
-        protosets: p.protosets,
+        protoFiles: browserFolderSource ? [] : p.protoFiles,
+        importPaths: browserFolderSource ? [] : p.importPaths,
+        protosets: browserFolderSource ? [] : p.protosets,
       },
     });
   }
 
   function persistTarget(t: WorkspaceTargetProfile) {
-    setTargets((x) => [t, ...x.filter((e) => e.id !== t.id)]);
+    const next = [t, ...targets.filter((entry) => entry.id !== t.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.targets, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Target was not saved',
+        description: `The connection is live, but the target could not be persisted: ${stored.error}`,
+      });
+      setTargetDraft(t);
+      return;
+    }
+    setTargets(next);
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
@@ -593,13 +1006,38 @@ export function App() {
       setWorkspaceError('Address required.');
       return;
     }
+    if (targetDraft.schemaSource === 'browser-proto-folder') {
+      if (browserProtoFolderBusy) {
+        setWorkspaceError('Wait for the folder scan to finish before connecting.');
+        return;
+      }
+      if (!browserProtoFolder) {
+        setWorkspaceError('Folder required. Choose the proto folder again before connecting.');
+        return;
+      }
+    }
     const t = reuseExistingTargetID(materializeTarget(targetDraft), targets);
-    if (await handleConnectTarget(t)) persistTarget(t);
+    const folder = t.schemaSource === 'browser-proto-folder' ? browserProtoFolder : undefined;
+    if (await handleConnectTarget(t, folder ?? undefined)) persistTarget(t);
   }
 
   async function handleConnectRecent(target: WorkspaceTargetProfile) {
     const materialized = materializeTarget(target);
+    if (materialized.schemaSource === 'browser-proto-folder') {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setTargetDraft(materialized);
+      setWorkspaceError('Folder required. Choose the proto folder again before connecting.');
+      return;
+    }
     if (await handleConnectTarget(materialized)) persistTarget(materialized);
+  }
+
+  function handleEditTarget(target: WorkspaceTargetProfile) {
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
+    setWorkspaceError(null);
+    setTargetDraft(materializeTarget(target));
   }
 
   async function handleOpenDiscovered(result: ScanResult) {
@@ -620,27 +1058,59 @@ export function App() {
   function handleDeleteTarget(id: string) {
     setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
+      cancelActiveHealth('context-changed');
+      invalidateActiveRepeat();
+      invalidateConnectionAttempt();
+      cancelActiveInvokeSilently();
+      pendingDraftRef.current = null;
       if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
       dispatchSession({ type: 'connection.cleared' });
       if (rootBootstrap) applyBootstrap(rootBootstrap);
     }
-    if (targetDraft.id === id) setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
+    if (targetDraft.id === id) {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
+    }
   }
 
   function handleResetToLauncher() {
-    connectAbortRef.current?.abort();
-    invokeAbortRef.current?.abort();
-    if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
+    cancelActiveHealth('context-changed');
+    invalidateActiveRepeat();
+    invalidateConnectionAttempt();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
+    const sessionId = workspaceSessionIdRef.current;
+    workspaceSessionIdRef.current = '';
+    if (sessionId) void disconnectWorkspaceSession(sessionId);
     dispatchSession({ type: 'connection.cleared' });
     setWorkspaceError(null);
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
     if (rootBootstrap) {
-      applyBootstrap(rootBootstrap);
+      if (sessionId) applyBootstrap(rootBootstrap);
       setTargetDraft(newTargetDraft(rootBootstrap.targetDefaults));
     }
   }
 
   function updateDraft(next: Partial<WorkspaceTargetProfile>) {
-    setTargetDraft((x) => ({ ...x, ...next }));
+    if (next.schemaSource && next.schemaSource !== targetDraft.schemaSource) {
+      setBrowserProtoFolder(null);
+      setBrowserProtoFolderBusy(false);
+      setWorkspaceError(null);
+    }
+    setTargetDraft((current) => ({
+      ...current,
+      ...next,
+      ...(next.schemaSource === 'browser-proto-folder'
+        ? { protoFiles: [], importPaths: [], protosets: [] }
+        : {}),
+    }));
+  }
+
+  function handleBrowserProtoFolderChange(selection: BrowserProtoFolderSelection | null) {
+    setBrowserProtoFolder(selection);
+    if (selection) setWorkspaceError(null);
   }
 
   function downloadFile(name: string, content: string, type = 'text/plain') {
@@ -653,8 +1123,77 @@ export function App() {
     URL.revokeObjectURL(u);
   }
 
+  function downloadWorkspaceRecovery() {
+    downloadFile(
+      'protopeek-storage-recovery.json',
+      JSON.stringify(
+        {
+          format: 'protopeek-storage-recovery',
+          exportedAt: new Date().toISOString(),
+          warning:
+            'This is a raw, non-importable recovery snapshot. Readable originals may contain credentials, request bodies, and host file paths. A null raw value means the browser refused the read and the original key was only left untouched.',
+          sections: workspaceRecoveries,
+        },
+        null,
+        2
+      ),
+      'application/json'
+    );
+  }
+
+  function handleUseRecoveredWorkspace() {
+    const values = new Map<string, unknown>([
+      [appStorageKeys.assertions, assertionRules.map(sanitizeAssertionForPersistence)],
+      [appStorageKeys.collections, collections],
+      [appStorageKeys.environments, environments],
+      [appStorageKeys.history, history],
+      [appStorageKeys.targets, targets],
+    ]);
+    const writes = workspaceRecoveries.map(
+      (recovery) => [recovery.key, values.get(recovery.key) ?? []] as [string, unknown]
+    );
+    const prepared = prepareWorkspaceStorageWrites(writes);
+    if (!prepared.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Recovered workspace is not valid yet',
+        description: prepared.error,
+      });
+      return;
+    }
+    const stored = storeValuesAtomically(prepared.values);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Recovered workspace remains session-only',
+        description: `Recovery remains unresolved. Browser storage reported: ${stored.error} Use the downloaded originals if rollback was incomplete.`,
+      });
+      return;
+    }
+    for (const recovery of workspaceRecoveries) {
+      blockedWorkspaceStorageRef.current.delete(recovery.key);
+    }
+    setWorkspaceRecoveries([]);
+    setOperationMessage({
+      tone: 'info',
+      title: 'Recovered workspace accepted',
+      description: 'Only the bounded valid records now remain in browser storage.',
+    });
+  }
+
   async function handleInvoke() {
+    if (healthRef.current) {
+      setHealthError('Cancel Health first, then invoke the RPC or run assertions.');
+      setActiveView('tests');
+      return;
+    }
+    if (repeatRef.current) {
+      setRepeatError('Cancel Repeat first, then invoke the RPC or run assertions.');
+      setActiveView('tests');
+      return;
+    }
     if (!schema || !currentService || !currentMethod) return;
+    invalidateActiveRepeat(true);
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
       setAssertionResults([]);
@@ -686,9 +1225,17 @@ export function App() {
     }
     const payload: InvokeRequest = {
       timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((e) => e.name.trim()),
+      metadata: filterMetadataForInvoke(metadata),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
+    if (payload.metadata.length < metadata.filter((entry) => entry.name.trim()).length) {
+      setOperationMessage({
+        tone: 'info',
+        title: 'Sensitive metadata omitted',
+        description:
+          'Blank or [redacted] sensitive metadata was not sent. Re-enter the value to include it in a later RPC.',
+      });
+    }
     invokeAbortRef.current?.abort();
     const controller = new AbortController();
     invokeAbortRef.current = controller;
@@ -704,6 +1251,8 @@ export function App() {
             controller.signal
           )
         : await invokeMethod(currentMethod.fullName, payload, controller.signal);
+      if (invokeAbortRef.current !== controller) return;
+      if (controller.signal.aborted) throw new DOMException('Invocation cancelled.', 'AbortError');
       const lat = performance.now() - t0;
       setInvokeState({ loading: false, error: null, result, latencyMs: lat });
       setAssertionResults(evaluateAssertions({ rules: assertionRules, result, latencyMs: lat }));
@@ -718,11 +1267,13 @@ export function App() {
             response: result.responses[0]?.message ?? result.error ?? null,
             metadata,
             timeoutSeconds,
+            ...currentReplayScope,
           }),
           ...x,
         ].slice(0, 50)
       );
     } catch (err) {
+      if (invokeAbortRef.current !== controller) return;
       setAssertionResults([]);
       setInvokeState({
         loading: false,
@@ -744,65 +1295,315 @@ export function App() {
     invokeAbortRef.current?.abort();
   }
 
-  async function handleSimulation() {
-    if (!schema || !currentMethod) return;
+  async function handleRepeat() {
+    if (healthRef.current) {
+      setHealthError('Cancel Health first, then start Unary Repeat.');
+      setActiveView('tests');
+      return;
+    }
+    if (!schema || !currentMethod || !bootstrap || repeatRef.current) return;
+    if (currentMethod.clientStreaming || currentMethod.serverStreaming || schema.requestStream) {
+      setRepeatError('Unary Repeat is available only when request and response are both unary.');
+      return;
+    }
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
-      setSimulationError(parsed.error);
+      setRepeatError(parsed.error);
       return;
     }
-    if (schema.requestStream && !Array.isArray(parsed.value)) {
-      setSimulationError('Need JSON array for streaming.');
+    if (Array.isArray(parsed.value)) {
+      setRepeatError('Unary RPCs need a single JSON object.');
       return;
     }
-    if (!schema.requestStream && Array.isArray(parsed.value)) {
-      setSimulationError('Need single object for unary.');
+    const validated = validateRepeatConfig(repeatConfig);
+    if (validated.error || !validated.value) {
+      setRepeatError(validated.error || 'Repeat settings are invalid.');
       return;
     }
-    const norm = clampSimulationConfig(simulationConfig);
-    setSimulationBusy(true);
-    setSimulationError(null);
+
+    cancelActiveInvokeSilently();
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+    setAssertionResults([]);
+    const config = validated.value;
     const payload: InvokeRequest = {
-      timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((e) => e.name.trim()),
-      data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
+      timeout_seconds: config.deadlineSeconds,
+      metadata: filterMetadataForInvoke(metadata),
+      data: [parsed.value],
     };
-    const mName = currentMethod.fullName;
-    const lats: number[] = [];
-    let ok = 0;
-    let fail = 0;
-    let idx = 0;
-    const t0 = performance.now();
-    async function worker() {
-      while (idx < norm.runs) {
-        const ci = idx;
-        idx++;
-        const rt = performance.now();
+    if (payload.metadata.length < metadata.filter((entry) => entry.name.trim()).length) {
+      setOperationMessage({
+        tone: 'info',
+        title: 'Sensitive metadata omitted',
+        description:
+          'Blank or [redacted] sensitive metadata was not sent. Re-enter the value to include it in a later RPC.',
+      });
+    }
+
+    const method = currentMethod.fullName;
+    const target = bootstrap.target;
+    const sessionId = workspaceSessionId;
+    const active: ActiveRepeat = { controller: new AbortController(), stopReason: null };
+    const { signal } = active.controller;
+    repeatRef.current = active;
+    setRepeatBusy(true);
+    setRepeatError(null);
+    setRepeatRun(null);
+    setRepeatProgress({ attempted: 0, requested: config.count });
+    setActiveView('tests');
+    const attempts: RepeatAttempt[] = [];
+    const createdAt = new Date().toISOString();
+    const startedAt = performance.now();
+    const aggregateTimer = window.setTimeout(() => {
+      if (repeatRef.current !== active || signal.aborted) return;
+      active.stopReason = 'aggregate-limit';
+      active.controller.abort();
+    }, repeatAggregateLimitMs);
+
+    try {
+      for (let index = 0; index < config.count; index++) {
+        if (signal.aborted) break;
+        const attemptStartedAt = performance.now();
+        const common = {
+          sequence: index + 1,
+          startedOffsetMs: attemptStartedAt - startedAt,
+        };
         try {
-          const r = workspaceSessionId
-            ? await invokeWorkspaceMethod(workspaceSessionId, mName, payload)
-            : await invokeMethod(mName, payload);
-          lats[ci] = performance.now() - rt;
-          if (r.error) fail++;
-          else ok++;
-        } catch {
-          lats[ci] = performance.now() - rt;
-          fail++;
+          const invocation = sessionId
+            ? invokeWorkspaceMethod(sessionId, method, payload, signal)
+            : invokeMethod(method, payload, signal);
+          const result = await awaitWithAbort(invocation, signal);
+          if (repeatRef.current !== active) return;
+          attempts.push({
+            ...common,
+            consoleRoundTripMs: performance.now() - attemptStartedAt,
+            handlerInvokeMs: result.timings?.totalMs ?? null,
+            outcome: result.error ? 'grpc-error' : 'ok',
+            responseCount: result.responses.length,
+            headerCount: result.headers.length,
+            trailerCount: result.trailers.length,
+            grpcStatus: result.error
+              ? {
+                  code: result.error.code,
+                  name: result.error.name.slice(0, repeatErrorMessageLimit),
+                  message: result.error.message.slice(0, repeatErrorMessageLimit),
+                }
+              : null,
+            error: '',
+          });
+        } catch (error) {
+          if (repeatRef.current !== active) return;
+          const cancelled = signal.aborted;
+          attempts.push({
+            ...common,
+            consoleRoundTripMs: performance.now() - attemptStartedAt,
+            handlerInvokeMs: null,
+            outcome: cancelled ? 'cancelled' : 'relay-transport-error',
+            responseCount: 0,
+            headerCount: 0,
+            trailerCount: 0,
+            grpcStatus: null,
+            error: cancelled
+              ? active.stopReason === 'aggregate-limit'
+                ? 'The 60 second Repeat limit was reached.'
+                : 'Repeat cancelled.'
+              : boundedRepeatError(error, 'ProtoPeek could not complete the request.'),
+          });
         }
-        if (norm.thinkTimeMs > 0) await new Promise((r) => setTimeout(r, norm.thinkTimeMs));
+
+        setRepeatProgress({ attempted: attempts.length, requested: config.count });
+        if (signal.aborted) break;
+        if (index < config.count - 1 && config.thinkTimeMs > 0) {
+          try {
+            await waitForRepeatDelay(config.thinkTimeMs, signal);
+          } catch {
+            if (repeatRef.current !== active) return;
+            break;
+          }
+        }
+      }
+
+      if (repeatRef.current !== active) return;
+      setRepeatError(null);
+      setRepeatRun(
+        buildRepeatRun({
+          createdAt,
+          method,
+          target,
+          config,
+          attempts,
+          totalMs: performance.now() - startedAt,
+          stopReason: active.stopReason ?? 'completed',
+        })
+      );
+      setRepeatProgress({ attempted: attempts.length, requested: config.count });
+    } finally {
+      window.clearTimeout(aggregateTimer);
+      if (repeatRef.current === active) {
+        repeatRef.current = null;
+        setRepeatBusy(false);
       }
     }
-    try {
-      await Promise.all(
-        Array.from({ length: Math.min(norm.concurrency, norm.runs) }, () => worker())
-      );
-      setSimulationRun(simulationSummary(mName, norm, lats, ok, fail, performance.now() - t0));
-    } catch (err) {
-      setSimulationError(err instanceof Error ? err.message : 'Simulation failed.');
-    } finally {
-      setSimulationBusy(false);
-      setActiveView('tests');
+  }
+
+  function handleCancelRepeat() {
+    const active = repeatRef.current;
+    if (!active || active.controller.signal.aborted) return;
+    active.stopReason = 'user-cancelled';
+    active.controller.abort();
+  }
+
+  async function handleHealthOperation(operation: 'check' | 'watch') {
+    if (!bootstrap || healthRef.current) return;
+    if (repeatRef.current) {
+      setHealthError('Cancel Repeat first, then start a Health operation.');
+      return;
     }
+    if (invokeAbortRef.current || invokeState.loading) {
+      setHealthError('Cancel the active RPC first, then start a Health operation.');
+      return;
+    }
+    if (workspaceBusy) {
+      setHealthError('Wait for the target connection to settle before starting Health.');
+      return;
+    }
+
+    const service = healthService.trim();
+    if (new TextEncoder().encode(service).byteLength > 1024) {
+      setHealthError('Health service exceeds the 1024-byte limit.');
+      return;
+    }
+    if (
+      operation === 'check' &&
+      (!Number.isFinite(healthCheckDeadlineSeconds) ||
+        healthCheckDeadlineSeconds < 0.1 ||
+        healthCheckDeadlineSeconds > 30)
+    ) {
+      setHealthError('Check deadline must be between 0.1 and 30 seconds.');
+      return;
+    }
+    if (
+      operation === 'watch' &&
+      (!Number.isFinite(healthWatchDurationSeconds) ||
+        healthWatchDurationSeconds < 1 ||
+        healthWatchDurationSeconds > 600)
+    ) {
+      setHealthError('Watch duration must be between 1 and 600 seconds.');
+      return;
+    }
+
+    const sendableMetadata = filterMetadataForInvoke(metadata);
+    if (sendableMetadata.length > 64) {
+      setHealthError('Health accepts at most 64 sendable metadata entries.');
+      return;
+    }
+    const generation = healthGenerationRef.current + 1;
+    healthGenerationRef.current = generation;
+    const active: ActiveHealth = {
+      controller: new AbortController(),
+      generation,
+      operation,
+    };
+    healthRef.current = active;
+    let evidence: HealthRun = {
+      operation,
+      phase: 'running',
+      contextKey: healthContextKey,
+      target: bootstrap.target,
+      service,
+      startedAt: new Date().toISOString(),
+      metadataCount: sendableMetadata.length,
+      checkDeadlineSeconds: operation === 'check' ? healthCheckDeadlineSeconds : null,
+      watchDurationSeconds: operation === 'watch' ? healthWatchDurationSeconds : null,
+      handlerInvokeMs: null,
+      latestStatus: null,
+      transitions: [],
+      droppedTransitions: 0,
+      headers: [],
+      trailers: [],
+      headersTruncated: false,
+      trailersTruncated: false,
+      grpcStatus: null,
+      endReason: null,
+      observationCount: 0,
+      error: '',
+    };
+    const sessionId = workspaceSessionId;
+    setHealthRun(evidence);
+    setHealthBusy(true);
+    setHealthError(null);
+
+    try {
+      if (operation === 'check') {
+        const result = await checkHealth(
+          sessionId,
+          {
+            service,
+            timeout_seconds: healthCheckDeadlineSeconds,
+            metadata: sendableMetadata,
+          },
+          active.controller.signal
+        );
+        if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+        evidence = applyHealthCheckResult(evidence, result);
+        setHealthRun(evidence);
+      } else {
+        await watchHealth(
+          sessionId,
+          {
+            service,
+            duration_seconds: healthWatchDurationSeconds,
+            metadata: sendableMetadata,
+          },
+          (event) => {
+            if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+            evidence = applyHealthWatchEvent(evidence, event);
+            setHealthRun(evidence);
+          },
+          active.controller.signal
+        );
+      }
+    } catch (error) {
+      if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+      const message =
+        error instanceof Error ? error.message.slice(0, 2048) : 'Health operation failed.';
+      evidence = finishHealthRun(evidence, healthFailureReason(error), message);
+      setHealthRun(evidence);
+    } finally {
+      if (healthRef.current === active && healthGenerationRef.current === generation) {
+        healthRef.current = null;
+        setHealthBusy(false);
+        setHealthError(null);
+      }
+    }
+  }
+
+  function handleCancelHealth() {
+    cancelActiveHealth('user-cancelled');
+  }
+
+  function navigateToView(view: ActiveView) {
+    if (view !== 'tests') cancelActiveHealth('navigation');
+    const active = repeatRef.current;
+    if (view !== 'tests' && active && !active.controller.signal.aborted) {
+      active.stopReason = 'user-cancelled';
+      active.controller.abort();
+    }
+    setActiveView(view);
+  }
+
+  function handleExportRepeat() {
+    if (!repeatRun || repeatBusy) return;
+    const methodName =
+      repeatRun.method
+        .split('/')
+        .pop()
+        ?.replaceAll(/[^a-z0-9_-]/gi, '-') || 'rpc';
+    const timestamp = repeatRun.createdAt.replaceAll(/[:.]/g, '-');
+    downloadFile(
+      `protopeek-repeat-${methodName}-${timestamp}.json`,
+      serializeRepeatRun(repeatRun),
+      'application/json'
+    );
   }
 
   function handleMetadataChange(i: number, next: MetadataEntry) {
@@ -825,10 +1626,38 @@ export function App() {
       metadata,
       timeoutSeconds,
       requestText,
+      ...currentReplayScope,
     });
-    setCollections((x) => [c, ...x.filter((e) => e.id !== c.id)]);
+    const valid = validateWorkspaceImport({ collections: [c] });
+    if (valid.error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Request was not saved',
+        description: valid.error,
+      });
+      return;
+    }
+    const next = [c, ...collections.filter((entry) => entry.id !== c.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.collections, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Request was not saved',
+        description: `The request could not be persisted: ${stored.error}`,
+      });
+      return;
+    }
+    setCollections(next);
     setCollectionName('');
     setCollectionNotes('');
+    const redactedCount = c.metadata.filter((entry) => entry.value === redactedValue).length;
+    setOperationMessage({
+      tone: 'info',
+      title: 'Request saved locally',
+      description: redactedCount
+        ? `${redactedCount} sensitive metadata ${redactedCount === 1 ? 'value was' : 'values were'} redacted and must be re-entered on replay.`
+        : 'The request is scoped to the current target/profile.',
+    });
   }
 
   function _handleSaveEnvironment() {
@@ -838,7 +1667,17 @@ export function App() {
       metadata: metadata.filter((e) => e.name.trim()),
       timeoutSeconds,
     });
-    setEnvironments((x) => [e, ...x.filter((i) => i.id !== e.id)]);
+    const next = [e, ...environments.filter((item) => item.id !== e.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.environments, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Environment was not saved',
+        description: stored.error,
+      });
+      return;
+    }
+    setEnvironments(next);
     setEnvironmentName('');
     setEnvironmentNotes('');
   }
@@ -854,6 +1693,14 @@ export function App() {
     setAssertionRules((x) => x.map((r) => (r.id === id ? next : r)));
   }
   function handleAddAssertion() {
+    if (assertionRules.length >= workspaceImportLimits.assertions) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Assertion limit reached',
+        description: `A workspace can keep at most ${workspaceImportLimits.assertions} assertions.`,
+      });
+      return;
+    }
     setAssertionRules((x) => [
       ...x,
       {
@@ -870,32 +1717,137 @@ export function App() {
     setAssertionRules((x) => x.filter((r) => r.id !== id));
   }
 
-  function applyCollection(c: SavedCollection) {
-    pendingDraftRef.current = {
-      method: c.method,
-      metadata: c.metadata,
-      timeoutSeconds: c.timeoutSeconds,
-      requestText: c.requestText,
+  function prepareReplay(entry: SavedCollection | RequestHistoryEntry) {
+    const methodAvailable = bootstrap?.services.some((service) =>
+      service.methods.some((method) => method.fullName === entry.method)
+    );
+    if (!methodAvailable) {
+      pendingDraftRef.current = null;
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Replay refused',
+        description: `${entry.method} is not available on the current target. The active request was not changed.`,
+      });
+      return null;
+    }
+
+    const storedTargetId = entry.targetId?.trim() || '';
+    const storedTargetAddress = entry.targetAddress?.trim() || '';
+    const currentTargetId = currentReplayScope.targetId?.trim() || '';
+    const scoped = Boolean(storedTargetId || storedTargetAddress);
+    const storedProfileExists = Boolean(
+      storedTargetId && targets.some((target) => target.id === storedTargetId)
+    );
+    const wrongAddress = Boolean(
+      storedTargetAddress && storedTargetAddress !== currentReplayScope.targetAddress
+    );
+    const wrongExistingProfile = Boolean(
+      storedTargetId && storedProfileExists && storedTargetId !== currentTargetId
+    );
+    const orphanedProfile = Boolean(
+      storedTargetId &&
+        !storedProfileExists &&
+        (!storedTargetAddress || currentTargetId || workspaceSessionId || wrongAddress)
+    );
+    if (scoped && (wrongExistingProfile || orphanedProfile || wrongAddress)) {
+      pendingDraftRef.current = null;
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Replay refused',
+        description: orphanedProfile
+          ? 'The saved target profile is unavailable. Restore that profile or use an address-scoped direct session; the active request was not changed.'
+          : 'This record belongs to a different target/profile. Connect that target before applying it; the active request was not changed.',
+      });
+      return null;
+    }
+
+    const restored = prepareMetadataForReplay(entry.metadata);
+    return {
+      method: entry.method,
+      metadata: restored.metadata,
+      timeoutSeconds: entry.timeoutSeconds,
+      requestText: entry.requestText,
+      redactedCount: restored.redactedCount,
+      legacyScope: !scoped,
+      migrationError: undefined as string | undefined,
     };
+  }
+
+  function applyReplayDraft(draft: NonNullable<ReturnType<typeof prepareReplay>>) {
+    if (draft.method !== selectedMethod) cancelActiveHealth('context-changed');
+    invalidateActiveRepeat();
+    cancelActiveInvokeSilently();
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+    setAssertionResults([]);
+    if (draft.method === selectedMethod) {
+      pendingDraftRef.current = null;
+      setRequestText(draft.requestText);
+      setMetadata(draft.metadata);
+      setTimeoutSeconds(draft.timeoutSeconds);
+      if (draft.migrationError) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Legacy replay was not migrated',
+          description: draft.migrationError,
+        });
+      } else if (draft.redactedCount > 0) {
+        setOperationMessage({
+          tone: 'info',
+          title: 'Sensitive metadata omitted',
+          description: `${draft.redactedCount} redacted metadata ${draft.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before invoking; blank or [redacted] sensitive values are never sent.${draft.legacyScope ? ' This legacy record is now scoped to the current target.' : ''}`,
+        });
+      } else if (draft.legacyScope) {
+        setOperationMessage({
+          tone: 'info',
+          title: 'Legacy replay scoped',
+          description:
+            'This unscoped legacy record was applied to an available method and is now bound to the current target/profile.',
+        });
+      } else {
+        setOperationMessage(null);
+      }
+      setActiveView('compose');
+      return;
+    }
+    pendingDraftRef.current = draft;
     startTransition(() => {
-      setSelectedMethod(c.method);
-      setCollectionName(c.name);
-      setCollectionNotes(c.notes);
+      setSelectedMethod(draft.method);
       setActiveView('compose');
     });
   }
 
-  function applyHistory(e: RequestHistoryEntry) {
-    pendingDraftRef.current = {
-      method: e.method,
-      metadata: e.metadata,
-      timeoutSeconds: e.timeoutSeconds,
-      requestText: e.requestText,
-    };
-    startTransition(() => {
-      setSelectedMethod(e.method);
-      setActiveView('compose');
-    });
+  function applyCollection(collection: SavedCollection) {
+    const draft = prepareReplay(collection);
+    if (!draft) return;
+    setCollectionName(collection.name);
+    setCollectionNotes(collection.notes);
+    if (draft.legacyScope) {
+      const migrated = { ...collection, ...currentReplayScope };
+      const next = collections.map((entry) => (entry.id === collection.id ? migrated : entry));
+      const stored = storeWorkspaceValue(appStorageKeys.collections, next);
+      if (!stored.ok) {
+        draft.migrationError = `The request was loaded safely for this session, but browser storage failed: ${stored.error}`;
+      } else {
+        setCollections(next);
+      }
+    }
+    applyReplayDraft(draft);
+  }
+
+  function applyHistory(entry: RequestHistoryEntry) {
+    const draft = prepareReplay(entry);
+    if (!draft) return;
+    if (draft.legacyScope) {
+      const migrated = { ...entry, ...currentReplayScope };
+      const next = history.map((item) => (item.id === entry.id ? migrated : item));
+      const stored = storeWorkspaceValue(appStorageKeys.history, next);
+      if (!stored.ok) {
+        draft.migrationError = `The request was loaded safely for this session, but browser storage failed: ${stored.error}`;
+      } else {
+        setHistory(next);
+      }
+    }
+    applyReplayDraft(draft);
   }
 
   function resetRequestFromSchema() {
@@ -904,7 +1856,11 @@ export function App() {
   }
 
   function handleSelectMethod(method: string) {
-    invokeAbortRef.current?.abort();
+    cancelActiveHealth('context-changed');
+    invalidateActiveRepeat();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
+    setOperationMessage(null);
     setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
     startTransition(() => {
       setSelectedMethod(method);
@@ -914,74 +1870,144 @@ export function App() {
   }
 
   function handleExportWorkspace() {
-    const safeCollections = collections.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    const safeEnvironments = environments.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    const safeHistory = history.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    downloadFile(
-      'protopeek-workspace.json',
-      JSON.stringify(
-        {
-          exportedAt: new Date().toISOString(),
-          assertions: assertionRules.map(sanitizeAssertionForPersistence),
-          collections: safeCollections,
-          environments: safeEnvironments,
-          history: safeHistory,
-          targets,
-        },
-        null,
-        2
-      ),
-      'application/json'
-    );
+    if (workspaceRecoveries.length > 0) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace export paused for recovery',
+        description:
+          'Download or accept the original browser-storage recovery before creating a normal importable workspace.',
+      });
+      return;
+    }
+    try {
+      const content = serializeWorkspaceExport({
+        assertions: assertionRules,
+        collections,
+        environments,
+        targets,
+      });
+      downloadFile('protopeek-workspace.json', content, 'application/json');
+      setOperationMessage({
+        tone: 'info',
+        title: 'Version 1 workspace exported',
+        description:
+          'Automatic RPC history was excluded. Saved request bodies are deliberate workspace data; review them before sharing the file.',
+      });
+    } catch (error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace export refused',
+        description: error instanceof Error ? error.message : 'Workspace export failed.',
+      });
+    }
   }
 
   async function handleImportWorkspace(event: ChangeEvent<HTMLInputElement>) {
-    const f = event.target.files?.[0];
-    if (!f) return;
-    const parsed = safeParseJson(await f.text());
-    if (parsed.error || typeof parsed.value !== 'object' || !parsed.value) {
-      setBootError('Invalid workspace JSON.');
-      return;
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > workspaceImportMaxBytes) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: 'The file exceeds the 4 MiB workspace import limit.',
+        });
+        return;
+      }
+      const parsed = safeParseJson(await file.text());
+      if (parsed.error) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: `Invalid workspace JSON: ${parsed.error}`,
+        });
+        return;
+      }
+      const validated = validateWorkspaceImport(parsed.value);
+      if (validated.error || !validated.value) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: validated.error || 'Invalid workspace JSON.',
+        });
+        return;
+      }
+      const imported = remapImportedTargetIDs(validated.value, targets);
+      const hasBrowserFolderProfiles = imported.targets.some(
+        (target) => target.schemaSource === 'browser-proto-folder'
+      );
+      const writes: Array<[string, unknown]> = [];
+      if (imported.sections.assertions) {
+        writes.push([appStorageKeys.assertions, imported.assertions]);
+      }
+      if (imported.sections.collections) {
+        writes.push([appStorageKeys.collections, imported.collections]);
+      }
+      if (imported.sections.environments) {
+        writes.push([appStorageKeys.environments, imported.environments]);
+      }
+      if (imported.sections.history) writes.push([appStorageKeys.history, imported.history ?? []]);
+      if (imported.sections.targets) writes.push([appStorageKeys.targets, imported.targets]);
+      const blockedImport = writes.find(([key]) => blockedWorkspaceStorageRef.current.has(key));
+      if (blockedImport) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import paused for recovery',
+          description:
+            'Download or accept the original browser-storage recovery before replacing an affected section.',
+        });
+        return;
+      }
+      const prepared = prepareWorkspaceStorageWrites(writes);
+      if (!prepared.ok) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: prepared.error,
+        });
+        return;
+      }
+      const stored = storeValuesAtomically(prepared.values);
+      if (!stored.ok) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace was not imported',
+          description: `Browser storage failed: ${stored.error}`,
+        });
+        return;
+      }
+
+      if (imported.sections.assertions) setAssertionRules(imported.assertions);
+      if (imported.sections.collections) setCollections(imported.collections);
+      if (imported.sections.environments) setEnvironments(imported.environments);
+      if (imported.sections.history) setHistory(imported.history ?? []);
+      if (imported.sections.targets) {
+        handleResetToLauncher();
+        setTargets(imported.targets);
+      }
+      setOperationMessage({
+        tone: 'info',
+        title: imported.legacy ? 'Legacy workspace imported safely' : 'Workspace imported',
+        description: `${
+          imported.hasHostFilePaths
+            ? 'No target was connected. Imported proto, protoset, certificate, and key paths refer to paths on the ProtoPeek host; connecting that target grants the ProtoPeek process local file-read authority for those paths.'
+            : 'No target was connected. Imported targets remain inactive until you explicitly connect one.'
+        }${
+          hasBrowserFolderProfiles
+            ? ' Browser-folder profiles include no schema snapshot bytes, folder handle, root name, or local path. They show Folder required and must be repicked before connecting.'
+            : ''
+        }`,
+      });
+    } catch (error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace import refused',
+        description: error instanceof Error ? error.message : 'Workspace import failed.',
+      });
+    } finally {
+      input.value = '';
     }
-    const d = parsed.value as {
-      assertions?: AssertionRule[];
-      collections?: SavedCollection[];
-      environments?: EnvironmentPreset[];
-      history?: RequestHistoryEntry[];
-      targets?: WorkspaceTargetProfile[];
-    };
-    if (d.assertions) setAssertionRules(d.assertions.map(sanitizeAssertionForPersistence));
-    if (d.collections)
-      setCollections(
-        d.collections.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.environments)
-      setEnvironments(
-        d.environments.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.history)
-      setHistory(
-        d.history.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.targets) setTargets(d.targets);
   }
 
   const paletteActions: PaletteAction[] = [
@@ -1012,19 +2038,19 @@ export function App() {
       id: 'history',
       label: 'Open history and saved requests',
       keywords: 'recent collection',
-      run: () => setActiveView('history'),
+      run: () => navigateToView('history'),
     },
     {
       id: 'schema',
       label: 'Inspect schema',
       keywords: 'proto descriptor structure',
-      run: () => setActiveView('structure'),
+      run: () => navigateToView('structure'),
     },
     {
       id: 'targets',
       label: 'Manage targets',
       keywords: 'endpoint connect reflection proto protoset',
-      run: () => setActiveView('workspace'),
+      run: () => navigateToView('workspace'),
     },
     ...(bootstrap?.services.flatMap((service) =>
       service.methods.map((method) => ({
@@ -1035,6 +2061,36 @@ export function App() {
       }))
     ) ?? []),
   ];
+
+  const workspaceNotices = (
+    <>
+      {workspaceRecoveries.length > 0 ? (
+        <div className="px-4 pt-4">
+          <StatusBanner
+            tone="danger"
+            title="Workspace storage needs recovery"
+            description={`${workspaceRecoveries.map((recovery) => `${recovery.section}: ${recovery.reason}`).join(' ')} Original keys remain untouched. Download captures exact readable originals; a browser read failure can only be left in place. Accept the bounded valid records explicitly after reviewing the recovery, which may contain credentials, request bodies, and host paths.`}
+            actions={[
+              { label: 'Download originals', run: downloadWorkspaceRecovery },
+              { label: 'Use recovered data', run: handleUseRecoveredWorkspace },
+            ]}
+          />
+        </div>
+      ) : null}
+
+      {operationMessage ? (
+        <div className="px-4 pt-4">
+          <StatusBanner
+            tone={operationMessage.tone}
+            title={operationMessage.title}
+            description={operationMessage.description}
+            actions={operationMessage.actions}
+            onDismiss={() => setOperationMessage(null)}
+          />
+        </div>
+      ) : null}
+    </>
+  );
 
   // boot/loading states
   if (bootError)
@@ -1062,19 +2118,25 @@ export function App() {
     return (
       <LauncherView
         bootstrap={bootstrap}
+        notices={workspaceNotices}
         targets={targets}
         activeTargetId={activeTargetId}
         draft={targetDraft}
+        browserProtoFolder={browserProtoFolder}
+        browserProtoFolderBusy={browserProtoFolderBusy}
         busy={workspaceBusy}
         error={workspaceError}
         onChangeDraft={updateDraft}
+        onBrowserProtoFolderChange={handleBrowserProtoFolderChange}
+        onBrowserProtoFolderBusyChange={setBrowserProtoFolderBusy}
         onSaveAndConnect={() => {
           void handleSaveAndConnect();
         }}
+        onCancelConnect={handleCancelConnection}
         onConnect={(t) => {
           void handleConnectRecent(t);
         }}
-        onEdit={setTargetDraft}
+        onEdit={handleEditTarget}
         onDelete={handleDeleteTarget}
         onOpenDiscovered={(result) => {
           void handleOpenDiscovered(result);
@@ -1115,7 +2177,7 @@ export function App() {
           onFilterChange={setMethodFilter}
           onSelectMethod={handleSelectMethod}
           onViewChange={(view) => {
-            setActiveView(view);
+            navigateToView(view);
             setSidebarOpen(false);
           }}
           onExport={handleExportWorkspace}
@@ -1126,14 +2188,14 @@ export function App() {
           className="hidden"
           type="file"
           accept="application/json"
-          onChange={handleImportWorkspace}
+          onChange={(event) => void handleImportWorkspace(event)}
         />
       </aside>
 
       <div className="pp-main">
         <WorkbenchHeader
           target={bootstrap.target}
-          targetProfile={targets.find((target) => target.id === activeTargetId) ?? null}
+          targetProfile={activeTarget}
           serviceName={currentService.name}
           method={currentMethod}
           sidebarButtonRef={sidebarToggleRef}
@@ -1142,9 +2204,11 @@ export function App() {
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onSwitchTarget={() => {
             if (rootBootstrap?.launcherMode) handleResetToLauncher();
-            else setActiveView('workspace');
+            else navigateToView('workspace');
           }}
         />
+
+        {workspaceNotices}
 
         <div
           className={classNames('flex-1 overflow-y-auto', activeView === 'compose' ? 'p-0' : 'p-4')}
@@ -1180,6 +2244,36 @@ export function App() {
 
           {activeView === 'tests' ? (
             <TestsView
+              healthService={healthService}
+              onHealthServiceChange={setHealthService}
+              selectedHealthService={currentService.name}
+              healthServiceSuggestions={healthCatalog.serviceSuggestions}
+              healthCheckDeadlineSeconds={healthCheckDeadlineSeconds}
+              onHealthCheckDeadlineChange={setHealthCheckDeadlineSeconds}
+              healthWatchDurationSeconds={healthWatchDurationSeconds}
+              onHealthWatchDurationChange={setHealthWatchDurationSeconds}
+              healthRun={healthRun}
+              healthBusy={healthBusy}
+              healthBlockedBy={
+                repeatBusy
+                  ? 'Cancel Repeat first to use Health.'
+                  : invokeState.loading
+                    ? 'Cancel the active RPC first to use Health.'
+                    : workspaceBusy
+                      ? 'Wait for the target connection to settle.'
+                      : null
+              }
+              healthError={healthError}
+              healthAdvertised={healthCatalog.advertised}
+              currentHealthContextKey={healthContextKey}
+              currentTarget={bootstrap.target}
+              onHealthCheck={() => {
+                void handleHealthOperation('check');
+              }}
+              onHealthWatch={() => {
+                void handleHealthOperation('watch');
+              }}
+              onCancelHealth={handleCancelHealth}
               rules={assertionRules}
               results={assertionResults}
               onChangeRule={handleAssertionChange}
@@ -1188,15 +2282,19 @@ export function App() {
               onRunAssertions={() => {
                 void handleInvoke().then(() => setActiveView('tests'));
               }}
-              simulationConfig={simulationConfig}
-              setSimulationConfig={setSimulationConfig}
-              simulationRun={simulationRun}
-              simulationBusy={simulationBusy}
-              simulationError={simulationError}
-              onSimulate={() => {
-                void handleSimulation();
+              method={currentMethod}
+              repeatConfig={repeatConfig}
+              setRepeatConfig={setRepeatConfig}
+              repeatRun={repeatRun}
+              repeatBusy={repeatBusy}
+              repeatError={repeatError}
+              repeatProgress={repeatProgress}
+              onRepeat={() => {
+                void handleRepeat();
               }}
-              latencySparkline={latencySparkline}
+              onCancelRepeat={handleCancelRepeat}
+              onExportRepeat={handleExportRepeat}
+              repeatLatencySparkline={repeatLatencySparkline}
               passingAssertions={passingAssertions}
             />
           ) : null}
@@ -1240,17 +2338,22 @@ export function App() {
               targets={targets}
               activeTargetId={activeTargetId}
               draft={targetDraft}
+              browserProtoFolder={browserProtoFolder}
+              browserProtoFolderBusy={browserProtoFolderBusy}
               busy={workspaceBusy}
               error={workspaceError}
               rootBootstrap={rootBootstrap}
               onChangeDraft={updateDraft}
+              onBrowserProtoFolderChange={handleBrowserProtoFolderChange}
+              onBrowserProtoFolderBusyChange={setBrowserProtoFolderBusy}
               onSaveAndConnect={() => {
                 void handleSaveAndConnect();
               }}
+              onCancelConnect={handleCancelConnection}
               onConnect={(t) => {
                 void handleConnectRecent(t);
               }}
-              onEdit={setTargetDraft}
+              onEdit={handleEditTarget}
               onDelete={handleDeleteTarget}
               onReset={handleResetToLauncher}
               onOpenDiscovered={(result) => {
@@ -1283,9 +2386,7 @@ function _ComposeView({
   onChangeMeta,
   grpcCommand,
   onInvoke,
-  onSimulate,
   invokeLoading,
-  simulationBusy,
   onResetFromSchema,
   matchingExamples,
   setRequestFromExample,
@@ -1315,9 +2416,7 @@ function _ComposeView({
   onChangeMeta: (i: number, v: MetadataEntry) => void;
   grpcCommand: string;
   onInvoke: () => void;
-  onSimulate: () => void;
   invokeLoading: boolean;
-  simulationBusy: boolean;
   onResetFromSchema: () => void;
   matchingExamples: ExampleResponse[];
   setRequestFromExample: (e: ExampleResponse) => void;
@@ -1382,14 +2481,6 @@ function _ComposeView({
               <Play className="size-3.5" />
             )}
             Invoke
-          </button>
-          <button className="pp-button-secondary" type="button" onClick={onSimulate}>
-            {simulationBusy ? (
-              <LoaderCircle className="size-3.5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-3.5" />
-            )}
-            Simulate
           </button>
         </div>
 
@@ -1701,38 +2792,113 @@ function HistoryView({
 // ─── Tests view ────────────────────────────────────────────────
 
 function TestsView({
+  healthService,
+  onHealthServiceChange,
+  selectedHealthService,
+  healthServiceSuggestions,
+  healthCheckDeadlineSeconds,
+  onHealthCheckDeadlineChange,
+  healthWatchDurationSeconds,
+  onHealthWatchDurationChange,
+  healthRun,
+  healthBusy,
+  healthBlockedBy,
+  healthError,
+  healthAdvertised,
+  currentHealthContextKey,
+  currentTarget,
+  onHealthCheck,
+  onHealthWatch,
+  onCancelHealth,
   rules,
   results,
   onChangeRule,
   onAddRule,
   onRemoveRule,
   onRunAssertions,
-  simulationConfig,
-  setSimulationConfig,
-  simulationRun,
-  simulationBusy,
-  simulationError,
-  onSimulate,
-  latencySparkline,
+  method,
+  repeatConfig,
+  setRepeatConfig,
+  repeatRun,
+  repeatBusy,
+  repeatError,
+  repeatProgress,
+  onRepeat,
+  onCancelRepeat,
+  onExportRepeat,
+  repeatLatencySparkline,
   passingAssertions,
 }: {
+  healthService: string;
+  onHealthServiceChange: (value: string) => void;
+  selectedHealthService: string;
+  healthServiceSuggestions: string[];
+  healthCheckDeadlineSeconds: number;
+  onHealthCheckDeadlineChange: (value: number) => void;
+  healthWatchDurationSeconds: number;
+  onHealthWatchDurationChange: (value: number) => void;
+  healthRun: HealthRun | null;
+  healthBusy: boolean;
+  healthBlockedBy: string | null;
+  healthError: string | null;
+  healthAdvertised: boolean;
+  currentHealthContextKey: string;
+  currentTarget: string;
+  onHealthCheck: () => void;
+  onHealthWatch: () => void;
+  onCancelHealth: () => void;
   rules: AssertionRule[];
   results: AssertionResult[];
   onChangeRule: (id: string, r: AssertionRule) => void;
   onAddRule: () => void;
   onRemoveRule: (id: string) => void;
   onRunAssertions: () => void;
-  simulationConfig: SimulationConfig;
-  setSimulationConfig: (fn: (c: SimulationConfig) => SimulationConfig) => void;
-  simulationRun: SimulationRun | null;
-  simulationBusy: boolean;
-  simulationError: string | null;
-  onSimulate: () => void;
-  latencySparkline: string;
+  method: BootstrapMethod;
+  repeatConfig: RepeatConfig;
+  setRepeatConfig: (fn: (config: RepeatConfig) => RepeatConfig) => void;
+  repeatRun: RepeatRun | null;
+  repeatBusy: boolean;
+  repeatError: string | null;
+  repeatProgress: { attempted: number; requested: number };
+  onRepeat: () => void;
+  onCancelRepeat: () => void;
+  onExportRepeat: () => void;
+  repeatLatencySparkline: string;
   passingAssertions: number;
 }) {
+  const repeatEligible = !method.clientStreaming && !method.serverStreaming;
+  const minimumPacedMs = Math.max(0, repeatConfig.count - 1) * repeatConfig.thinkTimeMs;
+  const displayedAttempts = repeatRun?.attempts.length ?? repeatProgress.attempted;
+  const displayedRequested = repeatRun?.requestedCount ?? repeatProgress.requested;
+  const repeatConfigChanged = Boolean(
+    repeatRun &&
+      (repeatRun.config.count !== repeatConfig.count ||
+        repeatRun.config.thinkTimeMs !== repeatConfig.thinkTimeMs ||
+        repeatRun.config.deadlineSeconds !== repeatConfig.deadlineSeconds)
+  );
   return (
     <div className="space-y-6">
+      <HealthPanel
+        service={healthService}
+        onServiceChange={onHealthServiceChange}
+        selectedService={selectedHealthService}
+        serviceSuggestions={healthServiceSuggestions}
+        checkDeadlineSeconds={healthCheckDeadlineSeconds}
+        onCheckDeadlineChange={onHealthCheckDeadlineChange}
+        watchDurationSeconds={healthWatchDurationSeconds}
+        onWatchDurationChange={onHealthWatchDurationChange}
+        run={healthRun}
+        busy={healthBusy}
+        blockedBy={healthBlockedBy}
+        operationError={healthError}
+        healthAdvertised={healthAdvertised}
+        currentContextKey={currentHealthContextKey}
+        currentTarget={currentTarget}
+        onCheck={onHealthCheck}
+        onWatch={onHealthWatch}
+        onCancel={onCancelHealth}
+      />
+
       <section>
         <div className="flex items-center justify-between">
           <h3 className="pp-heading text-base">Assertions</h3>
@@ -1740,6 +2906,14 @@ function TestsView({
             <button
               className="pp-button-primary py-1.5 text-xs"
               type="button"
+              disabled={repeatBusy || healthBusy}
+              title={
+                healthBusy
+                  ? 'Cancel Health first, then run assertions.'
+                  : repeatBusy
+                    ? 'Cancel Repeat first, then run assertions.'
+                    : undefined
+              }
               onClick={onRunAssertions}
             >
               <CheckCircle2 className="size-3" />
@@ -1857,101 +3031,308 @@ function TestsView({
         ) : null}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between">
-          <h3 className="pp-heading text-base">Simulation</h3>
-          <button className="pp-button-primary py-1.5 text-xs" type="button" onClick={onSimulate}>
-            {simulationBusy ? (
-              <LoaderCircle className="size-3 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-3" />
+      <section className="pp-repeat-panel">
+        <div className="pp-repeat-heading">
+          <div>
+            <h3 className="pp-heading text-base">Unary repeat</h3>
+            <p>
+              Sequentially repeat this unary request through the same target. Browser-observed
+              debugging evidence, not a load test.
+            </p>
+          </div>
+          <button
+            className={classNames(
+              'pp-button-primary py-1.5 text-xs',
+              repeatBusy && 'pp-repeat-cancel'
             )}
-            Run
+            type="button"
+            aria-label={repeatBusy ? 'Cancel repeat' : 'Run repeat'}
+            disabled={!repeatBusy && (!repeatEligible || healthBusy)}
+            onClick={repeatBusy ? onCancelRepeat : onRepeat}
+          >
+            {repeatBusy ? <X className="size-3" /> : <Play className="size-3" />}
+            {repeatBusy
+              ? 'Cancel'
+              : `Run ${Number.isInteger(repeatConfig.count) ? repeatConfig.count : '—'} calls`}
           </button>
         </div>
-        <p className="pp-muted mt-2 text-xs">
-          Browser-driven diagnostic repetition, not a service load benchmark.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {simulationPresets.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setSimulationConfig(() => clampSimulationConfig(p.config))}
-              className="rounded-lg border border-pp-border px-3 py-1.5 text-xs font-medium hover:bg-pp-bg"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <label className="block">
-            <span className="pp-label">Runs</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.runs}
-              onChange={(e) => setSimulationConfig((c) => ({ ...c, runs: Number(e.target.value) }))}
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Concurrency</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.concurrency}
-              onChange={(e) =>
-                setSimulationConfig((c) => ({ ...c, concurrency: Number(e.target.value) }))
-              }
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Think (ms)</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.thinkTimeMs}
-              onChange={(e) =>
-                setSimulationConfig((c) => ({ ...c, thinkTimeMs: Number(e.target.value) }))
-              }
-            />
-          </label>
-        </div>
-        {simulationError ? (
+
+        {!repeatEligible ? (
           <div className="mt-3">
-            <StatusBanner tone="danger" title="Simulation failed" description={simulationError} />
+            <StatusBanner
+              tone="info"
+              title="Unary only"
+              description="Repeat is disabled for client-, server-, and bidirectional-streaming methods. Use Invoke to inspect stream evidence without multiplying the stream."
+            />
           </div>
         ) : null}
-        {simulationRun ? (
-          <div className="mt-4 space-y-3">
-            <div className="grid grid-cols-4 gap-3">
-              <Metric label="Success" value={String(simulationRun.successCount)} />
-              <Metric label="Errors" value={String(simulationRun.errorCount)} />
-              <Metric label="Observed req/s" value={simulationRun.throughputRps.toFixed(1)} />
-              <Metric label="Total" value={durationLabel(simulationRun.totalMs)} />
-            </div>
-            <div className="rounded-lg border border-pp-border bg-white p-3">
-              <span className="text-xs font-semibold text-pp-ink">
-                p50 {durationLabel(simulationRun.p50)} · p95 {durationLabel(simulationRun.p95)} ·
-                p99 {durationLabel(simulationRun.p99)}
+
+        <fieldset className="pp-repeat-presets" aria-label="Repeat presets">
+          {repeatPresets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={repeatBusy || healthBusy || !repeatEligible}
+              onClick={() => setRepeatConfig(() => preset.config)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </fieldset>
+        <div className="pp-repeat-config">
+          <label>
+            <span>Calls</span>
+            <input
+              aria-label="Calls"
+              type="number"
+              min={2}
+              max={50}
+              step={1}
+              disabled={repeatBusy || healthBusy || !repeatEligible}
+              value={Number.isFinite(repeatConfig.count) ? repeatConfig.count : ''}
+              onChange={(event) =>
+                setRepeatConfig((config) => ({
+                  ...config,
+                  count: event.target.value === '' ? Number.NaN : Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+          <label>
+            <span>Think time</span>
+            <span className="pp-repeat-input-unit">
+              <input
+                aria-label="Think time in milliseconds"
+                type="number"
+                min={0}
+                max={5000}
+                step={1}
+                disabled={repeatBusy || healthBusy || !repeatEligible}
+                value={Number.isFinite(repeatConfig.thinkTimeMs) ? repeatConfig.thinkTimeMs : ''}
+                onChange={(event) =>
+                  setRepeatConfig((config) => ({
+                    ...config,
+                    thinkTimeMs:
+                      event.target.value === '' ? Number.NaN : Number(event.target.value),
+                  }))
+                }
+              />
+              <small>ms</small>
+            </span>
+          </label>
+          <label>
+            <span>Per-call deadline</span>
+            <span className="pp-repeat-input-unit">
+              <input
+                aria-label="Per-call deadline in seconds"
+                type="number"
+                min={0.1}
+                max={30}
+                step={0.1}
+                disabled={repeatBusy || healthBusy || !repeatEligible}
+                value={
+                  Number.isFinite(repeatConfig.deadlineSeconds) ? repeatConfig.deadlineSeconds : ''
+                }
+                onChange={(event) =>
+                  setRepeatConfig((config) => ({
+                    ...config,
+                    deadlineSeconds:
+                      event.target.value === '' ? Number.NaN : Number(event.target.value),
+                  }))
+                }
+              />
+              <small>s</small>
+            </span>
+          </label>
+        </div>
+        <p className="pp-repeat-boundary">
+          2–50 calls · one at a time · 60 s wall cap · think time occurs only between calls
+        </p>
+        <p className="pp-repeat-safety">
+          Every Repeat attempt is a real RPC and may mutate service data. Protobuf descriptors do
+          not reliably guarantee idempotency.
+        </p>
+        {minimumPacedMs >= repeatAggregateLimitMs ? (
+          <p className="pp-repeat-warning">
+            Think time alone exceeds the 60 second wall cap; expect a partial run.
+          </p>
+        ) : null}
+
+        {repeatError ? (
+          <div className="mt-3">
+            <StatusBanner
+              tone="danger"
+              title={repeatBusy ? 'Repeat owns this request' : 'Repeat did not start'}
+              description={repeatError}
+            />
+          </div>
+        ) : null}
+
+        {repeatBusy || repeatRun ? (
+          <div className="pp-repeat-progress" aria-live="polite">
+            <div>
+              <strong>
+                {displayedAttempts} of {displayedRequested} attempts
+              </strong>
+              <span>
+                {repeatBusy
+                  ? 'Running sequentially…'
+                  : repeatRun?.stopReason === 'completed'
+                    ? 'Completed all requested calls.'
+                    : repeatRun?.stopReason === 'aggregate-limit'
+                      ? 'Stopped at the 60 second wall cap; partial results preserved.'
+                      : 'Cancelled; partial results preserved.'}
               </span>
-              <svg
-                aria-label="Latency sparkline"
-                role="img"
-                viewBox="0 0 200 48"
-                className="mt-2 h-12 w-full"
-              >
-                <title>Latency sparkline</title>
-                <path
-                  d={latencySparkline}
-                  fill="none"
-                  stroke="var(--pp-brand)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
             </div>
+            <progress
+              aria-label="Repeat progress"
+              max={Math.max(1, displayedRequested)}
+              value={displayedAttempts}
+            />
+          </div>
+        ) : null}
+
+        {repeatRun ? (
+          <div className="pp-repeat-results">
+            <div className="pp-repeat-actions">
+              <div>
+                <strong>{repeatRun.method}</strong>
+                <span>
+                  {repeatRun.target} · {durationLabel(repeatRun.totalMs)} total
+                </span>
+                <span className="pp-repeat-run-attribution">
+                  Run started{' '}
+                  <time title="Repeat run started" dateTime={repeatRun.createdAt}>
+                    {new Date(repeatRun.createdAt).toLocaleString()}
+                  </time>{' '}
+                  · {repeatRun.config.count} calls · {repeatRun.config.thinkTimeMs} ms think ·{' '}
+                  {repeatRun.config.deadlineSeconds} s deadline
+                </span>
+                {repeatConfigChanged ? (
+                  <span className="pp-repeat-stale">Previous run · controls have changed</span>
+                ) : null}
+              </div>
+              <button type="button" className="pp-button-secondary" onClick={onExportRepeat}>
+                <Download className="size-3" />
+                Export JSON
+              </button>
+            </div>
+            <p className="pp-repeat-snapshot-note">
+              Request payload and metadata were snapshotted at run start, but are not retained or
+              exported with this evidence.
+            </p>
+            <div className="pp-repeat-outcomes">
+              <Metric label="OK" value={String(repeatRun.counts.ok)} />
+              <Metric label="gRPC errors" value={String(repeatRun.counts.grpcError)} />
+              <Metric
+                label="Relay / transport errors"
+                value={String(repeatRun.counts.relayTransportError)}
+              />
+              <Metric label="Cancelled" value={String(repeatRun.counts.cancelled)} />
+            </div>
+            <div className="pp-repeat-latency">
+              <Metric
+                label="Min"
+                value={
+                  repeatRun.latency.minMs === null ? '—' : durationLabel(repeatRun.latency.minMs)
+                }
+              />
+              <Metric
+                label="Median"
+                value={
+                  repeatRun.latency.medianMs === null
+                    ? '—'
+                    : durationLabel(repeatRun.latency.medianMs)
+                }
+              />
+              <Metric
+                label="p95"
+                value={
+                  repeatRun.latency.p95Ms === null
+                    ? `Needs 20 (${repeatRun.latency.sampleCount})`
+                    : durationLabel(repeatRun.latency.p95Ms)
+                }
+              />
+              <Metric
+                label="Max"
+                value={
+                  repeatRun.latency.maxMs === null ? '—' : durationLabel(repeatRun.latency.maxMs)
+                }
+              />
+            </div>
+            <p className="pp-repeat-latency-source">
+              Summary source:{' '}
+              {repeatRun.latency.source === 'handler-invoke'
+                ? `ProtoPeek handler invoke (${repeatRun.latency.sampleCount} measured calls)`
+                : `console round-trip fallback (${repeatRun.latency.sampleCount} completed RPCs)`}
+              <br />
+              {repeatRun.latency.source === 'handler-invoke'
+                ? 'Handler timing includes JSON/protobuf conversion and callbacks, but excludes the browser and HTTP relay.'
+                : 'Console round trip includes the browser and HTTP relay plus response parsing.'}
+            </p>
+            {repeatLatencySparkline ? (
+              <div className="pp-repeat-sparkline">
+                <span>
+                  {repeatRun.latency.source === 'handler-invoke'
+                    ? 'ProtoPeek handler invoke duration in call order'
+                    : 'Console round-trip fallback in call order'}
+                </span>
+                <svg aria-label="Repeat latency sparkline" role="img" viewBox="0 0 200 48">
+                  <title>Repeat latency sparkline</title>
+                  <path
+                    d={repeatLatencySparkline}
+                    fill="none"
+                    stroke="var(--pp-accent-signal)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            ) : null}
+            <details className="pp-repeat-attempts">
+              <summary>Attempt details ({repeatRun.attempts.length})</summary>
+              <div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Result</th>
+                      <th>Latency</th>
+                      <th>Evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repeatRun.attempts.map((attempt) => (
+                      <tr key={attempt.sequence}>
+                        <td>{attempt.sequence}</td>
+                        <td>
+                          <span className={`pp-repeat-result is-${attempt.outcome}`}>
+                            {attempt.outcome}
+                          </span>
+                        </td>
+                        <td>
+                          {attempt.handlerInvokeMs === null
+                            ? `Console ${durationLabel(attempt.consoleRoundTripMs)}`
+                            : `Handler ${durationLabel(attempt.handlerInvokeMs)} · Console ${durationLabel(attempt.consoleRoundTripMs)}`}
+                        </td>
+                        <td>
+                          {attempt.grpcStatus
+                            ? `${attempt.grpcStatus.name} (${attempt.grpcStatus.code}): ${attempt.grpcStatus.message}`
+                            : attempt.error ||
+                              `${attempt.responseCount} message(s), ${attempt.headerCount} header(s), ${attempt.trailerCount} trailer(s)`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+            <p className="pp-repeat-export-note">
+              Export includes method, target, run configuration, timestamps, counts, per-attempt
+              offsets and timings, classifications, and error and status text. Request bodies and
+              metadata are excluded. Review target and service-provided details before sharing.
+            </p>
           </div>
         ) : null}
       </section>
@@ -2173,11 +3554,16 @@ function WorkspaceView({
   targets,
   activeTargetId,
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   error,
   rootBootstrap,
   onChangeDraft,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
   onConnect,
   onEdit,
   onDelete,
@@ -2187,11 +3573,16 @@ function WorkspaceView({
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   error: string | null;
   rootBootstrap: BootstrapResponse | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
@@ -2200,16 +3591,21 @@ function WorkspaceView({
 }) {
   return (
     <div className="space-y-6">
-      <ScanPanel onOpen={onOpenDiscovered} />
+      <DiscoveryPanel onOpenGRPC={onOpenDiscovered} />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <h3 className="pp-heading text-base">Target connection</h3>
           {error ? <StatusBanner tone="danger" title="Error" description={error} /> : null}
           <TargetForm
             draft={draft}
+            browserProtoFolder={browserProtoFolder}
+            browserProtoFolderBusy={browserProtoFolderBusy}
             busy={busy}
             onChange={onChangeDraft}
+            onBrowserProtoFolderChange={onBrowserProtoFolderChange}
+            onBrowserProtoFolderBusyChange={onBrowserProtoFolderBusyChange}
             onSaveAndConnect={onSaveAndConnect}
+            onCancelConnect={onCancelConnect}
           />
         </div>
         <div className="space-y-4">
@@ -2237,7 +3633,7 @@ function WorkspaceView({
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{workspaceSchemaSourceLabel(t.schemaSource)}</span>
                     <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
                     {t.insecure ? (
                       <span className="pp-badge text-amber-600">Skip verify</span>
@@ -2255,11 +3651,12 @@ function WorkspaceView({
                       ) : (
                         <Play className="size-3" />
                       )}
-                      Connect
+                      {t.schemaSource === 'browser-proto-folder' ? 'Repick folder' : 'Connect'}
                     </button>
                     <button
                       className="pp-button-secondary py-1 text-xs"
                       type="button"
+                      disabled={busy}
                       onClick={() => onEdit(t)}
                     >
                       Edit
@@ -2268,6 +3665,7 @@ function WorkspaceView({
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
                       aria-label={`Delete ${t.name}`}
+                      disabled={busy}
                       onClick={() => onDelete(t.id)}
                     >
                       <X className="size-3" />
@@ -2283,247 +3681,42 @@ function WorkspaceView({
   );
 }
 
-// ─── Scan panel ────────────────────────────────────────────────
-
-function ScanPanel({
-  onOpen,
-  autoStart = false,
-  initialTarget = '',
-}: {
-  onOpen: (result: ScanResult) => void;
-  autoStart?: boolean;
-  initialTarget?: string;
-}) {
-  const ambientAddresses = [
-    'localhost:50051',
-    'localhost:9090',
-    'localhost:6565',
-    'localhost:7000',
-    'localhost:8080',
-    '127.0.0.1:50051',
-  ];
-  const [scanInput, setScanInput] = useState(initialTarget);
-  const [scanning, setScanning] = useState(false);
-  const [results, setResults] = useState<ScanResult[]>([]);
-  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
-  const [lastScanWasExplicit, setLastScanWasExplicit] = useState(false);
-  const autoStartedRef = useRef(false);
-
-  const runScan = useEffectEvent(async (explicit: boolean) => {
-    const address = scanInput.trim();
-    const addresses = explicit && address ? [address] : ambientAddresses;
-    setScanning(true);
-    setLastScanWasExplicit(explicit && Boolean(address));
-    setResults([]);
-    try {
-      const res = await scanAddresses(addresses, allowPrivateNetwork, explicit && Boolean(address));
-      setResults(res);
-    } catch (error) {
-      setResults([
-        {
-          address: addresses[0],
-          alive: false,
-          grpc: false,
-          reflection: 'not-checked',
-          transport: '',
-          services: null,
-          failure: 'request',
-          error:
-            error instanceof Error && error.message.trim()
-              ? error.message.trim()
-              : 'Scan request failed',
-          details: null,
-          latencyMs: 0,
-        },
-      ]);
-    } finally {
-      setScanning(false);
-    }
-  });
-
-  useEffect(() => {
-    if (!autoStart || autoStartedRef.current) return;
-    autoStartedRef.current = true;
-    void runScan(Boolean(initialTarget.trim()));
-  }, [autoStart, initialTarget]);
-
-  const routineFailures = lastScanWasExplicit
-    ? []
-    : results.filter((result) => !result.alive && result.failure === 'unreachable');
-  const visibleResults = lastScanWasExplicit
-    ? results
-    : results.filter((result) => result.alive || result.failure !== 'unreachable');
-
-  return (
-    <div className="pp-panel pp-discovery-panel">
-      <div className="pp-card-heading">
-        <div>
-          <span className="pp-kicker">Nearby</span>
-          <h3>Discover local gRPC</h3>
-        </div>
-        <span className="pp-local-indicator">
-          <LockKeyhole aria-hidden="true" /> Loopback by default
-        </span>
-      </div>
-      <p className="pp-muted">
-        Ambient discovery checks six fixed loopback endpoints. An explicit host without a port
-        checks only 50051 plaintext and 443 with verified TLS.
-      </p>
-      <div className="pp-discovery-controls">
-        <input
-          className="pp-input font-mono text-xs"
-          value={scanInput}
-          onChange={(e) => setScanInput(e.target.value)}
-          placeholder="Explicit host, URL, or host:port"
-          aria-label="Explicit gRPC target to probe"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void runScan(Boolean(scanInput.trim()));
-          }}
-        />
-        <button
-          className="pp-button-primary shrink-0"
-          type="button"
-          disabled={scanning}
-          onClick={() => void runScan(Boolean(scanInput.trim()))}
-        >
-          {scanning ? (
-            <LoaderCircle className="size-4 animate-spin" />
-          ) : (
-            <Search className="size-4" />
-          )}
-          {scanInput.trim() ? 'Probe target' : 'Scan loopback'}
-        </button>
-      </div>
-      <label className="pp-private-scan-toggle">
-        <input
-          type="checkbox"
-          checked={allowPrivateNetwork}
-          onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
-        />
-        Allow this explicit private IP
-      </label>
-      {visibleResults.length > 0 ? (
-        <div className="pp-discovery-results">
-          {visibleResults.map((result) => (
-            <ScanResultCard
-              key={`${result.address}-${result.transport}`}
-              result={result}
-              onOpen={onOpen}
-            />
-          ))}
-        </div>
-      ) : null}
-      {routineFailures.length > 0 ? (
-        <details className="pp-scan-failures">
-          <summary>{routineFailures.length} routine loopback probes were not reachable</summary>
-          <ul>
-            {routineFailures.map((result) => (
-              <li key={result.address}>
-                <code>{result.address}</code>
-                <span>{result.details?.[0] ?? result.error ?? 'Not reachable'}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </div>
-  );
-}
-
-function ScanResultCard({
-  result,
-  onOpen,
-}: {
-  result: ScanResult;
-  onOpen: (result: ScanResult) => void;
-}) {
-  const canOpen =
-    result.grpc && result.reflection === 'available' && Boolean(result.services?.length);
-  const transport = result.transport === 'tls' ? 'TLS' : 'Plaintext';
-  return (
-    <div
-      className={classNames(
-        'pp-discovery-result',
-        result.grpc && 'is-grpc',
-        result.alive && !result.grpc && 'is-open'
-      )}
-    >
-      <div className="pp-discovery-result-head">
-        <div>
-          <span
-            className={classNames(
-              'pp-discovery-dot',
-              result.grpc ? 'bg-pp-ok' : result.alive ? 'bg-pp-accent' : 'bg-pp-muted'
-            )}
-          />
-          <strong>{result.address}</strong>
-          <small>{result.latencyMs}ms</small>
-        </div>
-        {canOpen ? (
-          <button
-            className="pp-button-primary py-1 text-xs"
-            type="button"
-            aria-label={`Open ${result.address}`}
-            onClick={() => onOpen(result)}
-          >
-            Open
-          </button>
-        ) : null}
-      </div>
-      <p className="pp-muted">
-        {result.reflection === 'available'
-          ? `Reflection available · ${transport}`
-          : result.grpc
-            ? `gRPC confirmed · reflection unavailable · ${transport}`
-            : (result.error ?? 'No gRPC transport detected')}
-      </p>
-      {result.services && result.services.length > 0 ? (
-        <div className="pp-discovered-services">
-          {result.services.map((service) => (
-            <span key={service} className="pp-badge">
-              {service}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {result.details && result.details.length > 0 ? (
-        <details className="pp-probe-details">
-          <summary>Probe details</summary>
-          <ul>
-            {result.details.map((detail) => (
-              <li key={detail}>{detail}</li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-    </div>
-  );
-}
-
 // ─── Launcher view (no services discovered yet) ────────────────
 
 function LauncherView({
   bootstrap,
+  notices,
   targets,
   activeTargetId,
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   error,
   onChangeDraft,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
   onConnect,
   onEdit,
   onDelete,
   onOpenDiscovered,
 }: {
   bootstrap: BootstrapResponse;
+  notices?: ReactNode;
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   error: string | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
@@ -2534,20 +3727,21 @@ function LauncherView({
       <header className="pp-launcher-header">
         <div className="pp-wordmark">
           <span className="pp-wordmark-icon">
-            <Activity aria-hidden="true" />
+            <ProtoPeekMark />
           </span>
           <span>ProtoPeek</span>
-          <span className="pp-version">{bootstrap.version}</span>
+          <span className="pp-version">{displayBuildVersion(bootstrap.version)}</span>
         </div>
         <span className="pp-local-indicator">
-          <LockKeyhole aria-hidden="true" /> Local only
+          <LockKeyhole aria-hidden="true" /> Local console
         </span>
       </header>
+      {notices}
       <div className="pp-launcher-main">
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
           <h1>Open a gRPC target.</h1>
-          <p>Reflection first. Proto files and protosets when you need them.</p>
+          <p>Reflection first. Browser folders or host descriptors when it is off.</p>
           <div className="pp-trust-row">
             <span>Auto-find loopback services</span>
             <span>
@@ -2569,16 +3763,21 @@ function LauncherView({
           ) : null}
           <TargetForm
             draft={draft}
+            browserProtoFolder={browserProtoFolder}
+            browserProtoFolderBusy={browserProtoFolderBusy}
             busy={busy}
             onChange={onChangeDraft}
+            onBrowserProtoFolderChange={onBrowserProtoFolderChange}
+            onBrowserProtoFolderBusyChange={onBrowserProtoFolderBusyChange}
             onSaveAndConnect={onSaveAndConnect}
+            onCancelConnect={onCancelConnect}
           />
         </section>
 
-        <ScanPanel
+        <DiscoveryPanel
           autoStart
           initialTarget={bootstrap.initialScanTarget}
-          onOpen={onOpenDiscovered}
+          onOpenGRPC={onOpenDiscovered}
         />
 
         <section className="pp-saved-targets" aria-labelledby="saved-targets-title">
@@ -2607,7 +3806,7 @@ function LauncherView({
                     ) : null}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="pp-badge">{schemaSourceLabel(t.schemaSource)}</span>
+                    <span className="pp-badge">{workspaceSchemaSourceLabel(t.schemaSource)}</span>
                     <span className="pp-badge">{t.plaintext ? 'Plain' : 'TLS'}</span>
                     {t.insecure ? (
                       <span className="pp-badge text-amber-600">Skip verify</span>
@@ -2625,11 +3824,12 @@ function LauncherView({
                       ) : (
                         <Play className="size-3" />
                       )}
-                      Connect
+                      {t.schemaSource === 'browser-proto-folder' ? 'Repick folder' : 'Connect'}
                     </button>
                     <button
                       className="pp-button-secondary py-1 text-xs"
                       type="button"
+                      disabled={busy}
                       onClick={() => onEdit(t)}
                     >
                       Edit
@@ -2638,6 +3838,7 @@ function LauncherView({
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
                       aria-label={`Delete ${t.name}`}
+                      disabled={busy}
                       onClick={() => onDelete(t.id)}
                     >
                       <X className="size-3" />
@@ -2650,7 +3851,8 @@ function LauncherView({
         </section>
       </div>
       <footer className="pp-launcher-footer">
-        Nothing leaves this device. ProtoPeek stores workspace preferences in this browser only.
+        Workspace preferences stay in this browser. Selected schema snapshots go only to this
+        running ProtoPeek instance, never to the gRPC target.
       </footer>
     </div>
   );
@@ -2660,186 +3862,214 @@ function LauncherView({
 
 function TargetForm({
   draft,
+  browserProtoFolder,
+  browserProtoFolderBusy,
   busy,
   onChange,
+  onBrowserProtoFolderChange,
+  onBrowserProtoFolderBusyChange,
   onSaveAndConnect,
+  onCancelConnect,
 }: {
   draft: WorkspaceTargetProfile;
+  browserProtoFolder: BrowserProtoFolderSelection | null;
+  browserProtoFolderBusy: boolean;
   busy: boolean;
   onChange: (n: Partial<WorkspaceTargetProfile>) => void;
+  onBrowserProtoFolderChange: (selection: BrowserProtoFolderSelection | null) => void;
+  onBrowserProtoFolderBusyChange: (busy: boolean) => void;
   onSaveAndConnect: () => void;
+  onCancelConnect: () => void;
 }) {
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="pp-label">Address</span>
-          <input
-            className="pp-input mt-1"
-            value={draft.address}
-            onChange={(e) => onChange({ address: e.target.value })}
-            placeholder="localhost:50051"
-          />
-        </label>
-        <label className="block">
-          <span className="pp-label">
-            Name <small>optional</small>
-          </span>
-          <input
-            className="pp-input mt-1"
-            value={draft.name}
-            onChange={(e) => onChange({ name: e.target.value })}
-            placeholder="Local dev"
-          />
-        </label>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="pp-label">Schema source</span>
-          <select
-            className="pp-input mt-1"
-            value={draft.schemaSource}
-            onChange={(e) =>
-              onChange({ schemaSource: e.target.value as WorkspaceTargetProfile['schemaSource'] })
-            }
-          >
-            <option value="reflection">Reflection</option>
-            <option value="proto-files">Proto files</option>
-            <option value="protoset">Protoset</option>
-          </select>
-        </label>
-        <div className="pp-transport-choice">
-          <span className="pp-label">Transport</span>
-          <label className="flex items-center gap-2 text-sm">
+      <fieldset disabled={busy} className="min-w-0 space-y-3 border-0 p-0">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="pp-label">Address</span>
             <input
-              type="checkbox"
-              checked={draft.plaintext}
-              onChange={(e) =>
-                onChange({
-                  plaintext: e.target.checked,
-                  insecure: e.target.checked ? false : draft.insecure,
-                })
-              }
+              className="pp-input mt-1"
+              value={draft.address}
+              onChange={(e) => onChange({ address: e.target.value })}
+              placeholder="localhost:50051"
             />
-            {draft.plaintext ? 'Plaintext' : 'TLS'}
+          </label>
+          <label className="block">
+            <span className="pp-label">
+              Name <small>optional</small>
+            </span>
+            <input
+              className="pp-input mt-1"
+              value={draft.name}
+              onChange={(e) => onChange({ name: e.target.value })}
+              placeholder="Local dev"
+            />
           </label>
         </div>
-      </div>
-      <details className="pp-target-advanced">
-        <summary>Advanced connection options</summary>
-        <div className="pp-target-advanced-body">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="pp-label">Authority</span>
-              <input
-                className="pp-input mt-1"
-                value={draft.authority}
-                onChange={(e) => onChange({ authority: e.target.value })}
-                placeholder="grpc.example.internal"
-              />
-            </label>
-            <label className="block">
-              <span className="pp-label">Notes</span>
-              <input
-                className="pp-input mt-1"
-                value={draft.notes}
-                onChange={(e) => onChange({ notes: e.target.value })}
-                placeholder="Optional context"
-              />
-            </label>
-          </div>
-          {!draft.plaintext ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="pp-label">Schema source</span>
+            <select
+              className="pp-input mt-1"
+              value={draft.schemaSource}
+              onChange={(e) =>
+                onChange({ schemaSource: e.target.value as WorkspaceTargetProfile['schemaSource'] })
+              }
+            >
+              <option value="reflection">Reflection</option>
+              <option value="browser-proto-folder">Browser folder</option>
+              <option value="proto-files">Host proto paths</option>
+              <option value="protoset">Host protoset paths</option>
+            </select>
+          </label>
+          <div className="pp-transport-choice">
+            <span className="pp-label">Transport</span>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={draft.insecure}
-                onChange={(e) => onChange({ insecure: e.target.checked })}
+                checked={draft.plaintext}
+                onChange={(e) =>
+                  onChange({
+                    plaintext: e.target.checked,
+                    insecure: e.target.checked ? false : draft.insecure,
+                  })
+                }
               />
-              Skip certificate verification
+              {draft.plaintext ? 'Plaintext' : 'TLS'}
             </label>
-          ) : null}
-          {!draft.plaintext ? (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block">
-                <span className="pp-label">CA cert</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.cacertPath}
-                  onChange={(e) => onChange({ cacertPath: e.target.value })}
-                  placeholder="/certs/ca.pem"
-                />
-              </label>
-              <label className="block">
-                <span className="pp-label">Client cert</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.certPath}
-                  onChange={(e) => onChange({ certPath: e.target.value })}
-                  placeholder="/certs/client.pem"
-                />
-              </label>
-              <label className="block">
-                <span className="pp-label">Client key</span>
-                <input
-                  className="pp-input mt-1"
-                  value={draft.keyPath}
-                  onChange={(e) => onChange({ keyPath: e.target.value })}
-                  placeholder="/certs/key.pem"
-                />
-              </label>
-            </div>
-          ) : null}
-          {draft.schemaSource === 'proto-files' ? (
+          </div>
+        </div>
+        {draft.schemaSource === 'browser-proto-folder' ? (
+          <BrowserProtoFolderPicker
+            selection={browserProtoFolder}
+            onChange={onBrowserProtoFolderChange}
+            onBusyChange={onBrowserProtoFolderBusyChange}
+            disabled={busy}
+          />
+        ) : null}
+        <details className="pp-target-advanced">
+          <summary>Advanced connection options</summary>
+          <div className="pp-target-advanced-body">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="pp-label">Proto files</span>
-                <textarea
-                  className="pp-input mt-1 font-mono text-xs"
-                  rows={3}
-                  value={draft.protoFiles.join('\n')}
-                  onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
-                  placeholder="api/service.proto"
+                <span className="pp-label">Authority</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.authority}
+                  onChange={(e) => onChange({ authority: e.target.value })}
+                  placeholder="grpc.example.internal"
                 />
               </label>
               <label className="block">
-                <span className="pp-label">Import paths</span>
-                <textarea
-                  className="pp-input mt-1 font-mono text-xs"
-                  rows={3}
-                  value={draft.importPaths.join('\n')}
-                  onChange={(e) => onChange({ importPaths: parseMultilineValues(e.target.value) })}
-                  placeholder="proto"
+                <span className="pp-label">Notes</span>
+                <input
+                  className="pp-input mt-1"
+                  value={draft.notes}
+                  onChange={(e) => onChange({ notes: e.target.value })}
+                  placeholder="Optional context"
                 />
               </label>
             </div>
-          ) : null}
-          {draft.schemaSource === 'protoset' ? (
-            <label className="block">
-              <span className="pp-label">Protoset files</span>
-              <textarea
-                className="pp-input mt-1 font-mono text-xs"
-                rows={3}
-                value={draft.protosets.join('\n')}
-                onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
-                placeholder="dist/service.protoset"
-              />
-            </label>
-          ) : null}
-        </div>
-      </details>
+            {!draft.plaintext ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.insecure}
+                  onChange={(e) => onChange({ insecure: e.target.checked })}
+                />
+                Skip certificate verification
+              </label>
+            ) : null}
+            {!draft.plaintext ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="block">
+                  <span className="pp-label">CA cert</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.cacertPath}
+                    onChange={(e) => onChange({ cacertPath: e.target.value })}
+                    placeholder="/certs/ca.pem"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Client cert</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.certPath}
+                    onChange={(e) => onChange({ certPath: e.target.value })}
+                    placeholder="/certs/client.pem"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Client key</span>
+                  <input
+                    className="pp-input mt-1"
+                    value={draft.keyPath}
+                    onChange={(e) => onChange({ keyPath: e.target.value })}
+                    placeholder="/certs/key.pem"
+                  />
+                </label>
+              </div>
+            ) : null}
+            {draft.schemaSource === 'proto-files' ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="pp-label">Proto files</span>
+                  <textarea
+                    className="pp-input mt-1 font-mono text-xs"
+                    rows={3}
+                    value={draft.protoFiles.join('\n')}
+                    onChange={(e) => onChange({ protoFiles: parseMultilineValues(e.target.value) })}
+                    placeholder="api/service.proto"
+                  />
+                </label>
+                <label className="block">
+                  <span className="pp-label">Import paths</span>
+                  <textarea
+                    className="pp-input mt-1 font-mono text-xs"
+                    rows={3}
+                    value={draft.importPaths.join('\n')}
+                    onChange={(e) =>
+                      onChange({ importPaths: parseMultilineValues(e.target.value) })
+                    }
+                    placeholder="proto"
+                  />
+                </label>
+              </div>
+            ) : null}
+            {draft.schemaSource === 'protoset' ? (
+              <label className="block">
+                <span className="pp-label">Protoset files</span>
+                <textarea
+                  className="pp-input mt-1 font-mono text-xs"
+                  rows={3}
+                  value={draft.protosets.join('\n')}
+                  onChange={(e) => onChange({ protosets: parseMultilineValues(e.target.value) })}
+                  placeholder="dist/service.protoset"
+                />
+              </label>
+            ) : null}
+          </div>
+        </details>
+      </fieldset>
       <div className="flex gap-2">
         <button
-          className="pp-button-primary"
+          className={busy ? 'pp-button-secondary' : 'pp-button-primary'}
           type="button"
-          disabled={busy}
-          onClick={onSaveAndConnect}
+          disabled={
+            !busy &&
+            (browserProtoFolderBusy ||
+              (draft.schemaSource === 'browser-proto-folder' && !browserProtoFolder))
+          }
+          aria-describedby={
+            !busy && draft.schemaSource === 'browser-proto-folder' && !browserProtoFolder
+              ? 'pp-browser-proto-folder-required'
+              : undefined
+          }
+          onClick={busy ? onCancelConnect : onSaveAndConnect}
         >
-          {busy ? (
-            <LoaderCircle className="size-3.5 animate-spin" />
-          ) : (
-            <Play className="size-3.5" />
-          )}
-          Connect
+          {busy ? <X className="size-3.5" /> : <Play className="size-3.5" />}
+          {busy ? 'Cancel connection' : 'Connect'}
         </button>
       </div>
     </div>
@@ -2866,17 +4096,19 @@ function StatusBanner({
   tone,
   title,
   description,
+  onDismiss,
+  actions,
 }: {
   tone: 'danger' | 'info';
   title: string;
   description: string;
+  onDismiss?: () => void;
+  actions?: Array<{ label: string; run: () => void }>;
 }) {
   return (
     <div
-      className={classNames(
-        'rounded-lg border p-3',
-        tone === 'danger' ? 'border-pp-danger/30 bg-red-50' : 'border-pp-brand/30 bg-blue-50'
-      )}
+      className={classNames('pp-operation-banner', tone === 'danger' && 'is-danger')}
+      role={tone === 'danger' ? 'alert' : 'status'}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-pp-ink">
         {tone === 'danger' ? (
@@ -2885,8 +4117,27 @@ function StatusBanner({
           <Clock3 className="size-4 text-pp-brand" />
         )}
         {title}
+        {onDismiss ? (
+          <button
+            type="button"
+            className="pp-operation-dismiss"
+            aria-label="Dismiss notification"
+            onClick={onDismiss}
+          >
+            <X className="pp-operation-dismiss-icon" aria-hidden="true" />
+          </button>
+        ) : null}
       </div>
       <p className="pp-muted mt-1">{description}</p>
+      {actions?.length ? (
+        <div className="pp-operation-actions">
+          {actions.map((action) => (
+            <button key={action.label} type="button" onClick={action.run}>
+              {action.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

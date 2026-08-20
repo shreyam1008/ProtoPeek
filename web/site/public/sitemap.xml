@@ -21,17 +21,17 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://protopeek.shreyam1008.com.np/transport-boundaries/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://protopeek.shreyam1008.com.np/vscode-extension-spec/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://protopeek.shreyam1008.com.np/launch-post/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://protopeek.shreyam1008.com.np/contributor-rules/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -3,31 +3,52 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
 } from '@tanstack/react-router';
 
-import { App as GRPCWorkbench } from './App';
-import { HTTPWorkbench } from './HTTPWorkbench';
+import { Dashboard } from './Dashboard';
 import { ProtocolFrame } from './ProtocolFrame';
 
 const rootRoute = createRootRoute({ component: ProtocolFrame });
-const grpcRoute = createRoute({
+const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: GRPCWorkbench,
+  component: Dashboard,
+});
+const grpcRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/grpc',
+  component: lazyRouteComponent(() => import('./App'), 'App'),
 });
 const httpRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/http',
-  component: HTTPWorkbench,
+  component: lazyRouteComponent(() => import('./HTTPRoute'), 'HTTPRoute'),
+});
+const routesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/routes',
+  component: lazyRouteComponent(() => import('./RoutesWorkbench'), 'RoutesWorkbench'),
+});
+const roadmapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/roadmap',
+  component: lazyRouteComponent(() => import('./Roadmap'), 'Roadmap'),
 });
 
-const routeTree = rootRoute.addChildren([grpcRoute, httpRoute]);
+const routeTree = rootRoute.addChildren([
+  dashboardRoute,
+  grpcRoute,
+  httpRoute,
+  routesRoute,
+  roadmapRoute,
+]);
 
-export const router = createRouter({
-  routeTree,
-  history: createHashHistory(),
-  defaultPreload: 'intent',
-});
+export function createProtoPeekRouter(history = createHashHistory()) {
+  return createRouter({ routeTree, history, defaultPreload: 'intent' });
+}
+
+export const router = createProtoPeekRouter();
 
 declare module '@tanstack/react-router' {
   interface Register {
