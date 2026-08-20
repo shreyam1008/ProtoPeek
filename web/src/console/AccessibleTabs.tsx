@@ -1,6 +1,6 @@
 import type { KeyboardEvent, ReactNode } from 'react';
 
-import { classNames } from '@/shared/utils';
+import { classNames } from '@/shared/runtime';
 
 export type TabOption<T extends string> = {
   value: T;

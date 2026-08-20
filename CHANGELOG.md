@@ -5,6 +5,19 @@ version source of truth.
 
 ## Unreleased — v0.3 milestone 2
 
+- Added safe, target-scoped gRPC replay: persisted redaction markers are never invoked, legacy
+  records bind safely on first replay, unavailable/cross-target records fail in place, and browser
+  storage failures are visible for saves and imports.
+- Versioned workspace JSON as `protopeek-workspace` v1, removed automatic RPC history from default
+  exports, and bounded imports to 4 MiB with structural, type, count, and string validation. Imported
+  target paths stay inactive and are explicitly identified as ProtoPeek-host file-read authority.
+- Added fail-safe browser-storage recovery: valid bounded records are salvaged without overwriting
+  the exact readable original, every normal workspace write is schema-checked, full lists refuse new
+  entries instead of evicting old ones, and normal import/export pauses until recovery is resolved.
+- Made HTTP history credential-redacting and deterministic with a strict retained-header allowlist,
+  no request body, URL user-info removal, credential-like query redaction, and a full reset of body,
+  auth, timeout, redirect choice, prior errors, and response evidence before replay or a discovered
+  origin handoff. Prior requests are cancelled and generation-guarded against stale completion.
 - Added a lazy next-hop workbench backed by one read-only kernel route selection: direct Linux
   `RTM_GETROUTE`, Darwin routing sockets, and Windows `GetBestRoute2`, with bounded DNS, deadlines,
   concurrency, per-address failures, source/interface/gateway evidence, and no packets or privilege.

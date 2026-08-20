@@ -1,7 +1,7 @@
 import { Cable, Globe2, LoaderCircle, LockKeyhole, Play, Search, Square } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
-import { classNames } from '@/shared/utils';
+import { classNames } from '@/shared/runtime';
 
 import { type ScanResult, scanAddresses } from './api';
 

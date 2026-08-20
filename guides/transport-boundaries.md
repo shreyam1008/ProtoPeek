@@ -89,7 +89,52 @@ cancellation, and bounds envelopes, bodies, headers, redirects, and deadlines. I
 status, HTTP protocol, response headers, text/base64 body, byte and truncation evidence, redirect
 hops, peer/TLS context, and phase timings.
 
-### 3. Keep route and imported evidence read-only
+Automatic HTTP history keeps only method, sanitized URL, status, total time, and values from a small
+header allowlist (`Accept*`, cache/conditional controls, `Content-Type`, range/preference, trace
+context, and request/correlation IDs). Every other header value is replaced with `[redacted]`; URL
+user info is removed and credential-like query names are redacted. It never retains the request
+body. Replaying an entry resets params, auth, body mode/body, timeout, redirect choice, validation
+state, and previous response before restoring those persisted fields, so a stale editor value cannot
+silently join the replayed request.
+
+### 3. Bound workspace transfer and replay
+
+The default workspace export is the explicit `protopeek-workspace` version 1 JSON format. It
+includes saved requests, environments, assertions, and target profiles, but excludes automatic RPC
+history. Metadata is sanitized again at export time. Saved request bodies are intentionally included
+and must be reviewed before a file is shared.
+
+Import checks the file's reported size before reading any text and rejects files over 4 MiB. Both
+version 1 and the previous unversioned export shape pass through the same validator: at most 100
+assertions, 100 saved requests, 50 environments, 50 history entries, 50 targets, 64 metadata entries
+per record, and 32 entries in each target path list. Request JSON is capped at 512 KiB; metadata
+values at 64 KiB; notes at 16 KiB; and target paths at 4,096 characters. Wrong container types,
+unsupported versions/enums, duplicate IDs, non-finite/out-of-range numbers, and oversized strings
+are refused without replacing the console with a boot error.
+
+Normal workspace writes pass through the same bounded schema before persistence. Hitting a target,
+environment, or saved-request limit refuses the new record; it does not discard an older record. On
+startup, one malformed, duplicate, or over-limit stored record does not erase the entire section:
+valid bounded records remain usable in the live session while the exact readable source string stays
+untouched in its original key. A persistent recovery banner can download the raw, deliberately
+non-importable source or explicitly replace it with the recovered records. Imports and normal exports
+that touch unresolved recovery are paused. Browser read failures are called out separately because
+their original bytes cannot be captured.
+
+Imported target IDs are detached from any live session and no imported target connects
+automatically. Proto/protoset/import-root/CA/client-certificate/client-key values name files on the
+machine running ProtoPeek—not paths on the browser machine. An explicit later connection grants the
+ProtoPeek process local file-read authority for those paths, and the import result warns about that
+boundary. A successful target-profile replacement invalidates pending connection work and returns any
+active profile session to the launcher before an imported profile can be used.
+
+New saved requests and automatic gRPC history carry target-profile ID plus target address. Replay
+requires the method to exist and the stored scope to match. Legacy records without scope may be
+applied only to a method available on the current target, then bind to that target on first replay.
+Persisted `[redacted]` metadata values restore as blank inputs with a re-entry warning; invocation and
+simulation filter blank sensitive values and the sentinel again at the send boundary.
+
+### 4. Keep route and imported evidence read-only
 
 Use OS-native route APIs for one selected next hop and bounded streaming XML for offline Nmap
 evidence. Preserve source/interface/gateway and table/probed confidence, but require a fresh
@@ -97,13 +142,13 @@ ProtoPeek scan before an imported hint can open a workbench. See
 [the route and Nmap evidence guide](https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/)
 for exact limits and platform behavior.
 
-### 4. Cap'n Proto experiment (exploring)
+### 5. Cap'n Proto experiment (exploring)
 
 Build one local, schema-file-driven unary/capability call path behind an explicit experimental
 flag. Show capability resolution and message segments in its own inspector. Measure binary and
 bundle cost before deciding whether it belongs in the main binary or an optional companion.
 
-### 5. Traceroute and LAN expansion (gated)
+### 6. Traceroute and LAN expansion (gated)
 
 Traceroute requires consent, a bounded probe source, explicit uncertainty, and partial-failure tests.
 LAN discovery requires a user-enabled, previewed private scope plus strict candidate/time budgets

@@ -337,7 +337,7 @@ function Features() {
     {
       icon: ShieldCheck,
       title: 'Secret-safe local shell',
-      desc: 'Keep request work local while automatic history and default exports redact credentials, cookies, binary metadata, and token-like values.',
+      desc: 'Keep request work local with target-scoped replay, re-entry for redacted metadata, bounded inactive imports, and explicit recovery that never silently replaces malformed browser data.',
     },
   ];
 

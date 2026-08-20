@@ -1,14 +1,13 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleHelp, Home, ListTodo, Moon, Radar, Route, Server, Sun, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
+import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
   applyTheme,
   type ProtoPeekTheme,
   persistThemePreference,
   readThemePreference,
 } from '@/shared/theme';
-import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/utils';
 
 import type { ScanResult } from './api';
 import { CommandPalette, type PaletteAction } from './CommandPalette';

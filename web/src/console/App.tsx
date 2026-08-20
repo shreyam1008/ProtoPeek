@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import {
   type ChangeEvent,
+  type ReactNode,
   startTransition,
   useDeferredValue,
   useEffect,
@@ -56,23 +57,33 @@ import {
   displayBuildVersion,
   durationLabel,
   evaluateAssertions,
+  filterMetadataForInvoke,
   generateRequestTemplate,
   loadStoredValue,
+  loadStoredWorkspaceSection,
   matchesMethodFilter,
   modifierKeyLabel,
+  prepareMetadataForReplay,
   prettyJson,
+  redactedValue,
   removeStoredValue,
+  type StoredWorkspaceRecovery,
   safeParseJson,
   sanitizeAssertionForPersistence,
-  sanitizeMetadataForPersistence,
+  serializeWorkspaceExport,
   simulationSummary,
   sparklinePath,
   storeValue,
+  storeValuesAtomically,
   toCollection,
   toEnvironmentPreset,
   toHistoryEntry,
   toWorkspaceTargetProfile,
   uid,
+  validateWorkspaceImport,
+  workspaceImportLimits,
+  workspaceImportMaxBytes,
+  workspaceTargetReferenceError,
 } from '@/shared/utils';
 
 import {
@@ -98,6 +109,53 @@ import { initialConsoleSession, sessionReducer } from './session';
 import { WorkbenchHeader } from './WorkbenchHeader';
 
 type ActiveView = WorkbenchView;
+
+type OperationMessage = {
+  tone: 'danger' | 'info';
+  title: string;
+  description: string;
+  actions?: Array<{ label: string; run: () => void }>;
+};
+
+type WorkspaceStorageSection =
+  | 'assertions'
+  | 'collections'
+  | 'environments'
+  | 'history'
+  | 'targets';
+
+const workspaceSectionByStorageKey = new Map<string, WorkspaceStorageSection>([
+  [appStorageKeys.assertions, 'assertions'],
+  [appStorageKeys.collections, 'collections'],
+  [appStorageKeys.environments, 'environments'],
+  [appStorageKeys.history, 'history'],
+  [appStorageKeys.targets, 'targets'],
+]);
+
+function prepareWorkspaceStorageValue(key: string, value: unknown) {
+  const section = workspaceSectionByStorageKey.get(key);
+  if (!section) {
+    return { ok: false as const, error: 'Unknown workspace storage section.' };
+  }
+  const validated = validateWorkspaceImport({ [section]: value });
+  if (validated.error || !validated.value) {
+    return {
+      ok: false as const,
+      error: validated.error || `Invalid ${section} workspace data.`,
+    };
+  }
+  return { ok: true as const, value: validated.value[section] ?? [] };
+}
+
+function prepareWorkspaceStorageWrites(entries: Array<[string, unknown]>) {
+  const values: Array<[string, unknown]> = [];
+  for (const [key, value] of entries) {
+    const prepared = prepareWorkspaceStorageValue(key, value);
+    if (!prepared.ok) return prepared;
+    values.push([key, prepared.value]);
+  }
+  return { ok: true as const, values };
+}
 
 const defaultSimulation: SimulationConfig = { runs: 25, concurrency: 5, thinkTimeMs: 0 };
 
@@ -207,6 +265,57 @@ function countEnums(msgs: ProtoMessageSummary[], enums: ProtoEnumSummary[]): num
   return enums.length + msgs.reduce((t, m) => t + countEnums(m.messages, m.enums), 0);
 }
 
+function remapImportedTargetIDs(
+  data: NonNullable<ReturnType<typeof validateWorkspaceImport>['value']>,
+  currentTargets: WorkspaceTargetProfile[]
+) {
+  const referenceError = workspaceTargetReferenceError(
+    [...data.collections, ...(data.history ?? [])],
+    data.sections.targets ? data.targets : currentTargets
+  );
+  if (referenceError) throw new Error(referenceError);
+  const targetIDs = new Map<string, string>();
+  const importedTargetsByID = new Map<string, WorkspaceTargetProfile>();
+  const targets = data.targets.map((target) => {
+    const nextID = uid('target');
+    targetIDs.set(target.id.trim(), nextID);
+    importedTargetsByID.set(target.id.trim(), target);
+    return { ...target, id: nextID };
+  });
+  const currentTargetsByID = new Map(currentTargets.map((target) => [target.id.trim(), target]));
+  const remapScope = <T extends { targetId?: string; targetAddress?: string }>(entry: T): T => {
+    const targetId = entry.targetId?.trim();
+    const targetAddress = entry.targetAddress?.trim() || undefined;
+    if (!targetId) return { ...entry, targetId: undefined, targetAddress };
+    if (targetIDs.has(targetId)) {
+      const target = importedTargetsByID.get(targetId);
+      if (targetAddress && target && targetAddress !== target.address.trim()) {
+        throw new Error(`Saved request target address conflicts with profile ${targetId}.`);
+      }
+      return { ...entry, targetId: targetIDs.get(targetId), targetAddress };
+    }
+    if (!data.sections.targets && currentTargetsByID.has(targetId)) {
+      const target = currentTargetsByID.get(targetId);
+      if (targetAddress && target && targetAddress !== target.address.trim()) {
+        throw new Error(`Saved request target address conflicts with profile ${targetId}.`);
+      }
+      return { ...entry, targetId, targetAddress };
+    }
+    if (!targetAddress) {
+      throw new Error(
+        `Saved request target ${targetId} is not present and has no address fallback.`
+      );
+    }
+    return { ...entry, targetId, targetAddress };
+  };
+  return {
+    ...data,
+    targets,
+    collections: data.collections.map(remapScope),
+    history: data.history?.map(remapScope),
+  };
+}
+
 export function App() {
   const [consoleSession, dispatchSession] = useReducer(sessionReducer, initialConsoleSession);
   const rootBootstrap = consoleSession.rootBootstrap;
@@ -220,9 +329,26 @@ export function App() {
     sessionId: string;
     data: SchemaResponse | null;
   }>({ method: '', sessionId: '', data: null });
-  const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(
-    loadStoredValue(appStorageKeys.targets, [])
+  const [initialWorkspace] = useState(() => ({
+    assertions: loadStoredWorkspaceSection(
+      appStorageKeys.assertions,
+      'assertions',
+      defaultAssertions
+    ),
+    collections: loadStoredWorkspaceSection(appStorageKeys.collections, 'collections', []),
+    environments: loadStoredWorkspaceSection(appStorageKeys.environments, 'environments', []),
+    history: loadStoredWorkspaceSection(appStorageKeys.history, 'history', []),
+    targets: loadStoredWorkspaceSection(appStorageKeys.targets, 'targets', []),
+  }));
+  const initialRecoveries = Object.values(initialWorkspace)
+    .map((entry) => entry.recovery)
+    .filter((entry): entry is StoredWorkspaceRecovery => entry !== null);
+  const blockedWorkspaceStorageRef = useRef(
+    new Set(initialRecoveries.map((recovery) => recovery.key))
   );
+  const [workspaceRecoveries, setWorkspaceRecoveries] =
+    useState<StoredWorkspaceRecovery[]>(initialRecoveries);
+  const [targets, setTargets] = useState<WorkspaceTargetProfile[]>(initialWorkspace.targets.value);
   const [targetDraft, setTargetDraft] = useState<WorkspaceTargetProfile>(newTargetDraft());
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [protoCatalog, setProtoCatalog] = useState<ProtoCatalogResponse | null>(null);
@@ -245,31 +371,18 @@ export function App() {
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [metadata, setMetadata] = useState<MetadataEntry[]>([]);
   const [collections, setCollections] = useState<SavedCollection[]>(
-    loadStoredValue<SavedCollection[]>(appStorageKeys.collections, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
+    initialWorkspace.collections.value
   );
   const [environments, setEnvironments] = useState<EnvironmentPreset[]>(
-    loadStoredValue<EnvironmentPreset[]>(appStorageKeys.environments, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
+    initialWorkspace.environments.value
   );
-  const [history, setHistory] = useState<RequestHistoryEntry[]>(
-    loadStoredValue<RequestHistoryEntry[]>(appStorageKeys.history, []).map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-    }))
-  );
+  const [history, setHistory] = useState<RequestHistoryEntry[]>(initialWorkspace.history.value);
   const [collectionName, setCollectionName] = useState('');
   const [collectionNotes, setCollectionNotes] = useState('');
   const [environmentName, setEnvironmentName] = useState('');
   const [environmentNotes, setEnvironmentNotes] = useState('');
   const [assertionRules, setAssertionRules] = useState<AssertionRule[]>(
-    loadStoredValue<AssertionRule[]>(appStorageKeys.assertions, defaultAssertions).map(
-      sanitizeAssertionForPersistence
-    )
+    initialWorkspace.assertions.value
   );
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const [invokeState, setInvokeState] = useState<{
@@ -285,6 +398,7 @@ export function App() {
   const [simulationBusy, setSimulationBusy] = useState(false);
   const [simulationError, setSimulationError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [operationMessage, setOperationMessage] = useState<OperationMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -294,11 +408,31 @@ export function App() {
     metadata: MetadataEntry[];
     timeoutSeconds: number;
     requestText: string;
+    redactedCount: number;
+    legacyScope: boolean;
+    migrationError?: string;
   } | null>(null);
   const connectRequestRef = useRef(0);
   const connectAbortRef = useRef<AbortController | null>(null);
   const invokeAbortRef = useRef<AbortController | null>(null);
+  const workspaceSessionIdRef = useRef(workspaceSessionId);
+  workspaceSessionIdRef.current = workspaceSessionId;
   const deferredSearchText = useDeferredValue(searchText);
+
+  useEffect(
+    () => () => {
+      connectRequestRef.current++;
+      const connection = connectAbortRef.current;
+      connectAbortRef.current = null;
+      connection?.abort();
+      const invocation = invokeAbortRef.current;
+      invokeAbortRef.current = null;
+      invocation?.abort();
+      const sessionId = workspaceSessionIdRef.current;
+      if (sessionId) void disconnectWorkspaceSession(sessionId).catch(() => undefined);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!sidebarOpen) return;
@@ -333,6 +467,7 @@ export function App() {
   }, []);
 
   function applyBootstrap(next: BootstrapResponse) {
+    pendingDraftRef.current = null;
     const methods = next.services.flatMap((s) => s.methods);
     const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
     const lowFriction =
@@ -357,6 +492,32 @@ export function App() {
   const openDiscoveredEffect = useEffectEvent((result: ScanResult) => {
     removeStoredValue(appStorageKeys.pendingGRPCTarget);
     void handleOpenDiscovered(result);
+  });
+  function storeWorkspaceValue(key: string, value: unknown) {
+    if (blockedWorkspaceStorageRef.current.has(key)) {
+      return {
+        ok: false as const,
+        error:
+          'Resolve the recovered workspace data before replacing this browser-storage section.',
+      };
+    }
+    const prepared = prepareWorkspaceStorageValue(key, value);
+    if (!prepared.ok) return prepared;
+    return storeValue(key, prepared.value);
+  }
+  const persistWorkspaceEffect = useEffectEvent((key: string, value: unknown) => {
+    if (blockedWorkspaceStorageRef.current.has(key)) return;
+    const stored = storeWorkspaceValue(key, value);
+    if (stored.ok) return;
+    setOperationMessage((current) =>
+      current?.tone === 'danger'
+        ? current
+        : {
+            tone: 'danger',
+            title: 'Workspace changes are session-only',
+            description: `Workspace validation or browser storage refused the write: ${stored.error}`,
+          }
+    );
   });
 
   useEffect(() => {
@@ -422,6 +583,26 @@ export function App() {
         if (pending) {
           setMetadata(pending.metadata);
           setTimeoutSeconds(pending.timeoutSeconds);
+          if (pending.migrationError) {
+            setOperationMessage({
+              tone: 'danger',
+              title: 'Legacy replay was not migrated',
+              description: pending.migrationError,
+            });
+          } else if (pending.redactedCount > 0) {
+            setOperationMessage({
+              tone: 'info',
+              title: 'Sensitive metadata omitted',
+              description: `${pending.redactedCount} redacted metadata ${pending.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before invoking; blank or [redacted] sensitive values are never sent.${pending.legacyScope ? ' This legacy record is now scoped to the current target.' : ''}`,
+            });
+          } else if (pending.legacyScope) {
+            setOperationMessage({
+              tone: 'info',
+              title: 'Legacy replay scoped',
+              description:
+                'This unscoped legacy record was applied to an available method and is now bound to the current target/profile.',
+            });
+          }
           pendingDraftRef.current = null;
         }
         setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
@@ -437,16 +618,19 @@ export function App() {
   }, [bootstrap, selectedMethod, workspaceSessionId]);
 
   useEffect(() => {
-    storeValue(appStorageKeys.collections, collections);
+    persistWorkspaceEffect(appStorageKeys.collections, collections);
   }, [collections]);
   useEffect(() => {
-    storeValue(appStorageKeys.environments, environments);
+    persistWorkspaceEffect(appStorageKeys.environments, environments);
   }, [environments]);
   useEffect(() => {
-    storeValue(appStorageKeys.history, history);
+    persistWorkspaceEffect(appStorageKeys.history, history);
   }, [history]);
   useEffect(() => {
-    storeValue(appStorageKeys.assertions, assertionRules.map(sanitizeAssertionForPersistence));
+    persistWorkspaceEffect(
+      appStorageKeys.assertions,
+      assertionRules.map(sanitizeAssertionForPersistence)
+    );
   }, [assertionRules]);
   useEffect(() => {
     storeValue(appStorageKeys.simulation, simulationConfig);
@@ -455,7 +639,7 @@ export function App() {
     storeValue(appStorageKeys.methodFilter, methodFilter);
   }, [methodFilter]);
   useEffect(() => {
-    storeValue(appStorageKeys.targets, targets);
+    persistWorkspaceEffect(appStorageKeys.targets, targets);
   }, [targets]);
   useEffect(() => {
     storeValue(appStorageKeys.activeTargetId, activeTargetId);
@@ -487,6 +671,11 @@ export function App() {
   const currentService =
     bootstrap?.services.find((s) => s.methods.some((m) => m.fullName === selectedMethod)) ?? null;
   const currentMethod = currentService?.methods.find((m) => m.fullName === selectedMethod) ?? null;
+  const activeTarget = targets.find((target) => target.id === activeTargetId) ?? null;
+  const currentReplayScope = {
+    targetId: activeTarget?.id,
+    targetAddress: (activeTarget?.address || bootstrap?.target || '').trim(),
+  };
   const _matchingExamples = examples.filter(
     (e) =>
       `${e.service}.${e.method}` === selectedMethod || `${e.service}/${e.method}` === selectedMethod
@@ -535,8 +724,22 @@ export function App() {
   const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 200, 48);
   const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
+  function cancelActiveInvokeSilently() {
+    const active = invokeAbortRef.current;
+    invokeAbortRef.current = null;
+    active?.abort();
+  }
+
+  function invalidateConnectionAttempt() {
+    connectRequestRef.current++;
+    const active = connectAbortRef.current;
+    connectAbortRef.current = null;
+    active?.abort();
+  }
+
   async function handleConnectTarget(target: WorkspaceTargetProfile) {
-    invokeAbortRef.current?.abort();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
     const requestId = connectRequestRef.current + 1;
     connectRequestRef.current = requestId;
     connectAbortRef.current?.abort();
@@ -566,6 +769,7 @@ export function App() {
         void disconnectWorkspaceSession(r.sessionId);
         return false;
       }
+      workspaceSessionIdRef.current = r.sessionId;
       dispatchSession({
         type: 'connect.succeeded',
         requestId,
@@ -589,6 +793,8 @@ export function App() {
       dispatchSession({ type: 'connect.failed', requestId, message });
       setWorkspaceError(message);
       return false;
+    } finally {
+      if (connectAbortRef.current === controller) connectAbortRef.current = null;
     }
   }
 
@@ -614,7 +820,18 @@ export function App() {
   }
 
   function persistTarget(t: WorkspaceTargetProfile) {
-    setTargets((x) => [t, ...x.filter((e) => e.id !== t.id)]);
+    const next = [t, ...targets.filter((entry) => entry.id !== t.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.targets, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Target was not saved',
+        description: `The connection is live, but the target could not be persisted: ${stored.error}`,
+      });
+      setTargetDraft(t);
+      return;
+    }
+    setTargets(next);
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
@@ -650,6 +867,9 @@ export function App() {
   function handleDeleteTarget(id: string) {
     setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
+      invalidateConnectionAttempt();
+      cancelActiveInvokeSilently();
+      pendingDraftRef.current = null;
       if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
       dispatchSession({ type: 'connection.cleared' });
       if (rootBootstrap) applyBootstrap(rootBootstrap);
@@ -658,13 +878,16 @@ export function App() {
   }
 
   function handleResetToLauncher() {
-    connectAbortRef.current?.abort();
-    invokeAbortRef.current?.abort();
-    if (workspaceSessionId) void disconnectWorkspaceSession(workspaceSessionId);
+    invalidateConnectionAttempt();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
+    const sessionId = workspaceSessionIdRef.current;
+    workspaceSessionIdRef.current = '';
+    if (sessionId) void disconnectWorkspaceSession(sessionId);
     dispatchSession({ type: 'connection.cleared' });
     setWorkspaceError(null);
     if (rootBootstrap) {
-      applyBootstrap(rootBootstrap);
+      if (sessionId) applyBootstrap(rootBootstrap);
       setTargetDraft(newTargetDraft(rootBootstrap.targetDefaults));
     }
   }
@@ -681,6 +904,64 @@ export function App() {
     a.download = name;
     a.click();
     URL.revokeObjectURL(u);
+  }
+
+  function downloadWorkspaceRecovery() {
+    downloadFile(
+      'protopeek-storage-recovery.json',
+      JSON.stringify(
+        {
+          format: 'protopeek-storage-recovery',
+          exportedAt: new Date().toISOString(),
+          warning:
+            'This is a raw, non-importable recovery snapshot. Readable originals may contain credentials, request bodies, and host file paths. A null raw value means the browser refused the read and the original key was only left untouched.',
+          sections: workspaceRecoveries,
+        },
+        null,
+        2
+      ),
+      'application/json'
+    );
+  }
+
+  function handleUseRecoveredWorkspace() {
+    const values = new Map<string, unknown>([
+      [appStorageKeys.assertions, assertionRules.map(sanitizeAssertionForPersistence)],
+      [appStorageKeys.collections, collections],
+      [appStorageKeys.environments, environments],
+      [appStorageKeys.history, history],
+      [appStorageKeys.targets, targets],
+    ]);
+    const writes = workspaceRecoveries.map(
+      (recovery) => [recovery.key, values.get(recovery.key) ?? []] as [string, unknown]
+    );
+    const prepared = prepareWorkspaceStorageWrites(writes);
+    if (!prepared.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Recovered workspace is not valid yet',
+        description: prepared.error,
+      });
+      return;
+    }
+    const stored = storeValuesAtomically(prepared.values);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Recovered workspace remains session-only',
+        description: `Recovery remains unresolved. Browser storage reported: ${stored.error} Use the downloaded originals if rollback was incomplete.`,
+      });
+      return;
+    }
+    for (const recovery of workspaceRecoveries) {
+      blockedWorkspaceStorageRef.current.delete(recovery.key);
+    }
+    setWorkspaceRecoveries([]);
+    setOperationMessage({
+      tone: 'info',
+      title: 'Recovered workspace accepted',
+      description: 'Only the bounded valid records now remain in browser storage.',
+    });
   }
 
   async function handleInvoke() {
@@ -716,9 +997,17 @@ export function App() {
     }
     const payload: InvokeRequest = {
       timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((e) => e.name.trim()),
+      metadata: filterMetadataForInvoke(metadata),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
+    if (payload.metadata.length < metadata.filter((entry) => entry.name.trim()).length) {
+      setOperationMessage({
+        tone: 'info',
+        title: 'Sensitive metadata omitted',
+        description:
+          'Blank or [redacted] sensitive metadata was not sent. Re-enter the value to include it in a later RPC.',
+      });
+    }
     invokeAbortRef.current?.abort();
     const controller = new AbortController();
     invokeAbortRef.current = controller;
@@ -734,6 +1023,8 @@ export function App() {
             controller.signal
           )
         : await invokeMethod(currentMethod.fullName, payload, controller.signal);
+      if (invokeAbortRef.current !== controller) return;
+      if (controller.signal.aborted) throw new DOMException('Invocation cancelled.', 'AbortError');
       const lat = performance.now() - t0;
       setInvokeState({ loading: false, error: null, result, latencyMs: lat });
       setAssertionResults(evaluateAssertions({ rules: assertionRules, result, latencyMs: lat }));
@@ -748,11 +1039,13 @@ export function App() {
             response: result.responses[0]?.message ?? result.error ?? null,
             metadata,
             timeoutSeconds,
+            ...currentReplayScope,
           }),
           ...x,
         ].slice(0, 50)
       );
     } catch (err) {
+      if (invokeAbortRef.current !== controller) return;
       setAssertionResults([]);
       setInvokeState({
         loading: false,
@@ -794,7 +1087,7 @@ export function App() {
     setSimulationError(null);
     const payload: InvokeRequest = {
       timeout_seconds: timeoutSeconds,
-      metadata: metadata.filter((e) => e.name.trim()),
+      metadata: filterMetadataForInvoke(metadata),
       data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
     };
     const mName = currentMethod.fullName;
@@ -855,10 +1148,38 @@ export function App() {
       metadata,
       timeoutSeconds,
       requestText,
+      ...currentReplayScope,
     });
-    setCollections((x) => [c, ...x.filter((e) => e.id !== c.id)]);
+    const valid = validateWorkspaceImport({ collections: [c] });
+    if (valid.error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Request was not saved',
+        description: valid.error,
+      });
+      return;
+    }
+    const next = [c, ...collections.filter((entry) => entry.id !== c.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.collections, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Request was not saved',
+        description: `The request could not be persisted: ${stored.error}`,
+      });
+      return;
+    }
+    setCollections(next);
     setCollectionName('');
     setCollectionNotes('');
+    const redactedCount = c.metadata.filter((entry) => entry.value === redactedValue).length;
+    setOperationMessage({
+      tone: 'info',
+      title: 'Request saved locally',
+      description: redactedCount
+        ? `${redactedCount} sensitive metadata ${redactedCount === 1 ? 'value was' : 'values were'} redacted and must be re-entered on replay.`
+        : 'The request is scoped to the current target/profile.',
+    });
   }
 
   function _handleSaveEnvironment() {
@@ -868,7 +1189,17 @@ export function App() {
       metadata: metadata.filter((e) => e.name.trim()),
       timeoutSeconds,
     });
-    setEnvironments((x) => [e, ...x.filter((i) => i.id !== e.id)]);
+    const next = [e, ...environments.filter((item) => item.id !== e.id)];
+    const stored = storeWorkspaceValue(appStorageKeys.environments, next);
+    if (!stored.ok) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Environment was not saved',
+        description: stored.error,
+      });
+      return;
+    }
+    setEnvironments(next);
     setEnvironmentName('');
     setEnvironmentNotes('');
   }
@@ -884,6 +1215,14 @@ export function App() {
     setAssertionRules((x) => x.map((r) => (r.id === id ? next : r)));
   }
   function handleAddAssertion() {
+    if (assertionRules.length >= workspaceImportLimits.assertions) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Assertion limit reached',
+        description: `A workspace can keep at most ${workspaceImportLimits.assertions} assertions.`,
+      });
+      return;
+    }
     setAssertionRules((x) => [
       ...x,
       {
@@ -900,32 +1239,135 @@ export function App() {
     setAssertionRules((x) => x.filter((r) => r.id !== id));
   }
 
-  function applyCollection(c: SavedCollection) {
-    pendingDraftRef.current = {
-      method: c.method,
-      metadata: c.metadata,
-      timeoutSeconds: c.timeoutSeconds,
-      requestText: c.requestText,
+  function prepareReplay(entry: SavedCollection | RequestHistoryEntry) {
+    const methodAvailable = bootstrap?.services.some((service) =>
+      service.methods.some((method) => method.fullName === entry.method)
+    );
+    if (!methodAvailable) {
+      pendingDraftRef.current = null;
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Replay refused',
+        description: `${entry.method} is not available on the current target. The active request was not changed.`,
+      });
+      return null;
+    }
+
+    const storedTargetId = entry.targetId?.trim() || '';
+    const storedTargetAddress = entry.targetAddress?.trim() || '';
+    const currentTargetId = currentReplayScope.targetId?.trim() || '';
+    const scoped = Boolean(storedTargetId || storedTargetAddress);
+    const storedProfileExists = Boolean(
+      storedTargetId && targets.some((target) => target.id === storedTargetId)
+    );
+    const wrongAddress = Boolean(
+      storedTargetAddress && storedTargetAddress !== currentReplayScope.targetAddress
+    );
+    const wrongExistingProfile = Boolean(
+      storedTargetId && storedProfileExists && storedTargetId !== currentTargetId
+    );
+    const orphanedProfile = Boolean(
+      storedTargetId &&
+        !storedProfileExists &&
+        (!storedTargetAddress || currentTargetId || workspaceSessionId || wrongAddress)
+    );
+    if (scoped && (wrongExistingProfile || orphanedProfile || wrongAddress)) {
+      pendingDraftRef.current = null;
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Replay refused',
+        description: orphanedProfile
+          ? 'The saved target profile is unavailable. Restore that profile or use an address-scoped direct session; the active request was not changed.'
+          : 'This record belongs to a different target/profile. Connect that target before applying it; the active request was not changed.',
+      });
+      return null;
+    }
+
+    const restored = prepareMetadataForReplay(entry.metadata);
+    return {
+      method: entry.method,
+      metadata: restored.metadata,
+      timeoutSeconds: entry.timeoutSeconds,
+      requestText: entry.requestText,
+      redactedCount: restored.redactedCount,
+      legacyScope: !scoped,
+      migrationError: undefined as string | undefined,
     };
+  }
+
+  function applyReplayDraft(draft: NonNullable<ReturnType<typeof prepareReplay>>) {
+    cancelActiveInvokeSilently();
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+    setAssertionResults([]);
+    if (draft.method === selectedMethod) {
+      pendingDraftRef.current = null;
+      setRequestText(draft.requestText);
+      setMetadata(draft.metadata);
+      setTimeoutSeconds(draft.timeoutSeconds);
+      if (draft.migrationError) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Legacy replay was not migrated',
+          description: draft.migrationError,
+        });
+      } else if (draft.redactedCount > 0) {
+        setOperationMessage({
+          tone: 'info',
+          title: 'Sensitive metadata omitted',
+          description: `${draft.redactedCount} redacted metadata ${draft.redactedCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before invoking; blank or [redacted] sensitive values are never sent.${draft.legacyScope ? ' This legacy record is now scoped to the current target.' : ''}`,
+        });
+      } else if (draft.legacyScope) {
+        setOperationMessage({
+          tone: 'info',
+          title: 'Legacy replay scoped',
+          description:
+            'This unscoped legacy record was applied to an available method and is now bound to the current target/profile.',
+        });
+      } else {
+        setOperationMessage(null);
+      }
+      setActiveView('compose');
+      return;
+    }
+    pendingDraftRef.current = draft;
     startTransition(() => {
-      setSelectedMethod(c.method);
-      setCollectionName(c.name);
-      setCollectionNotes(c.notes);
+      setSelectedMethod(draft.method);
       setActiveView('compose');
     });
   }
 
-  function applyHistory(e: RequestHistoryEntry) {
-    pendingDraftRef.current = {
-      method: e.method,
-      metadata: e.metadata,
-      timeoutSeconds: e.timeoutSeconds,
-      requestText: e.requestText,
-    };
-    startTransition(() => {
-      setSelectedMethod(e.method);
-      setActiveView('compose');
-    });
+  function applyCollection(collection: SavedCollection) {
+    const draft = prepareReplay(collection);
+    if (!draft) return;
+    setCollectionName(collection.name);
+    setCollectionNotes(collection.notes);
+    if (draft.legacyScope) {
+      const migrated = { ...collection, ...currentReplayScope };
+      const next = collections.map((entry) => (entry.id === collection.id ? migrated : entry));
+      const stored = storeWorkspaceValue(appStorageKeys.collections, next);
+      if (!stored.ok) {
+        draft.migrationError = `The request was loaded safely for this session, but browser storage failed: ${stored.error}`;
+      } else {
+        setCollections(next);
+      }
+    }
+    applyReplayDraft(draft);
+  }
+
+  function applyHistory(entry: RequestHistoryEntry) {
+    const draft = prepareReplay(entry);
+    if (!draft) return;
+    if (draft.legacyScope) {
+      const migrated = { ...entry, ...currentReplayScope };
+      const next = history.map((item) => (item.id === entry.id ? migrated : item));
+      const stored = storeWorkspaceValue(appStorageKeys.history, next);
+      if (!stored.ok) {
+        draft.migrationError = `The request was loaded safely for this session, but browser storage failed: ${stored.error}`;
+      } else {
+        setHistory(next);
+      }
+    }
+    applyReplayDraft(draft);
   }
 
   function resetRequestFromSchema() {
@@ -934,7 +1376,9 @@ export function App() {
   }
 
   function handleSelectMethod(method: string) {
-    invokeAbortRef.current?.abort();
+    cancelActiveInvokeSilently();
+    pendingDraftRef.current = null;
+    setOperationMessage(null);
     setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
     startTransition(() => {
       setSelectedMethod(method);
@@ -944,74 +1388,135 @@ export function App() {
   }
 
   function handleExportWorkspace() {
-    const safeCollections = collections.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    const safeEnvironments = environments.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    const safeHistory = history.map((entry) => ({
-      ...entry,
-      metadata: sanitizeMetadataForPersistence(entry.metadata),
-    }));
-    downloadFile(
-      'protopeek-workspace.json',
-      JSON.stringify(
-        {
-          exportedAt: new Date().toISOString(),
-          assertions: assertionRules.map(sanitizeAssertionForPersistence),
-          collections: safeCollections,
-          environments: safeEnvironments,
-          history: safeHistory,
-          targets,
-        },
-        null,
-        2
-      ),
-      'application/json'
-    );
+    if (workspaceRecoveries.length > 0) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace export paused for recovery',
+        description:
+          'Download or accept the original browser-storage recovery before creating a normal importable workspace.',
+      });
+      return;
+    }
+    try {
+      const content = serializeWorkspaceExport({
+        assertions: assertionRules,
+        collections,
+        environments,
+        targets,
+      });
+      downloadFile('protopeek-workspace.json', content, 'application/json');
+      setOperationMessage({
+        tone: 'info',
+        title: 'Version 1 workspace exported',
+        description:
+          'Automatic RPC history was excluded. Saved request bodies are deliberate workspace data; review them before sharing the file.',
+      });
+    } catch (error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace export refused',
+        description: error instanceof Error ? error.message : 'Workspace export failed.',
+      });
+    }
   }
 
   async function handleImportWorkspace(event: ChangeEvent<HTMLInputElement>) {
-    const f = event.target.files?.[0];
-    if (!f) return;
-    const parsed = safeParseJson(await f.text());
-    if (parsed.error || typeof parsed.value !== 'object' || !parsed.value) {
-      setBootError('Invalid workspace JSON.');
-      return;
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      if (file.size > workspaceImportMaxBytes) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: 'The file exceeds the 4 MiB workspace import limit.',
+        });
+        return;
+      }
+      const parsed = safeParseJson(await file.text());
+      if (parsed.error) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: `Invalid workspace JSON: ${parsed.error}`,
+        });
+        return;
+      }
+      const validated = validateWorkspaceImport(parsed.value);
+      if (validated.error || !validated.value) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: validated.error || 'Invalid workspace JSON.',
+        });
+        return;
+      }
+      const imported = remapImportedTargetIDs(validated.value, targets);
+      const writes: Array<[string, unknown]> = [];
+      if (imported.sections.assertions) {
+        writes.push([appStorageKeys.assertions, imported.assertions]);
+      }
+      if (imported.sections.collections) {
+        writes.push([appStorageKeys.collections, imported.collections]);
+      }
+      if (imported.sections.environments) {
+        writes.push([appStorageKeys.environments, imported.environments]);
+      }
+      if (imported.sections.history) writes.push([appStorageKeys.history, imported.history ?? []]);
+      if (imported.sections.targets) writes.push([appStorageKeys.targets, imported.targets]);
+      const blockedImport = writes.find(([key]) => blockedWorkspaceStorageRef.current.has(key));
+      if (blockedImport) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import paused for recovery',
+          description:
+            'Download or accept the original browser-storage recovery before replacing an affected section.',
+        });
+        return;
+      }
+      const prepared = prepareWorkspaceStorageWrites(writes);
+      if (!prepared.ok) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace import refused',
+          description: prepared.error,
+        });
+        return;
+      }
+      const stored = storeValuesAtomically(prepared.values);
+      if (!stored.ok) {
+        setOperationMessage({
+          tone: 'danger',
+          title: 'Workspace was not imported',
+          description: `Browser storage failed: ${stored.error}`,
+        });
+        return;
+      }
+
+      if (imported.sections.assertions) setAssertionRules(imported.assertions);
+      if (imported.sections.collections) setCollections(imported.collections);
+      if (imported.sections.environments) setEnvironments(imported.environments);
+      if (imported.sections.history) setHistory(imported.history ?? []);
+      if (imported.sections.targets) {
+        handleResetToLauncher();
+        setTargets(imported.targets);
+      }
+      setOperationMessage({
+        tone: 'info',
+        title: imported.legacy ? 'Legacy workspace imported safely' : 'Workspace imported',
+        description: imported.hasHostFilePaths
+          ? 'No target was connected. Imported proto, protoset, certificate, and key paths refer to paths on the ProtoPeek host; connecting that target grants the ProtoPeek process local file-read authority for those paths.'
+          : 'No target was connected. Imported targets remain inactive until you explicitly connect one.',
+      });
+    } catch (error) {
+      setOperationMessage({
+        tone: 'danger',
+        title: 'Workspace import refused',
+        description: error instanceof Error ? error.message : 'Workspace import failed.',
+      });
+    } finally {
+      input.value = '';
     }
-    const d = parsed.value as {
-      assertions?: AssertionRule[];
-      collections?: SavedCollection[];
-      environments?: EnvironmentPreset[];
-      history?: RequestHistoryEntry[];
-      targets?: WorkspaceTargetProfile[];
-    };
-    if (d.assertions) setAssertionRules(d.assertions.map(sanitizeAssertionForPersistence));
-    if (d.collections)
-      setCollections(
-        d.collections.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.environments)
-      setEnvironments(
-        d.environments.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.history)
-      setHistory(
-        d.history.map((entry) => ({
-          ...entry,
-          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
-        }))
-      );
-    if (d.targets) setTargets(d.targets);
   }
 
   const paletteActions: PaletteAction[] = [
@@ -1066,6 +1571,36 @@ export function App() {
     ) ?? []),
   ];
 
+  const workspaceNotices = (
+    <>
+      {workspaceRecoveries.length > 0 ? (
+        <div className="px-4 pt-4">
+          <StatusBanner
+            tone="danger"
+            title="Workspace storage needs recovery"
+            description={`${workspaceRecoveries.map((recovery) => `${recovery.section}: ${recovery.reason}`).join(' ')} Original keys remain untouched. Download captures exact readable originals; a browser read failure can only be left in place. Accept the bounded valid records explicitly after reviewing the recovery, which may contain credentials, request bodies, and host paths.`}
+            actions={[
+              { label: 'Download originals', run: downloadWorkspaceRecovery },
+              { label: 'Use recovered data', run: handleUseRecoveredWorkspace },
+            ]}
+          />
+        </div>
+      ) : null}
+
+      {operationMessage ? (
+        <div className="px-4 pt-4">
+          <StatusBanner
+            tone={operationMessage.tone}
+            title={operationMessage.title}
+            description={operationMessage.description}
+            actions={operationMessage.actions}
+            onDismiss={() => setOperationMessage(null)}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+
   // boot/loading states
   if (bootError)
     return (
@@ -1092,6 +1627,7 @@ export function App() {
     return (
       <LauncherView
         bootstrap={bootstrap}
+        notices={workspaceNotices}
         targets={targets}
         activeTargetId={activeTargetId}
         draft={targetDraft}
@@ -1156,14 +1692,14 @@ export function App() {
           className="hidden"
           type="file"
           accept="application/json"
-          onChange={handleImportWorkspace}
+          onChange={(event) => void handleImportWorkspace(event)}
         />
       </aside>
 
       <div className="pp-main">
         <WorkbenchHeader
           target={bootstrap.target}
-          targetProfile={targets.find((target) => target.id === activeTargetId) ?? null}
+          targetProfile={activeTarget}
           serviceName={currentService.name}
           method={currentMethod}
           sidebarButtonRef={sidebarToggleRef}
@@ -1175,6 +1711,8 @@ export function App() {
             else setActiveView('workspace');
           }}
         />
+
+        {workspaceNotices}
 
         <div
           className={classNames('flex-1 overflow-y-auto', activeView === 'compose' ? 'p-0' : 'p-4')}
@@ -2317,6 +2855,7 @@ function WorkspaceView({
 
 function LauncherView({
   bootstrap,
+  notices,
   targets,
   activeTargetId,
   draft,
@@ -2330,6 +2869,7 @@ function LauncherView({
   onOpenDiscovered,
 }: {
   bootstrap: BootstrapResponse;
+  notices?: ReactNode;
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
   draft: WorkspaceTargetProfile;
@@ -2356,6 +2896,7 @@ function LauncherView({
           <LockKeyhole aria-hidden="true" /> Local console
         </span>
       </header>
+      {notices}
       <div className="pp-launcher-main">
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
@@ -2679,17 +3220,19 @@ function StatusBanner({
   tone,
   title,
   description,
+  onDismiss,
+  actions,
 }: {
   tone: 'danger' | 'info';
   title: string;
   description: string;
+  onDismiss?: () => void;
+  actions?: Array<{ label: string; run: () => void }>;
 }) {
   return (
     <div
-      className={classNames(
-        'rounded-lg border p-3',
-        tone === 'danger' ? 'border-pp-danger/30 bg-red-50' : 'border-pp-brand/30 bg-blue-50'
-      )}
+      className={classNames('pp-operation-banner', tone === 'danger' && 'is-danger')}
+      role={tone === 'danger' ? 'alert' : 'status'}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-pp-ink">
         {tone === 'danger' ? (
@@ -2698,8 +3241,27 @@ function StatusBanner({
           <Clock3 className="size-4 text-pp-brand" />
         )}
         {title}
+        {onDismiss ? (
+          <button
+            type="button"
+            className="pp-operation-dismiss"
+            aria-label="Dismiss notification"
+            onClick={onDismiss}
+          >
+            <X className="pp-operation-dismiss-icon" aria-hidden="true" />
+          </button>
+        ) : null}
       </div>
       <p className="pp-muted mt-1">{description}</p>
+      {actions?.length ? (
+        <div className="pp-operation-actions">
+          {actions.map((action) => (
+            <button key={action.label} type="button" onClick={action.run}>
+              {action.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,8 +1,7 @@
 import { LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
 import type { RefObject } from 'react';
-
+import { modifierKeyLabel } from '@/shared/runtime';
 import type { BootstrapMethod, WorkspaceTargetProfile } from '@/shared/types';
-import { modifierKeyLabel } from '@/shared/utils';
 
 import { ProtoPeekMark } from './ProtoPeekMark';
 

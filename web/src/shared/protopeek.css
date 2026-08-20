@@ -140,6 +140,60 @@
     @apply rounded-xl border border-pp-border bg-pp-panel-strong p-4 shadow-sm;
   }
 
+  .pp-operation-banner {
+    position: relative;
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    background: var(--pp-accent-soft);
+    color: var(--pp-text);
+  }
+
+  .pp-operation-banner.is-danger {
+    border-color: var(--pp-danger-signal);
+    background: var(--pp-danger-soft);
+  }
+
+  .pp-operation-dismiss {
+    margin-left: auto;
+    border-radius: 0.3rem;
+    padding: 0.15rem;
+    color: var(--pp-text-muted);
+  }
+
+  .pp-operation-dismiss:hover,
+  .pp-operation-dismiss:focus-visible {
+    background: var(--pp-surface-raised);
+    color: var(--pp-text);
+  }
+
+  .pp-operation-dismiss-icon {
+    width: 0.85rem;
+  }
+
+  .pp-operation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+  }
+
+  .pp-operation-actions button {
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--pp-surface-raised);
+    color: var(--pp-text);
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .pp-operation-actions button:hover,
+  .pp-operation-actions button:focus-visible {
+    border-color: var(--pp-accent);
+    color: var(--pp-accent-strong);
+  }
+
   .pp-heading {
     @apply font-semibold tracking-tight text-pp-ink;
   }
@@ -2483,6 +2537,27 @@
   .pp-http-request-line select:focus {
     border-color: #2bcbbf;
     box-shadow: 0 0 0 2px rgba(43, 203, 191, 0.18);
+  }
+
+  .pp-http-replay-notice {
+    display: flex;
+    min-height: 2.25rem;
+    align-items: center;
+    gap: 0.45rem;
+    border-bottom: 1px solid var(--pp-stroke);
+    padding: 0.45rem 0.85rem;
+    background: var(--pp-accent-soft);
+    color: var(--pp-text-muted);
+    font-size: 0.66rem;
+  }
+
+  .pp-http-notice-icon {
+    width: 0.75rem;
+  }
+
+  .pp-http-notice-dismiss {
+    margin-left: auto;
+    color: var(--pp-text-muted);
   }
 
   .pp-http-send {

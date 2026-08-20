@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 
-import { compactDate, displayBuildVersion } from '@/shared/utils';
+import { compactDate, displayBuildVersion } from '@/shared/runtime';
 
 import { fetchBootstrap } from './api';
 import { useProtocolShell } from './ProtocolShellContext';

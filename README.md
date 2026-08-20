@@ -80,6 +80,30 @@ The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence |
 
+Workspace export writes the explicit `protopeek-workspace` version 1 format. The default export
+contains saved requests, environments, assertions, and inactive target profiles, but excludes
+automatic RPC history. Saved request bodies are deliberate workspace data, so review them before
+sharing a file. Import rejects files larger than 4 MiB before reading them, validates bounded
+collections and strings, contains errors inside the running console, and never connects an imported
+target. Imported proto, protoset, CA, client-certificate, and key paths are paths on the machine
+running ProtoPeek; explicitly connecting that profile authorizes the ProtoPeek process to read those
+local paths.
+
+Every deliberate workspace write is validated before it reaches browser storage. Full saved-request,
+environment, and target lists refuse the new item instead of evicting an older one. If an existing
+section is malformed or over its bound, ProtoPeek keeps the exact readable original untouched,
+recovers only valid bounded records for the live session, and offers separate download and explicit
+adoption actions. A normal export remains paused until that recovery is resolved.
+
+Saved and historical gRPC requests are scoped to the target/profile that created them. Legacy
+unscoped records remain usable when their method exists, then bind to the current target on first
+replay. Redacted metadata is restored blank with a re-entry warning, and blank or `[redacted]`
+sensitive metadata is never sent. Automatic HTTP history retains the URL, method, a small allowlist
+of non-credential header values, and response summary—not request bodies. It strips URL user info,
+redacts credential-like query values and every header outside that allowlist, then resets all
+non-persisted request/response settings on replay. Opening a newly discovered HTTP origin also
+cancels and invalidates prior work before starting from a clean `GET` request.
+
 ## Protocol direction
 
 ProtoPeek is intentionally broader than a gRPC-only brand, but intentionally narrower than a

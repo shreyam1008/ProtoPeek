@@ -1,7 +1,7 @@
 import { FileUp, LoaderCircle, Play, ShieldCheck, Square, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { classNames } from '@/shared/utils';
+import { classNames } from '@/shared/runtime';
 
 import {
   importNmapXML,

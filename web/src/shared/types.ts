@@ -234,6 +234,10 @@ export type SavedCollection = {
   metadata: MetadataEntry[];
   timeoutSeconds: number;
   requestText: string;
+  /** Present on records created after workspace-scoped replay was introduced. */
+  targetId?: string;
+  /** Target address guards direct-mode and migrated records when no profile ID exists. */
+  targetAddress?: string;
 };
 
 export type RequestHistoryEntry = {
@@ -247,6 +251,37 @@ export type RequestHistoryEntry = {
   responsePreview: string;
   metadata: MetadataEntry[];
   timeoutSeconds: number;
+  /** Present on records created after workspace-scoped replay was introduced. */
+  targetId?: string;
+  /** Target address guards direct-mode and migrated records when no profile ID exists. */
+  targetAddress?: string;
+};
+
+export type WorkspaceExportV1 = {
+  format: 'protopeek-workspace';
+  version: 1;
+  exportedAt: string;
+  assertions: AssertionRule[];
+  collections: SavedCollection[];
+  environments: EnvironmentPreset[];
+  targets: WorkspaceTargetProfile[];
+};
+
+export type ValidatedWorkspaceImport = {
+  legacy: boolean;
+  sections: {
+    assertions: boolean;
+    collections: boolean;
+    environments: boolean;
+    history: boolean;
+    targets: boolean;
+  };
+  assertions: AssertionRule[];
+  collections: SavedCollection[];
+  environments: EnvironmentPreset[];
+  history?: RequestHistoryEntry[];
+  targets: WorkspaceTargetProfile[];
+  hasHostFilePaths: boolean;
 };
 
 export type SimulationConfig = {

@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowRight, LoaderCircle, Network, Route, Square } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 
-import { classNames } from '@/shared/utils';
+import { classNames } from '@/shared/runtime';
 
 import { lookupRoute, type RouteLookupResponse, type RouteResult } from './api';
 
