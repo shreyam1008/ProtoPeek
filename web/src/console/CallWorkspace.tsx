@@ -141,11 +141,13 @@ export function CallWorkspace({
     ? method.serverStreaming || method.clientStreaming
       ? 'STREAMING'
       : 'IN FLIGHT'
-    : invokeState.error || response?.error
-      ? 'ERROR'
-      : response
-        ? 'OK'
-        : 'READY';
+    : response?.localLimit
+      ? 'LOCAL LIMIT'
+      : invokeState.error || response?.error
+        ? 'ERROR'
+        : response
+          ? 'OK'
+          : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -337,9 +339,10 @@ export function CallWorkspace({
               <Clock3 aria-hidden="true" />
               <input
                 aria-label="Deadline in seconds"
+                title="Omitted or larger deadlines use ProtoPeek's 60-second local safety wall."
                 type="number"
                 min={0}
-                max={86400}
+                max={60}
                 value={timeoutSeconds}
                 onChange={(event) => onTimeoutChange(Number(event.target.value))}
               />
@@ -372,7 +375,8 @@ export function CallWorkspace({
           <span
             className={classNames(
               'pp-status-mark',
-              (invokeState.error || response?.error) && 'pp-status-mark-error',
+              (invokeState.error || response?.error || response?.localLimit) &&
+                'pp-status-mark-error',
               invokeState.loading && 'pp-status-mark-running'
             )}
             role="status"
@@ -428,6 +432,16 @@ export function CallWorkspace({
             <Download aria-hidden="true" />
           </button>
         </div>
+
+        {response?.localLimit ? (
+          <div className="pp-response-error" role="alert">
+            <CircleAlert aria-hidden="true" />
+            <div>
+              <strong>Partial response evidence</strong>
+              <p>{response.localLimit.message}</p>
+            </div>
+          </div>
+        ) : null}
 
         <AccessibleTabs
           id="grpc-response"
@@ -641,18 +655,28 @@ function StatusGrid({ response, latencyMs }: { response: InvokeResponse; latency
     ['Invoke returned', response.timings?.totalMs],
     ['Console round trip', latencyMs],
   ] as const;
+  const statusLabel = response.localLimit
+    ? 'Not observed (local limit)'
+    : response.error
+      ? `${response.error.name} (${response.error.code})`
+      : 'OK (0)';
+  const statusDetails = response.localLimit
+    ? response.localLimit.message
+    : response.error?.message || 'RPC completed successfully.';
   return (
     <div className="pp-status-evidence">
       <div className="pp-status-grid">
         <div>
           <span>Code</span>
-          <strong className={response.error ? 'pp-error-text' : 'pp-ok-text'}>
-            {response.error ? `${response.error.name} (${response.error.code})` : 'OK (0)'}
+          <strong
+            className={response.error || response.localLimit ? 'pp-error-text' : 'pp-ok-text'}
+          >
+            {statusLabel}
           </strong>
         </div>
         <div>
           <span>Details</span>
-          <strong>{response.error?.message || 'RPC completed successfully.'}</strong>
+          <strong>{statusDetails}</strong>
         </div>
         <div>
           <span>Requests</span>

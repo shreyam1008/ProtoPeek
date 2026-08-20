@@ -36,6 +36,18 @@ function themeBlock(selector: string) {
   return consoleCSS.slice(start, end);
 }
 
+function selectorBlockAfter(startMarker: string, selector: string) {
+  const start = consoleCSS.indexOf(startMarker);
+  if (start < 0) throw new Error(`Missing ${startMarker}.`);
+  const selectorStart = consoleCSS.indexOf(selector, start);
+  const declarationStart = consoleCSS.indexOf('{', selectorStart);
+  const end = consoleCSS.indexOf('\n  }', declarationStart);
+  if (selectorStart < 0 || declarationStart < 0 || end < 0) {
+    throw new Error(`Missing ${selector} block after ${startMarker}.`);
+  }
+  return consoleCSS.slice(declarationStart + 1, end);
+}
+
 describe('published color and motion contracts', () => {
   it('keeps faint console text readable on every console surface in both themes', () => {
     for (const block of [
@@ -76,5 +88,18 @@ describe('published color and motion contracts', () => {
     expect(reducedMotion).toContain('.pp-doc-visual-card circle');
     expect(reducedMotion).toContain('.pp-doc-visual-fill');
     expect(reducedMotion).toMatch(/animation:\s*none/);
+  });
+
+  it('keeps the narrow HTTP pane switch on theme-aware surfaces', () => {
+    const mobileTabs = selectorBlockAfter('@media (max-width: 760px)', '.pp-http-mobile-tabs');
+
+    expect(mobileTabs).toMatch(/background:\s*var\(--pp-chrome\)/);
+    expect(mobileTabs).toMatch(/border-bottom:\s*1px solid var\(--pp-stroke\)/);
+  });
+
+  it('hides the inactive HTTP pane across the full 760px mobile-tab range', () => {
+    const hiddenPane = selectorBlockAfter('@media (max-width: 760px)', '.pp-mobile-pane-hidden');
+
+    expect(hiddenPane).toMatch(/display:\s*none/);
   });
 });

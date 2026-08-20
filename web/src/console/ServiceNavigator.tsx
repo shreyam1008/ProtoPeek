@@ -10,7 +10,7 @@ import {
   Settings,
   Upload,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { classNames } from '@/shared/runtime';
 import type { BootstrapService, MethodFilter } from '@/shared/types';
 
@@ -108,6 +108,32 @@ function ServiceGroup({
   );
 }
 
+const ServiceCatalog = memo(function ServiceCatalog({
+  services,
+  selectedMethod,
+  searchText,
+  onSelect,
+}: {
+  services: BootstrapService[];
+  selectedMethod: string;
+  searchText: string;
+  onSelect: (method: string) => void;
+}) {
+  return services.length ? (
+    services.map((service) => (
+      <ServiceGroup
+        key={service.name}
+        service={service}
+        selectedMethod={selectedMethod}
+        searching={Boolean(searchText.trim())}
+        onSelect={onSelect}
+      />
+    ))
+  ) : (
+    <p className="pp-sidebar-empty">No methods match this filter.</p>
+  );
+});
+
 export function ServiceNavigator({
   services,
   selectedMethod,
@@ -137,6 +163,12 @@ export function ServiceNavigator({
   onExport: () => void;
   onImport: () => void;
 }) {
+  const onSelectMethodRef = useRef(onSelectMethod);
+  useLayoutEffect(() => {
+    onSelectMethodRef.current = onSelectMethod;
+  }, [onSelectMethod]);
+  const selectMethod = useCallback((method: string) => onSelectMethodRef.current(method), []);
+
   return (
     <>
       <div className="pp-sidebar-brand">
@@ -172,19 +204,12 @@ export function ServiceNavigator({
       </fieldset>
 
       <div className="pp-service-scroll">
-        {services.length ? (
-          services.map((service) => (
-            <ServiceGroup
-              key={service.name}
-              service={service}
-              selectedMethod={selectedMethod}
-              searching={Boolean(searchText.trim())}
-              onSelect={onSelectMethod}
-            />
-          ))
-        ) : (
-          <p className="pp-sidebar-empty">No methods match this filter.</p>
-        )}
+        <ServiceCatalog
+          services={services}
+          selectedMethod={selectedMethod}
+          searchText={searchText}
+          onSelect={selectMethod}
+        />
       </div>
 
       <nav className="pp-utility-nav" aria-label="Workbench tools">

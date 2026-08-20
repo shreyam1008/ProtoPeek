@@ -128,6 +128,7 @@ describe('unary repeat configuration', () => {
     expect(run.counts).toEqual({
       ok: 1,
       grpcError: 1,
+      localLimit: 0,
       relayTransportError: 1,
       cancelled: 1,
     });
@@ -153,6 +154,43 @@ describe('unary repeat configuration', () => {
     });
     expect(JSON.stringify(exported)).not.toContain('grpcInvokeMs');
     expect(JSON.stringify(exported)).not.toContain('transportError');
+  });
+
+  it('keeps ProtoPeek local limits separate from OK, gRPC, and relay outcomes', () => {
+    const attempt: RepeatAttempt = {
+      sequence: 1,
+      startedOffsetMs: 0,
+      consoleRoundTripMs: 60_005,
+      handlerInvokeMs: 60_000,
+      outcome: 'local-limit',
+      responseCount: 512,
+      headerCount: 1,
+      trailerCount: 0,
+      grpcStatus: null,
+      error: "ProtoPeek stopped locally; the server's final status was not observed.",
+    };
+    const run = buildRepeatRun({
+      createdAt: '2026-08-20T12:00:00.000Z',
+      method: 'demo.Stream/Watch',
+      target: 'localhost:50051',
+      config: { count: 2, thinkTimeMs: 0, deadlineSeconds: 5 },
+      attempts: [attempt],
+      totalMs: 60_005,
+      stopReason: 'completed',
+    });
+
+    expect(run.counts).toEqual({
+      ok: 0,
+      grpcError: 0,
+      localLimit: 1,
+      relayTransportError: 0,
+      cancelled: 0,
+    });
+    expect(run.latency.sampleCount).toBe(0);
+    expect(JSON.parse(serializeRepeatRun(run)).run.attempts[0]).toMatchObject({
+      outcome: 'local-limit',
+      grpcStatus: null,
+    });
   });
 
   it('withholds p95 below 20 completed RPC exchanges', () => {
@@ -372,6 +410,7 @@ describe('persistence redaction', () => {
       responses: [],
       requests: null,
       timings: null,
+      localLimit: null,
       trailers: [{ name: 'trace-bin', value: 'binary' }],
     });
     expect(response.headers[0]?.value).toBe('[redacted]');
@@ -962,10 +1001,47 @@ describe('evaluateAssertions', () => {
         responses: [{ isError: false, message: { text: 'pong' }, sequence: 1, elapsedMs: 12 }],
         requests: null,
         timings: null,
+        localLimit: null,
         trailers: [],
       },
     });
 
     expect(assertions.every((item) => item.passed)).toBe(true);
+  });
+
+  it('does not synthesize OK when ProtoPeek stopped the RPC locally', () => {
+    const [statusResult] = evaluateAssertions({
+      rules: [
+        {
+          id: 'local-status',
+          name: 'Status OK',
+          kind: 'status',
+          comparator: 'equals',
+          target: '',
+          value: 'OK',
+        },
+      ],
+      latencyMs: 60_000,
+      result: {
+        headers: [],
+        error: null,
+        responses: [],
+        requests: { total: 1, sent: 1 },
+        trailers: [],
+        timings: { headersMs: 1, firstMessageMs: null, trailersMs: null, totalMs: 60_000 },
+        localLimit: {
+          reason: 'duration',
+          message: 'ProtoPeek stopped at its local wall limit.',
+          retainedResponses: 0,
+          retainedResponseBytes: 0,
+          maxResponses: 512,
+          maxResponseBytes: 8_388_608,
+          maxDurationSeconds: 60,
+        },
+      },
+    });
+
+    expect(statusResult).toMatchObject({ passed: false });
+    expect(statusResult?.message).toMatch(/saw LOCAL_LIMIT/i);
   });
 });

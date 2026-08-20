@@ -37,6 +37,7 @@ const response: InvokeResponse = {
   error: null,
   requests: { total: 1, sent: 1 },
   timings: { headersMs: 7, firstMessageMs: 18, trailersMs: 47, totalMs: 49 },
+  localLimit: null,
 };
 
 function props(overrides: Partial<Parameters<typeof CallWorkspace>[0]> = {}) {
@@ -61,6 +62,16 @@ function props(overrides: Partial<Parameters<typeof CallWorkspace>[0]> = {}) {
 }
 
 describe('CallWorkspace', () => {
+  it('advertises the ordinary invoke wall at the deadline control', () => {
+    render(<CallWorkspace {...props()} />);
+
+    expect(screen.getByLabelText('Deadline in seconds')).toHaveAttribute('max', '60');
+    expect(screen.getByLabelText('Deadline in seconds')).toHaveAttribute(
+      'title',
+      expect.stringMatching(/omitted or larger.*60-second local safety wall/i)
+    );
+  });
+
   it('keeps request work and timed streaming evidence in one view', () => {
     const onInvoke = vi.fn();
     render(<CallWorkspace {...props({ onInvoke })} />);
@@ -159,6 +170,47 @@ describe('CallWorkspace', () => {
     expect(within(firstMessage).getByText('+—')).toBeVisible();
     expect(screen.queryByText('26 ms')).not.toBeInTheDocument();
     expect(screen.queryByText('51 ms', { selector: '.pp-message-time *' })).not.toBeInTheDocument();
+  });
+
+  it('discloses retained partial evidence without fabricating a final gRPC status', () => {
+    const message =
+      "ProtoPeek stopped this RPC after retaining 512 response messages; the server's final gRPC status was not observed.";
+    render(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            error: null,
+            latencyMs: 51,
+            result: {
+              ...response,
+              trailers: [],
+              timings: { headersMs: 7, firstMessageMs: 18, trailersMs: null, totalMs: 49 },
+              localLimit: {
+                reason: 'response-count',
+                message,
+                retainedResponses: 512,
+                retainedResponseBytes: 4096,
+                maxResponses: 512,
+                maxResponseBytes: 8_388_608,
+                maxDurationSeconds: 60,
+              },
+            },
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByRole('status', { name: 'RPC status LOCAL LIMIT' })).toBeVisible();
+    const disclosure = screen.getByRole('alert');
+    expect(within(disclosure).getByText('Partial response evidence')).toBeVisible();
+    expect(within(disclosure).getByText(message)).toBeVisible();
+    expect(screen.getAllByText('Message 1')).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Status' }));
+    expect(screen.getByText('Not observed (local limit)')).toBeVisible();
+    expect(screen.queryByText('OK (0)')).not.toBeInTheDocument();
+    expect(screen.queryByText('RPC completed successfully.')).not.toBeInTheDocument();
   });
 
   it('announces only an atomic current or final status when a stream has many messages', () => {

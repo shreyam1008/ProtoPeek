@@ -13,7 +13,7 @@ const roadmap = [
       ],
       [
         'HTTP workbench',
-        'Bounded HTTP(S), verified TLS, explicit redirects, peer, timing, headers, and response bodies.',
+        'Bounded HTTP(S), verified TLS, explicit redirects, peer, timing, headers, response bodies, and bounded credential-redacted cURL export.',
       ],
       [
         'Bounded discovery',
@@ -55,8 +55,8 @@ const roadmap = [
         'Reusable local request recipes and environment values with secret-safe persistence.',
       ],
       [
-        'cURL import/export',
-        'Translate bounded HTTP requests without silently accepting unsafe shell behavior.',
+        'cURL import',
+        'Parse a deliberately bounded cURL subset without silently accepting unsafe shell behavior; export is available now.',
       ],
       [
         'Target DNS + TLS preflight',

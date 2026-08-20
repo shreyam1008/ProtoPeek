@@ -1262,9 +1262,10 @@ export function App() {
             service: currentService.name,
             method: currentMethod.fullName,
             latencyMs: lat,
-            success: !result.error,
+            success: !result.error && !result.localLimit,
             requestText,
-            response: result.responses[0]?.message ?? result.error ?? null,
+            response:
+              result.responses[0]?.message ?? result.error ?? result.localLimit?.message ?? null,
             metadata,
             timeoutSeconds,
             ...currentReplayScope,
@@ -1377,7 +1378,7 @@ export function App() {
             ...common,
             consoleRoundTripMs: performance.now() - attemptStartedAt,
             handlerInvokeMs: result.timings?.totalMs ?? null,
-            outcome: result.error ? 'grpc-error' : 'ok',
+            outcome: result.localLimit ? 'local-limit' : result.error ? 'grpc-error' : 'ok',
             responseCount: result.responses.length,
             headerCount: result.headers.length,
             trailerCount: result.trailers.length,
@@ -1388,7 +1389,7 @@ export function App() {
                   message: result.error.message.slice(0, repeatErrorMessageLimit),
                 }
               : null,
-            error: '',
+            error: result.localLimit?.message.slice(0, repeatErrorMessageLimit) ?? '',
           });
         } catch (error) {
           if (repeatRef.current !== active) return;
@@ -3224,6 +3225,7 @@ function TestsView({
             <div className="pp-repeat-outcomes">
               <Metric label="OK" value={String(repeatRun.counts.ok)} />
               <Metric label="gRPC errors" value={String(repeatRun.counts.grpcError)} />
+              <Metric label="Local limits" value={String(repeatRun.counts.localLimit)} />
               <Metric
                 label="Relay / transport errors"
                 value={String(repeatRun.counts.relayTransportError)}
