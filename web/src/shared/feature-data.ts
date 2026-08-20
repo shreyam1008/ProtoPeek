@@ -70,12 +70,12 @@ export const featureIdeas: FeatureIdea[] = [
       'Postman supports gRPC test hooks before, during, and after requests; ProtoPeek keeps validation local without adding a scripting runtime.',
   },
   {
-    name: 'Simulation studio',
+    name: 'Unary Repeat',
     summary:
-      'Run bounded browser-driven repetition for unary debugging; treat its latency output as a local sanity check, not a benchmark.',
+      'Run 2–50 sequential unary checks with explicit deadlines, cancellation, partial results, separate gRPC status and relay/transport failures, and labelled handler-vs-console timing.',
     status: 'Shipped',
     rationale:
-      'Bounded repetition extends interactive debugging without presenting the browser result as a load benchmark.',
+      'Bounded repetition extends interactive debugging without presenting browser scheduling or the local relay as a service load benchmark; every attempt remains a real, potentially mutating RPC.',
   },
   {
     name: 'Bounded HTTP workbench',

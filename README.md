@@ -74,11 +74,28 @@ The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -
 | **Proto explorer** | Browse files, messages, enums, deps; export `.proto` or catalog JSON |
 | **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |
 | **Saved gRPC requests** | Keep secret-sanitized gRPC recipes locally, replay them, and import/export workspace JSON |
-| **Response timeline** | Ordered messages with arrival timing, filtering, copy/export, headers, trailers, and final status |
+| **Unary Repeat** | Run 2–50 sequential unary checks with cancellation, explicit deadlines, a 60 s cap, separate gRPC status and relay/transport failures, and honest handler-vs-console timing |
+| **Response timeline** | Ordered messages with callback-observed timing, filtering, copy/export, headers, trailers, and final status |
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence |
+
+gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
+grpcurl handler callbacks and invoke return. Unary callbacks may cluster after transport completion;
+the values are not packet-arrival, server-processing, or TTFB measurements. Handler invoke duration
+includes JSON/protobuf conversion and callbacks but excludes the browser/HTTP relay; console round
+trip includes that relay and response parsing. Every Unary Repeat attempt is a real RPC that may
+mutate service data; protobuf descriptors do not reliably guarantee idempotency.
+
+While Repeat owns the request, assertions are disabled and ordinary Invoke is refused. Leaving
+Checks cancels the run and preserves partial evidence instead of continuing hidden. Completed
+results retain their run-start timestamp and frozen count, think time, and deadline; changed controls
+are marked as a previous run.
+
+Unary Repeat export includes the method, target, run ID/start timestamp, frozen configuration,
+counts, per-attempt offsets/timings, classifications, and error/status text. It excludes request
+bodies and metadata; review internal addresses and service/relay text before sharing.
 
 Workspace export writes the explicit `protopeek-workspace` version 1 format. The default export
 contains saved requests, environments, assertions, and inactive target profiles, but excludes
@@ -113,7 +130,7 @@ cancellation, and its native inspector.
 
 | Adapter | Status | First useful slice |
 |---|---|---|
-| gRPC | Stable · v0.2 | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, timing |
+| gRPC | Stable · v0.2 | Reflection, `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
 | HTTP / REST | Stable · v0.2 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
 | Next-hop route evidence | Available in this v0.3 build | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
 | Nmap XML evidence | Available in this v0.3 build · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |

@@ -33,7 +33,8 @@ The gRPC adapter remains the quality bar for protocol-native depth:
    client-stream, and bidirectional modes.
 3. Generate an editable request payload from the reflected schema.
 4. Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.
-5. Render ordered response messages, headers, trailers, final status, and timing together.
+5. Render ordered response messages, headers, trailers, final status, and callback-observed handler
+   lifecycle timing together without presenting it as packet arrival, server processing, or TTFB.
 6. Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts
    without a server account.
 7. Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public

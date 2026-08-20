@@ -9,11 +9,14 @@ import type {
   InvokeResponse,
   MetadataEntry,
   MethodFilter,
+  RepeatAttempt,
+  RepeatConfig,
+  RepeatExportV1,
+  RepeatRun,
+  RepeatStopReason,
   RequestHistoryEntry,
   SavedCollection,
   SchemaResponse,
-  SimulationConfig,
-  SimulationRun,
   ValidatedWorkspaceImport,
   WorkspaceExportV1,
   WorkspaceTargetConfig,
@@ -378,46 +381,160 @@ export function generateRequestTemplate(schema: SchemaResponse) {
   return schema.requestStream ? [payload] : payload;
 }
 
-export function clampSimulationConfig(config: SimulationConfig): SimulationConfig {
-  return {
-    runs: Math.max(1, Math.min(config.runs, 500)),
-    concurrency: Math.max(1, Math.min(config.concurrency, 50)),
-    thinkTimeMs: Math.max(0, Math.min(config.thinkTimeMs, 5000)),
-  };
-}
-
-export function percentile(values: number[], p: number) {
-  if (values.length === 0) {
-    return 0;
+export function validateRepeatConfig(config: RepeatConfig): {
+  error: string | null;
+  value: RepeatConfig | null;
+} {
+  if (!Number.isInteger(config.count)) {
+    return { error: 'Calls must be a whole number between 2 and 50.', value: null };
   }
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
-  return sorted[index] ?? 0;
+  if (config.count < 2 || config.count > 50) {
+    return { error: 'Calls must be between 2 and 50.', value: null };
+  }
+  if (!Number.isInteger(config.thinkTimeMs)) {
+    return { error: 'Think time must be a whole number between 0 and 5000 ms.', value: null };
+  }
+  if (config.thinkTimeMs < 0 || config.thinkTimeMs > 5000) {
+    return { error: 'Think time must be between 0 and 5000 ms.', value: null };
+  }
+  if (
+    !Number.isFinite(config.deadlineSeconds) ||
+    config.deadlineSeconds < 0.1 ||
+    config.deadlineSeconds > 30
+  ) {
+    return { error: 'Per-call deadline must be between 0.1 and 30 seconds.', value: null };
+  }
+  return { error: null, value: { ...config } };
 }
 
-export function simulationSummary(
-  method: string,
-  config: SimulationConfig,
-  latencies: number[],
-  successCount: number,
-  errorCount: number,
-  totalMs: number
-): SimulationRun {
+export function buildRepeatRun(args: {
+  createdAt: string;
+  method: string;
+  target: string;
+  config: RepeatConfig;
+  attempts: RepeatAttempt[];
+  totalMs: number;
+  stopReason: RepeatStopReason;
+}): RepeatRun {
+  const counts = { ok: 0, grpcError: 0, relayTransportError: 0, cancelled: 0 };
+  const completedAttempts: RepeatAttempt[] = [];
+  for (const attempt of args.attempts) {
+    switch (attempt.outcome) {
+      case 'ok':
+        counts.ok++;
+        completedAttempts.push(attempt);
+        break;
+      case 'grpc-error':
+        counts.grpcError++;
+        completedAttempts.push(attempt);
+        break;
+      case 'relay-transport-error':
+        counts.relayTransportError++;
+        break;
+      case 'cancelled':
+        counts.cancelled++;
+        break;
+    }
+  }
+  const hasHandlerInvokeTiming = completedAttempts.some(
+    (attempt) => attempt.handlerInvokeMs !== null
+  );
+  const latencySource = hasHandlerInvokeTiming ? 'handler-invoke' : 'console-round-trip';
+  const latencySamples = completedAttempts.flatMap((attempt) => {
+    if (latencySource === 'handler-invoke') {
+      return attempt.handlerInvokeMs === null ? [] : [attempt.handlerInvokeMs];
+    }
+    return [attempt.consoleRoundTripMs];
+  });
+  const sorted = latencySamples.toSorted((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const medianMs =
+    sorted.length === 0
+      ? null
+      : sorted.length % 2 === 0
+        ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
+        : (sorted[middle] ?? null);
+  const p95Index = Math.ceil(sorted.length * 0.95) - 1;
+
   return {
-    id: uid('sim'),
-    createdAt: new Date().toISOString(),
-    method,
-    config,
-    totalMs,
-    successCount,
-    errorCount,
-    throughputRps: totalMs > 0 ? (successCount / totalMs) * 1000 : 0,
-    latencies,
-    p50: percentile(latencies, 50),
-    p95: percentile(latencies, 95),
-    p99: percentile(latencies, 99),
+    id: uid('repeat'),
+    createdAt: args.createdAt,
+    method: args.method,
+    target: args.target,
+    config: { ...args.config },
+    requestedCount: args.config.count,
+    totalMs: args.totalMs,
+    stopReason: args.stopReason,
+    counts,
+    latency: {
+      sampleCount: sorted.length,
+      source: latencySource,
+      minMs: sorted[0] ?? null,
+      medianMs,
+      p95Ms: sorted.length >= 20 ? (sorted[p95Index] ?? null) : null,
+      maxMs: sorted.at(-1) ?? null,
+    },
+    attempts: [...args.attempts],
   };
+}
+
+function repeatRunForExport(run: RepeatRun): RepeatRun {
+  return {
+    id: run.id,
+    createdAt: run.createdAt,
+    method: run.method,
+    target: run.target,
+    config: {
+      count: run.config.count,
+      thinkTimeMs: run.config.thinkTimeMs,
+      deadlineSeconds: run.config.deadlineSeconds,
+    },
+    requestedCount: run.requestedCount,
+    totalMs: run.totalMs,
+    stopReason: run.stopReason,
+    counts: {
+      ok: run.counts.ok,
+      grpcError: run.counts.grpcError,
+      relayTransportError: run.counts.relayTransportError,
+      cancelled: run.counts.cancelled,
+    },
+    latency: {
+      sampleCount: run.latency.sampleCount,
+      source: run.latency.source,
+      minMs: run.latency.minMs,
+      medianMs: run.latency.medianMs,
+      p95Ms: run.latency.p95Ms,
+      maxMs: run.latency.maxMs,
+    },
+    attempts: run.attempts.map((attempt) => ({
+      sequence: attempt.sequence,
+      startedOffsetMs: attempt.startedOffsetMs,
+      consoleRoundTripMs: attempt.consoleRoundTripMs,
+      handlerInvokeMs: attempt.handlerInvokeMs,
+      outcome: attempt.outcome,
+      responseCount: attempt.responseCount,
+      headerCount: attempt.headerCount,
+      trailerCount: attempt.trailerCount,
+      grpcStatus: attempt.grpcStatus
+        ? {
+            code: attempt.grpcStatus.code,
+            name: attempt.grpcStatus.name,
+            message: attempt.grpcStatus.message,
+          }
+        : null,
+      error: attempt.error,
+    })),
+  };
+}
+
+export function serializeRepeatRun(run: RepeatRun) {
+  const exported: RepeatExportV1 = {
+    format: 'protopeek-repeat',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    run: repeatRunForExport(run),
+  };
+  return JSON.stringify(exported, null, 2);
 }
 
 export function durationLabel(valueMs: number) {

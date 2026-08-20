@@ -15,6 +15,36 @@ describe('API response normalization', () => {
     expect(response.responses).toEqual([]);
     expect(response.trailers).toEqual([]);
     expect(response.error?.details).toEqual([]);
+    expect(response.timings).toBeNull();
+  });
+
+  it('keeps only measured invoke timing evidence and leaves unavailable phases null', () => {
+    const response = normalizeInvokeResponse({
+      headers: [],
+      error: null,
+      responses: [
+        { isError: false, message: { value: 1 }, sequence: 1 },
+        { isError: false, message: { value: 2 }, sequence: 2, elapsedMs: 0 },
+        { isError: false, message: { value: 3 }, sequence: 3, elapsedMs: -1 },
+      ],
+      requests: null,
+      trailers: [],
+      timings: {
+        headersMs: 4.25,
+        firstMessageMs: null,
+        trailersMs: Number.NaN,
+        totalMs: 19.5,
+      },
+    });
+
+    expect(response.responses.map((entry) => entry.elapsedMs)).toEqual([null, 0, null]);
+    expect(response.timings).toEqual({
+      headersMs: 4.25,
+      firstMessageMs: null,
+      trailersMs: null,
+      totalMs: 19.5,
+    });
+    expect(normalizeInvokeResponse({ timings: { totalMs: -1 } }).timings).toBeNull();
   });
 
   it('normalizes sparse proto catalogs recursively', () => {

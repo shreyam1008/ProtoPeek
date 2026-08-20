@@ -194,7 +194,7 @@ function ProtocolModel() {
             label: 'Stable · v0.2',
             title: 'gRPC',
             detail:
-              'Reflection, .proto and protoset loading, unary and streaming calls, metadata, headers, trailers, status, and timing.',
+              'Reflection, .proto and protoset loading, unary and streaming calls, metadata, headers, trailers, status, callback-observed handler timing, and bounded Unary Repeat.',
             tone: 'border-pp-brand/40 bg-pp-brand/5',
           },
           {
@@ -315,6 +315,11 @@ function Features() {
       desc: 'Pick a method, fill in the request JSON with auto-generated templates, add metadata, hit invoke. See the full response with headers and trailers.',
     },
     {
+      icon: Zap,
+      title: 'Repeat unary checks safely',
+      desc: 'Run 2–50 real RPCs strictly in sequence with explicit deadlines, cancellation, a 60-second cap, partial evidence, separate failure classes, and honest handler-vs-console timing. Calls may mutate service data.',
+    },
+    {
       icon: Globe2,
       title: 'Send real HTTP requests',
       desc: 'Choose method, URL, params, headers, auth, body, timeout, and redirects; cancel in flight and inspect status, body, TLS, redirect, and timing evidence.',
@@ -371,7 +376,7 @@ function Roadmap() {
       status: 'Available in v0.3 source',
       title: 'Protocol workbenches + bounded evidence',
       detail:
-        'Dashboard, themes, stable gRPC and HTTP workbenches, bounded TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
+        'Dashboard, themes, stable gRPC and HTTP workbenches, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, and offline Nmap XML import with mandatory ProtoPeek verification.',
       icon: ShieldCheck,
     },
     {

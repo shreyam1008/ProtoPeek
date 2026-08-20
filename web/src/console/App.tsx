@@ -40,17 +40,19 @@ import type {
   ProtoEnumSummary,
   ProtoFileSummary,
   ProtoMessageSummary,
+  RepeatAttempt,
+  RepeatConfig,
+  RepeatRun,
+  RepeatStopReason,
   RequestHistoryEntry,
   SavedCollection,
   SchemaResponse,
-  SimulationConfig,
-  SimulationRun,
   WorkspaceTargetConfig,
   WorkspaceTargetProfile,
 } from '@/shared/types';
 import {
   appStorageKeys,
-  clampSimulationConfig,
+  buildRepeatRun,
   classNames,
   commandPreview,
   compactDate,
@@ -70,8 +72,8 @@ import {
   type StoredWorkspaceRecovery,
   safeParseJson,
   sanitizeAssertionForPersistence,
+  serializeRepeatRun,
   serializeWorkspaceExport,
-  simulationSummary,
   sparklinePath,
   storeValue,
   storeValuesAtomically,
@@ -80,6 +82,7 @@ import {
   toHistoryEntry,
   toWorkspaceTargetProfile,
   uid,
+  validateRepeatConfig,
   validateWorkspaceImport,
   workspaceImportLimits,
   workspaceImportMaxBytes,
@@ -157,7 +160,57 @@ function prepareWorkspaceStorageWrites(entries: Array<[string, unknown]>) {
   return { ok: true as const, values };
 }
 
-const defaultSimulation: SimulationConfig = { runs: 25, concurrency: 5, thinkTimeMs: 0 };
+const repeatAggregateLimitMs = 60_000;
+const repeatErrorMessageLimit = 2048;
+const defaultRepeat: RepeatConfig = { count: 5, thinkTimeMs: 0, deadlineSeconds: 5 };
+
+type ActiveRepeat = {
+  controller: AbortController;
+  stopReason: RepeatStopReason | null;
+};
+
+function repeatAbortError() {
+  return new DOMException('Repeat cancelled.', 'AbortError');
+}
+
+function awaitWithAbort<T>(promise: Promise<T>, signal: AbortSignal) {
+  if (signal.aborted) return Promise.reject(repeatAbortError());
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(repeatAbortError());
+    signal.addEventListener('abort', abort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener('abort', abort);
+        reject(error);
+      }
+    );
+  });
+}
+
+function waitForRepeatDelay(delayMs: number, signal: AbortSignal) {
+  if (delayMs <= 0) return Promise.resolve();
+  if (signal.aborted) return Promise.reject(repeatAbortError());
+  return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, delayMs);
+    const abort = () => {
+      window.clearTimeout(timer);
+      reject(repeatAbortError());
+    };
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+function boundedRepeatError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message.trim() : '';
+  return (message || fallback).slice(0, repeatErrorMessageLimit);
+}
 
 const defaultAssertions: AssertionRule[] = [
   {
@@ -178,10 +231,10 @@ const defaultAssertions: AssertionRule[] = [
   },
 ];
 
-const simulationPresets: Array<{ label: string; config: SimulationConfig }> = [
-  { label: 'Quick', config: { runs: 12, concurrency: 3, thinkTimeMs: 0 } },
-  { label: 'Burst', config: { runs: 60, concurrency: 12, thinkTimeMs: 0 } },
-  { label: 'Soak', config: { runs: 120, concurrency: 8, thinkTimeMs: 120 } },
+const repeatPresets: Array<{ label: string; config: RepeatConfig }> = [
+  { label: 'Quick', config: { count: 5, thinkTimeMs: 0, deadlineSeconds: 5 } },
+  { label: 'Tail sample', config: { count: 20, thinkTimeMs: 0, deadlineSeconds: 5 } },
+  { label: 'Paced', config: { count: 20, thinkTimeMs: 250, deadlineSeconds: 5 } },
 ];
 
 const assertionKindOptions: Array<{ value: AssertionRule['kind']; label: string }> = [
@@ -391,12 +444,11 @@ export function App() {
     result: InvokeResponse | null;
     latencyMs: number;
   }>({ loading: false, error: null, result: null, latencyMs: 0 });
-  const [simulationConfig, setSimulationConfig] = useState(
-    loadStoredValue(appStorageKeys.simulation, defaultSimulation)
-  );
-  const [simulationRun, setSimulationRun] = useState<SimulationRun | null>(null);
-  const [simulationBusy, setSimulationBusy] = useState(false);
-  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const [repeatConfig, setRepeatConfig] = useState<RepeatConfig>(defaultRepeat);
+  const [repeatRun, setRepeatRun] = useState<RepeatRun | null>(null);
+  const [repeatBusy, setRepeatBusy] = useState(false);
+  const [repeatError, setRepeatError] = useState<string | null>(null);
+  const [repeatProgress, setRepeatProgress] = useState({ attempted: 0, requested: 0 });
   const [bootError, setBootError] = useState<string | null>(null);
   const [operationMessage, setOperationMessage] = useState<OperationMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -415,6 +467,7 @@ export function App() {
   const connectRequestRef = useRef(0);
   const connectAbortRef = useRef<AbortController | null>(null);
   const invokeAbortRef = useRef<AbortController | null>(null);
+  const repeatRef = useRef<ActiveRepeat | null>(null);
   const workspaceSessionIdRef = useRef(workspaceSessionId);
   workspaceSessionIdRef.current = workspaceSessionId;
   const deferredSearchText = useDeferredValue(searchText);
@@ -428,6 +481,9 @@ export function App() {
       const invocation = invokeAbortRef.current;
       invokeAbortRef.current = null;
       invocation?.abort();
+      const repeat = repeatRef.current;
+      repeatRef.current = null;
+      repeat?.controller.abort();
       const sessionId = workspaceSessionIdRef.current;
       if (sessionId) void disconnectWorkspaceSession(sessionId).catch(() => undefined);
     },
@@ -467,6 +523,7 @@ export function App() {
   }, []);
 
   function applyBootstrap(next: BootstrapResponse) {
+    invalidateActiveRepeat();
     pendingDraftRef.current = null;
     const methods = next.services.flatMap((s) => s.methods);
     const stored = loadStoredValue<string>(appStorageKeys.selectedMethod, '');
@@ -633,9 +690,6 @@ export function App() {
     );
   }, [assertionRules]);
   useEffect(() => {
-    storeValue(appStorageKeys.simulation, simulationConfig);
-  }, [simulationConfig]);
-  useEffect(() => {
     storeValue(appStorageKeys.methodFilter, methodFilter);
   }, [methodFilter]);
   useEffect(() => {
@@ -721,13 +775,38 @@ export function App() {
         })
       : '';
   const responsePayload = invokeState.result?.responses.map((e) => e.message) ?? [];
-  const latencySparkline = sparklinePath(simulationRun?.latencies ?? [], 200, 48);
+  const repeatLatencySparkline = sparklinePath(
+    repeatRun?.attempts
+      .filter(
+        (attempt) =>
+          (attempt.outcome === 'ok' || attempt.outcome === 'grpc-error') &&
+          (repeatRun.latency.source === 'console-round-trip' || attempt.handlerInvokeMs !== null)
+      )
+      .map((attempt) =>
+        repeatRun.latency.source === 'handler-invoke'
+          ? (attempt.handlerInvokeMs ?? 0)
+          : attempt.consoleRoundTripMs
+      ) ?? [],
+    200,
+    48
+  );
   const passingAssertions = assertionResults.filter((r) => r.passed).length;
 
   function cancelActiveInvokeSilently() {
     const active = invokeAbortRef.current;
     invokeAbortRef.current = null;
     active?.abort();
+  }
+
+  function invalidateActiveRepeat(preserveCompleted = false) {
+    const active = repeatRef.current;
+    if (!active && preserveCompleted) return;
+    repeatRef.current = null;
+    active?.controller.abort();
+    setRepeatBusy(false);
+    setRepeatError(null);
+    setRepeatRun(null);
+    setRepeatProgress({ attempted: 0, requested: 0 });
   }
 
   function invalidateConnectionAttempt() {
@@ -738,6 +817,7 @@ export function App() {
   }
 
   async function handleConnectTarget(target: WorkspaceTargetProfile) {
+    invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
     const requestId = connectRequestRef.current + 1;
@@ -867,6 +947,7 @@ export function App() {
   function handleDeleteTarget(id: string) {
     setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
+      invalidateActiveRepeat();
       invalidateConnectionAttempt();
       cancelActiveInvokeSilently();
       pendingDraftRef.current = null;
@@ -878,6 +959,7 @@ export function App() {
   }
 
   function handleResetToLauncher() {
+    invalidateActiveRepeat();
     invalidateConnectionAttempt();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
@@ -965,7 +1047,13 @@ export function App() {
   }
 
   async function handleInvoke() {
+    if (repeatRef.current) {
+      setRepeatError('Cancel Repeat first, then invoke the RPC or run assertions.');
+      setActiveView('tests');
+      return;
+    }
     if (!schema || !currentService || !currentMethod) return;
+    invalidateActiveRepeat(true);
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
       setAssertionResults([]);
@@ -1067,65 +1155,180 @@ export function App() {
     invokeAbortRef.current?.abort();
   }
 
-  async function handleSimulation() {
-    if (!schema || !currentMethod) return;
+  async function handleRepeat() {
+    if (!schema || !currentMethod || !bootstrap || repeatRef.current) return;
+    if (currentMethod.clientStreaming || currentMethod.serverStreaming || schema.requestStream) {
+      setRepeatError('Unary Repeat is available only when request and response are both unary.');
+      return;
+    }
     const parsed = safeParseJson(requestText);
     if (parsed.error) {
-      setSimulationError(parsed.error);
+      setRepeatError(parsed.error);
       return;
     }
-    if (schema.requestStream && !Array.isArray(parsed.value)) {
-      setSimulationError('Need JSON array for streaming.');
+    if (Array.isArray(parsed.value)) {
+      setRepeatError('Unary RPCs need a single JSON object.');
       return;
     }
-    if (!schema.requestStream && Array.isArray(parsed.value)) {
-      setSimulationError('Need single object for unary.');
+    const validated = validateRepeatConfig(repeatConfig);
+    if (validated.error || !validated.value) {
+      setRepeatError(validated.error || 'Repeat settings are invalid.');
       return;
     }
-    const norm = clampSimulationConfig(simulationConfig);
-    setSimulationBusy(true);
-    setSimulationError(null);
+
+    cancelActiveInvokeSilently();
+    setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
+    setAssertionResults([]);
+    const config = validated.value;
     const payload: InvokeRequest = {
-      timeout_seconds: timeoutSeconds,
+      timeout_seconds: config.deadlineSeconds,
       metadata: filterMetadataForInvoke(metadata),
-      data: schema.requestStream ? (parsed.value as unknown[]) : [parsed.value],
+      data: [parsed.value],
     };
-    const mName = currentMethod.fullName;
-    const lats: number[] = [];
-    let ok = 0;
-    let fail = 0;
-    let idx = 0;
-    const t0 = performance.now();
-    async function worker() {
-      while (idx < norm.runs) {
-        const ci = idx;
-        idx++;
-        const rt = performance.now();
+    if (payload.metadata.length < metadata.filter((entry) => entry.name.trim()).length) {
+      setOperationMessage({
+        tone: 'info',
+        title: 'Sensitive metadata omitted',
+        description:
+          'Blank or [redacted] sensitive metadata was not sent. Re-enter the value to include it in a later RPC.',
+      });
+    }
+
+    const method = currentMethod.fullName;
+    const target = bootstrap.target;
+    const sessionId = workspaceSessionId;
+    const active: ActiveRepeat = { controller: new AbortController(), stopReason: null };
+    const { signal } = active.controller;
+    repeatRef.current = active;
+    setRepeatBusy(true);
+    setRepeatError(null);
+    setRepeatRun(null);
+    setRepeatProgress({ attempted: 0, requested: config.count });
+    setActiveView('tests');
+    const attempts: RepeatAttempt[] = [];
+    const createdAt = new Date().toISOString();
+    const startedAt = performance.now();
+    const aggregateTimer = window.setTimeout(() => {
+      if (repeatRef.current !== active || signal.aborted) return;
+      active.stopReason = 'aggregate-limit';
+      active.controller.abort();
+    }, repeatAggregateLimitMs);
+
+    try {
+      for (let index = 0; index < config.count; index++) {
+        if (signal.aborted) break;
+        const attemptStartedAt = performance.now();
+        const common = {
+          sequence: index + 1,
+          startedOffsetMs: attemptStartedAt - startedAt,
+        };
         try {
-          const r = workspaceSessionId
-            ? await invokeWorkspaceMethod(workspaceSessionId, mName, payload)
-            : await invokeMethod(mName, payload);
-          lats[ci] = performance.now() - rt;
-          if (r.error) fail++;
-          else ok++;
-        } catch {
-          lats[ci] = performance.now() - rt;
-          fail++;
+          const invocation = sessionId
+            ? invokeWorkspaceMethod(sessionId, method, payload, signal)
+            : invokeMethod(method, payload, signal);
+          const result = await awaitWithAbort(invocation, signal);
+          if (repeatRef.current !== active) return;
+          attempts.push({
+            ...common,
+            consoleRoundTripMs: performance.now() - attemptStartedAt,
+            handlerInvokeMs: result.timings?.totalMs ?? null,
+            outcome: result.error ? 'grpc-error' : 'ok',
+            responseCount: result.responses.length,
+            headerCount: result.headers.length,
+            trailerCount: result.trailers.length,
+            grpcStatus: result.error
+              ? {
+                  code: result.error.code,
+                  name: result.error.name.slice(0, repeatErrorMessageLimit),
+                  message: result.error.message.slice(0, repeatErrorMessageLimit),
+                }
+              : null,
+            error: '',
+          });
+        } catch (error) {
+          if (repeatRef.current !== active) return;
+          const cancelled = signal.aborted;
+          attempts.push({
+            ...common,
+            consoleRoundTripMs: performance.now() - attemptStartedAt,
+            handlerInvokeMs: null,
+            outcome: cancelled ? 'cancelled' : 'relay-transport-error',
+            responseCount: 0,
+            headerCount: 0,
+            trailerCount: 0,
+            grpcStatus: null,
+            error: cancelled
+              ? active.stopReason === 'aggregate-limit'
+                ? 'The 60 second Repeat limit was reached.'
+                : 'Repeat cancelled.'
+              : boundedRepeatError(error, 'ProtoPeek could not complete the request.'),
+          });
         }
-        if (norm.thinkTimeMs > 0) await new Promise((r) => setTimeout(r, norm.thinkTimeMs));
+
+        setRepeatProgress({ attempted: attempts.length, requested: config.count });
+        if (signal.aborted) break;
+        if (index < config.count - 1 && config.thinkTimeMs > 0) {
+          try {
+            await waitForRepeatDelay(config.thinkTimeMs, signal);
+          } catch {
+            if (repeatRef.current !== active) return;
+            break;
+          }
+        }
+      }
+
+      if (repeatRef.current !== active) return;
+      setRepeatError(null);
+      setRepeatRun(
+        buildRepeatRun({
+          createdAt,
+          method,
+          target,
+          config,
+          attempts,
+          totalMs: performance.now() - startedAt,
+          stopReason: active.stopReason ?? 'completed',
+        })
+      );
+      setRepeatProgress({ attempted: attempts.length, requested: config.count });
+    } finally {
+      window.clearTimeout(aggregateTimer);
+      if (repeatRef.current === active) {
+        repeatRef.current = null;
+        setRepeatBusy(false);
       }
     }
-    try {
-      await Promise.all(
-        Array.from({ length: Math.min(norm.concurrency, norm.runs) }, () => worker())
-      );
-      setSimulationRun(simulationSummary(mName, norm, lats, ok, fail, performance.now() - t0));
-    } catch (err) {
-      setSimulationError(err instanceof Error ? err.message : 'Simulation failed.');
-    } finally {
-      setSimulationBusy(false);
-      setActiveView('tests');
+  }
+
+  function handleCancelRepeat() {
+    const active = repeatRef.current;
+    if (!active || active.controller.signal.aborted) return;
+    active.stopReason = 'user-cancelled';
+    active.controller.abort();
+  }
+
+  function navigateToView(view: ActiveView) {
+    const active = repeatRef.current;
+    if (view !== 'tests' && active && !active.controller.signal.aborted) {
+      active.stopReason = 'user-cancelled';
+      active.controller.abort();
     }
+    setActiveView(view);
+  }
+
+  function handleExportRepeat() {
+    if (!repeatRun || repeatBusy) return;
+    const methodName =
+      repeatRun.method
+        .split('/')
+        .pop()
+        ?.replaceAll(/[^a-z0-9_-]/gi, '-') || 'rpc';
+    const timestamp = repeatRun.createdAt.replaceAll(/[:.]/g, '-');
+    downloadFile(
+      `protopeek-repeat-${methodName}-${timestamp}.json`,
+      serializeRepeatRun(repeatRun),
+      'application/json'
+    );
   }
 
   function handleMetadataChange(i: number, next: MetadataEntry) {
@@ -1296,6 +1499,7 @@ export function App() {
   }
 
   function applyReplayDraft(draft: NonNullable<ReturnType<typeof prepareReplay>>) {
+    invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
     setAssertionResults([]);
@@ -1376,6 +1580,7 @@ export function App() {
   }
 
   function handleSelectMethod(method: string) {
+    invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
     setOperationMessage(null);
@@ -1547,19 +1752,19 @@ export function App() {
       id: 'history',
       label: 'Open history and saved requests',
       keywords: 'recent collection',
-      run: () => setActiveView('history'),
+      run: () => navigateToView('history'),
     },
     {
       id: 'schema',
       label: 'Inspect schema',
       keywords: 'proto descriptor structure',
-      run: () => setActiveView('structure'),
+      run: () => navigateToView('structure'),
     },
     {
       id: 'targets',
       label: 'Manage targets',
       keywords: 'endpoint connect reflection proto protoset',
-      run: () => setActiveView('workspace'),
+      run: () => navigateToView('workspace'),
     },
     ...(bootstrap?.services.flatMap((service) =>
       service.methods.map((method) => ({
@@ -1681,7 +1886,7 @@ export function App() {
           onFilterChange={setMethodFilter}
           onSelectMethod={handleSelectMethod}
           onViewChange={(view) => {
-            setActiveView(view);
+            navigateToView(view);
             setSidebarOpen(false);
           }}
           onExport={handleExportWorkspace}
@@ -1708,7 +1913,7 @@ export function App() {
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           onSwitchTarget={() => {
             if (rootBootstrap?.launcherMode) handleResetToLauncher();
-            else setActiveView('workspace');
+            else navigateToView('workspace');
           }}
         />
 
@@ -1756,15 +1961,19 @@ export function App() {
               onRunAssertions={() => {
                 void handleInvoke().then(() => setActiveView('tests'));
               }}
-              simulationConfig={simulationConfig}
-              setSimulationConfig={setSimulationConfig}
-              simulationRun={simulationRun}
-              simulationBusy={simulationBusy}
-              simulationError={simulationError}
-              onSimulate={() => {
-                void handleSimulation();
+              method={currentMethod}
+              repeatConfig={repeatConfig}
+              setRepeatConfig={setRepeatConfig}
+              repeatRun={repeatRun}
+              repeatBusy={repeatBusy}
+              repeatError={repeatError}
+              repeatProgress={repeatProgress}
+              onRepeat={() => {
+                void handleRepeat();
               }}
-              latencySparkline={latencySparkline}
+              onCancelRepeat={handleCancelRepeat}
+              onExportRepeat={handleExportRepeat}
+              repeatLatencySparkline={repeatLatencySparkline}
               passingAssertions={passingAssertions}
             />
           ) : null}
@@ -1851,9 +2060,7 @@ function _ComposeView({
   onChangeMeta,
   grpcCommand,
   onInvoke,
-  onSimulate,
   invokeLoading,
-  simulationBusy,
   onResetFromSchema,
   matchingExamples,
   setRequestFromExample,
@@ -1883,9 +2090,7 @@ function _ComposeView({
   onChangeMeta: (i: number, v: MetadataEntry) => void;
   grpcCommand: string;
   onInvoke: () => void;
-  onSimulate: () => void;
   invokeLoading: boolean;
-  simulationBusy: boolean;
   onResetFromSchema: () => void;
   matchingExamples: ExampleResponse[];
   setRequestFromExample: (e: ExampleResponse) => void;
@@ -1950,14 +2155,6 @@ function _ComposeView({
               <Play className="size-3.5" />
             )}
             Invoke
-          </button>
-          <button className="pp-button-secondary" type="button" onClick={onSimulate}>
-            {simulationBusy ? (
-              <LoaderCircle className="size-3.5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-3.5" />
-            )}
-            Simulate
           </button>
         </div>
 
@@ -2275,13 +2472,17 @@ function TestsView({
   onAddRule,
   onRemoveRule,
   onRunAssertions,
-  simulationConfig,
-  setSimulationConfig,
-  simulationRun,
-  simulationBusy,
-  simulationError,
-  onSimulate,
-  latencySparkline,
+  method,
+  repeatConfig,
+  setRepeatConfig,
+  repeatRun,
+  repeatBusy,
+  repeatError,
+  repeatProgress,
+  onRepeat,
+  onCancelRepeat,
+  onExportRepeat,
+  repeatLatencySparkline,
   passingAssertions,
 }: {
   rules: AssertionRule[];
@@ -2290,15 +2491,29 @@ function TestsView({
   onAddRule: () => void;
   onRemoveRule: (id: string) => void;
   onRunAssertions: () => void;
-  simulationConfig: SimulationConfig;
-  setSimulationConfig: (fn: (c: SimulationConfig) => SimulationConfig) => void;
-  simulationRun: SimulationRun | null;
-  simulationBusy: boolean;
-  simulationError: string | null;
-  onSimulate: () => void;
-  latencySparkline: string;
+  method: BootstrapMethod;
+  repeatConfig: RepeatConfig;
+  setRepeatConfig: (fn: (config: RepeatConfig) => RepeatConfig) => void;
+  repeatRun: RepeatRun | null;
+  repeatBusy: boolean;
+  repeatError: string | null;
+  repeatProgress: { attempted: number; requested: number };
+  onRepeat: () => void;
+  onCancelRepeat: () => void;
+  onExportRepeat: () => void;
+  repeatLatencySparkline: string;
   passingAssertions: number;
 }) {
+  const repeatEligible = !method.clientStreaming && !method.serverStreaming;
+  const minimumPacedMs = Math.max(0, repeatConfig.count - 1) * repeatConfig.thinkTimeMs;
+  const displayedAttempts = repeatRun?.attempts.length ?? repeatProgress.attempted;
+  const displayedRequested = repeatRun?.requestedCount ?? repeatProgress.requested;
+  const repeatConfigChanged = Boolean(
+    repeatRun &&
+      (repeatRun.config.count !== repeatConfig.count ||
+        repeatRun.config.thinkTimeMs !== repeatConfig.thinkTimeMs ||
+        repeatRun.config.deadlineSeconds !== repeatConfig.deadlineSeconds)
+  );
   return (
     <div className="space-y-6">
       <section>
@@ -2308,6 +2523,8 @@ function TestsView({
             <button
               className="pp-button-primary py-1.5 text-xs"
               type="button"
+              disabled={repeatBusy}
+              title={repeatBusy ? 'Cancel Repeat first, then run assertions.' : undefined}
               onClick={onRunAssertions}
             >
               <CheckCircle2 className="size-3" />
@@ -2425,101 +2642,308 @@ function TestsView({
         ) : null}
       </section>
 
-      <section>
-        <div className="flex items-center justify-between">
-          <h3 className="pp-heading text-base">Simulation</h3>
-          <button className="pp-button-primary py-1.5 text-xs" type="button" onClick={onSimulate}>
-            {simulationBusy ? (
-              <LoaderCircle className="size-3 animate-spin" />
-            ) : (
-              <CheckCircle2 className="size-3" />
+      <section className="pp-repeat-panel">
+        <div className="pp-repeat-heading">
+          <div>
+            <h3 className="pp-heading text-base">Unary repeat</h3>
+            <p>
+              Sequentially repeat this unary request through the same target. Browser-observed
+              debugging evidence, not a load test.
+            </p>
+          </div>
+          <button
+            className={classNames(
+              'pp-button-primary py-1.5 text-xs',
+              repeatBusy && 'pp-repeat-cancel'
             )}
-            Run
+            type="button"
+            aria-label={repeatBusy ? 'Cancel repeat' : 'Run repeat'}
+            disabled={!repeatBusy && !repeatEligible}
+            onClick={repeatBusy ? onCancelRepeat : onRepeat}
+          >
+            {repeatBusy ? <X className="size-3" /> : <Play className="size-3" />}
+            {repeatBusy
+              ? 'Cancel'
+              : `Run ${Number.isInteger(repeatConfig.count) ? repeatConfig.count : '—'} calls`}
           </button>
         </div>
-        <p className="pp-muted mt-2 text-xs">
-          Browser-driven diagnostic repetition, not a service load benchmark.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {simulationPresets.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setSimulationConfig(() => clampSimulationConfig(p.config))}
-              className="rounded-lg border border-pp-border px-3 py-1.5 text-xs font-medium hover:bg-pp-bg"
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          <label className="block">
-            <span className="pp-label">Runs</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.runs}
-              onChange={(e) => setSimulationConfig((c) => ({ ...c, runs: Number(e.target.value) }))}
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Concurrency</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.concurrency}
-              onChange={(e) =>
-                setSimulationConfig((c) => ({ ...c, concurrency: Number(e.target.value) }))
-              }
-            />
-          </label>
-          <label className="block">
-            <span className="pp-label">Think (ms)</span>
-            <input
-              className="pp-input mt-1 text-xs"
-              type="number"
-              value={simulationConfig.thinkTimeMs}
-              onChange={(e) =>
-                setSimulationConfig((c) => ({ ...c, thinkTimeMs: Number(e.target.value) }))
-              }
-            />
-          </label>
-        </div>
-        {simulationError ? (
+
+        {!repeatEligible ? (
           <div className="mt-3">
-            <StatusBanner tone="danger" title="Simulation failed" description={simulationError} />
+            <StatusBanner
+              tone="info"
+              title="Unary only"
+              description="Repeat is disabled for client-, server-, and bidirectional-streaming methods. Use Invoke to inspect stream evidence without multiplying the stream."
+            />
           </div>
         ) : null}
-        {simulationRun ? (
-          <div className="mt-4 space-y-3">
-            <div className="grid grid-cols-4 gap-3">
-              <Metric label="Success" value={String(simulationRun.successCount)} />
-              <Metric label="Errors" value={String(simulationRun.errorCount)} />
-              <Metric label="Observed req/s" value={simulationRun.throughputRps.toFixed(1)} />
-              <Metric label="Total" value={durationLabel(simulationRun.totalMs)} />
-            </div>
-            <div className="rounded-lg border border-pp-border bg-white p-3">
-              <span className="text-xs font-semibold text-pp-ink">
-                p50 {durationLabel(simulationRun.p50)} · p95 {durationLabel(simulationRun.p95)} ·
-                p99 {durationLabel(simulationRun.p99)}
+
+        <fieldset className="pp-repeat-presets" aria-label="Repeat presets">
+          {repeatPresets.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              disabled={repeatBusy || !repeatEligible}
+              onClick={() => setRepeatConfig(() => preset.config)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </fieldset>
+        <div className="pp-repeat-config">
+          <label>
+            <span>Calls</span>
+            <input
+              aria-label="Calls"
+              type="number"
+              min={2}
+              max={50}
+              step={1}
+              disabled={repeatBusy || !repeatEligible}
+              value={Number.isFinite(repeatConfig.count) ? repeatConfig.count : ''}
+              onChange={(event) =>
+                setRepeatConfig((config) => ({
+                  ...config,
+                  count: event.target.value === '' ? Number.NaN : Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+          <label>
+            <span>Think time</span>
+            <span className="pp-repeat-input-unit">
+              <input
+                aria-label="Think time in milliseconds"
+                type="number"
+                min={0}
+                max={5000}
+                step={1}
+                disabled={repeatBusy || !repeatEligible}
+                value={Number.isFinite(repeatConfig.thinkTimeMs) ? repeatConfig.thinkTimeMs : ''}
+                onChange={(event) =>
+                  setRepeatConfig((config) => ({
+                    ...config,
+                    thinkTimeMs:
+                      event.target.value === '' ? Number.NaN : Number(event.target.value),
+                  }))
+                }
+              />
+              <small>ms</small>
+            </span>
+          </label>
+          <label>
+            <span>Per-call deadline</span>
+            <span className="pp-repeat-input-unit">
+              <input
+                aria-label="Per-call deadline in seconds"
+                type="number"
+                min={0.1}
+                max={30}
+                step={0.1}
+                disabled={repeatBusy || !repeatEligible}
+                value={
+                  Number.isFinite(repeatConfig.deadlineSeconds) ? repeatConfig.deadlineSeconds : ''
+                }
+                onChange={(event) =>
+                  setRepeatConfig((config) => ({
+                    ...config,
+                    deadlineSeconds:
+                      event.target.value === '' ? Number.NaN : Number(event.target.value),
+                  }))
+                }
+              />
+              <small>s</small>
+            </span>
+          </label>
+        </div>
+        <p className="pp-repeat-boundary">
+          2–50 calls · one at a time · 60 s wall cap · think time occurs only between calls
+        </p>
+        <p className="pp-repeat-safety">
+          Every Repeat attempt is a real RPC and may mutate service data. Protobuf descriptors do
+          not reliably guarantee idempotency.
+        </p>
+        {minimumPacedMs >= repeatAggregateLimitMs ? (
+          <p className="pp-repeat-warning">
+            Think time alone exceeds the 60 second wall cap; expect a partial run.
+          </p>
+        ) : null}
+
+        {repeatError ? (
+          <div className="mt-3">
+            <StatusBanner
+              tone="danger"
+              title={repeatBusy ? 'Repeat owns this request' : 'Repeat did not start'}
+              description={repeatError}
+            />
+          </div>
+        ) : null}
+
+        {repeatBusy || repeatRun ? (
+          <div className="pp-repeat-progress" aria-live="polite">
+            <div>
+              <strong>
+                {displayedAttempts} of {displayedRequested} attempts
+              </strong>
+              <span>
+                {repeatBusy
+                  ? 'Running sequentially…'
+                  : repeatRun?.stopReason === 'completed'
+                    ? 'Completed all requested calls.'
+                    : repeatRun?.stopReason === 'aggregate-limit'
+                      ? 'Stopped at the 60 second wall cap; partial results preserved.'
+                      : 'Cancelled; partial results preserved.'}
               </span>
-              <svg
-                aria-label="Latency sparkline"
-                role="img"
-                viewBox="0 0 200 48"
-                className="mt-2 h-12 w-full"
-              >
-                <title>Latency sparkline</title>
-                <path
-                  d={latencySparkline}
-                  fill="none"
-                  stroke="var(--pp-brand)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
             </div>
+            <progress
+              aria-label="Repeat progress"
+              max={Math.max(1, displayedRequested)}
+              value={displayedAttempts}
+            />
+          </div>
+        ) : null}
+
+        {repeatRun ? (
+          <div className="pp-repeat-results">
+            <div className="pp-repeat-actions">
+              <div>
+                <strong>{repeatRun.method}</strong>
+                <span>
+                  {repeatRun.target} · {durationLabel(repeatRun.totalMs)} total
+                </span>
+                <span className="pp-repeat-run-attribution">
+                  Run started{' '}
+                  <time title="Repeat run started" dateTime={repeatRun.createdAt}>
+                    {new Date(repeatRun.createdAt).toLocaleString()}
+                  </time>{' '}
+                  · {repeatRun.config.count} calls · {repeatRun.config.thinkTimeMs} ms think ·{' '}
+                  {repeatRun.config.deadlineSeconds} s deadline
+                </span>
+                {repeatConfigChanged ? (
+                  <span className="pp-repeat-stale">Previous run · controls have changed</span>
+                ) : null}
+              </div>
+              <button type="button" className="pp-button-secondary" onClick={onExportRepeat}>
+                <Download className="size-3" />
+                Export JSON
+              </button>
+            </div>
+            <p className="pp-repeat-snapshot-note">
+              Request payload and metadata were snapshotted at run start, but are not retained or
+              exported with this evidence.
+            </p>
+            <div className="pp-repeat-outcomes">
+              <Metric label="OK" value={String(repeatRun.counts.ok)} />
+              <Metric label="gRPC errors" value={String(repeatRun.counts.grpcError)} />
+              <Metric
+                label="Relay / transport errors"
+                value={String(repeatRun.counts.relayTransportError)}
+              />
+              <Metric label="Cancelled" value={String(repeatRun.counts.cancelled)} />
+            </div>
+            <div className="pp-repeat-latency">
+              <Metric
+                label="Min"
+                value={
+                  repeatRun.latency.minMs === null ? '—' : durationLabel(repeatRun.latency.minMs)
+                }
+              />
+              <Metric
+                label="Median"
+                value={
+                  repeatRun.latency.medianMs === null
+                    ? '—'
+                    : durationLabel(repeatRun.latency.medianMs)
+                }
+              />
+              <Metric
+                label="p95"
+                value={
+                  repeatRun.latency.p95Ms === null
+                    ? `Needs 20 (${repeatRun.latency.sampleCount})`
+                    : durationLabel(repeatRun.latency.p95Ms)
+                }
+              />
+              <Metric
+                label="Max"
+                value={
+                  repeatRun.latency.maxMs === null ? '—' : durationLabel(repeatRun.latency.maxMs)
+                }
+              />
+            </div>
+            <p className="pp-repeat-latency-source">
+              Summary source:{' '}
+              {repeatRun.latency.source === 'handler-invoke'
+                ? `ProtoPeek handler invoke (${repeatRun.latency.sampleCount} measured calls)`
+                : `console round-trip fallback (${repeatRun.latency.sampleCount} completed RPCs)`}
+              <br />
+              {repeatRun.latency.source === 'handler-invoke'
+                ? 'Handler timing includes JSON/protobuf conversion and callbacks, but excludes the browser and HTTP relay.'
+                : 'Console round trip includes the browser and HTTP relay plus response parsing.'}
+            </p>
+            {repeatLatencySparkline ? (
+              <div className="pp-repeat-sparkline">
+                <span>
+                  {repeatRun.latency.source === 'handler-invoke'
+                    ? 'ProtoPeek handler invoke duration in call order'
+                    : 'Console round-trip fallback in call order'}
+                </span>
+                <svg aria-label="Repeat latency sparkline" role="img" viewBox="0 0 200 48">
+                  <title>Repeat latency sparkline</title>
+                  <path
+                    d={repeatLatencySparkline}
+                    fill="none"
+                    stroke="var(--pp-accent-signal)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            ) : null}
+            <details className="pp-repeat-attempts">
+              <summary>Attempt details ({repeatRun.attempts.length})</summary>
+              <div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Result</th>
+                      <th>Latency</th>
+                      <th>Evidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repeatRun.attempts.map((attempt) => (
+                      <tr key={attempt.sequence}>
+                        <td>{attempt.sequence}</td>
+                        <td>
+                          <span className={`pp-repeat-result is-${attempt.outcome}`}>
+                            {attempt.outcome}
+                          </span>
+                        </td>
+                        <td>
+                          {attempt.handlerInvokeMs === null
+                            ? `Console ${durationLabel(attempt.consoleRoundTripMs)}`
+                            : `Handler ${durationLabel(attempt.handlerInvokeMs)} · Console ${durationLabel(attempt.consoleRoundTripMs)}`}
+                        </td>
+                        <td>
+                          {attempt.grpcStatus
+                            ? `${attempt.grpcStatus.name} (${attempt.grpcStatus.code}): ${attempt.grpcStatus.message}`
+                            : attempt.error ||
+                              `${attempt.responseCount} message(s), ${attempt.headerCount} header(s), ${attempt.trailerCount} trailer(s)`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+            <p className="pp-repeat-export-note">
+              Export includes method, target, run configuration, timestamps, counts, per-attempt
+              offsets and timings, classifications, and error and status text. Request bodies and
+              metadata are excluded. Review target and service-provided details before sharing.
+            </p>
           </div>
         ) : null}
       </section>

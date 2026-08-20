@@ -474,8 +474,10 @@ func invokeRPC(ctx context.Context, methodName string, ch grpc.ClientConnInterfa
 	}
 
 	result := newRPCResult(descSource, options.EmitDefaults, &reqStats)
-	if err := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc); err != nil {
-		return nil, err
+	invokeErr := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc)
+	result.finish()
+	if invokeErr != nil {
+		return nil, invokeErr
 	}
 
 	return &result, nil
@@ -539,7 +541,7 @@ type rpcResponseElement struct {
 	Data      json.RawMessage `json:"message"`
 	IsError   bool            `json:"isError"`
 	Sequence  int             `json:"sequence,omitempty"`
-	ElapsedMs int64           `json:"elapsedMs,omitempty"`
+	ElapsedMs *int64          `json:"elapsedMs,omitempty"`
 }
 
 type rpcRequestStats struct {
@@ -554,22 +556,36 @@ type rpcError struct {
 	Details []rpcResponseElement `json:"details"`
 }
 
+type rpcTimings struct {
+	HeadersMs      *float64 `json:"headersMs"`
+	FirstMessageMs *float64 `json:"firstMessageMs"`
+	TrailersMs     *float64 `json:"trailersMs"`
+	TotalMs        float64  `json:"totalMs"`
+}
+
 type rpcResult struct {
 	descSource   grpcurl.DescriptorSource
 	emitDefaults bool
 	startedAt    time.Time
+	now          func() time.Time
 	Headers      []rpcMetadata        `json:"headers"`
 	Error        *rpcError            `json:"error"`
 	Responses    []rpcResponseElement `json:"responses"`
 	Requests     *rpcRequestStats     `json:"requests"`
 	Trailers     []rpcMetadata        `json:"trailers"`
+	Timings      rpcTimings           `json:"timings"`
 }
 
 func newRPCResult(descSource grpcurl.DescriptorSource, emitDefaults bool, requests *rpcRequestStats) rpcResult {
+	return newRPCResultWithClock(descSource, emitDefaults, requests, time.Now)
+}
+
+func newRPCResultWithClock(descSource grpcurl.DescriptorSource, emitDefaults bool, requests *rpcRequestStats, now func() time.Time) rpcResult {
 	return rpcResult{
 		descSource:   descSource,
 		emitDefaults: emitDefaults,
-		startedAt:    time.Now(),
+		startedAt:    now(),
+		now:          now,
 		Headers:      make([]rpcMetadata, 0),
 		Responses:    make([]rpcResponseElement, 0),
 		Requests:     requests,
@@ -582,19 +598,44 @@ func (*rpcResult) OnResolveMethod(*desc.MethodDescriptor) {}
 func (*rpcResult) OnSendHeaders(metadata.MD) {}
 
 func (r *rpcResult) OnReceiveHeaders(md metadata.MD) {
+	elapsedMs := r.elapsedMilliseconds()
+	if r.Timings.HeadersMs == nil {
+		r.Timings.HeadersMs = &elapsedMs
+	}
 	r.Headers = responseMetadata(md)
 }
 
 func (r *rpcResult) OnReceiveResponse(m proto.Message) {
+	elapsedMs := r.elapsedMilliseconds()
+	if r.Timings.FirstMessageMs == nil {
+		r.Timings.FirstMessageMs = &elapsedMs
+	}
 	response := responseToJSON(r.descSource, m, r.emitDefaults)
 	response.Sequence = len(r.Responses) + 1
-	response.ElapsedMs = time.Since(r.startedAt).Milliseconds()
+	responseElapsedMs := int64(elapsedMs)
+	response.ElapsedMs = &responseElapsedMs
 	r.Responses = append(r.Responses, response)
 }
 
 func (r *rpcResult) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
+	elapsedMs := r.elapsedMilliseconds()
+	if r.Timings.TrailersMs == nil {
+		r.Timings.TrailersMs = &elapsedMs
+	}
 	r.Trailers = responseMetadata(md)
 	r.Error = toRpcError(r.descSource, stat, r.emitDefaults)
+}
+
+func (r *rpcResult) finish() {
+	r.Timings.TotalMs = r.elapsedMilliseconds()
+}
+
+func (r *rpcResult) elapsedMilliseconds() float64 {
+	elapsed := r.now().Sub(r.startedAt)
+	if elapsed < 0 {
+		return 0
+	}
+	return float64(elapsed.Microseconds()) / 1000
 }
 
 func responseMetadata(md metadata.MD) []rpcMetadata {

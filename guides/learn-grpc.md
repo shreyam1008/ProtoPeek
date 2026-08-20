@@ -313,14 +313,37 @@ There is no universal "gRPC is X times faster" number worth trusting outside a s
 - **Retries and deadlines** — retry storms can mask the real throughput ceiling
 - **Client and server implementation** — Go, Java, Rust, and C++ gRPC runtimes have different performance profiles
 
-ProtoPeek's simulation studio can repeat a bounded set of unary calls and show browser-observed p50,
-p95, p99, and request-rate output for debugging. It is not a load generator or a defensible service
-benchmark: browser scheduling, the local relay, connection reuse, and the selected payload all shape
-the result. Use it to spot a local anomaly, then confirm performance with a controlled load tool.
+ProtoPeek's Unary Repeat can run 2–50 calls strictly one at a time, with an optional between-call
+delay, a separate 0.1–30 second deadline for each call, cancellation, and a 60 second wall cap that
+preserves partial results. It separates successful RPCs, non-OK gRPC statuses, local relay/transport
+failures, and cancellation instead of collapsing unlike outcomes into one error count.
+
+The console retains both ProtoPeek handler invoke duration and browser console round trip for each
+completed attempt. Handler invoke includes JSON/protobuf conversion and callbacks, but excludes the
+browser and HTTP relay. Headers, first message, and final status are cumulative lifecycle boundaries
+observed by handler callbacks. Unary callbacks may cluster after transport completion; these values
+are not packet-arrival, server-processing, or TTFB measurements. Console round trip includes the
+browser/HTTP relay and response parsing.
+
+Min, median, and max name their source; p95 appears only with at least 20 samples. When handler timing
+is unavailable for a legacy response, the summary visibly says it uses the console round-trip
+fallback. Repeat is not a load generator or a defensible service benchmark: browser scheduling, the
+local relay, connection reuse, and the selected payload still shape what the console observes. Use
+it to spot a local anomaly, then confirm performance with a controlled load tool.
+
+Every Repeat attempt is a real RPC and may mutate service data. Protobuf descriptors do not reliably
+guarantee idempotency, so inspect the method and payload before repeating it.
+
+Repeat owns the request while active: assertions are disabled and an ordinary Invoke asks you to
+cancel Repeat first. Navigating away from Checks cancels the run and preserves partial evidence, so
+RPCs never continue hidden in another view. The result header keeps the run-start timestamp and its
+frozen count, think time, and per-call deadline. If current controls differ, ProtoPeek labels the
+evidence as a previous run; the payload and metadata were snapshotted at run start but are not
+retained in results or exports.
 
 > [!TIP]
-> Start with the smallest preset for a local sanity check. Treat larger presets as debugging aids,
-> not production capacity evidence.
+> Start with Quick for a local sanity check. Use Tail sample when p95 is useful, and treat every
+> result as debugging evidence rather than production capacity evidence.
 
 ## 10. Why debugging gets hard fast
 
@@ -333,11 +356,11 @@ The painful gRPC bugs are rarely serialization bugs. They are transport and conf
 | No RPCs discovered | Server reflection disabled, or proto files not loaded | Proto structure explorer |
 | `UNAUTHENTICATED` on every call | Missing or malformed auth header | Metadata editor |
 | `UNAVAILABLE` after deployment | TLS cert mismatch, wrong port, DNS resolution | Target registry settings |
-| `DEADLINE_EXCEEDED` under load | Server too slow, or deadline set too aggressively | Simulation studio |
+| `DEADLINE_EXCEEDED` during repetition | Server too slow, or per-call deadline set too aggressively | Unary Repeat |
 | Works locally, fails in staging | Authority override needed, or different TLS config | Target registry per-environment |
 | Browser client behaves differently | gRPC-Web proxy issue, not backend | Transport lens |
 | Streaming closes unexpectedly | Keepalive timeout, proxy idle timeout | Response lab trailers |
-| Latency spikes at p99 | Concurrency bottleneck, connection pool exhaustion | Simulation sparkline chart |
+| One sequential call is much slower | Backend variance, proxy delay, or connection setup | Unary Repeat timing and attempt evidence |
 
 That is why ProtoPeek combines request authoring, response inspection, metadata visibility, bounded browser repetition, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
 

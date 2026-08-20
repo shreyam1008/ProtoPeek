@@ -200,7 +200,7 @@ export type InvokeResponseElement = {
   message: unknown;
   isError: boolean;
   sequence: number;
-  elapsedMs: number;
+  elapsedMs: number | null;
 };
 
 export type InvokeError = {
@@ -215,12 +215,20 @@ export type InvokeRequestStats = {
   sent: number;
 };
 
+export type InvokeTimings = {
+  headersMs: number | null;
+  firstMessageMs: number | null;
+  trailersMs: number | null;
+  totalMs: number;
+};
+
 export type InvokeResponse = {
   headers: MetadataEntry[];
   error: InvokeError | null;
   responses: InvokeResponseElement[];
   requests: InvokeRequestStats | null;
   trailers: MetadataEntry[];
+  timings: InvokeTimings | null;
 };
 
 export type SavedCollection = {
@@ -284,25 +292,64 @@ export type ValidatedWorkspaceImport = {
   hasHostFilePaths: boolean;
 };
 
-export type SimulationConfig = {
-  runs: number;
-  concurrency: number;
+export type RepeatConfig = {
+  count: number;
   thinkTimeMs: number;
+  deadlineSeconds: number;
 };
 
-export type SimulationRun = {
+export type RepeatOutcome = 'ok' | 'grpc-error' | 'relay-transport-error' | 'cancelled';
+
+export type RepeatStopReason = 'completed' | 'user-cancelled' | 'aggregate-limit';
+
+export type RepeatAttempt = {
+  sequence: number;
+  startedOffsetMs: number;
+  consoleRoundTripMs: number;
+  handlerInvokeMs: number | null;
+  outcome: RepeatOutcome;
+  responseCount: number;
+  headerCount: number;
+  trailerCount: number;
+  grpcStatus: {
+    code: number;
+    name: string;
+    message: string;
+  } | null;
+  error: string;
+};
+
+export type RepeatRun = {
   id: string;
   createdAt: string;
   method: string;
-  config: SimulationConfig;
+  target: string;
+  config: RepeatConfig;
+  requestedCount: number;
   totalMs: number;
-  successCount: number;
-  errorCount: number;
-  throughputRps: number;
-  latencies: number[];
-  p50: number;
-  p95: number;
-  p99: number;
+  stopReason: RepeatStopReason;
+  counts: {
+    ok: number;
+    grpcError: number;
+    relayTransportError: number;
+    cancelled: number;
+  };
+  latency: {
+    sampleCount: number;
+    source: 'handler-invoke' | 'console-round-trip';
+    minMs: number | null;
+    medianMs: number | null;
+    p95Ms: number | null;
+    maxMs: number | null;
+  };
+  attempts: RepeatAttempt[];
+};
+
+export type RepeatExportV1 = {
+  format: 'protopeek-repeat';
+  version: 1;
+  exportedAt: string;
+  run: RepeatRun;
 };
 
 export type EnvironmentPreset = {

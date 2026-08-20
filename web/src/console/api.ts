@@ -41,6 +41,33 @@ function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
 }
 
+function nonNegativeMilliseconds(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function normalizeInvokeTimings(value: unknown): InvokeResponse['timings'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const timings = value as Record<string, unknown>;
+  const totalMs = nonNegativeMilliseconds(timings.totalMs);
+  if (totalMs === null) return null;
+  return {
+    headersMs: nonNegativeMilliseconds(timings.headersMs),
+    firstMessageMs: nonNegativeMilliseconds(timings.firstMessageMs),
+    trailersMs: nonNegativeMilliseconds(timings.trailersMs),
+    totalMs,
+  };
+}
+
+function normalizeInvokeElements(
+  value: InvokeResponse['responses'] | null | undefined
+): InvokeResponse['responses'] {
+  return arrayOrEmpty(value).map((entry, index) => ({
+    ...entry,
+    sequence: entry.sequence ?? index + 1,
+    elapsedMs: nonNegativeMilliseconds(entry.elapsedMs),
+  }));
+}
+
 export function normalizeBootstrap(input: unknown): BootstrapResponse {
   const bootstrap = (input ?? {}) as BootstrapResponse;
   const defaults = (bootstrap.targetDefaults ?? {}) as WorkspaceTargetConfig;
@@ -73,15 +100,12 @@ export function normalizeInvokeResponse(input: unknown): InvokeResponse {
   return {
     ...response,
     headers: arrayOrEmpty(response.headers),
-    responses: arrayOrEmpty(response.responses).map((entry, index) => ({
-      ...entry,
-      sequence: entry.sequence ?? index + 1,
-      elapsedMs: entry.elapsedMs ?? 0,
-    })),
+    responses: normalizeInvokeElements(response.responses),
     trailers: arrayOrEmpty(response.trailers),
     requests: response.requests ?? null,
+    timings: normalizeInvokeTimings(response.timings),
     error: response.error
-      ? { ...response.error, details: arrayOrEmpty(response.error.details) }
+      ? { ...response.error, details: normalizeInvokeElements(response.error.details) }
       : null,
   };
 }

@@ -257,6 +257,7 @@ function installDeferredConnectionFetch() {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   window.localStorage.clear();
@@ -547,7 +548,8 @@ describe('gRPC replay safety', () => {
     fireEvent.change(screen.getByLabelText('Request JSON'), {
       target: { value: '{"stale":true}' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^History & saved/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open history and saved requests' }));
     fireEvent.click(screen.getByRole('button', { name: /Redacted replay/ }));
 
     expect(screen.getByLabelText('Request JSON')).toHaveValue('{"from":"saved"}');
@@ -1165,5 +1167,550 @@ describe('workspace import boundaries', () => {
     render(<App />);
     expect(await screen.findByRole('region', { name: 'Echo call workspace' })).toBeInTheDocument();
     expect(screen.queryByText("ProtoPeek couldn't start")).not.toBeInTheDocument();
+  });
+});
+
+describe('unary repeat', () => {
+  it('runs the requested calls sequentially with one signal and an explicit deadline', async () => {
+    const pending: Array<(value: Response) => void> = [];
+    const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        return new Promise<Response>((resolve) => pending.push(resolve));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    await screen.findByRole('heading', { name: 'Unary repeat' });
+
+    fireEvent.change(screen.getByLabelText('Calls'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Per-call deadline in seconds'), {
+      target: { value: '1.5' },
+    });
+    expect(screen.getByRole('button', { name: 'Run repeat' })).toHaveTextContent('Run 3 calls');
+    expect(
+      screen.getByText(/Every Repeat attempt is a real RPC and may mutate service data/i)
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+
+    await waitFor(() => expect(pending).toHaveLength(1));
+    const invokeCalls = () =>
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'));
+    expect(invokeCalls()).toHaveLength(1);
+    const firstSignal = invokeCalls()[0]?.[1]?.signal;
+    expect(JSON.parse(String(invokeCalls()[0]?.[1]?.body))).toMatchObject({
+      timeout_seconds: 1.5,
+    });
+
+    await act(async () => {
+      pending.shift()?.(
+        response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+      );
+    });
+    await waitFor(() => expect(pending).toHaveLength(1));
+    expect(invokeCalls()).toHaveLength(2);
+    expect(invokeCalls()[1]?.[1]?.signal).toBe(firstSignal);
+
+    await act(async () => {
+      pending.shift()?.(
+        response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+      );
+    });
+    await waitFor(() => expect(pending).toHaveLength(1));
+    expect(invokeCalls()).toHaveLength(3);
+    expect(invokeCalls()[2]?.[1]?.signal).toBe(firstSignal);
+    await act(async () => {
+      pending.shift()?.(
+        response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+      );
+    });
+
+    expect(await screen.findByText('3 of 3 attempts')).toBeVisible();
+    expect(screen.getByText('Completed all requested calls.')).toBeVisible();
+    expect(window.localStorage.getItem('protopeek.simulation.v1')).toBeNull();
+  });
+
+  it('clears an older Invoke loading state when Repeat takes ownership', async () => {
+    const invokeSignals: AbortSignal[] = [];
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        invokeSignals.push(init?.signal as AbortSignal);
+        return new Promise<Response>(() => undefined);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { unmount } = render(<App />);
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(within(workspace).getByRole('button', { name: /^Invoke/ }));
+    await waitFor(() => expect(invokeSignals).toHaveLength(1));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Run repeat' }));
+    await waitFor(() => expect(invokeSignals).toHaveLength(2));
+    expect(invokeSignals[0]?.aborted).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Invoke' }));
+    const reopened = await screen.findByRole('region', { name: 'Echo call workspace' });
+    expect(within(reopened).getByRole('button', { name: /^Invoke/ })).toBeVisible();
+    expect(within(reopened).queryByText(/Waiting for unary/i)).not.toBeInTheDocument();
+    unmount();
+  });
+
+  it('cancels one active call and preserves completed attempts as partial results', async () => {
+    let lateResolve: ((value: Response) => void) | undefined;
+    const invokeSignals: AbortSignal[] = [];
+    let invocation = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        invocation++;
+        invokeSignals.push(init?.signal as AbortSignal);
+        if (invocation === 1) {
+          return Promise.resolve(
+            response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+          );
+        }
+        return new Promise<Response>((resolve) => {
+          lateResolve = resolve;
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    await waitFor(() => expect(invokeSignals).toHaveLength(2));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel repeat' }));
+    expect(await screen.findByText('2 of 3 attempts')).toBeVisible();
+    expect(screen.getByText('Cancelled; partial results preserved.')).toBeVisible();
+    expect(invokeSignals[0]).toBe(invokeSignals[1]);
+    expect(invokeSignals[1]?.aborted).toBe(true);
+    expect(
+      within(screen.getByText('OK').parentElement as HTMLElement).getByText('1')
+    ).toBeVisible();
+    expect(
+      within(screen.getByText('Cancelled').parentElement as HTMLElement).getByText('1')
+    ).toBeVisible();
+    expect(invocation).toBe(2);
+
+    lateResolve?.(
+      response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+    );
+    await act(async () => undefined);
+    expect(screen.getByText('2 of 3 attempts')).toBeVisible();
+    expect(invocation).toBe(2);
+  });
+
+  it('disables assertions and refuses ordinary Invoke while Repeat owns the request', async () => {
+    let repeatSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        repeatSignal = init?.signal as AbortSignal;
+        return new Promise<Response>(() => undefined);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Run repeat' }));
+    await waitFor(() => expect(repeatSignal).toBeDefined());
+
+    expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Invoke current method/ }));
+
+    expect(repeatSignal?.aborted).toBe(false);
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
+    ).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Cancel repeat' })).toBeVisible();
+    expect(screen.getByText('Repeat owns this request')).toBeVisible();
+    expect(screen.getByText(/Cancel Repeat first, then invoke the RPC/i)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel repeat' }));
+    await screen.findByText('Cancelled; partial results preserved.');
+    expect(screen.queryByText(/Cancel Repeat first, then invoke the RPC/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Invoke' }));
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(within(workspace).getByRole('button', { name: /^Invoke/ }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
+      ).toHaveLength(2)
+    );
+    expect(within(workspace).getByRole('button', { name: /^Cancel/ })).toBeVisible();
+  });
+
+  it('cancels navigation away from an active Repeat and preserves partial evidence', async () => {
+    let invocation = 0;
+    let repeatSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        invocation++;
+        repeatSignal = init?.signal as AbortSignal;
+        if (invocation === 1) {
+          return Promise.resolve(
+            response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+          );
+        }
+        return new Promise<Response>(() => undefined);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    await waitFor(() => expect(invocation).toBe(2));
+
+    fireEvent.click(screen.getByRole('button', { name: /^History & saved/ }));
+    expect(repeatSignal?.aborted).toBe(true);
+    expect(await screen.findByText('Recent calls')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    expect(await screen.findByText('2 of 3 attempts')).toBeVisible();
+    expect(screen.getByText('Cancelled; partial results preserved.')).toBeVisible();
+    expect(
+      within(screen.getByText('Cancelled').parentElement as HTMLElement).getByText('1')
+    ).toBeVisible();
+    expect(invocation).toBe(2);
+  });
+
+  it('separates gRPC and relay/transport failures without sending secret sentinels', async () => {
+    window.localStorage.setItem(
+      appStorageKeys.collections,
+      JSON.stringify([
+        savedCollection({
+          name: 'Repeat safely',
+          metadata: [
+            { name: 'authorization', value: '[redacted]' },
+            { name: 'x-request-id', value: 'repeat-1' },
+          ],
+        }),
+      ])
+    );
+    let invocation = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(directBootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.includes('/invoke/')) {
+        invocation++;
+        if (invocation === 1) {
+          return response({
+            headers: [],
+            responses: [],
+            requests: null,
+            trailers: [],
+            error: null,
+            timings: { headersMs: 3, firstMessageMs: 7, trailersMs: 10, totalMs: 11 },
+          });
+        }
+        if (invocation === 2) {
+          return response({
+            headers: [{ name: 'content-type', value: 'application/grpc' }],
+            responses: [],
+            requests: null,
+            trailers: [{ name: 'grpc-status', value: '14' }],
+            error: { code: 14, name: 'Unavailable', message: 'backend unavailable', details: [] },
+            timings: { headersMs: 4, firstMessageMs: null, trailersMs: 22, totalMs: 23 },
+          });
+        }
+        return response('local relay failed', false);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: /^History & saved/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Repeat safely/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '3' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+
+    expect(await screen.findByText('3 of 3 attempts')).toBeVisible();
+    expect(
+      within(screen.getByText('gRPC errors').parentElement as HTMLElement).getByText('1')
+    ).toBeVisible();
+    expect(
+      within(screen.getByText('Relay / transport errors').parentElement as HTMLElement).getByText(
+        '1'
+      )
+    ).toBeVisible();
+    expect(
+      within(screen.getByText('p95').parentElement as HTMLElement).getByText('Needs 20 (2)')
+    ).toBeVisible();
+    expect(screen.getByText(/ProtoPeek handler invoke \(2 measured calls\)/)).toBeVisible();
+    expect(
+      screen.getByText(/Handler timing includes JSON\/protobuf conversion and callbacks/i)
+    ).toBeVisible();
+    const invokeCalls = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes('/invoke/')
+    );
+    expect(invokeCalls).toHaveLength(3);
+    for (const [, init] of invokeCalls) {
+      const sent = JSON.parse(String(init?.body)) as {
+        metadata: Array<{ name: string; value: string }>;
+      };
+      expect(sent.metadata).toEqual([{ name: 'x-request-id', value: 'repeat-1' }]);
+      expect(String(init?.body)).not.toContain('[redacted]');
+    }
+  });
+
+  it('keeps Repeat unavailable for streaming methods', async () => {
+    const streamingMethod = { ...directMethod, name: 'Watch', serverStreaming: true };
+    const streamingBootstrap = {
+      ...directBootstrap,
+      services: [{ name: 'demo.Echo', description: '', methods: [streamingMethod] }],
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(streamingBootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.includes('/invoke/')) {
+        return response({ headers: [], responses: [], requests: null, trailers: [], error: null });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Watch call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+
+    expect(await screen.findByText('Unary only')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Run repeat' })).toBeDisabled();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/invoke/'))).toBe(false);
+  });
+
+  it('stops at the 60 second aggregate cap and keeps the timed-out attempt', async () => {
+    let repeatSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        repeatSignal = init?.signal as AbortSignal;
+        return new Promise<Response>(() => undefined);
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    await screen.findByRole('heading', { name: 'Unary repeat' });
+
+    const runStartedAt = '2026-08-20T12:00:00.000Z';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(runStartedAt));
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    expect(repeatSignal).toBeDefined();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(screen.getByText('1 of 5 attempts')).toBeVisible();
+    expect(
+      screen.getByText('Stopped at the 60 second wall cap; partial results preserved.')
+    ).toBeVisible();
+    expect(repeatSignal?.aborted).toBe(true);
+    expect(screen.getByTitle('Repeat run started')).toHaveAttribute('datetime', runStartedAt);
+  });
+
+  it('aborts and discards Repeat when the user changes RPC context', async () => {
+    const otherMethod = { ...directMethod, name: 'Other', fullName: 'demo.Echo/Other' };
+    const twoMethodBootstrap = {
+      ...directBootstrap,
+      services: [{ name: 'demo.Echo', description: '', methods: [directMethod, otherMethod] }],
+    };
+    let repeatSignal: AbortSignal | undefined;
+    let lateResolve: ((value: Response) => void) | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return Promise.resolve(response(twoMethodBootstrap));
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/metadata')) return Promise.resolve(response(directSchema));
+      if (path.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (path.includes('/invoke/')) {
+        repeatSignal = init?.signal as AbortSignal;
+        return new Promise<Response>((resolve) => {
+          lateResolve = resolve;
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Run repeat' }));
+    await waitFor(() => expect(repeatSignal).toBeDefined());
+
+    fireEvent.click(screen.getByRole('button', { name: /Other/ }));
+    expect(repeatSignal?.aborted).toBe(true);
+    lateResolve?.(
+      response({ headers: [], responses: [], requests: null, trailers: [], error: null })
+    );
+    expect(await screen.findByRole('region', { name: 'Other call workspace' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    expect(screen.queryByText(/of 5 attempts/)).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
+    ).toHaveLength(1);
+  });
+
+  it('exports raw attempt evidence without the request body or metadata', async () => {
+    const fetchMock = installDirectFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    let exportedBlob: Blob | undefined;
+    let downloadedAs = '';
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((blob) => {
+      exportedBlob = blob as Blob;
+      return 'blob:repeat';
+    });
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      downloadedAs = this.download;
+    });
+    render(<App />);
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.change(within(workspace).getByLabelText('Request JSON'), {
+      target: { value: '{"private":"request-secret"}' },
+    });
+    fireEvent.click(within(workspace).getByRole('tab', { name: /Metadata/ }));
+    fireEvent.click(within(workspace).getByRole('button', { name: 'Bearer auth' }));
+    fireEvent.change(within(workspace).getByLabelText('Metadata value 1'), {
+      target: { value: 'Bearer metadata-secret' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    await screen.findByText('2 of 2 attempts');
+    const disclosure = screen.getByText(/Export includes method, target, run configuration/i);
+    expect(disclosure).toHaveTextContent(/timestamps, counts, per-attempt offsets and timings/i);
+    expect(disclosure).toHaveTextContent(/error and status text/i);
+    expect(disclosure).toHaveTextContent(/Review.*before sharing/i);
+    fireEvent.click(screen.getByRole('button', { name: 'Export JSON' }));
+
+    expect(downloadedAs).toMatch(/^protopeek-repeat-Echo-/);
+    expect(exportedBlob).toBeDefined();
+    const exportedText = await exportedBlob?.text();
+    expect(exportedText).toContain('"format": "protopeek-repeat"');
+    expect(exportedText).not.toContain('request-secret');
+    expect(exportedText).not.toContain('metadata-secret');
+    expect(exportedText).not.toContain('metadata');
+  });
+
+  it('attributes preserved evidence to its frozen run after controls and requests change', async () => {
+    const fetchMock = installDirectFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Per-call deadline in seconds'), {
+      target: { value: '1.5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    await screen.findByText('2 of 2 attempts');
+
+    const createdAt = screen.getByTitle('Repeat run started').getAttribute('datetime');
+    expect(createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(screen.getByText(/2 calls · 0 ms think · 1.5 s deadline/)).toBeVisible();
+    expect(screen.getByText(/payload and metadata were snapshotted at run start/i)).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Calls'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Per-call deadline in seconds'), {
+      target: { value: '2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Invoke' }));
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(within(workspace).getByRole('button', { name: /^Invoke/ }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
+      ).toHaveLength(3)
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+
+    expect(screen.getByLabelText('Calls')).toHaveValue(3);
+    expect(screen.getByLabelText('Per-call deadline in seconds')).toHaveValue(2);
+    expect(screen.getByTitle('Repeat run started')).toHaveAttribute('datetime', createdAt);
+    expect(screen.getByText(/2 calls · 0 ms think · 1.5 s deadline/)).toBeVisible();
+    expect(screen.getByText(/Previous run · controls have changed/i)).toBeVisible();
+  });
+
+  it('waits only between sequential calls and never after the final call', async () => {
+    const fetchMock = installDirectFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.change(await screen.findByLabelText('Calls'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Think time in milliseconds'), {
+      target: { value: '5000' },
+    });
+
+    vi.useFakeTimers();
+    fireEvent.click(screen.getByRole('button', { name: 'Run repeat' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    const invokeCalls = () =>
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'));
+    expect(invokeCalls()).toHaveLength(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4999);
+    });
+    expect(invokeCalls()).toHaveLength(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(invokeCalls()).toHaveLength(2);
+    expect(screen.getByText('2 of 2 attempts')).toBeVisible();
+    expect(screen.getByText('Completed all requested calls.')).toBeVisible();
   });
 });

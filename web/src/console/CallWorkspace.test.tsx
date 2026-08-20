@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -36,6 +36,7 @@ const response: InvokeResponse = {
   trailers: [{ name: 'grpc-status', value: '0' }],
   error: null,
   requests: { total: 1, sent: 1 },
+  timings: { headersMs: 7, firstMessageMs: 18, trailersMs: 47, totalMs: 49 },
 };
 
 function props(overrides: Partial<Parameters<typeof CallWorkspace>[0]> = {}) {
@@ -69,14 +70,21 @@ describe('CallWorkspace', () => {
     );
     expect(screen.getByText('Server stream')).toBeInTheDocument();
     expect(screen.getByText('2 messages')).toBeInTheDocument();
+    expect(screen.getByText('Observed / +gap')).toHaveAttribute(
+      'title',
+      expect.stringMatching(/callback-observed.*not packet arrival or TTFB/i)
+    );
     expect(screen.getAllByText('Message 1')).toHaveLength(2);
-    expect(screen.getByText('18 ms')).toBeInTheDocument();
+    expect(screen.getAllByText('18 ms')).toHaveLength(1);
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Filter responses' }), {
       target: { value: 'not_serving' },
     });
     expect(screen.queryByText('Message 1')).not.toBeInTheDocument();
     expect(screen.getAllByText('Message 2')).toHaveLength(2);
+    const secondMessage = screen.getByRole('button', { name: /Message 2/ });
+    expect(within(secondMessage).getByText('42 ms')).toBeVisible();
+    expect(within(secondMessage).getByText('+24 ms')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /^Invoke/ }));
     expect(onInvoke).toHaveBeenCalledOnce();
@@ -103,5 +111,53 @@ describe('CallWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Cancel/ }));
     expect(onCancel).toHaveBeenCalledOnce();
     expect(screen.getByText(/Use Cancel to stop the RPC/)).toBeInTheDocument();
+  });
+
+  it('labels callback-observed handler boundaries separately from console round trip', () => {
+    render(<CallWorkspace {...props()} />);
+
+    expect(screen.getByText('Handler 49 ms')).toBeVisible();
+    expect(screen.queryByText('RPC 49 ms')).not.toBeInTheDocument();
+    expect(screen.getByText('Console 51 ms')).toBeVisible();
+    fireEvent.click(screen.getByRole('tab', { name: 'Status' }));
+    const timings = screen.getByLabelText('gRPC timing evidence');
+    expect(within(timings).getByText('Headers observed').nextSibling).toHaveTextContent('7 ms');
+    expect(within(timings).getByText('First message observed').nextSibling).toHaveTextContent(
+      '18 ms'
+    );
+    expect(within(timings).getByText('Final status observed').nextSibling).toHaveTextContent(
+      '47 ms'
+    );
+    expect(within(timings).getByText('Invoke returned').nextSibling).toHaveTextContent('49 ms');
+    expect(within(timings).getByText('Console round trip').nextSibling).toHaveTextContent('51 ms');
+    const note = screen.getByText(/Callback-observed lifecycle boundaries/i);
+    expect(note).toHaveTextContent(/Unary callbacks can cluster after transport completion/i);
+    expect(note).toHaveTextContent(/not packet arrival, server processing, or TTFB measurements/i);
+    expect(note).toHaveTextContent(/JSON\/protobuf conversion and callbacks/i);
+  });
+
+  it('shows unavailable message timing honestly instead of spacing messages across console time', () => {
+    render(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            error: null,
+            latencyMs: 51,
+            result: {
+              ...response,
+              timings: null,
+              responses: response.responses.map((entry) => ({ ...entry, elapsedMs: null })),
+            },
+          },
+        })}
+      />
+    );
+
+    const firstMessage = screen.getByRole('button', { name: /Message 1/ });
+    expect(within(firstMessage).getByText('—')).toBeVisible();
+    expect(within(firstMessage).getByText('+—')).toBeVisible();
+    expect(screen.queryByText('26 ms')).not.toBeInTheDocument();
+    expect(screen.queryByText('51 ms', { selector: '.pp-message-time *' })).not.toBeInTheDocument();
   });
 });

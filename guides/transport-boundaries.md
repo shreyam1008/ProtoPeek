@@ -78,8 +78,10 @@ message counts consistently, while a protocol inspector renders the actual seman
 
 Keep the current slice as the reference adapter: bounded loopback discovery, deterministic
 sessions, reflection headers, proto/protoset compatibility, request/response split view, explicit
-cancellation, ordered response timing, and visible headers, trailers, deadlines, streaming mode,
-and status.
+cancellation, callback-observed response timing, and visible headers, trailers, deadlines, streaming
+mode, and status. Headers, first message, final status, and invoke return are handler lifecycle
+boundaries, not packet-arrival, server-processing, or TTFB measurements; unary callbacks may cluster
+after transport completion.
 
 ### 2. Keep the HTTP slice bounded
 
@@ -131,8 +133,13 @@ active profile session to the launcher before an imported profile can be used.
 New saved requests and automatic gRPC history carry target-profile ID plus target address. Replay
 requires the method to exist and the stored scope to match. Legacy records without scope may be
 applied only to a method available on the current target, then bind to that target on first replay.
-Persisted `[redacted]` metadata values restore as blank inputs with a re-entry warning; invocation and
-simulation filter blank sensitive values and the sentinel again at the send boundary.
+Persisted `[redacted]` metadata values restore as blank inputs with a re-entry warning. Invocation
+filters out blank sensitive values and the sentinel again at the send boundary; Unary Repeat applies
+the same filtering. Repeat JSON exports contain the method, target, run ID/start timestamp, frozen
+configuration, counts, per-attempt offsets/timings, classifications, and error/status text—never the
+request body or metadata. Review target/internal addresses and service/relay text before sharing.
+`handlerInvokeMs` includes JSON/protobuf conversion and callbacks but excludes the browser/HTTP
+relay; `consoleRoundTripMs` includes that relay and response parsing.
 
 ### 4. Keep route and imported evidence read-only
 

@@ -6,7 +6,6 @@ export const appStorageKeys = {
   httpHistory: 'protopeek.httpHistory.v1',
   methodFilter: 'protopeek.methodFilter.v1',
   selectedMethod: 'protopeek.selectedMethod.v1',
-  simulation: 'protopeek.simulation.v1',
   targets: 'protopeek.targets.v1',
   activeTargetId: 'protopeek.activeTargetId.v1',
   discoveries: 'protopeek.discoveries.v1',

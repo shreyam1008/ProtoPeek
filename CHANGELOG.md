@@ -5,6 +5,21 @@ version source of truth.
 
 ## Unreleased — v0.3 milestone 2
 
+- Replaced the browser Simulation surface with bounded Unary Repeat: 2–50 strictly sequential calls,
+  0–5000 ms between-call delay, an explicit 0.1–30 s per-call deadline, one cancellable run, and a
+  60 s wall cap with partial results. Results keep OK, gRPC status, relay/transport, and cancellation
+  separate. Export includes method, target, run ID/start timestamp, frozen configuration, counts,
+  per-attempt offsets/timings, classifications, and error/status text, but never request bodies or
+  metadata; target/internal addresses and service/relay text must be reviewed before sharing.
+  Latency summaries prefer ProtoPeek handler invoke duration when present, visibly fall back to
+  console round trip, and withhold p95 until 20 measured samples. The handler duration includes
+  JSON/protobuf conversion and callbacks, but excludes the browser and HTTP relay. Assertions and
+  overlapping Invoke are blocked while Repeat owns the request; leaving Checks cancels the run and
+  preserves partial evidence. Completed results show their start time and frozen configuration,
+  mark changed controls as a previous run, and warn that every attempt is a potentially mutating RPC.
+- Labeled gRPC timing as callback-observed lifecycle boundaries: headers, first message, final status,
+  and invoke return. Unary callbacks may cluster after transport completion; these values are not
+  packet-arrival, server-processing, or TTFB measurements.
 - Added safe, target-scoped gRPC replay: persisted redaction markers are never invoked, legacy
   records bind safely on first replay, unavailable/cross-target records fail in place, and browser
   storage failures are visible for saves and imports.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-
+import type { RepeatAttempt } from './types';
 import {
+  buildRepeatRun,
   buildWorkspaceExport,
   commandPreview,
   displayBuildVersion,
@@ -10,7 +11,6 @@ import {
   loadStoredWorkspaceSection,
   matchesMethodFilter,
   normalizeHTTPHistory,
-  percentile,
   prepareMetadataForReplay,
   prepareURLForReplay,
   safeParseJson,
@@ -19,13 +19,197 @@ import {
   sanitizeInvokeResponseForExport,
   sanitizeMetadataForPersistence,
   sanitizeURLForPersistence,
+  serializeRepeatRun,
   serializeWorkspaceExport,
-  simulationSummary,
   storeValuesAtomically,
+  validateRepeatConfig,
   validateWorkspaceImport,
   workspaceImportLimits,
   workspaceImportMaxBytes,
 } from './utils';
+
+describe('unary repeat configuration', () => {
+  it('accepts only the explicit bounded repeat envelope', () => {
+    expect(validateRepeatConfig({ count: 2, thinkTimeMs: 0, deadlineSeconds: 0.1 })).toEqual({
+      error: null,
+      value: { count: 2, thinkTimeMs: 0, deadlineSeconds: 0.1 },
+    });
+    expect(validateRepeatConfig({ count: 50, thinkTimeMs: 5000, deadlineSeconds: 30 })).toEqual({
+      error: null,
+      value: { count: 50, thinkTimeMs: 5000, deadlineSeconds: 30 },
+    });
+
+    expect(validateRepeatConfig({ count: 1, thinkTimeMs: 0, deadlineSeconds: 1 }).error).toMatch(
+      /2 and 50/
+    );
+    expect(validateRepeatConfig({ count: 2.5, thinkTimeMs: 0, deadlineSeconds: 1 }).error).toMatch(
+      /whole number/
+    );
+    expect(validateRepeatConfig({ count: 2, thinkTimeMs: 5001, deadlineSeconds: 1 }).error).toMatch(
+      /0 and 5000/
+    );
+    expect(validateRepeatConfig({ count: 2, thinkTimeMs: 0, deadlineSeconds: 0 }).error).toMatch(
+      /0.1 and 30/
+    );
+    expect(
+      validateRepeatConfig({ count: Number.NaN, thinkTimeMs: 0, deadlineSeconds: 1 }).error
+    ).toMatch(/whole number/);
+  });
+
+  it('keeps failure classes separate and summarizes only completed gRPC exchanges', () => {
+    const attempts: RepeatAttempt[] = [
+      {
+        sequence: 1,
+        startedOffsetMs: 0,
+        consoleRoundTripMs: 10,
+        handlerInvokeMs: 8,
+        outcome: 'ok',
+        responseCount: 1,
+        headerCount: 2,
+        trailerCount: 1,
+        grpcStatus: null,
+        error: '',
+      },
+      {
+        sequence: 2,
+        startedOffsetMs: 10,
+        consoleRoundTripMs: 20,
+        handlerInvokeMs: 18,
+        outcome: 'grpc-error',
+        responseCount: 0,
+        headerCount: 1,
+        trailerCount: 1,
+        grpcStatus: { code: 14, name: 'Unavailable', message: 'backend unavailable' },
+        error: '',
+      },
+      {
+        sequence: 3,
+        startedOffsetMs: 30,
+        consoleRoundTripMs: 2,
+        handlerInvokeMs: null,
+        outcome: 'relay-transport-error',
+        responseCount: 0,
+        headerCount: 0,
+        trailerCount: 0,
+        grpcStatus: null,
+        error: 'relay refused the request',
+      },
+      {
+        sequence: 4,
+        startedOffsetMs: 32,
+        consoleRoundTripMs: 8,
+        handlerInvokeMs: null,
+        outcome: 'cancelled',
+        responseCount: 0,
+        headerCount: 0,
+        trailerCount: 0,
+        grpcStatus: null,
+        error: 'Repeat cancelled.',
+      },
+    ];
+    const run = buildRepeatRun({
+      createdAt: '2026-08-20T12:00:00.000Z',
+      method: 'demo.Echo/Echo',
+      target: 'localhost:50051',
+      config: { count: 4, thinkTimeMs: 0, deadlineSeconds: 5 },
+      attempts,
+      totalMs: 40,
+      stopReason: 'user-cancelled',
+    });
+
+    expect(run.counts).toEqual({
+      ok: 1,
+      grpcError: 1,
+      relayTransportError: 1,
+      cancelled: 1,
+    });
+    expect(run.latency).toEqual({
+      sampleCount: 2,
+      source: 'handler-invoke',
+      minMs: 8,
+      medianMs: 13,
+      p95Ms: null,
+      maxMs: 18,
+    });
+    expect(
+      buildRepeatRun({
+        ...run,
+        attempts: attempts.slice(0, 2).map((attempt) => ({ ...attempt, handlerInvokeMs: null })),
+      }).latency
+    ).toMatchObject({ source: 'console-round-trip', minMs: 10, medianMs: 15, maxMs: 20 });
+    const exported = JSON.parse(serializeRepeatRun(run));
+    expect(exported.run.counts.relayTransportError).toBe(1);
+    expect(exported.run.attempts[2]).toMatchObject({
+      handlerInvokeMs: null,
+      outcome: 'relay-transport-error',
+    });
+    expect(JSON.stringify(exported)).not.toContain('grpcInvokeMs');
+    expect(JSON.stringify(exported)).not.toContain('transportError');
+  });
+
+  it('withholds p95 below 20 completed RPC exchanges', () => {
+    const attempt = (sequence: number): RepeatAttempt => ({
+      sequence,
+      startedOffsetMs: sequence - 1,
+      consoleRoundTripMs: sequence + 100,
+      handlerInvokeMs: sequence,
+      outcome: 'ok',
+      responseCount: 1,
+      headerCount: 0,
+      trailerCount: 0,
+      grpcStatus: null,
+      error: '',
+    });
+    const base = {
+      createdAt: '2026-08-20T12:00:00.000Z',
+      method: 'demo.Echo/Echo',
+      target: 'localhost:50051',
+      config: { count: 20, thinkTimeMs: 0, deadlineSeconds: 5 },
+      totalMs: 210,
+      stopReason: 'completed' as const,
+    };
+
+    expect(
+      buildRepeatRun({ ...base, attempts: Array.from({ length: 19 }, (_, i) => attempt(i + 1)) })
+        .latency.p95Ms
+    ).toBeNull();
+    expect(
+      buildRepeatRun({ ...base, attempts: Array.from({ length: 20 }, (_, i) => attempt(i + 1)) })
+        .latency
+    ).toEqual({
+      sampleCount: 20,
+      source: 'handler-invoke',
+      minMs: 1,
+      medianMs: 10.5,
+      p95Ms: 19,
+      maxMs: 20,
+    });
+  });
+
+  it('exports versioned raw measurements without request bodies or metadata', () => {
+    const run = buildRepeatRun({
+      createdAt: '2026-08-20T12:00:00.000Z',
+      method: 'demo.Echo/Echo',
+      target: 'localhost:50051',
+      config: { count: 2, thinkTimeMs: 0, deadlineSeconds: 5 },
+      attempts: [],
+      totalMs: 0,
+      stopReason: 'completed',
+    });
+    const serialized = serializeRepeatRun({
+      ...run,
+      requestText: '{"token":"Bearer secret"}',
+      metadata: [{ name: 'authorization', value: 'Bearer secret' }],
+    } as typeof run);
+    const exported = JSON.parse(serialized);
+
+    expect(exported).toMatchObject({ format: 'protopeek-repeat', version: 1, run });
+    expect(exported.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(serialized).not.toContain('requestText');
+    expect(serialized).not.toContain('metadata');
+    expect(serialized).not.toContain('Bearer secret');
+  });
+});
 
 describe('displayBuildVersion', () => {
   it('keeps internal linker placeholders out of the product UI', () => {
@@ -179,6 +363,7 @@ describe('persistence redaction', () => {
       error: null,
       responses: [],
       requests: null,
+      timings: null,
       trailers: [{ name: 'trace-bin', value: 'binary' }],
     });
     expect(response.headers[0]?.value).toBe('[redacted]');
@@ -624,30 +809,6 @@ describe('generateRequestTemplate', () => {
   });
 });
 
-describe('percentile', () => {
-  it('returns the correct percentile for a sorted window', () => {
-    expect(percentile([10, 20, 30, 40], 95)).toBe(40);
-    expect(percentile([10, 20, 30, 40], 50)).toBe(20);
-  });
-});
-
-describe('simulationSummary', () => {
-  it('computes throughput and tail latencies', () => {
-    const summary = simulationSummary(
-      'demo.Service.Echo',
-      { runs: 5, concurrency: 2, thinkTimeMs: 0 },
-      [10, 20, 30, 40, 50],
-      5,
-      0,
-      100
-    );
-
-    expect(summary.p95).toBe(50);
-    expect(summary.successCount).toBe(5);
-    expect(summary.throughputRps).toBe(50);
-  });
-});
-
 describe('commandPreview', () => {
   it('builds a grpcurl command preview', () => {
     expect(
@@ -715,6 +876,7 @@ describe('evaluateAssertions', () => {
         error: null,
         responses: [{ isError: false, message: { text: 'pong' }, sequence: 1, elapsedMs: 12 }],
         requests: null,
+        timings: null,
         trailers: [],
       },
     });
