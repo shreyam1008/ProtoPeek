@@ -32,14 +32,18 @@ install:
 	go install -ldflags '-X "main.version=dev build $(dev_build_version)"' ./cmd/protopeek
 	go install -ldflags '-X "main.version=dev build $(dev_build_version)"' ./cmd/pp
 
-.PHONY: release
-release:
-	@go install github.com/goreleaser/goreleaser/v2@latest
-	goreleaser release --clean
+GORELEASER_VERSION := v2.17.1
+
+.PHONY: release-snapshot
+release-snapshot:
+	@command -v syft >/dev/null || { echo "syft is required for release SBOMs" >&2; exit 1; }
+	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) check --config .goreleaser.yml
+	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) check --config .goreleaser.edge.yml
+	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) release --snapshot --clean --config .goreleaser.yml
 
 .PHONY: docker
 docker:
-	docker build --build-arg VERSION=$(dev_build_version) -t shreyam1008/protopeek:$(dev_build_version) .
+	docker build --build-arg VERSION=$(dev_build_version) -t protopeek:dev .
 
 .PHONY: generate
 generate: .tmp/protoc/bin/protoc

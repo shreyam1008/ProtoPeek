@@ -1,7 +1,8 @@
-import { Activity, Command, LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
+import { Activity, LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
 import type { RefObject } from 'react';
 
 import type { BootstrapMethod, WorkspaceTargetProfile } from '@/shared/types';
+import { modifierKeyLabel } from '@/shared/utils';
 
 function methodMode(method: BootstrapMethod) {
   if (method.clientStreaming && method.serverStreaming) return 'Bidirectional stream';
@@ -33,6 +34,7 @@ export function WorkbenchHeader({
 }) {
   const source = targetProfile?.schemaSource ?? 'reflection';
   const transport = targetProfile?.plaintext === false ? 'TLS' : 'Plaintext';
+  const modifier = modifierKeyLabel();
 
   return (
     <header className="pp-workbench-header">
@@ -70,9 +72,8 @@ export function WorkbenchHeader({
         aria-label="Open command palette"
         onClick={onOpenCommandPalette}
       >
-        <Command aria-hidden="true" />
         <span>Commands</span>
-        <kbd>⌘ K</kbd>
+        <kbd>{modifier} K</kbd>
       </button>
     </header>
   );

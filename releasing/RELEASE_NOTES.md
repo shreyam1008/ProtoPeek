@@ -1,18 +1,21 @@
-## Changes
-_Include other useful notes at the top, such as changes to supported architectures, changes to release artifacts, etc..._
+# ProtoPeek v0.2.0 draft notes
 
-### Web UI
-These changes impact usage of both the command-line tool and the Go packages.
+This file is a candidate template, not evidence that v0.2.0 is public.
 
-* _In this list, describe the changes to the web form UI._
-* _Use one bullet per change. Include both bug-fixes and improvements. Omit this section if there are no changes that impact the web form._
+## Highlights
 
-### Command-line tool
+- Local gRPC and bounded HTTP request workbenches in one browser shell.
+- Bounded discovery with explicit private-network and public-target policies.
+- Secret-redacted local history and workspace exports.
 
-* _In this list, describe the changes to the command-line tool._
-* _Use one bullet per change. Include both bug-fixes and improvements. Omit this section if there are no changes that impact the command-line tool._
+## Distribution changes
 
-### Go package "github.com/fullstorydev/grpcui"
+- Release archives include both `protopeek` and `pp` command names.
+- Unix and Windows installers verify the release SHA-256 checksum before
+  extracting.
+- Archives publish checksums, SBOMs, and GitHub build-provenance attestations.
 
-* _In this list, describe the changes to exported API in the main package in this repo: "github.com/fullstorydev/grpcui". These will often be closely related to changes to the command-line tool, though not always: changes that only impact the cmd/grpcui directory of this repo do not impact exported API._
-* _Use one bullet per change. Include both bug-fixes and improvements. Omit this section if there are no changes that impact the exported API._
+## Compatibility
+
+List the exact tested operating systems and architectures from the draft-release
+acceptance run before publishing.

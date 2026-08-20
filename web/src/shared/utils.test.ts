@@ -7,8 +7,63 @@ import {
   matchesMethodFilter,
   percentile,
   safeParseJson,
+  sanitizeAssertionForPersistence,
+  sanitizeInvokeResponseForExport,
+  sanitizeMetadataForPersistence,
+  sanitizeURLForPersistence,
   simulationSummary,
 } from './utils';
+
+describe('persistence redaction', () => {
+  it('redacts auth, cookies, binary values, and token-like metadata', () => {
+    const sanitized = sanitizeMetadataForPersistence([
+      { name: 'Authorization', value: 'Bearer secret' },
+      { name: 'Cookie', value: 'session=secret' },
+      { name: 'Set-Cookie', value: 'session=secret' },
+      { name: 'Proxy-Authorization', value: 'Basic secret' },
+      { name: 'trace-bin', value: 'binary' },
+      { name: 'x-api-key', value: 'api-secret' },
+      { name: 'x-auth-token', value: 'token-secret' },
+      { name: 'x-request-id', value: 'safe' },
+    ]);
+
+    expect(sanitized.slice(0, 7).every((entry) => entry.value === '[redacted]')).toBe(true);
+    expect(sanitized[7].value).toBe('safe');
+  });
+
+  it('redacts token-like query parameters in persisted HTTP URLs', () => {
+    const sanitized = sanitizeURLForPersistence(
+      'https://example.test/items?access_token=secret&page=2&password=hunter2'
+    );
+    const parsed = new URL(sanitized);
+    expect(parsed.searchParams.get('access_token')).toBe('[redacted]');
+    expect(parsed.searchParams.get('password')).toBe('[redacted]');
+    expect(parsed.searchParams.get('page')).toBe('2');
+  });
+
+  it('redacts sensitive response metadata and persisted header assertions', () => {
+    const response = sanitizeInvokeResponseForExport({
+      headers: [{ name: 'Set-Cookie', value: 'session=secret' }],
+      error: null,
+      responses: [],
+      requests: null,
+      trailers: [{ name: 'trace-bin', value: 'binary' }],
+    });
+    expect(response.headers[0]?.value).toBe('[redacted]');
+    expect(response.trailers[0]?.value).toBe('[redacted]');
+
+    expect(
+      sanitizeAssertionForPersistence({
+        id: 'secret-assertion',
+        name: 'Token matches',
+        kind: 'header',
+        comparator: 'equals',
+        target: 'x-auth-token',
+        value: 'secret',
+      }).value
+    ).toBe('[redacted]');
+  });
+});
 
 describe('safeParseJson', () => {
   it('returns a parse error for invalid JSON', () => {

@@ -55,6 +55,7 @@ describe('API response normalization', () => {
     });
     expect(result.services).toEqual([]);
     expect(result.defaultMetadata).toEqual([]);
+    expect(result.initialScanTarget).toBe('');
     expect(result.targetDefaults.protoFiles).toEqual([]);
     expect(result.targetDefaults.importPaths).toEqual([]);
     expect(result.targetDefaults.protosets).toEqual([]);

@@ -4,22 +4,25 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Feature roadmap | ProtoPeek</title>
-    <meta name="description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
+    <meta name="description" content="The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work." />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/feature-roadmap/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:title" content="Feature roadmap | ProtoPeek" />
-    <meta property="og:description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
+    <meta property="og:description" content="The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/feature-roadmap/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.svg" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Feature roadmap | ProtoPeek" />
-    <meta name="twitter:description" content="The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.svg" />
+    <meta name="twitter:description" content="The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -41,12 +44,12 @@
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
               <h1>Feature roadmap</h1>
-              <p>The current ProtoPeek surface, why those capabilities matter for gRPC users, and the next wave of transport-aware features.</p>
+              <p>The shipped gRPC and bounded HTTP surfaces, their safety boundaries, and the gates for future transport-aware work.</p>
               <div class="pp-doc-chip-row">
-                <span>10 shipped capabilities</span><span>Why they matter</span><span>Next wave</span>
+                <span>gRPC + HTTP</span><span>Safety boundaries</span><span>Gated plans</span>
               </div>
             </div>
-            
+
     <div class="pp-doc-visual">
       <div class="pp-doc-visual-card">
         <div class="pp-doc-visual-label">Reading path</div>
@@ -59,38 +62,38 @@
         </svg>
       </div>
       <div class="pp-doc-visual-metrics">
-        
+
         <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>10 shipped capabilities</span>
+          <span>gRPC + HTTP</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-1"></div>
           </div>
         </div>
-      
+
         <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Why they matter</span>
+          <span>Safety boundaries</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-2"></div>
           </div>
         </div>
-      
+
         <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>Next wave</span>
+          <span>Gated plans</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-3"></div>
           </div>
         </div>
-      
+
       </div>
     </div>
-  
+
           </div>
         </section>
 
         <main class="pp-doc-main">
           <article class="pp-doc-article">
             <div class="pp-doc-prose">
-              <p>ProtoPeek is <strong>Protocol Peek</strong>: a local, lightweight workbench for understanding the path from a request to a server response. It is not trying to become a cloud API-management suite or a clone of Postman. Its advantage is that difficult protocols remain explainable: the request editor, the transport events, and the final evidence stay close together.</p>
+              <p>ProtoPeek is <strong>Protocol Peek</strong>: a local workbench for understanding the path from a request to a server response. It is not trying to become a cloud API-management suite or a clone of Postman. Its advantage is that difficult protocols remain explainable: the request editor, the transport events, and the final evidence stay close together.</p>
 <h2 id="product-contract">Product contract</h2>
 <h3 id="what-protopeek-is">What ProtoPeek is</h3>
 <ul><li>A single-binary, local-first console with no account, remote sync, or external database.</li><li>A shared shell for targets, request editing, response evidence, local history, cancellation, and</li></ul>
@@ -103,43 +106,51 @@
 <p>collaboration product.</p>
 <ul><li>A promise that every protocol belongs in the default binary. Future adapters should be opt-in when</li></ul>
 <p>they add meaningful binary, dependency, or security cost.</p>
-<h2 id="current-release-grpc-reference-adapter">Current release: gRPC reference adapter</h2>
-<p>The gRPC adapter is the quality bar for every future protocol:</p>
-<ol><li><div class="pp-doc-list-title">Discover services through reflection, loopback scan, <code>.proto</code>, or protoset sources.</div></li><li><div class="pp-doc-list-title">Keep service and method selection visible in a searchable rail with unary, server-stream,</div><p>client-stream, and bidirectional modes.</p></li><li><div class="pp-doc-list-title">Generate an editable request payload from the reflected schema.</div></li><li><div class="pp-doc-list-title">Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.</div></li><li><div class="pp-doc-list-title">Render ordered response messages, headers, trailers, final status, and timing together.</div></li><li><div class="pp-doc-list-title">Preserve saved requests, history, checks, export, and command shortcuts without a server account.</div></li><li><div class="pp-doc-list-title">Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public</div><p>network probing.</p></li></ol>
+<h2 id="current-workbench-grpc-http">Current workbench: gRPC + HTTP</h2>
+<p>The gRPC adapter remains the quality bar for protocol-native depth:</p>
+<ol><li><div class="pp-doc-list-title">Discover services through reflection, loopback scan, <code>.proto</code>, or protoset sources.</div></li><li><div class="pp-doc-list-title">Keep service and method selection visible in a searchable rail with unary, server-stream,</div><p>client-stream, and bidirectional modes.</p></li><li><div class="pp-doc-list-title">Generate an editable request payload from the reflected schema.</div></li><li><div class="pp-doc-list-title">Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.</div></li><li><div class="pp-doc-list-title">Render ordered response messages, headers, trailers, final status, and timing together.</div></li><li><div class="pp-doc-list-title">Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts</div><p>without a server account.</p></li><li><div class="pp-doc-list-title">Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public</div><p>network probing.</p></li></ol>
+<p>The HTTP adapter is the first additional protocol slice:</p>
+<ol><li><div class="pp-doc-list-title">Send an explicit HTTP(S) method, URL, headers, and body through the local Go server.</div></li><li><div class="pp-doc-list-title">Keep TLS verification on and redirect following off by default.</div></li><li><div class="pp-doc-list-title">Bound request envelopes, request and response bodies, header counts, timeouts, and redirects.</div></li><li><div class="pp-doc-list-title">Support cancellation and show status, HTTP protocol, headers, text/base64 body, byte count,</div><p>truncation, redirect hops, remote address, TLS summary, and DNS/connect/TLS/TTFB/total timing.</p></li><li><div class="pp-doc-list-title">Keep automatic local history secret-safe; credentials remain editable for the live request but</div><p>are redacted before persistence or default export.</p></li><li><div class="pp-doc-list-title">Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.</div></li></ol>
 <h2 id="shared-adapter-architecture">Shared adapter architecture</h2>
 <pre class="pp-doc-code"><code data-lang="text">local CLI / web server
         |
 console shell: target -&gt; operation -&gt; request -&gt; response evidence
         |
         +-- gRPC adapter       reflection | .proto | protoset
-        +-- Cap&#39;n Proto adapter schema file | capability bootstrap
-        +-- HTTP adapter       URL | optional OpenAPI document
+        +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
+        +-- Cap&#39;n Proto adapter planned: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review</code></pre>
 <p>The shared boundary stays deliberately small:</p>
 <table><thead><tr><th>Boundary object</th><th>Shared responsibility</th><th>Adapter-owned detail</th></tr></thead><tbody><tr><td><code>Target</code></td><td>identity, transport kind, local storage</td><td>TLS, capability bootstrap, URL/auth configuration</td></tr><tr><td><code>Operation</code></td><td>selectable operation and display name</td><td>RPC method, HTTP route, capability call, schema</td></tr><tr><td><code>Invocation</code></td><td>deadline, cancellation, request messages</td><td>encoding, framing, retries, stream semantics</td></tr><tr><td><code>TransportEvent</code></td><td>ordered timeline and timestamps</td><td>trailers, segments, status/headers, body chunks</td></tr><tr><td><code>Inspector</code></td><td>shell placement and navigation</td><td>native vocabulary, validation, evidence rendering</td></tr></tbody></table>
 <p>Do not erase protocol differences to make the types look uniform. The shell can count messages and show timing consistently, but the inspector must say “gRPC trailers”, “Cap&#39;n Proto capability”, or “HTTP response headers” when that is what the user is looking at.</p>
 <h2 id="delivery-plan">Delivery plan</h2>
 <h3 id="phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</h3>
-<p>Finish the reference adapter before adding breadth:</p>
-<ul><li>Make reflection, proto, and protoset paths share the same operation model.</li><li>Keep all four stream shapes testable with deterministic local fixtures.</li><li>Add flow-level checks: pre-invoke setup, per-message assertions, terminal status assertions, and</li></ul>
-<p>bounded exportable reports.</p>
-<ul><li>Add Channelz/grpcdebug links for cases where the payload is fine but the channel is unhealthy.</li><li>Measure startup, response latency, memory, and bundle size on a low-end machine.</li><li>Keep credentials out of history and exports unless the user explicitly opts in.</li></ul>
-<p>Exit gate: the gRPC adapter remains fast, local, cancellable, and semantically complete after the shared boundary is extracted.</p>
-<h3 id="phase-2-cap-n-proto-experiment-next">Phase 2 — Cap&#39;n Proto experiment (next)</h3>
+<p>The reference adapter currently preserves:</p>
+<ul><li>reflection, proto, and protoset schema paths;</li><li>unary, client-streaming, server-streaming, and bidirectional invocation;</li><li>visible request metadata, deadlines, cancellation, response headers, messages, trailers, status,</li></ul>
+<p>and timing;</p>
+<ul><li>bounded loopback discovery plus an explicit-target policy that reports reflection and transport</li></ul>
+<p>outcomes separately;</p>
+<ul><li>credentials and binary metadata kept out of automatic history and default exports.</li></ul>
+<p>Channelz links, pre-invoke hooks, and richer flow reports are proposals, not current controls. They need fixtures and a native evidence model before entering the workbench.</p>
+<h3 id="phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</h3>
+<p>The first HTTP adapter supports one explicit request path: method, URL, query params, headers, live auth input, raw body, timeout, redirect choice, cancellation, and a native response inspector. It uses Go&#39;s standard HTTP stack and accepts only <code>http</code> and <code>https</code> URLs. TLS verification is on and redirect following is off by default.</p>
+<p>This slice deliberately excludes OpenAPI discovery, a cookie jar, cloud sync, script runners, mock servers, OAuth app marketplaces, and team workspaces. Those features are not implied by the HTTP surface and would require separate product and security review.</p>
+<h3 id="phase-3-cap-n-proto-experiment-planned-and-gated">Phase 3 — Cap&#39;n Proto experiment (planned and gated)</h3>
 <p>Start with one useful, local path rather than a large protocol surface:</p>
 <ol><li><div class="pp-doc-list-title">Accept a schema file and an explicit capability bootstrap configuration.</div></li><li><div class="pp-doc-list-title">Discover one unary operation and generate a typed editable request.</div></li><li><div class="pp-doc-list-title">Show message segments, capability resolution, and call outcome in a Cap&#39;n Proto inspector.</div></li><li><div class="pp-doc-list-title">Keep the adapter behind an experimental flag or optional companion until dependency and binary</div><p>costs are measured.</p></li><li><div class="pp-doc-list-title">Add fixture servers and failure cases for missing capabilities, malformed segments, and timeout.</div></li></ol>
 <p>Exit gate: a user can understand what capability was requested, what was sent, and why a call failed without reading a generic JSON translation.</p>
-<h3 id="phase-3-bounded-rest-http-next">Phase 3 — bounded REST / HTTP (next)</h3>
-<p>Support one excellent local request path:</p>
-<ul><li>method and URL;</li><li>headers and explicit auth input;</li><li>JSON or raw body editor;</li><li>response status, headers, body, timing, and cancellation;</li><li>optional OpenAPI operation discovery;</li><li>saved request recipes and export using the same local-first rules.</li></ul>
-<p>The first REST adapter excludes cloud sync, cookies, script runners, mock servers, OAuth app marketplaces, and team workspaces. Those features would change the product boundary rather than improve the protocol-peek workflow.</p>
-<p>Exit gate: HTTP concepts remain visible and the adapter does not make gRPC users feel they are in a generic API shell.</p>
-<h3 id="phase-4-protocol-shelf-later">Phase 4 — protocol shelf (later)</h3>
+<h3 id="phase-4-route-trace-and-lan-discovery-planned-and-gated">Phase 4 — route trace and LAN discovery (planned and gated)</h3>
+<ul><li>Route trace must be attached to a supported request path, expose its data source and uncertainty,</li></ul>
+<p>and have fixtures for partial or unavailable evidence before a control is added.</p>
+<ul><li>LAN discovery must be explicitly enabled for a previewed private range, enforce strict candidate</li></ul>
+<p>and time budgets, support cancellation, and never become ambient or public scanning.</p>
+<ul><li>Neither item appears as a request-surface tab until its gate is met.</li></ul>
+<h3 id="phase-5-protocol-shelf-later">Phase 5 — protocol shelf (later)</h3>
 <p>SMTP, FTP, and other request-server protocols are candidates, not commitments. For each one, write a short protocol brief before implementation:</p>
 <ul><li>What is the smallest useful local request?</li><li>What is the native evidence (envelope, command transcript, status, stream, capability, or body)?</li><li>What credentials or destructive actions need an explicit boundary?</li><li>Can it ship as an opt-in adapter without bloating the gRPC path?</li><li>What failure states deserve a dedicated inspector rather than a generic error banner?</li></ul>
 <p>If those answers are weak, keep the protocol in research instead of adding a superficial tab.</p>
 <h2 id="ux-rules-for-every-adapter">UX rules for every adapter</h2>
-<ol><li><div class="pp-doc-list-title"><strong>Less typing, more signal.</strong> Discover local targets and schemas where safe; never silently probe</div><p>arbitrary public hosts.</p></li><li><div class="pp-doc-list-title"><strong>One obvious primary action.</strong> The request workspace should make invoke/send easy to find and</div><p>cancellation equally clear.</p></li><li><div class="pp-doc-list-title"><strong>Evidence beside the action.</strong> Put headers, trailers, status, timing, and native details near</div><p>the response, not behind an unrelated settings screen.</p></li><li><div class="pp-doc-list-title"><strong>Protocol words matter.</strong> Do not call every result “response JSON” when it is a stream, segment,</div><p>capability, or HTTP body.</p></li><li><div class="pp-doc-list-title"><strong>Local means local.</strong> Persist only what the user saves; do not introduce an account to make the</div><p>core workflow work.</p></li><li><div class="pp-doc-list-title"><strong>Keyboard and narrow screens count.</strong> Preserve command palette, search, shortcuts, and a useful</div><p>mobile request/response flow.</p></li></ol>
+<ol><li><div class="pp-doc-list-title"><strong>Less typing, more signal.</strong> Discover local targets and schemas where safe; never silently probe</div><p>arbitrary public hosts.</p></li><li><div class="pp-doc-list-title"><strong>One obvious primary action.</strong> The request workspace should make invoke/send easy to find and</div><p>cancellation equally clear.</p></li><li><div class="pp-doc-list-title"><strong>Evidence beside the action.</strong> Put headers, trailers, status, timing, and native details near</div><p>the response, not behind an unrelated settings screen.</p></li><li><div class="pp-doc-list-title"><strong>Protocol words matter.</strong> Do not call every result “response JSON” when it is a stream, segment,</div><p>capability, or HTTP body.</p></li><li><div class="pp-doc-list-title"><strong>Local means local.</strong> Do not introduce an account to make the core workflow work. Redact</div><p>credentials and binary metadata from automatic history and default exports.</p></li><li><div class="pp-doc-list-title"><strong>Keyboard and narrow screens count.</strong> Preserve command palette, search, shortcuts, and a useful</div><p>mobile request/response flow.</p></li></ol>
 <h2 id="verification-gates">Verification gates</h2>
 <p>Before an adapter is called shipped:</p>
 <ul><li>unit and contract tests cover discovery, invocation, cancellation, malformed input, and timeouts;</li><li>a local fixture server exercises successful and failure paths;</li><li>default gRPC startup time and bundle size do not materially regress;</li><li>secrets are not persisted accidentally;</li><li>browser QA proves the primary action, response evidence, error state, and narrow layout;</li><li>README, website, roadmap, product metadata, and screenshots all describe the same current state;</li><li>the adapter has a rollback flag or can be omitted from the default binary.</li></ul>
@@ -152,7 +163,7 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">On this page</div>
               <div class="pp-doc-toc">
-                <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-release-grpc-reference-adapter">Current release: gRPC reference adapter</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-cap-n-proto-experiment-next">Phase 2 — Cap&#39;n Proto experiment (next)</a><a class="level-3" href="#phase-3-bounded-rest-http-next">Phase 3 — bounded REST / HTTP (next)</a><a class="level-3" href="#phase-4-protocol-shelf-later">Phase 4 — protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-2" href="#research-trail">Research trail</a>
+                <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-workbench-grpc-http">Current workbench: gRPC + HTTP</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</a><a class="level-3" href="#phase-3-cap-n-proto-experiment-planned-and-gated">Phase 3 — Cap&#39;n Proto experiment (planned and gated)</a><a class="level-3" href="#phase-4-route-trace-and-lan-discovery-planned-and-gated">Phase 4 — route trace and LAN discovery (planned and gated)</a><a class="level-3" href="#phase-5-protocol-shelf-later">Phase 5 — protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-2" href="#research-trail">Research trail</a>
               </div>
             </section>
 
@@ -165,7 +176,7 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">More ProtoPeek docs</div>
               <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
               </div>
             </section>
           </aside>

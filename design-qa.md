@@ -4,11 +4,18 @@
 
 - Desktop concept: `design/protopeek-workbench-desktop-v2.png` (1487 × 1058)
 - Mobile concept: `design/protopeek-workbench-mobile-v2.png` (853 × 1844, scroll-state exploration)
+- Multi-protocol concept: `design/protopeek-multiprotocol-workbench-v1.png` (generated direction,
+  not a runtime capture)
 - Before-state audit: `/tmp/protopeek-audit/01-launcher-current.png` and `/tmp/protopeek-audit/02-launcher-mobile-current.png`
 
 The concepts established a compact dark application shell, persistent service/method navigation,
 a light request editor, a dark response timeline, and a mobile Request/Response switch. The build
 uses those decisions without reproducing concept-only window chrome or fictional services.
+
+The multi-protocol concept added the thin `REQUESTS` rail, a method-and-URL HTTP request paper, and
+dark response evidence while keeping gRPC intact. The implementation follows that hierarchy with
+only real gRPC and HTTP routes. It deliberately omits concept-only Cap'n Proto, Hops, and LAN tabs;
+those appear only as gated plans in Help and the roadmap.
 
 ## Connected implementation captures
 
@@ -19,6 +26,8 @@ uses those decisions without reproducing concept-only window chrome or fictional
 | `/tmp/protopeek-qa/workbench-mobile-request.jpg` | 390 × 844, 1× | Request editor with persistent deadline/invoke controls |
 | `/tmp/protopeek-qa/workbench-mobile-response.jpg` | 390 × 844, 1× | Response timeline and selected-message evidence |
 | `/tmp/protopeek-qa/workbench-mobile-navigation.jpg` | 390 × 844, 1× | Service drawer open over the response workspace |
+| `output/multiprotocol-qa/http-desktop.png` | 1440 × 1000, 1× | HTTP request editor and dark evidence pane at the initial route |
+| `output/multiprotocol-qa/http-320.png` | 320 × 900, 1× | HTTP one-pane request layout at the minimum supported width |
 
 ## Comparison and iteration
 
@@ -48,4 +57,19 @@ interaction is hidden without a mobile equivalent.
 - No blocking runtime error or broken interactive state appeared during the connected desktop and
   mobile passes.
 
-final result: passed
+## Multi-protocol slice notes
+
+- HTTP has native Params, Headers, Auth, and Body request tabs plus Body, Headers, Timing,
+  Redirects, and Status evidence. It does not pretend to provide OpenAPI discovery, a cookie jar,
+  scripts, mock servers, TLS bypass, route trace, or a network map.
+- The live request editor can hold credentials, while automatic history and default exports redact
+  authorization, cookies, proxy authorization, binary metadata, and key/token-like metadata.
+- The browser surface uses a hash route so both adapters remain addressable in an embedded binary;
+  request secrets are component state and never route parameters.
+- Automated component coverage exercises HTTP send, safe history, tab semantics, and the default
+  TLS/redirect copy. The new initial-route captures verify the desktop and 320 px layout against the
+  generated concept; a full interaction pass against representative live HTTP targets remains a
+  release-candidate QA task.
+
+Prior connected gRPC capture result: passed. Multi-protocol initial-route visual result: passed.
+Backend interaction coverage and the remaining live-browser QA are recorded in the task handoff.

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -17,12 +18,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
+	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/fullstorydev/grpcurl"
@@ -161,6 +165,9 @@ var (
 		The port on which the web UI is exposed.`))
 	bind = flags.String("bind", "127.0.0.1", prettify(`
 		The address on which the web UI is exposed.`))
+	unsafeAllowRemote = flags.Bool("unsafe-allow-remote", false, prettify(`
+		Allow the unauthenticated browser UI on a non-loopback bind address.
+		This is unsafe and should only be used behind an access-controlled proxy.`))
 	basePath = flags.String("base-path", "/", prettify(`
 		The path on which the web UI is exposed.
 		Defaults to slash ("/"), which is the root of the server.
@@ -427,6 +434,12 @@ func main() {
 	}
 	if !strings.HasPrefix(*basePath, "/") {
 		fail(nil, `The -base-path must begin with a slash ("/")`)
+	}
+	if err := validateLegacyWebBind(*bind, *unsafeAllowRemote); err != nil {
+		fail(nil, err.Error())
+	}
+	if *unsafeAllowRemote {
+		warn("unsafe remote web access enabled on %s; grpcui compatibility mode does not provide authentication", *bind)
 	}
 
 	assetNames := map[string]string{}
@@ -719,8 +732,9 @@ func main() {
 		mux.Handle(withoutSlash+"/", http.StripPrefix(withoutSlash, handler))
 		handler = mux
 	}
+	handler = legacyLocalAccessHandler(handler, *unsafeAllowRemote)
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *bind, *port))
+	listener, err := net.Listen("tcp", net.JoinHostPort(legacyRequestHostname(*bind), strconv.Itoa(*port)))
 	if err != nil {
 		fail(err, "Failed to listen on port %d", *port)
 	}
@@ -729,7 +743,7 @@ func main() {
 	if !strings.HasSuffix(path, "/") {
 		path += "/"
 	}
-	url := fmt.Sprintf("http://%s:%d%s", *bind, listener.Addr().(*net.TCPAddr).Port, path)
+	url := legacyBrowserURL(*bind, listener.Addr().(*net.TCPAddr).Port, path)
 	fmt.Printf("gRPC Web UI available at %s\n", url)
 
 	if *openBrowser {
@@ -739,9 +753,82 @@ func main() {
 			}
 		}()
 	}
-	if err := http.Serve(listener, handler); err != nil {
-		fail(err, "Failed to serve web UI")
+	server := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+	shutdownContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	serveErrors := make(chan error, 1)
+	go func() { serveErrors <- server.Serve(listener) }()
+
+	select {
+	case err := <-serveErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			fail(err, "Failed to serve web UI")
+		}
+	case <-shutdownContext.Done():
+		graceContext, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+		err := server.Shutdown(graceContext)
+		cancelShutdown()
+		if err != nil {
+			_ = server.Close()
+			warn("grpcui shutdown exceeded its grace period: %v", err)
+		}
+		if serveErr := <-serveErrors; serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			fail(serveErr, "Failed to serve web UI")
+		}
+	}
+}
+
+func legacyBrowserURL(bindAddress string, port int, path string) string {
+	return fmt.Sprintf("http://%s%s", net.JoinHostPort(legacyRequestHostname(bindAddress), strconv.Itoa(port)), path)
+}
+
+func validateLegacyWebBind(bindAddress string, unsafeAllowRemote bool) error {
+	if unsafeAllowRemote || legacyLoopbackHost(bindAddress) {
+		return nil
+	}
+	return fmt.Errorf("refusing non-loopback web bind %q without -unsafe-allow-remote", bindAddress)
+}
+
+func legacyLocalAccessHandler(next http.Handler, unsafeAllowRemote bool) http.Handler {
+	if unsafeAllowRemote {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !legacyLoopbackHost(legacyRequestHostname(r.Host)) {
+			http.Error(w, "grpcui only accepts local browser requests", http.StatusForbidden)
+			return
+		}
+		if origin := strings.TrimSpace(r.Header.Get("Origin")); origin != "" {
+			parsed, err := url.Parse(origin)
+			if err != nil || parsed.Host == "" || !strings.EqualFold(strings.TrimSuffix(parsed.Host, "."), strings.TrimSuffix(r.Host, ".")) {
+				http.Error(w, "grpcui rejected a cross-origin request", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func legacyRequestHostname(hostport string) string {
+	hostport = strings.TrimSpace(hostport)
+	if host, _, err := net.SplitHostPort(hostport); err == nil {
+		return host
+	}
+	return strings.Trim(hostport, "[]")
+}
+
+func legacyLoopbackHost(host string) bool {
+	host = strings.TrimSuffix(legacyRequestHostname(host), ".")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func usage() {

@@ -23,6 +23,9 @@ func TestBootstrapCollectionsAreArrays(t *testing.T) {
 	}
 	assertJSONArray(t, payload, "defaultMetadata")
 	assertJSONArray(t, payload, "services")
+	if payload["initialScanTarget"] != "" {
+		t.Fatalf("initialScanTarget = %#v, want empty string", payload["initialScanTarget"])
+	}
 	defaults := payload["targetDefaults"].(map[string]any)
 	assertJSONArray(t, defaults, "protoFiles")
 	assertJSONArray(t, defaults, "importPaths")

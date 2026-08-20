@@ -8,15 +8,15 @@
   --pp-sidebar-ink: #e5e7eb;
   --pp-sidebar-muted: #9ca3af;
   --pp-sidebar-hover: #1f2937;
-  --pp-sidebar-active: #3b82f6;
+  --pp-sidebar-active: #0d9488;
   --pp-panel: #ffffff;
   --pp-panel-strong: #ffffff;
   --pp-border: #e2e5ea;
   --pp-ink: #111827;
   --pp-muted: #6b7280;
-  --pp-brand: #3b82f6;
-  --pp-brand-strong: #2563eb;
-  --pp-accent: #f59e0b;
+  --pp-brand: #0d9488;
+  --pp-brand-strong: #0f766e;
+  --pp-accent: #d97706;
   --pp-danger: #ef4444;
   --pp-ok: #10b981;
 }
@@ -51,7 +51,7 @@
   }
 
   ::selection {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(13, 148, 136, 0.22);
   }
 
   button,
@@ -815,6 +815,7 @@
   }
   .pp-pane-tabs {
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 0 0.5rem;
   }
   .pp-metadata-row {
@@ -1201,10 +1202,6 @@
     font-size: 0.64rem;
   }
 
-  .pp-command-trigger svg {
-    width: 0.75rem;
-  }
-
   .pp-command-trigger kbd {
     border-radius: 0.2rem;
     padding: 0.08rem 0.28rem;
@@ -1520,7 +1517,7 @@
   .pp-command-list button {
     display: grid;
     width: 100%;
-    grid-template-columns: 1rem minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.6rem;
     border-radius: 0.38rem;
@@ -1535,10 +1532,6 @@
     outline: 0;
     background: #153039;
     color: #f1f8fa;
-  }
-
-  .pp-command-list svg {
-    width: 0.75rem;
   }
 
   .pp-command-list kbd {
@@ -1985,4 +1978,1067 @@
 :focus-visible {
   outline: 2px solid #3dd7cd;
   outline-offset: 2px;
+}
+
+@layer components {
+  .pp-protocol-frame {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: #070c10;
+  }
+
+  .pp-protocol-surface {
+    min-width: 0;
+    height: 100vh;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .pp-protocol-rail {
+    z-index: 60;
+    display: flex;
+    width: 4.25rem;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    border-right: 1px solid #23313a;
+    padding: 0.55rem 0.35rem;
+    background: #071016;
+    color: #778a95;
+  }
+
+  .pp-protocol-mark {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 0.45rem;
+    margin-bottom: 0.45rem;
+    background: #25c5ba;
+    color: #04110f;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    font-weight: 900;
+  }
+
+  .pp-rail-label {
+    margin: 0.2rem 0 0.35rem;
+    color: #4f636e;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .pp-protocol-rail > a,
+  .pp-rail-help {
+    display: grid;
+    width: 3.35rem;
+    min-height: 3.35rem;
+    place-items: center;
+    align-content: center;
+    gap: 0.2rem;
+    border-radius: 0.45rem;
+    color: #748893;
+    font-size: 0.56rem;
+    font-weight: 700;
+  }
+
+  .pp-protocol-rail > a:hover,
+  .pp-protocol-rail > a.is-active,
+  .pp-rail-help:hover {
+    background: #122229;
+    color: #e6f4f3;
+  }
+
+  .pp-protocol-rail > a.is-active {
+    box-shadow: inset 2px 0 #31d0c5;
+  }
+
+  .pp-protocol-rail svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .pp-protocol-glyph,
+  .pp-http-glyph {
+    display: grid;
+    width: 1rem;
+    height: 1rem;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-style: normal;
+    font-weight: 850;
+  }
+
+  .pp-rail-help > i {
+    display: grid;
+    width: 1rem;
+    height: 1rem;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-style: normal;
+  }
+
+  .pp-rail-help {
+    margin-top: auto;
+  }
+
+  .pp-help-layer {
+    position: fixed;
+    z-index: 100;
+    inset: 0;
+  }
+
+  .pp-help-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: rgba(1, 6, 9, 0.72);
+    cursor: default;
+  }
+
+  .pp-help-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    width: min(27rem, 100%);
+    height: 100%;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow-y: auto;
+    border-left: 1px solid #2b3b44;
+    padding: 1.25rem;
+    background: #0b141a;
+    box-shadow: -1.5rem 0 4rem rgba(0, 0, 0, 0.35);
+    color: #cbd8dd;
+  }
+
+  .pp-help-drawer > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid #26343c;
+    padding-bottom: 1rem;
+  }
+
+  .pp-help-drawer header span,
+  .pp-help-drawer h3 {
+    color: #58d9d0;
+    font-size: 0.63rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .pp-help-drawer h2 {
+    margin-top: 0.45rem;
+    color: #f0f7f8;
+    font-size: 1.2rem;
+    font-weight: 750;
+    line-height: 1.2;
+  }
+
+  .pp-help-drawer header button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    place-items: center;
+    border: 1px solid #2b3b44;
+    border-radius: 0.4rem;
+  }
+
+  .pp-help-drawer header svg {
+    width: 0.9rem;
+  }
+
+  .pp-help-drawer section {
+    border: 1px solid #22323b;
+    border-radius: 0.55rem;
+    padding: 1rem;
+    background: #0e1920;
+  }
+
+  .pp-help-drawer ul {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+    padding-left: 1.1rem;
+    color: #91a4ae;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    list-style: square;
+  }
+
+  .pp-help-planned p {
+    margin-top: 0.65rem;
+    color: #82959f;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .pp-scan-failures,
+  .pp-probe-details {
+    margin-top: 0.65rem;
+    color: #718691;
+    font-size: 0.64rem;
+  }
+
+  .pp-scan-failures summary,
+  .pp-probe-details summary {
+    cursor: pointer;
+    color: #8197a2;
+  }
+
+  .pp-scan-failures ul,
+  .pp-probe-details ul {
+    display: grid;
+    gap: 0.35rem;
+    max-height: 10rem;
+    overflow: auto;
+    margin-top: 0.45rem;
+  }
+
+  .pp-scan-failures li {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  .pp-scan-failures span,
+  .pp-probe-details li {
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-workbench {
+    --pp-http-teal: #27c8bd;
+    display: flex;
+    height: 100vh;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: #081016;
+    color: #dce6ea;
+  }
+
+  .pp-http-header {
+    position: relative;
+    display: flex;
+    min-height: 3.5rem;
+    align-items: center;
+    gap: 0.8rem;
+    border-bottom: 1px solid #25343d;
+    padding: 0 0.9rem;
+    background: #0b141a;
+  }
+
+  .pp-http-header > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .pp-http-header > div svg {
+    width: 0.95rem;
+    color: var(--pp-http-teal);
+  }
+
+  .pp-http-header > div span {
+    color: #60d8d0;
+    font-family: var(--font-mono);
+    font-size: 0.67rem;
+    font-weight: 750;
+  }
+
+  .pp-http-header > div strong {
+    color: #aab9c0;
+    font-size: 0.72rem;
+  }
+
+  .pp-http-history {
+    position: relative;
+    margin-left: auto;
+  }
+
+  .pp-http-history > summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid #2a3a43;
+    border-radius: 0.4rem;
+    padding: 0.42rem 0.6rem;
+    color: #93a4ac;
+    cursor: pointer;
+    font-size: 0.67rem;
+    list-style: none;
+  }
+
+  .pp-http-history > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pp-http-history summary svg {
+    width: 0.75rem;
+  }
+
+  .pp-http-history summary span {
+    border-radius: 999px;
+    padding: 0.05rem 0.3rem;
+    background: #173039;
+    color: #75dcd4;
+    font-size: 0.56rem;
+  }
+
+  .pp-http-history[open] > div {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    width: min(25rem, calc(100vw - 6rem));
+    max-height: 28rem;
+    overflow-y: auto;
+    border: 1px solid #31434d;
+    border-radius: 0.55rem;
+    padding: 0.45rem;
+    background: #0d171e;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.4);
+  }
+
+  .pp-http-history div > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.5rem 0.65rem;
+    color: #d4e0e4;
+    font-size: 0.7rem;
+  }
+
+  .pp-http-history div > header button {
+    color: #75dcd4;
+    font-size: 0.63rem;
+  }
+
+  .pp-http-history div > button {
+    display: grid;
+    width: 100%;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.25rem 0.55rem;
+    border-top: 1px solid #202f37;
+    padding: 0.55rem;
+    color: #a8b8bf;
+    text-align: left;
+  }
+
+  .pp-http-history div > button:hover {
+    background: #12232b;
+  }
+
+  .pp-http-history div > button span,
+  .pp-http-history div > button strong {
+    font-size: 0.62rem;
+  }
+
+  .pp-http-history div > button span {
+    color: #68d9d1;
+    font-family: var(--font-mono);
+  }
+
+  .pp-http-history div > button strong {
+    text-align: right;
+  }
+
+  .pp-http-history div > button code {
+    overflow: hidden;
+    grid-column: 1 / -1;
+    color: #748892;
+    font-size: 0.59rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pp-http-history div > button small {
+    grid-column: 1 / -1;
+    color: #526873;
+    font-size: 0.55rem;
+  }
+
+  .pp-http-history div > p {
+    padding: 1rem;
+    color: #718690;
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .pp-http-request-line {
+    display: grid;
+    min-height: 4.1rem;
+    grid-template-columns: 7.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.55rem;
+    border-bottom: 1px solid #273640;
+    padding: 0.65rem 0.85rem;
+    background: #101a21;
+  }
+
+  .pp-http-request-line select,
+  .pp-http-request-line input {
+    height: 2.65rem;
+    border: 1px solid #33454f;
+    border-radius: 0.42rem;
+    outline: 0;
+    background: #f8fbfb;
+    color: #132127;
+  }
+
+  .pp-http-request-line select {
+    padding: 0 0.7rem;
+    color: #087c75;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 850;
+  }
+
+  .pp-http-request-line input {
+    min-width: 0;
+    padding: 0 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+  }
+
+  .pp-http-request-line input:focus,
+  .pp-http-request-line select:focus {
+    border-color: #2bcbbf;
+    box-shadow: 0 0 0 2px rgba(43, 203, 191, 0.18);
+  }
+
+  .pp-http-send {
+    display: inline-flex;
+    height: 2.65rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 0.42rem;
+    padding: 0 0.9rem;
+    background: var(--pp-http-teal);
+    color: #041311;
+    font-size: 0.76rem;
+    font-weight: 850;
+  }
+
+  .pp-http-send.is-cancel {
+    background: #f08a7e;
+    color: #250b08;
+  }
+
+  .pp-http-send svg {
+    width: 0.8rem;
+  }
+
+  .pp-http-send kbd {
+    color: rgba(4, 19, 17, 0.62);
+    font-size: 0.56rem;
+  }
+
+  .pp-http-workspace {
+    display: grid;
+    min-height: 0;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1px;
+    overflow: hidden;
+    background: #273640;
+  }
+
+  .pp-http-workspace > * {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .pp-http-request-editor {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: #f5f8f8;
+    color: #142329;
+  }
+
+  .pp-http-request-settings {
+    display: flex;
+    min-height: 2.7rem;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid #d8e0e1;
+    padding: 0 0.85rem;
+    color: #566970;
+    font-size: 0.66rem;
+  }
+
+  .pp-http-request-settings label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .pp-http-request-settings svg {
+    width: 0.72rem;
+  }
+
+  .pp-http-request-settings input[type="number"] {
+    width: 3.5rem;
+    border: 1px solid #ccd6d8;
+    border-radius: 0.28rem;
+    padding: 0.24rem 0.35rem;
+    background: white;
+    font-family: var(--font-mono);
+  }
+
+  .pp-http-request-settings > span {
+    margin-left: auto;
+    color: #198a82;
+    font-weight: 700;
+  }
+
+  .pp-http-request-tabs {
+    border-color: #d8e0e1;
+    background: #eef3f3;
+  }
+
+  .pp-http-request-tabs .pp-pane-tab {
+    color: #65777d;
+  }
+
+  .pp-http-request-tabs .pp-pane-tab:hover,
+  .pp-http-request-tabs .pp-pane-tab-active {
+    color: #0f625e;
+  }
+
+  .pp-http-request-tabs .pp-pane-tab-active::after {
+    background: #1cb3aa;
+  }
+
+  .pp-http-request-content {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+  }
+
+  .pp-http-request-content > [role="tabpanel"] {
+    min-height: 100%;
+  }
+
+  .pp-http-key-values {
+    padding: 1rem;
+  }
+
+  .pp-http-key-values > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.7rem;
+    color: #31444a;
+    font-size: 0.72rem;
+  }
+
+  .pp-http-key-values header button,
+  .pp-http-evidence-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #087d76;
+    font-size: 0.67rem;
+    font-weight: 700;
+  }
+
+  .pp-http-key-values header svg,
+  .pp-http-evidence-toolbar svg {
+    width: 0.72rem;
+  }
+
+  .pp-http-key-values > div {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.55fr) minmax(8rem, 1fr) auto;
+    gap: 0.45rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .pp-http-key-values input,
+  .pp-http-auth-panel input,
+  .pp-http-auth-panel select,
+  .pp-http-body-editor select {
+    min-width: 0;
+    border: 1px solid #cad5d7;
+    border-radius: 0.35rem;
+    outline: 0;
+    padding: 0.56rem 0.65rem;
+    background: white;
+    color: #18282e;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+  }
+
+  .pp-http-key-values input:focus,
+  .pp-http-auth-panel input:focus,
+  .pp-http-auth-panel select:focus,
+  .pp-http-body-editor select:focus {
+    border-color: #24b8ae;
+  }
+
+  .pp-http-key-values > div > button {
+    display: grid;
+    width: 2rem;
+    place-items: center;
+    color: #74878d;
+  }
+
+  .pp-http-key-values > div > button svg {
+    width: 0.75rem;
+  }
+
+  .pp-http-key-values > p,
+  .pp-http-auth-panel > p {
+    color: #76888e;
+    font-size: 0.7rem;
+  }
+
+  .pp-http-auth-panel {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+
+  .pp-http-auth-panel > label {
+    display: grid;
+    gap: 0.3rem;
+    color: #506269;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  .pp-http-auth-panel > .pp-http-secret-note {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-top: 1px solid #d6dfe0;
+    padding-top: 0.8rem;
+    color: #167b75;
+  }
+
+  .pp-http-auth-panel > .pp-http-secret-note svg {
+    width: 0.76rem;
+  }
+
+  .pp-http-body-editor {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+  }
+
+  .pp-http-body-editor > div {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #d7e0e1;
+    padding: 0 0.85rem;
+    color: #66787e;
+    font-size: 0.65rem;
+  }
+
+  .pp-http-body-editor label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 700;
+  }
+
+  .pp-http-body-editor select {
+    padding: 0.35rem 0.55rem;
+  }
+
+  .pp-http-body-editor textarea {
+    min-height: 16rem;
+    flex: 1;
+    resize: none;
+    border: 0;
+    outline: 0;
+    padding: 1rem;
+    background: #fbfdfd;
+    color: #173039;
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    line-height: 1.6;
+  }
+
+  .pp-http-body-editor textarea:disabled {
+    background: #f1f5f5;
+    color: #9aa8ac;
+  }
+
+  .pp-http-response {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: #091117;
+    color: #dbe6ea;
+  }
+
+  .pp-http-response-summary {
+    display: flex;
+    min-height: 2.7rem;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid #25343d;
+    padding: 0 0.85rem;
+    color: #758a95;
+    font-size: 0.68rem;
+  }
+
+  .pp-http-response-summary strong {
+    overflow: hidden;
+    color: #b7c5cb;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pp-http-response-content {
+    min-height: 0;
+    flex: 1;
+    overflow: auto;
+    background: #070d12;
+  }
+
+  .pp-http-response-content > [role="tabpanel"] {
+    min-height: 100%;
+  }
+
+  .pp-http-evidence-toolbar {
+    display: flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1f2c34;
+    padding: 0 0.85rem;
+    color: #71858f;
+    font-size: 0.65rem;
+  }
+
+  .pp-http-body-panel pre {
+    overflow: auto;
+    padding: 1rem;
+    color: #c6eee9;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-header-table {
+    padding: 0.7rem 1rem;
+  }
+
+  .pp-http-header-table > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
+    gap: 1rem;
+    border-bottom: 1px solid #1d2a32;
+    padding: 0.65rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+  }
+
+  .pp-http-header-table dt {
+    color: #62d3cb;
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-header-table dd {
+    color: #a7b7be;
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-timings {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem;
+  }
+
+  .pp-http-timings > p {
+    margin-bottom: 0.35rem;
+    color: #71858f;
+    font-size: 0.68rem;
+  }
+
+  .pp-http-timing-row {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr) 5rem;
+    align-items: center;
+    gap: 0.7rem;
+    color: #899ba4;
+    font-size: 0.67rem;
+  }
+
+  .pp-http-timing-row i {
+    display: block;
+    height: 0.42rem;
+    border-radius: 99px;
+    background: #2bc8be;
+  }
+
+  .pp-http-timing-value {
+    color: #a6b6bd;
+    text-align: right;
+  }
+
+  .pp-http-redirect-list {
+    display: grid;
+    gap: 0.7rem;
+    padding: 1rem;
+  }
+
+  .pp-http-redirect-list li {
+    display: grid;
+    grid-template-columns: 1.6rem minmax(0, 1fr);
+    gap: 0.7rem;
+    border: 1px solid #24333c;
+    border-radius: 0.48rem;
+    padding: 0.7rem;
+    background: #0c151b;
+  }
+
+  .pp-http-redirect-list li > span {
+    display: grid;
+    width: 1.5rem;
+    height: 1.5rem;
+    place-items: center;
+    border-radius: 99px;
+    background: #15343a;
+    color: #69d9d1;
+    font-size: 0.6rem;
+  }
+
+  .pp-http-redirect-list strong,
+  .pp-http-redirect-url,
+  .pp-http-redirect-list small {
+    display: block;
+  }
+
+  .pp-http-redirect-list strong {
+    color: #d1dde1;
+    font-size: 0.7rem;
+  }
+
+  .pp-http-redirect-url,
+  .pp-http-redirect-list small {
+    margin-top: 0.3rem;
+    color: #71858f;
+    font-size: 0.61rem;
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-status-grid {
+    display: grid;
+    padding: 0.8rem 1rem;
+  }
+
+  .pp-http-status-grid > div {
+    display: grid;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 1rem;
+    border-bottom: 1px solid #1e2b33;
+    padding: 0.72rem 0;
+    font-size: 0.69rem;
+  }
+
+  .pp-http-status-grid dt {
+    color: #6e838e;
+  }
+
+  .pp-http-status-grid dd {
+    color: #bdcbd0;
+    overflow-wrap: anywhere;
+  }
+
+  .pp-http-mobile-tabs {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .pp-protocol-frame {
+    flex-direction: column;
+  }
+
+  .pp-protocol-surface {
+    width: 100%;
+    height: calc(100vh - 3.15rem);
+  }
+
+  .pp-protocol-rail {
+    width: 100%;
+    height: 3.15rem;
+    flex-direction: row;
+    gap: 0.25rem;
+    border-right: 0;
+    border-bottom: 1px solid #23313a;
+    padding: 0.3rem 0.45rem;
+  }
+
+  .pp-protocol-mark {
+    width: 2.2rem;
+    height: 2.2rem;
+    margin: 0 0.35rem 0 0;
+  }
+
+  .pp-rail-label {
+    display: none;
+  }
+
+  .pp-protocol-rail > a,
+  .pp-rail-help {
+    width: auto;
+    min-width: 3.4rem;
+    min-height: 2.35rem;
+    grid-template-columns: auto auto;
+    padding: 0 0.5rem;
+  }
+
+  .pp-protocol-rail > a.is-active {
+    box-shadow: inset 0 -2px #31d0c5;
+  }
+
+  .pp-rail-help {
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  .pp-protocol-surface .pp-shell,
+  .pp-protocol-surface .pp-launcher,
+  .pp-http-workbench {
+    height: calc(100vh - 3.15rem);
+    min-height: 0;
+  }
+
+  .pp-http-header {
+    min-height: 3rem;
+    padding: 0 0.55rem;
+  }
+
+  .pp-http-header > div strong,
+  .pp-http-header .pp-connection-fact {
+    display: none;
+  }
+
+  .pp-http-history[open] > div {
+    position: fixed;
+    top: 6.4rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+  }
+
+  .pp-http-request-line {
+    min-height: 6.4rem;
+    grid-template-columns: 5.8rem minmax(0, 1fr);
+    padding: 0.55rem;
+  }
+
+  .pp-http-request-line input {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .pp-http-request-line select {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .pp-http-send {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .pp-http-mobile-tabs {
+    display: flex;
+    min-height: 2.8rem;
+    align-items: stretch;
+    border-bottom: 1px solid #25343d;
+    background: #0b141a;
+  }
+
+  .pp-http-mobile-tabs .pp-pane-tab {
+    flex: 1;
+    text-align: center;
+  }
+
+  .pp-http-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-http-workspace > [role="tabpanel"] {
+    height: 100%;
+  }
+
+  .pp-http-request-settings {
+    flex-wrap: wrap;
+    gap: 0.45rem 0.8rem;
+    padding: 0.45rem 0.65rem;
+  }
+
+  .pp-http-request-settings > span {
+    margin-left: 0;
+  }
+
+  .pp-http-header-table > div,
+  .pp-http-status-grid > div {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 360px) {
+  .pp-protocol-rail > a,
+  .pp-rail-help {
+    min-width: 2.9rem;
+    padding: 0 0.25rem;
+  }
+
+  .pp-http-request-line {
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+  }
+
+  .pp-http-send kbd,
+  .pp-http-header > div span {
+    display: none;
+  }
+
+  .pp-http-key-values > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pp-http-key-values > div input:nth-child(2) {
+    grid-column: 1;
+  }
+
+  .pp-http-timing-row {
+    grid-template-columns: 3rem minmax(0, 1fr) 4.2rem;
+  }
 }

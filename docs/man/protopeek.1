@@ -1,0 +1,116 @@
+.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.2.0 candidate" "User Commands"
+.SH NAME
+protopeek \- open the local ProtoPeek gRPC and HTTP workbench
+.SH SYNOPSIS
+.B protopeek
+.RI [ options ]
+.br
+.B protopeek
+.RI [ options ]
+.I target
+.SH DESCRIPTION
+ProtoPeek starts an unauthenticated local web workbench. With no target it opens
+the workspace launcher. An exact host:port connects directly to that gRPC
+target. A bare host opens the launcher and checks only port 50051 with plaintext
+and port 443 with verified TLS. An HTTP(S) authority checks its stated or
+default port. The HTTP workbench is available from the local browser interface.
+.PP
+The listener binds to 127.0.0.1 by default. Do not expose it to an untrusted
+network. A non-loopback bind requires the explicit
+.B \-unsafe-allow-remote
+option and an external access-control boundary.
+.SH COMMON OPTIONS
+.TP
+.B \-help
+Print the complete command-line reference and exit.
+.TP
+.B \-version
+Print the installed version and exit.
+.TP
+.B \-plaintext
+Use unencrypted HTTP/2 for the target gRPC connection.
+.TP
+.B \-insecure
+Use TLS without verifying the server certificate or name. This is not secure
+and cannot be combined with
+.BR \-plaintext .
+.TP
+.BI \-cacert " file"
+Trust roots from a PEM certificate file.
+.TP
+.BI \-cert " file"
+Present a PEM client certificate. Must be used with
+.BR \-key .
+.TP
+.BI \-key " file"
+Use the PEM private key for
+.BR \-cert .
+.TP
+.BI \-authority " name"
+Set the HTTP/2 authority and TLS verification name.
+.TP
+.BI \-proto " file"
+Load a protobuf source file instead of relying only on reflection. May be
+specified more than once.
+.TP
+.BI \-protoset " file"
+Load an encoded FileDescriptorSet. May be specified more than once.
+.TP
+.BI \-import-path " directory"
+Add a protobuf import directory.
+.TP
+.BI \-H " name:value"
+Add metadata to reflection and RPC requests. May be repeated.
+.TP
+.BI \-rpc-header " name:value"
+Add metadata only to RPC invocations.
+.TP
+.BI \-reflect-header " name:value"
+Add metadata only to reflection requests.
+.TP
+.BI \-connect-timeout " seconds"
+Limit initial connection time.
+.TP
+.BI \-max-time " seconds"
+Limit the total duration of an invocation.
+.TP
+.BI \-bind " address"
+Bind the browser listener. Defaults to 127.0.0.1.
+.TP
+.BI \-port " port"
+Choose the browser listener port. Zero selects an available port.
+.TP
+.BI \-open-browser= bool
+Enable or disable automatic browser opening.
+.TP
+.B \-unsafe-allow-remote
+Permit a non-loopback browser listener. The listener has no built-in user
+authentication; use only behind an explicit trusted boundary.
+.SH EXAMPLES
+.TP
+Open the launcher:
+.B protopeek
+.TP
+Probe the bounded candidates for a bare host in the launcher:
+.B protopeek localhost
+.TP
+Connect to a plaintext local gRPC server:
+.B protopeek \-plaintext localhost:50051
+.TP
+Start without opening a browser:
+.B protopeek \-open-browser=false
+.SH STATE
+Saved targets, requests, and workspace settings are stored in the local browser
+profile. Automatic history and default exports redact known credential fields,
+but exported debugging data should still be reviewed before sharing.
+.SH ALIAS
+.B pp
+is an identical executable entrypoint. If another program already owns that
+name, use
+.B protopeek
+instead.
+.SH SEE ALSO
+.BR pp (1),
+the project documentation at https://protopeek.shreyam1008.com.np/docs/
+.SH AUTHOR
+Shreyam Adhikari.

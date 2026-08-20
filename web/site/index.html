@@ -5,16 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="ProtoPeek is a lightweight local protocol workbench. Inspect gRPC requests today with reflection, streaming, metadata, trailers, status, and timing; Cap'n Proto and REST adapters are planned."
-    />
-    <meta
-      name="keywords"
-      content="ProtoPeek, Protocol Peek, local protocol workbench, gRPC console, gRPC debugging, Cap'n Proto inspector, REST client, request response inspector, proto explorer, gRPC-Web, Envoy"
+      content="ProtoPeek is a local gRPC and HTTP workbench with reflection, streaming, metadata, trailers, bounded HTTP(S), redirects, status, bodies, and timing."
     />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" content="#0d9488" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
@@ -22,33 +18,32 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    />
-
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="ProtoPeek | Local Protocol Workbench" />
+    <meta property="og:title" content="ProtoPeek | Local gRPC and HTTP Workbench" />
     <meta
       property="og:description"
-      content="A local-first protocol peek: gRPC inspection today, with Cap'n Proto and REST adapters planned behind the same lightweight shell."
+      content="A local-first workbench with shipped, protocol-native gRPC and bounded HTTP request surfaces."
     />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ProtoPeek | Local Protocol Workbench" />
+    <meta name="twitter:title" content="ProtoPeek | Local gRPC and HTTP Workbench" />
     <meta
       name="twitter:description"
-      content="A local-first protocol peek: inspect gRPC requests today, with Cap'n Proto and REST adapters planned."
+      content="Inspect gRPC and bounded HTTP requests locally without flattening their native evidence."
     />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg" />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
 
-    <title>ProtoPeek | Local Protocol Workbench</title>
+    <title>ProtoPeek | Local gRPC and HTTP Workbench</title>
 
     <script type="application/ld+json">
       {
@@ -56,11 +51,19 @@
         "@type": "SoftwareApplication",
         "name": "ProtoPeek",
         "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "Linux macOS Windows",
+        "operatingSystem": ["Linux", "macOS", "Windows"],
+        "softwareVersion": "0.1.6",
+        "isAccessibleForFree": true,
         "url": "https://protopeek.shreyam1008.com.np/",
-        "downloadUrl": "https://github.com/shreyam1008/ProtoPeek",
-        "description": "ProtoPeek is a local-first protocol workbench for inspecting gRPC requests today, with Cap'n Proto and REST adapters planned behind a protocol-aware shell.",
+        "downloadUrl": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.1.6",
+        "releaseNotes": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.1.6",
+        "description": "ProtoPeek is a local-first workbench with protocol-native gRPC and bounded HTTP request surfaces.",
         "screenshot": "https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
         "author": {
           "@type": "Person",
           "name": "Shreyam Adhikari",
@@ -73,6 +76,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="../src/site/main.tsx"></script>
+    <script type="module" src="./main.tsx"></script>
   </body>
 </html>

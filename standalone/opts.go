@@ -247,6 +247,15 @@ func WithWorkspaceManager(manager *WorkspaceManager) HandlerOption {
 	})
 }
 
+// WithInitialScanTarget pre-fills and automatically probes one explicit target
+// in launcher mode. The scan endpoint still enforces its fixed candidate limit
+// and network policy.
+func WithInitialScanTarget(target string) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.initialScanTarget = target
+	})
+}
+
 // optFunc implements HandlerOption
 type optFunc func(opts *handlerOptions)
 
@@ -272,6 +281,7 @@ type handlerOptions struct {
 	basePath            string
 	workspaceManager    *WorkspaceManager
 	launcherMode        bool
+	initialScanTarget   string
 	targetDefaults      WorkspaceTargetConfig
 }
 

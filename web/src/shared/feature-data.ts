@@ -8,7 +8,7 @@ export type FeatureIdea = {
 export const featureIdeas: FeatureIdea[] = [
   {
     name: 'Schema-first command rail',
-    summary: 'Search services and methods instantly from a single sidebar with streaming badges.',
+    summary: 'Search services and methods from a single sidebar with streaming badges.',
     status: 'Shipped',
     rationale:
       'Postman emphasizes discoverable method selection for gRPC requests, so ProtoPeek keeps service discovery visible instead of burying it in dropdowns.',
@@ -39,7 +39,8 @@ export const featureIdeas: FeatureIdea[] = [
   },
   {
     name: 'Metadata presets',
-    summary: 'Keep auth headers and request metadata editable but persistent between sessions.',
+    summary:
+      'Keep auth and request metadata editable for live calls while redacting sensitive values before history or default export.',
     status: 'Shipped',
     rationale:
       'Postman’s gRPC interface highlights metadata and authorization as first-class request concerns, so the workbench should too.',
@@ -66,15 +67,23 @@ export const featureIdeas: FeatureIdea[] = [
       'Run local assertion rules against status, latency, metadata, and payload text without a heavyweight scripting sandbox.',
     status: 'Shipped',
     rationale:
-      'Postman supports gRPC test hooks before, during, and after requests; ProtoPeek ships a lighter validation surface that stays fast and local-first.',
+      'Postman supports gRPC test hooks before, during, and after requests; ProtoPeek keeps validation local without adding a scripting runtime.',
   },
   {
     name: 'Simulation studio',
     summary:
-      'Run lightweight browser-driven concurrency sweeps to estimate throughput and tail latency for unary workflows.',
+      'Run bounded browser-driven repetition for unary debugging; treat its latency output as a local sanity check, not a benchmark.',
     status: 'Shipped',
     rationale:
-      'Load sanity checks are a natural extension of interactive debugging and are missing from most lightweight gRPC consoles.',
+      'Bounded repetition extends interactive debugging without presenting the browser result as a load benchmark.',
+  },
+  {
+    name: 'Bounded HTTP workbench',
+    summary:
+      'Send explicit HTTP(S) requests with native request controls, cancellation, and status, body, redirect, TLS, and phase-timing evidence.',
+    status: 'Shipped',
+    rationale:
+      'HTTP earns a separate protocol surface so it can expose its own semantics without weakening gRPC-specific visibility.',
   },
   {
     name: 'gRPC-Web topology lens',

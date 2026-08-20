@@ -5,7 +5,6 @@ import {
   Clock3,
   Copy,
   Download,
-  FlaskConical,
   LoaderCircle,
   LockKeyhole,
   Play,
@@ -13,8 +12,6 @@ import {
   RefreshCw,
   Save,
   Search,
-  Trash2,
-  Wifi,
   X,
 } from 'lucide-react';
 import {
@@ -62,8 +59,11 @@ import {
   generateRequestTemplate,
   loadStoredValue,
   matchesMethodFilter,
+  modifierKeyLabel,
   prettyJson,
   safeParseJson,
+  sanitizeAssertionForPersistence,
+  sanitizeMetadataForPersistence,
   simulationSummary,
   sparklinePath,
   storeValue,
@@ -159,6 +159,32 @@ function newTargetDraft(defaults?: WorkspaceTargetConfig): WorkspaceTargetProfil
   });
 }
 
+function targetIdentity(target: WorkspaceTargetProfile) {
+  return JSON.stringify([
+    target.address.trim(),
+    target.plaintext,
+    target.insecure,
+    target.authority.trim(),
+    target.cacertPath.trim(),
+    target.certPath.trim(),
+    target.keyPath.trim(),
+    target.schemaSource,
+    target.protoFiles,
+    target.importPaths,
+    target.protosets,
+  ]);
+}
+
+function reuseExistingTargetID(
+  candidate: WorkspaceTargetProfile,
+  existingTargets: WorkspaceTargetProfile[]
+) {
+  const existing = existingTargets.find(
+    (target) => target.id !== candidate.id && targetIdentity(target) === targetIdentity(candidate)
+  );
+  return existing ? { ...candidate, id: existing.id } : candidate;
+}
+
 function parseMultilineValues(value: string) {
   return value
     .split('\n')
@@ -216,20 +242,31 @@ export function App() {
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [metadata, setMetadata] = useState<MetadataEntry[]>([]);
   const [collections, setCollections] = useState<SavedCollection[]>(
-    loadStoredValue(appStorageKeys.collections, [])
+    loadStoredValue<SavedCollection[]>(appStorageKeys.collections, []).map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+    }))
   );
   const [environments, setEnvironments] = useState<EnvironmentPreset[]>(
-    loadStoredValue(appStorageKeys.environments, [])
+    loadStoredValue<EnvironmentPreset[]>(appStorageKeys.environments, []).map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+    }))
   );
   const [history, setHistory] = useState<RequestHistoryEntry[]>(
-    loadStoredValue(appStorageKeys.history, [])
+    loadStoredValue<RequestHistoryEntry[]>(appStorageKeys.history, []).map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+    }))
   );
   const [collectionName, setCollectionName] = useState('');
   const [collectionNotes, setCollectionNotes] = useState('');
   const [environmentName, setEnvironmentName] = useState('');
   const [environmentNotes, setEnvironmentNotes] = useState('');
   const [assertionRules, setAssertionRules] = useState<AssertionRule[]>(
-    loadStoredValue(appStorageKeys.assertions, defaultAssertions)
+    loadStoredValue<AssertionRule[]>(appStorageKeys.assertions, defaultAssertions).map(
+      sanitizeAssertionForPersistence
+    )
   );
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const [invokeState, setInvokeState] = useState<{
@@ -379,7 +416,7 @@ export function App() {
     storeValue(appStorageKeys.history, history);
   }, [history]);
   useEffect(() => {
-    storeValue(appStorageKeys.assertions, assertionRules);
+    storeValue(appStorageKeys.assertions, assertionRules.map(sanitizeAssertionForPersistence));
   }, [assertionRules]);
   useEffect(() => {
     storeValue(appStorageKeys.simulation, simulationConfig);
@@ -497,7 +534,7 @@ export function App() {
       );
       if (connectRequestRef.current !== requestId) {
         void disconnectWorkspaceSession(r.sessionId);
-        return;
+        return false;
       }
       dispatchSession({
         type: 'connect.succeeded',
@@ -511,15 +548,17 @@ export function App() {
       if (previousSessionId && previousSessionId !== r.sessionId) {
         void disconnectWorkspaceSession(previousSessionId);
       }
+      return true;
     } catch (err) {
       if (connectRequestRef.current !== requestId) return;
       if (err instanceof DOMException && err.name === 'AbortError') {
         dispatchSession({ type: 'connect.cancelled', requestId });
-        return;
+        return false;
       }
       const message = err instanceof Error ? err.message : 'Connection failed.';
       dispatchSession({ type: 'connect.failed', requestId, message });
       setWorkspaceError(message);
+      return false;
     }
   }
 
@@ -549,22 +588,33 @@ export function App() {
     setTargetDraft(newTargetDraft(rootBootstrap?.targetDefaults));
   }
 
-  function handleSaveTarget() {
-    if (!targetDraft.address.trim()) {
-      setWorkspaceError('Address required.');
-      return;
-    }
-    persistTarget(materializeTarget(targetDraft));
-  }
-
   async function handleSaveAndConnect() {
     if (!targetDraft.address.trim()) {
       setWorkspaceError('Address required.');
       return;
     }
-    const t = materializeTarget(targetDraft);
-    persistTarget(t);
-    await handleConnectTarget(t);
+    const t = reuseExistingTargetID(materializeTarget(targetDraft), targets);
+    if (await handleConnectTarget(t)) persistTarget(t);
+  }
+
+  async function handleConnectRecent(target: WorkspaceTargetProfile) {
+    const materialized = materializeTarget(target);
+    if (await handleConnectTarget(materialized)) persistTarget(materialized);
+  }
+
+  async function handleOpenDiscovered(result: ScanResult) {
+    const t = reuseExistingTargetID(
+      materializeTarget({
+        ...newTargetDraft(rootBootstrap?.targetDefaults),
+        address: result.address,
+        name: result.services?.[0]?.split('.').pop() ?? result.address,
+        plaintext: result.transport !== 'tls',
+        insecure: false,
+        schemaSource: 'reflection',
+      }),
+      targets
+    );
+    if (await handleConnectTarget(t)) persistTarget(t);
   }
 
   function handleDeleteTarget(id: string) {
@@ -864,15 +914,27 @@ export function App() {
   }
 
   function handleExportWorkspace() {
+    const safeCollections = collections.map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata),
+    }));
+    const safeEnvironments = environments.map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata),
+    }));
+    const safeHistory = history.map((entry) => ({
+      ...entry,
+      metadata: sanitizeMetadataForPersistence(entry.metadata),
+    }));
     downloadFile(
       'protopeek-workspace.json',
       JSON.stringify(
         {
           exportedAt: new Date().toISOString(),
-          assertions: assertionRules,
-          collections,
-          environments,
-          history,
+          assertions: assertionRules.map(sanitizeAssertionForPersistence),
+          collections: safeCollections,
+          environments: safeEnvironments,
+          history: safeHistory,
           targets,
         },
         null,
@@ -897,10 +959,28 @@ export function App() {
       history?: RequestHistoryEntry[];
       targets?: WorkspaceTargetProfile[];
     };
-    if (d.assertions) setAssertionRules(d.assertions);
-    if (d.collections) setCollections(d.collections);
-    if (d.environments) setEnvironments(d.environments);
-    if (d.history) setHistory(d.history);
+    if (d.assertions) setAssertionRules(d.assertions.map(sanitizeAssertionForPersistence));
+    if (d.collections)
+      setCollections(
+        d.collections.map((entry) => ({
+          ...entry,
+          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+        }))
+      );
+    if (d.environments)
+      setEnvironments(
+        d.environments.map((entry) => ({
+          ...entry,
+          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+        }))
+      );
+    if (d.history)
+      setHistory(
+        d.history.map((entry) => ({
+          ...entry,
+          metadata: sanitizeMetadataForPersistence(entry.metadata ?? []),
+        }))
+      );
     if (d.targets) setTargets(d.targets);
   }
 
@@ -908,7 +988,7 @@ export function App() {
     {
       id: 'invoke',
       label: invokeState.loading ? 'Cancel active RPC' : 'Invoke current method',
-      hint: '⌘↵',
+      hint: `${modifierKeyLabel()}↵`,
       keywords: 'run send cancel',
       run: () => {
         if (invokeState.loading) handleCancelInvoke();
@@ -988,15 +1068,17 @@ export function App() {
         busy={workspaceBusy}
         error={workspaceError}
         onChangeDraft={updateDraft}
-        onSave={handleSaveTarget}
         onSaveAndConnect={() => {
           void handleSaveAndConnect();
         }}
         onConnect={(t) => {
-          void handleConnectTarget(t);
+          void handleConnectRecent(t);
         }}
         onEdit={setTargetDraft}
         onDelete={handleDeleteTarget}
+        onOpenDiscovered={(result) => {
+          void handleOpenDiscovered(result);
+        }}
       />
     );
 
@@ -1162,16 +1244,18 @@ export function App() {
               error={workspaceError}
               rootBootstrap={rootBootstrap}
               onChangeDraft={updateDraft}
-              onSave={handleSaveTarget}
               onSaveAndConnect={() => {
                 void handleSaveAndConnect();
               }}
               onConnect={(t) => {
-                void handleConnectTarget(t);
+                void handleConnectRecent(t);
               }}
               onEdit={setTargetDraft}
               onDelete={handleDeleteTarget}
               onReset={handleResetToLauncher}
+              onOpenDiscovered={(result) => {
+                void handleOpenDiscovered(result);
+              }}
             />
           ) : null}
         </div>
@@ -1303,7 +1387,7 @@ function _ComposeView({
             {simulationBusy ? (
               <LoaderCircle className="size-3.5 animate-spin" />
             ) : (
-              <FlaskConical className="size-3.5" />
+              <CheckCircle2 className="size-3.5" />
             )}
             Simulate
           </button>
@@ -1780,11 +1864,14 @@ function TestsView({
             {simulationBusy ? (
               <LoaderCircle className="size-3 animate-spin" />
             ) : (
-              <FlaskConical className="size-3" />
+              <CheckCircle2 className="size-3" />
             )}
             Run
           </button>
         </div>
+        <p className="pp-muted mt-2 text-xs">
+          Browser-driven diagnostic repetition, not a service load benchmark.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {simulationPresets.map((p) => (
             <button
@@ -1840,7 +1927,7 @@ function TestsView({
             <div className="grid grid-cols-4 gap-3">
               <Metric label="Success" value={String(simulationRun.successCount)} />
               <Metric label="Errors" value={String(simulationRun.errorCount)} />
-              <Metric label="RPS" value={simulationRun.throughputRps.toFixed(1)} />
+              <Metric label="Observed req/s" value={simulationRun.throughputRps.toFixed(1)} />
               <Metric label="Total" value={durationLabel(simulationRun.totalMs)} />
             </div>
             <div className="rounded-lg border border-pp-border bg-white p-3">
@@ -2090,12 +2177,12 @@ function WorkspaceView({
   error,
   rootBootstrap,
   onChangeDraft,
-  onSave,
   onSaveAndConnect,
   onConnect,
   onEdit,
   onDelete,
   onReset,
+  onOpenDiscovered,
 }: {
   targets: WorkspaceTargetProfile[];
   activeTargetId: string;
@@ -2104,16 +2191,16 @@ function WorkspaceView({
   error: string | null;
   rootBootstrap: BootstrapResponse | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
-  onSave: () => void;
   onSaveAndConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
   onReset: () => void;
+  onOpenDiscovered: (result: ScanResult) => void;
 }) {
   return (
     <div className="space-y-6">
-      <ScanPanel onUseAddress={(addr) => onChangeDraft({ address: addr })} />
+      <ScanPanel onOpen={onOpenDiscovered} />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <h3 className="pp-heading text-base">Target connection</h3>
@@ -2122,13 +2209,12 @@ function WorkspaceView({
             draft={draft}
             busy={busy}
             onChange={onChangeDraft}
-            onSave={onSave}
             onSaveAndConnect={onSaveAndConnect}
           />
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="pp-heading text-base">Saved targets</h3>
+            <h3 className="pp-heading text-base">Successful connections</h3>
             {rootBootstrap?.launcherMode ? (
               <button className="pp-button-ghost text-xs" type="button" onClick={onReset}>
                 Launcher
@@ -2136,7 +2222,7 @@ function WorkspaceView({
             ) : null}
           </div>
           {targets.length === 0 ? (
-            <div className="text-sm text-pp-muted">No saved targets.</div>
+            <div className="text-sm text-pp-muted">No successful connections yet.</div>
           ) : (
             <div className="space-y-2">
               {targets.map((t) => (
@@ -2181,9 +2267,10 @@ function WorkspaceView({
                     <button
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
+                      aria-label={`Delete ${t.name}`}
                       onClick={() => onDelete(t.id)}
                     >
-                      <Trash2 className="size-3" />
+                      <X className="size-3" />
                     </button>
                   </div>
                 </div>
@@ -2199,39 +2286,53 @@ function WorkspaceView({
 // ─── Scan panel ────────────────────────────────────────────────
 
 function ScanPanel({
-  onUseAddress,
+  onOpen,
   autoStart = false,
+  initialTarget = '',
 }: {
-  onUseAddress: (addr: string) => void;
+  onOpen: (result: ScanResult) => void;
   autoStart?: boolean;
+  initialTarget?: string;
 }) {
-  const [scanInput, setScanInput] = useState(
-    'localhost:50051\nlocalhost:9090\nlocalhost:6565\nlocalhost:7000\nlocalhost:8080\n127.0.0.1:50051'
-  );
+  const ambientAddresses = [
+    'localhost:50051',
+    'localhost:9090',
+    'localhost:6565',
+    'localhost:7000',
+    'localhost:8080',
+    '127.0.0.1:50051',
+  ];
+  const [scanInput, setScanInput] = useState(initialTarget);
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<ScanResult[]>([]);
   const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
+  const [lastScanWasExplicit, setLastScanWasExplicit] = useState(false);
   const autoStartedRef = useRef(false);
 
-  const runScan = useEffectEvent(async () => {
-    const addresses = scanInput
-      .split(/[,\n]+/)
-      .map((a) => a.trim())
-      .filter(Boolean);
-    if (addresses.length === 0) return;
+  const runScan = useEffectEvent(async (explicit: boolean) => {
+    const address = scanInput.trim();
+    const addresses = explicit && address ? [address] : ambientAddresses;
     setScanning(true);
+    setLastScanWasExplicit(explicit && Boolean(address));
     setResults([]);
     try {
-      const res = await scanAddresses(addresses, allowPrivateNetwork);
+      const res = await scanAddresses(addresses, allowPrivateNetwork, explicit && Boolean(address));
       setResults(res);
-    } catch {
+    } catch (error) {
       setResults([
         {
           address: addresses[0],
           alive: false,
           grpc: false,
+          reflection: 'not-checked',
+          transport: '',
           services: null,
-          error: 'Scan request failed',
+          failure: 'request',
+          error:
+            error instanceof Error && error.message.trim()
+              ? error.message.trim()
+              : 'Scan request failed',
+          details: null,
           latencyMs: 0,
         },
       ]);
@@ -2243,8 +2344,15 @@ function ScanPanel({
   useEffect(() => {
     if (!autoStart || autoStartedRef.current) return;
     autoStartedRef.current = true;
-    void runScan();
-  }, [autoStart]);
+    void runScan(Boolean(initialTarget.trim()));
+  }, [autoStart, initialTarget]);
+
+  const routineFailures = lastScanWasExplicit
+    ? []
+    : results.filter((result) => !result.alive && result.failure === 'unreachable');
+  const visibleResults = lastScanWasExplicit
+    ? results
+    : results.filter((result) => result.alive || result.failure !== 'unreachable');
 
   return (
     <div className="pp-panel pp-discovery-panel">
@@ -2257,30 +2365,33 @@ function ScanPanel({
           <LockKeyhole aria-hidden="true" /> Loopback by default
         </span>
       </div>
-      <p className="pp-muted">Checks common loopback ports. Private-network probing is opt-in.</p>
+      <p className="pp-muted">
+        Ambient discovery checks six fixed loopback endpoints. An explicit host without a port
+        checks only 50051 plaintext and 443 with verified TLS.
+      </p>
       <div className="pp-discovery-controls">
-        <textarea
+        <input
           className="pp-input font-mono text-xs"
-          rows={2}
           value={scanInput}
           onChange={(e) => setScanInput(e.target.value)}
-          placeholder="localhost:50051"
+          placeholder="Explicit host, URL, or host:port"
+          aria-label="Explicit gRPC target to probe"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void runScan();
+            if (e.key === 'Enter') void runScan(Boolean(scanInput.trim()));
           }}
         />
         <button
           className="pp-button-primary shrink-0"
           type="button"
           disabled={scanning}
-          onClick={() => void runScan()}
+          onClick={() => void runScan(Boolean(scanInput.trim()))}
         >
           {scanning ? (
             <LoaderCircle className="size-4 animate-spin" />
           ) : (
             <Search className="size-4" />
           )}
-          Scan
+          {scanInput.trim() ? 'Probe target' : 'Scan loopback'}
         </button>
       </div>
       <label className="pp-private-scan-toggle">
@@ -2289,57 +2400,101 @@ function ScanPanel({
           checked={allowPrivateNetwork}
           onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
         />
-        Allow explicit private IPs in this list
+        Allow this explicit private IP
       </label>
-      {results.length > 0 ? (
+      {visibleResults.length > 0 ? (
         <div className="pp-discovery-results">
-          {results.map((r) => (
-            <div
-              key={r.address}
-              className={classNames(
-                'pp-discovery-result',
-                r.grpc && 'is-grpc',
-                r.alive && !r.grpc && 'is-open'
-              )}
-            >
-              <div className="pp-discovery-result-head">
-                <div>
-                  <span
-                    className={classNames(
-                      'pp-discovery-dot',
-                      r.grpc ? 'bg-pp-ok' : r.alive ? 'bg-pp-accent' : 'bg-pp-muted'
-                    )}
-                  />
-                  <strong>{r.address}</strong>
-                  <small>{r.latencyMs}ms</small>
-                </div>
-                {r.grpc ? (
-                  <button
-                    className="pp-button-primary py-1 text-xs"
-                    type="button"
-                    onClick={() => onUseAddress(r.address)}
-                  >
-                    Use
-                  </button>
-                ) : null}
-              </div>
-              {r.services && r.services.length > 0 ? (
-                <div className="pp-discovered-services">
-                  {r.services.map((svc) => (
-                    <span key={svc} className="pp-badge">
-                      {svc}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {r.error ? <p className="pp-muted">{r.error}</p> : null}
-              {!r.alive && !r.error ? <p className="pp-muted">Not reachable</p> : null}
-              {r.alive && !r.grpc ? (
-                <p className="pp-muted">Port open; reflection was not detected.</p>
-              ) : null}
-            </div>
+          {visibleResults.map((result) => (
+            <ScanResultCard
+              key={`${result.address}-${result.transport}`}
+              result={result}
+              onOpen={onOpen}
+            />
           ))}
         </div>
+      ) : null}
+      {routineFailures.length > 0 ? (
+        <details className="pp-scan-failures">
+          <summary>{routineFailures.length} routine loopback probes were not reachable</summary>
+          <ul>
+            {routineFailures.map((result) => (
+              <li key={result.address}>
+                <code>{result.address}</code>
+                <span>{result.details?.[0] ?? result.error ?? 'Not reachable'}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+function ScanResultCard({
+  result,
+  onOpen,
+}: {
+  result: ScanResult;
+  onOpen: (result: ScanResult) => void;
+}) {
+  const canOpen =
+    result.grpc && result.reflection === 'available' && Boolean(result.services?.length);
+  const transport = result.transport === 'tls' ? 'TLS' : 'Plaintext';
+  return (
+    <div
+      className={classNames(
+        'pp-discovery-result',
+        result.grpc && 'is-grpc',
+        result.alive && !result.grpc && 'is-open'
+      )}
+    >
+      <div className="pp-discovery-result-head">
+        <div>
+          <span
+            className={classNames(
+              'pp-discovery-dot',
+              result.grpc ? 'bg-pp-ok' : result.alive ? 'bg-pp-accent' : 'bg-pp-muted'
+            )}
+          />
+          <strong>{result.address}</strong>
+          <small>{result.latencyMs}ms</small>
+        </div>
+        {canOpen ? (
+          <button
+            className="pp-button-primary py-1 text-xs"
+            type="button"
+            aria-label={`Open ${result.address}`}
+            onClick={() => onOpen(result)}
+          >
+            Open
+          </button>
+        ) : null}
+      </div>
+      <p className="pp-muted">
+        {result.reflection === 'available'
+          ? `Reflection available · ${transport}`
+          : result.grpc
+            ? `gRPC confirmed · reflection unavailable · ${transport}`
+            : (result.error ?? 'No gRPC transport detected')}
+      </p>
+      {result.services && result.services.length > 0 ? (
+        <div className="pp-discovered-services">
+          {result.services.map((service) => (
+            <span key={service} className="pp-badge">
+              {service}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {result.details && result.details.length > 0 ? (
+        <details className="pp-probe-details">
+          <summary>Probe details</summary>
+          <ul>
+            {result.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </div>
   );
@@ -2355,11 +2510,11 @@ function LauncherView({
   busy,
   error,
   onChangeDraft,
-  onSave,
   onSaveAndConnect,
   onConnect,
   onEdit,
   onDelete,
+  onOpenDiscovered,
 }: {
   bootstrap: BootstrapResponse;
   targets: WorkspaceTargetProfile[];
@@ -2368,11 +2523,11 @@ function LauncherView({
   busy: boolean;
   error: string | null;
   onChangeDraft: (n: Partial<WorkspaceTargetProfile>) => void;
-  onSave: () => void;
   onSaveAndConnect: () => void;
   onConnect: (t: WorkspaceTargetProfile) => void;
   onEdit: (t: WorkspaceTargetProfile) => void;
   onDelete: (id: string) => void;
+  onOpenDiscovered: (result: ScanResult) => void;
 }) {
   return (
     <div className="pp-launcher">
@@ -2388,15 +2543,13 @@ function LauncherView({
           <LockKeyhole aria-hidden="true" /> Local only
         </span>
       </header>
-      <main className="pp-launcher-main">
+      <div className="pp-launcher-main">
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
           <h1>Open a gRPC target.</h1>
           <p>Reflection first. Proto files and protosets when you need them.</p>
           <div className="pp-trust-row">
-            <span>
-              <Wifi aria-hidden="true" /> Auto-find loopback services
-            </span>
+            <span>Auto-find loopback services</span>
             <span>
               <LockKeyhole aria-hidden="true" /> No account, cloud, or database
             </span>
@@ -2418,29 +2571,27 @@ function LauncherView({
             draft={draft}
             busy={busy}
             onChange={onChangeDraft}
-            onSave={onSave}
             onSaveAndConnect={onSaveAndConnect}
           />
         </section>
 
         <ScanPanel
           autoStart
-          onUseAddress={(address) =>
-            onChangeDraft({ address, name: draft.name || 'Local gRPC service' })
-          }
+          initialTarget={bootstrap.initialScanTarget}
+          onOpen={onOpenDiscovered}
         />
 
         <section className="pp-saved-targets" aria-labelledby="saved-targets-title">
           <div className="pp-card-heading">
             <div>
               <span className="pp-kicker">Recent</span>
-              <h2 id="saved-targets-title">Saved targets</h2>
+              <h2 id="saved-targets-title">Successful connections</h2>
             </div>
-            <span className="pp-version">{targets.length} saved</span>
+            <span className="pp-version">{targets.length} recent</span>
           </div>
           {targets.length === 0 ? (
             <div className="pp-launcher-empty">
-              Saved targets stay in this browser. Connect above to create your first local entry.
+              A target appears here only after it connects successfully.
             </div>
           ) : (
             <div className="pp-target-list">
@@ -2486,9 +2637,10 @@ function LauncherView({
                     <button
                       className="pp-button-ghost py-1 text-xs"
                       type="button"
+                      aria-label={`Delete ${t.name}`}
                       onClick={() => onDelete(t.id)}
                     >
-                      <Trash2 className="size-3" />
+                      <X className="size-3" />
                     </button>
                   </div>
                 </div>
@@ -2496,7 +2648,7 @@ function LauncherView({
             </div>
           )}
         </section>
-      </main>
+      </div>
       <footer className="pp-launcher-footer">
         Nothing leaves this device. ProtoPeek stores workspace preferences in this browser only.
       </footer>
@@ -2510,13 +2662,11 @@ function TargetForm({
   draft,
   busy,
   onChange,
-  onSave,
   onSaveAndConnect,
 }: {
   draft: WorkspaceTargetProfile;
   busy: boolean;
   onChange: (n: Partial<WorkspaceTargetProfile>) => void;
-  onSave: () => void;
   onSaveAndConnect: () => void;
 }) {
   return (
@@ -2678,10 +2828,6 @@ function TargetForm({
         </div>
       </details>
       <div className="flex gap-2">
-        <button className="pp-button-secondary" type="button" disabled={busy} onClick={onSave}>
-          <Save className="size-3.5" />
-          Save
-        </button>
         <button
           className="pp-button-primary"
           type="button"

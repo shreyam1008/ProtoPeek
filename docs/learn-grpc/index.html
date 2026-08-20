@@ -7,19 +7,22 @@
     <meta name="description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/learn-grpc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:title" content="Learn gRPC | ProtoPeek" />
     <meta property="og:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/learn-grpc/" />
-    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.svg" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Learn gRPC | ProtoPeek" />
     <meta name="twitter:description" content="A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points." />
-    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.svg" />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -46,7 +49,7 @@
                 <span>Proto contract</span><span>Reflection paths</span><span>HTTP/2 and trailers</span>
               </div>
             </div>
-            
+
     <div class="pp-doc-visual">
       <div class="pp-doc-visual-card">
         <div class="pp-doc-visual-label">Reading path</div>
@@ -59,31 +62,31 @@
         </svg>
       </div>
       <div class="pp-doc-visual-metrics">
-        
+
         <div class="pp-doc-visual-row" style="animation-delay:0ms">
           <span>Proto contract</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-1"></div>
           </div>
         </div>
-      
+
         <div class="pp-doc-visual-row" style="animation-delay:140ms">
           <span>Reflection paths</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-2"></div>
           </div>
         </div>
-      
+
         <div class="pp-doc-visual-row" style="animation-delay:280ms">
           <span>HTTP/2 and trailers</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-3"></div>
           </div>
         </div>
-      
+
       </div>
     </div>
-  
+
           </div>
         </section>
 
@@ -268,13 +271,13 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 <h2 id="9-benchmarking-responsibly">9. Benchmarking responsibly</h2>
 <p>There is no universal &quot;gRPC is X times faster&quot; number worth trusting outside a specific test setup. Performance depends on too many variables:</p>
 <ul><li><strong>Payload size</strong> — protobuf encoding is fast for small messages but the advantage narrows for large blobs</li><li><strong>Compression</strong> — gzip vs zstd vs none changes throughput curves significantly</li><li><strong>Streaming vs unary</strong> — stream setup cost amortizes differently under batch workloads</li><li><strong>Proxy layers</strong> — each hop adds latency variance</li><li><strong>TLS</strong> — handshake cost matters for short-lived connections</li><li><strong>Retries and deadlines</strong> — retry storms can mask the real throughput ceiling</li><li><strong>Client and server implementation</strong> — Go, Java, Rust, and C++ gRPC runtimes have different performance profiles</li></ul>
-<p>ProtoPeek adds value by giving you a fast way to measure <strong>your own service</strong> locally with the simulation studio. Configure runs, concurrency, and think time, then see p50, p95, p99 latency and throughput with your actual payloads. That is more useful than importing generic benchmark claims into a production discussion.</p>
-<div class="pp-doc-callout pp-doc-callout-tip"><div class="pp-doc-callout-label">Tip</div><div>Start with ProtoPeek&#39;s &quot;Quick pulse&quot; preset (12 runs, 3 concurrent) for a fast sanity check, then use &quot;Burst probe&quot; (60 runs, 12 concurrent) to expose tail latency before real load testing.</div></div>
+<p>ProtoPeek&#39;s simulation studio can repeat a bounded set of unary calls and show browser-observed p50, p95, p99, and request-rate output for debugging. It is not a load generator or a defensible service benchmark: browser scheduling, the local relay, connection reuse, and the selected payload all shape the result. Use it to spot a local anomaly, then confirm performance with a controlled load tool.</p>
+<div class="pp-doc-callout pp-doc-callout-tip"><div class="pp-doc-callout-label">Tip</div><div>Start with the smallest preset for a local sanity check. Treat larger presets as debugging aids, not production capacity evidence.</div></div>
 <h2 id="10-why-debugging-gets-hard-fast">10. Why debugging gets hard fast</h2>
 <p>The painful gRPC bugs are rarely serialization bugs. They are transport and configuration issues:</p>
 <h3 id="debugging-checklist">Debugging checklist</h3>
 <table><thead><tr><th>Symptom</th><th>What to check</th><th>ProtoPeek tool</th></tr></thead><tbody><tr><td>No RPCs discovered</td><td>Server reflection disabled, or proto files not loaded</td><td>Proto structure explorer</td></tr><tr><td><code>UNAUTHENTICATED</code> on every call</td><td>Missing or malformed auth header</td><td>Metadata editor</td></tr><tr><td><code>UNAVAILABLE</code> after deployment</td><td>TLS cert mismatch, wrong port, DNS resolution</td><td>Target registry settings</td></tr><tr><td><code>DEADLINE_EXCEEDED</code> under load</td><td>Server too slow, or deadline set too aggressively</td><td>Simulation studio</td></tr><tr><td>Works locally, fails in staging</td><td>Authority override needed, or different TLS config</td><td>Target registry per-environment</td></tr><tr><td>Browser client behaves differently</td><td>gRPC-Web proxy issue, not backend</td><td>Transport lens</td></tr><tr><td>Streaming closes unexpectedly</td><td>Keepalive timeout, proxy idle timeout</td><td>Response lab trailers</td></tr><tr><td>Latency spikes at p99</td><td>Concurrency bottleneck, connection pool exhaustion</td><td>Simulation sparkline chart</td></tr></tbody></table>
-<p>That is why ProtoPeek combines request authoring, response inspection, metadata visibility, lightweight load probing, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.</p>
+<p>That is why ProtoPeek combines request authoring, response inspection, metadata visibility, bounded browser repetition, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.</p>
 <h2 id="11-further-reading">11. Further reading</h2>
 <p><strong>Official gRPC documentation:</strong></p>
 <ul><li><a href="https://grpc.io/docs/what-is-grpc/core-concepts/" rel="noreferrer" target="_blank">gRPC core concepts</a> — services, messages, deadlines, metadata</li><li><a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">gRPC guides</a> — auth, error handling, performance, benchmarking, keepalive</li><li><a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">gRPC debugging guide</a> — admin services, channelz, <code>grpcdebug</code></li><li><a href="https://grpc.io/docs/guides/status-codes/" rel="noreferrer" target="_blank">gRPC status codes</a> — canonical error code semantics</li></ul>
@@ -304,7 +307,7 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">More ProtoPeek docs</div>
               <div class="pp-doc-related">
-                <a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+                <a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
               </div>
             </section>
           </aside>

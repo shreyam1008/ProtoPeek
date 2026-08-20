@@ -313,10 +313,14 @@ There is no universal "gRPC is X times faster" number worth trusting outside a s
 - **Retries and deadlines** — retry storms can mask the real throughput ceiling
 - **Client and server implementation** — Go, Java, Rust, and C++ gRPC runtimes have different performance profiles
 
-ProtoPeek adds value by giving you a fast way to measure **your own service** locally with the simulation studio. Configure runs, concurrency, and think time, then see p50, p95, p99 latency and throughput with your actual payloads. That is more useful than importing generic benchmark claims into a production discussion.
+ProtoPeek's simulation studio can repeat a bounded set of unary calls and show browser-observed p50,
+p95, p99, and request-rate output for debugging. It is not a load generator or a defensible service
+benchmark: browser scheduling, the local relay, connection reuse, and the selected payload all shape
+the result. Use it to spot a local anomaly, then confirm performance with a controlled load tool.
 
 > [!TIP]
-> Start with ProtoPeek's "Quick pulse" preset (12 runs, 3 concurrent) for a fast sanity check, then use "Burst probe" (60 runs, 12 concurrent) to expose tail latency before real load testing.
+> Start with the smallest preset for a local sanity check. Treat larger presets as debugging aids,
+> not production capacity evidence.
 
 ## 10. Why debugging gets hard fast
 
@@ -335,7 +339,7 @@ The painful gRPC bugs are rarely serialization bugs. They are transport and conf
 | Streaming closes unexpectedly | Keepalive timeout, proxy idle timeout | Response lab trailers |
 | Latency spikes at p99 | Concurrency bottleneck, connection pool exhaustion | Simulation sparkline chart |
 
-That is why ProtoPeek combines request authoring, response inspection, metadata visibility, lightweight load probing, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
+That is why ProtoPeek combines request authoring, response inspection, metadata visibility, bounded browser repetition, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
 
 ## 11. Further reading
 

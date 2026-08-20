@@ -1,5 +1,5 @@
-import { Command, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, X } from 'lucide-react';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 
 export type PaletteAction = {
   id: string;
@@ -20,17 +20,44 @@ export function CommandPalette({
 }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const paletteRef = useRef<HTMLElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const closePalette = useEffectEvent(onClose);
 
   useEffect(() => {
     if (!open) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
     setQuery('');
     requestAnimationFrame(() => inputRef.current?.focus());
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closePalette();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(
+        paletteRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      restoreFocusRef.current?.focus();
+    };
+  }, [open]);
 
   const visibleActions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -56,6 +83,7 @@ export function CommandPalette({
         onClick={onClose}
       />
       <section
+        ref={paletteRef}
         className="pp-command-palette"
         role="dialog"
         aria-modal="true"
@@ -81,7 +109,6 @@ export function CommandPalette({
           {visibleActions.length ? (
             visibleActions.map((action) => (
               <button key={action.id} type="button" onClick={() => run(action)}>
-                <Command aria-hidden="true" />
                 <span>{action.label}</span>
                 {action.hint ? <kbd>{action.hint}</kbd> : null}
               </button>

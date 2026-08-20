@@ -46,22 +46,23 @@ type bootstrapService struct {
 }
 
 type bootstrapResponse struct {
-	AppName         string                  `json:"appName"`
-	Version         string                  `json:"version"`
-	Target          string                  `json:"target"`
-	LauncherMode    bool                    `json:"launcherMode"`
-	BasePath        string                  `json:"basePath"`
-	DocsURL         string                  `json:"docsURL"`
-	RepoURL         string                  `json:"repoURL"`
-	LearnURL        string                  `json:"learnURL"`
-	GRPCWebURL      string                  `json:"grpcWebURL"`
-	DebuggingURL    string                  `json:"debuggingURL"`
-	AuthorName      string                  `json:"authorName"`
-	AuthorURL       string                  `json:"authorURL"`
-	DefaultMetadata []bootstrapMetadata     `json:"defaultMetadata"`
-	TargetDefaults  bootstrapTargetDefaults `json:"targetDefaults"`
-	GRPCurlOptions  string                  `json:"grpcurlOptions"`
-	Services        []bootstrapService      `json:"services"`
+	AppName           string                  `json:"appName"`
+	Version           string                  `json:"version"`
+	Target            string                  `json:"target"`
+	LauncherMode      bool                    `json:"launcherMode"`
+	InitialScanTarget string                  `json:"initialScanTarget"`
+	BasePath          string                  `json:"basePath"`
+	DocsURL           string                  `json:"docsURL"`
+	RepoURL           string                  `json:"repoURL"`
+	LearnURL          string                  `json:"learnURL"`
+	GRPCWebURL        string                  `json:"grpcWebURL"`
+	DebuggingURL      string                  `json:"debuggingURL"`
+	AuthorName        string                  `json:"authorName"`
+	AuthorURL         string                  `json:"authorURL"`
+	DefaultMetadata   []bootstrapMetadata     `json:"defaultMetadata"`
+	TargetDefaults    bootstrapTargetDefaults `json:"targetDefaults"`
+	GRPCurlOptions    string                  `json:"grpcurlOptions"`
+	Services          []bootstrapService      `json:"services"`
 }
 
 var bootstrapProtoPrinter = protoprint.Printer{
@@ -123,19 +124,20 @@ func buildBootstrap(target string, methods []*desc.MethodDescriptor, opts *handl
 	}
 
 	return json.Marshal(bootstrapResponse{
-		AppName:         "ProtoPeek",
-		Version:         opts.version,
-		Target:          target,
-		LauncherMode:    opts.launcherMode,
-		BasePath:        opts.basePath,
-		DocsURL:         "https://protopeek.shreyam1008.com.np/docs/",
-		RepoURL:         "https://github.com/shreyam1008/ProtoPeek",
-		LearnURL:        "https://protopeek.shreyam1008.com.np/learn-grpc/",
-		GRPCWebURL:      "https://grpc.io/docs/platforms/web/basics/",
-		DebuggingURL:    "https://grpc.io/docs/guides/debugging/",
-		AuthorName:      "Shreyam Adhikari",
-		AuthorURL:       "https://shreyam1008.com.np/",
-		DefaultMetadata: defaultMetadata,
+		AppName:           "ProtoPeek",
+		Version:           opts.version,
+		Target:            target,
+		LauncherMode:      opts.launcherMode,
+		InitialScanTarget: opts.initialScanTarget,
+		BasePath:          opts.basePath,
+		DocsURL:           "https://protopeek.shreyam1008.com.np/docs/",
+		RepoURL:           "https://github.com/shreyam1008/ProtoPeek",
+		LearnURL:          "https://protopeek.shreyam1008.com.np/learn-grpc/",
+		GRPCWebURL:        "https://grpc.io/docs/platforms/web/basics/",
+		DebuggingURL:      "https://grpc.io/docs/guides/debugging/",
+		AuthorName:        "Shreyam Adhikari",
+		AuthorURL:         "https://shreyam1008.com.np/",
+		DefaultMetadata:   defaultMetadata,
 		TargetDefaults: bootstrapTargetDefaults{
 			Plaintext:    opts.targetDefaults.Plaintext,
 			Insecure:     opts.targetDefaults.Insecure,

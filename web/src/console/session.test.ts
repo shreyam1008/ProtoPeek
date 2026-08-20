@@ -12,6 +12,7 @@ function bootstrap(
     version: 'test',
     target: launcherMode ? 'Choose a gRPC target' : '127.0.0.1:50051',
     launcherMode,
+    initialScanTarget: '',
     basePath: '/',
     docsURL: '',
     repoURL: '',

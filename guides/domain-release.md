@@ -1,23 +1,27 @@
 # Product domain and release contract
 
-Target canonical URL: `https://protopeek.shreyam1008.com.np/`  
-Current state: **Prepared; deployment and public checks pending**
+Canonical URL: `https://protopeek.shreyam1008.com.np/`
 
-## Safe activation
+Current public state: **Live over HTTPS**
 
-1. Push the verified repository changes and confirm the existing `docs/` Pages
-   source still deploys at the legacy GitHub Pages URL.
-2. Save `protopeek.shreyam1008.com.np` as the repository Pages custom domain.
-3. Add one DNS-only CNAME from `protopeek.shreyam1008.com.np` to
-   `shreyam1008.github.io`; remove any conflicting record for that exact host.
-4. Wait for GitHub's DNS and certificate checks, then enforce HTTPS.
-5. Rebuild the site so canonical, Open Graph, robots, sitemap, assets, and
-   internal links all use the custom origin.
-6. Verify the legacy GitHub Pages URL redirects to the same custom-domain path.
-7. Only then change the website distribution status to **Live**.
+v0.2.0 candidate state: **Not deployed and not published**
+
+## Verification after a website deployment
+
+1. Confirm the custom-domain homepage and every sitemap route return HTTPS 200.
+2. Confirm `https://shreyam1008.github.io/ProtoPeek/` redirects to the matching
+   custom-domain path.
+3. Confirm canonical, Open Graph, robots, sitemap, manifest, and structured data
+   use the custom origin.
+4. View the raw homepage response and confirm product copy is prerendered inside
+   `#root` before JavaScript runs.
+5. Validate the 1200 by 630 PNG social card and its alt metadata.
+6. Confirm the install copy still resolves the public stable release, not a
+   draft or edge release.
 
 ## Rollback
 
-Remove the DNS CNAME first, then remove the GitHub Pages custom-domain setting.
-Restore the legacy canonical source only if the custom domain is abandoned,
-rebuild `docs/`, and verify the legacy Pages URL before closing the incident.
+For a bad site build, restore the previous known-good `docs/` artifact set and
+verify the custom and legacy URLs again. Change DNS or the Pages custom-domain
+setting only for a domain-level incident; preserve the current CNAME and HTTPS
+configuration during ordinary application rollbacks.
