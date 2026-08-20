@@ -557,7 +557,7 @@ function Install() {
       <SectionHeader
         label="Install · stable v0.3.2"
         title="Start the local workbench"
-        subtitle="The verified release installers resolve v0.3.2; the owned Homebrew and Scoop channels remain on v0.3.1 until their independent updates pass."
+        subtitle="The verified release installers and owned Homebrew and Scoop channels resolve v0.3.2 from checksum-pinned public archives."
       />
 
       <div className="mt-8 space-y-3">
