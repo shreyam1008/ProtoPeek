@@ -4,22 +4,75 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	reflectionpb "google.golang.org/grpc/reflection/grpc_reflection_v1"
 	"google.golang.org/grpc/status"
 )
 
 type scanResolverFunc func(context.Context, string, string) ([]netip.Addr, error)
+
+type blockingScanRequestBody struct {
+	context context.Context
+	started chan<- struct{}
+	once    sync.Once
+	reads   atomic.Int32
+}
+
+func (body *blockingScanRequestBody) Read([]byte) (int, error) {
+	body.reads.Add(1)
+	body.once.Do(func() { body.started <- struct{}{} })
+	<-body.context.Done()
+	return 0, body.context.Err()
+}
+
+func (*blockingScanRequestBody) Close() error { return nil }
+
+type boundedScanReflectionService struct {
+	reflectionpb.UnimplementedServerReflectionServer
+	services []string
+	err      error
+	header   metadata.MD
+}
+
+func (service *boundedScanReflectionService) ServerReflectionInfo(stream grpc.BidiStreamingServer[reflectionpb.ServerReflectionRequest, reflectionpb.ServerReflectionResponse]) error {
+	request, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	if service.err != nil {
+		return service.err
+	}
+	if service.header != nil {
+		if err := stream.SendHeader(service.header); err != nil {
+			return err
+		}
+	}
+	services := make([]*reflectionpb.ServiceResponse, 0, len(service.services))
+	for _, name := range service.services {
+		services = append(services, &reflectionpb.ServiceResponse{Name: name})
+	}
+	return stream.Send(&reflectionpb.ServerReflectionResponse{
+		OriginalRequest: request,
+		MessageResponse: &reflectionpb.ServerReflectionResponse_ListServicesResponse{
+			ListServicesResponse: &reflectionpb.ListServiceResponse{Service: services},
+		},
+	})
+}
 
 func (function scanResolverFunc) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	return function(ctx, network, host)
@@ -307,6 +360,364 @@ func TestScanHandlerReportsMultiProtocolResultsWithoutFollowingRedirects(t *test
 	if !sawHead.Load() {
 		t.Fatal("scan did not make its bounded HEAD request")
 	}
+}
+
+func TestScanHandlerRejectsSaturationBeforeBodyReadAndReleasesEveryExit(t *testing.T) {
+	t.Parallel()
+
+	handler := ScanHandler()
+	started := make(chan struct{}, 2)
+	done := make(chan *httptest.ResponseRecorder, 2)
+	cancels := make([]context.CancelFunc, 0, 2)
+	for index := 0; index < 2; index++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancels = append(cancels, cancel)
+		body := &blockingScanRequestBody{context: ctx, started: started}
+		request := httptest.NewRequest(http.MethodPost, "/api/scan", body).WithContext(ctx)
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		go func() {
+			handler.ServeHTTP(response, request)
+			done <- response
+		}()
+	}
+	for index := 0; index < 2; index++ {
+		waitHealthSignal(t, started, "active scan request")
+	}
+
+	blockedBody := &countingReadCloser{reader: strings.NewReader("not-json")}
+	blockedRequest := httptest.NewRequest(http.MethodPost, "/api/scan", blockedBody)
+	blockedRequest.Header.Set("Content-Type", "application/json")
+	blockedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(blockedResponse, blockedRequest)
+	if blockedResponse.Code != http.StatusServiceUnavailable {
+		t.Fatalf("saturated status = %d, body = %q", blockedResponse.Code, blockedResponse.Body.String())
+	}
+	if blockedResponse.Header().Get("Retry-After") == "" {
+		t.Fatal("saturated response omitted Retry-After")
+	}
+	if blockedBody.reads != 0 {
+		t.Fatalf("saturated request body reads = %d, want 0", blockedBody.reads)
+	}
+
+	for _, cancel := range cancels {
+		cancel()
+	}
+	for index := 0; index < 2; index++ {
+		waitHealthSignal(t, done, "canceled scan completion")
+	}
+	for index := 0; index < 3; index++ {
+		request := httptest.NewRequest(http.MethodPost, "/api/scan", strings.NewReader("not-json"))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("invalid request %d status = %d, body = %q", index, response.Code, response.Body.String())
+		}
+	}
+	for index := 0; index < 3; index++ {
+		request := httptest.NewRequest(http.MethodPost, "/api/scan", strings.NewReader(`{"addresses":[]}`))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("successful request %d status = %d, body = %q", index, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestStandaloneScanCSRFPrecedesSharedLimiterAndBodyRead(t *testing.T) {
+	t.Parallel()
+
+	handler := Handler(nil, "scan-target", nil, nil)
+	cookie := workspaceUploadCSRFCookie(t, handler)
+	for index := 0; index < 3; index++ {
+		body := &countingReadCloser{reader: strings.NewReader("not-json")}
+		request := httptest.NewRequest(http.MethodPost, "/api/scan", body)
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusUnauthorized || body.reads != 0 {
+			t.Fatalf("invalid CSRF request %d: status=%d reads=%d", index, response.Code, body.reads)
+		}
+	}
+
+	started := make(chan struct{}, 2)
+	done := make(chan struct{}, 2)
+	cancels := make([]context.CancelFunc, 0, 2)
+	for index := 0; index < 2; index++ {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancels = append(cancels, cancel)
+		body := &blockingScanRequestBody{context: ctx, started: started}
+		request := httptest.NewRequest(http.MethodPost, "/api/scan", body).WithContext(ctx)
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		request.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		go func() {
+			handler.ServeHTTP(response, request)
+			done <- struct{}{}
+		}()
+	}
+	for index := 0; index < 2; index++ {
+		waitHealthSignal(t, started, "active standalone scan request")
+	}
+	invalidCSRFBody := &countingReadCloser{reader: strings.NewReader("not-json")}
+	invalidCSRFRequest := httptest.NewRequest(http.MethodPost, "/api/scan", invalidCSRFBody)
+	invalidCSRFRequest.Header.Set("Content-Type", "application/json")
+	invalidCSRFResponse := httptest.NewRecorder()
+	handler.ServeHTTP(invalidCSRFResponse, invalidCSRFRequest)
+	if invalidCSRFResponse.Code != http.StatusUnauthorized || invalidCSRFBody.reads != 0 {
+		t.Fatalf("saturated invalid CSRF request: status=%d reads=%d", invalidCSRFResponse.Code, invalidCSRFBody.reads)
+	}
+
+	blockedBody := &countingReadCloser{reader: strings.NewReader("not-json")}
+	blockedRequest := httptest.NewRequest(http.MethodPost, "/api/scan", blockedBody)
+	blockedRequest.Header.Set("Content-Type", "application/json")
+	blockedRequest.Header.Set(csrfHeaderName, cookie.Value)
+	blockedRequest.AddCookie(cookie)
+	blockedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(blockedResponse, blockedRequest)
+	if blockedResponse.Code != http.StatusServiceUnavailable || blockedBody.reads != 0 {
+		t.Fatalf("shared limiter response: status=%d reads=%d body=%q", blockedResponse.Code, blockedBody.reads, blockedResponse.Body.String())
+	}
+
+	for _, cancel := range cancels {
+		cancel()
+	}
+	for index := 0; index < 2; index++ {
+		waitHealthSignal(t, done, "standalone scan cancellation")
+	}
+}
+
+func TestScanHandlerBoundsReflectionServicesAndDetailsAtThePublicSeam(t *testing.T) {
+	t.Parallel()
+
+	t.Run("services", func(t *testing.T) {
+		services := make([]string, 0, 34)
+		services = append(services, strings.Repeat("a", maxScanServiceBytes))
+		services = append(services, strings.Repeat("b", maxScanServiceBytes+1))
+		for index := 1; index < maxScanServiceAggregateBytes/maxScanServiceBytes; index++ {
+			prefix := fmt.Sprintf("service-%02d.", index)
+			services = append(services, prefix+strings.Repeat("s", maxScanServiceBytes-len(prefix)))
+		}
+		services = append(services, "one.more.Service")
+
+		result := scanReflectionFixture(t, &boundedScanReflectionService{services: services})
+		if !result.GRPC || result.Reflection != "available" {
+			t.Fatalf("reflection result = %#v", result)
+		}
+		if !result.ServicesTruncated {
+			t.Fatal("bounded service evidence omitted servicesTruncated")
+		}
+		if len(result.Services) != maxScanServiceAggregateBytes/maxScanServiceBytes {
+			t.Fatalf("retained services = %d, want %d", len(result.Services), maxScanServiceAggregateBytes/maxScanServiceBytes)
+		}
+		serviceBytes := 0
+		for _, service := range result.Services {
+			if !utf8.ValidString(service) || len(service) > maxScanServiceBytes {
+				t.Fatalf("unbounded service evidence: %q (%d bytes)", service, len(service))
+			}
+			serviceBytes += len(service)
+		}
+		if serviceBytes != maxScanServiceAggregateBytes {
+			t.Fatalf("retained service bytes = %d, want exact cap %d", serviceBytes, maxScanServiceAggregateBytes)
+		}
+	})
+
+	t.Run("details", func(t *testing.T) {
+		result := scanReflectionFixture(t, &boundedScanReflectionService{
+			err: status.Error(codes.Internal, strings.Repeat("d", maxScanDetailsBytes+1)),
+		})
+		if !result.DetailsTruncated {
+			t.Fatal("bounded detail evidence omitted detailsTruncated")
+		}
+		detailBytes := 0
+		for _, detail := range result.Details {
+			if !utf8.ValidString(detail) {
+				t.Fatalf("detail is not valid UTF-8: %q", detail)
+			}
+			detailBytes += len(detail)
+		}
+		if detailBytes != maxScanDetailsBytes {
+			t.Fatalf("retained detail bytes = %d, want exact cap %d", detailBytes, maxScanDetailsBytes)
+		}
+	})
+
+	t.Run("reflection response over receive cap", func(t *testing.T) {
+		result := scanReflectionFixture(t, &boundedScanReflectionService{
+			services: []string{strings.Repeat("oversized", maxScanGRPCResponseBytes/len("oversized")+1)},
+		})
+		if !result.GRPC {
+			t.Fatalf("bounded reflection response lost verified gRPC evidence: %#v", result)
+		}
+		if result.Reflection != "available" || !result.ServicesTruncated || len(result.Services) != 0 {
+			t.Fatalf("oversized reflection evidence = %#v", result)
+		}
+	})
+
+	t.Run("reflection metadata over header cap", func(t *testing.T) {
+		result := scanReflectionFixture(t, &boundedScanReflectionService{
+			services: []string{"small.Service"},
+			header:   metadata.Pairs("x-oversized", strings.Repeat("h", maxScanGRPCHeaderBytes+1)),
+		})
+		if result.GRPC || result.Failure != "indeterminate" || result.Reflection != "not-checked" {
+			t.Fatalf("ambiguous HTTP/2 reset was overclaimed as gRPC evidence: %#v", result)
+		}
+		detailBytes := 0
+		for _, detail := range result.Details {
+			detailBytes += len(detail)
+		}
+		if detailBytes > maxScanDetailsBytes {
+			t.Fatalf("header-cap detail bytes = %d, limit %d", detailBytes, maxScanDetailsBytes)
+		}
+	})
+}
+
+func TestScanHandlerBoundsHTTPAndResultStringsTruthfully(t *testing.T) {
+	t.Parallel()
+
+	target := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.Header().Set("Server", strings.Repeat("界", maxScanHTTPServerBytes))
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer target.Close()
+
+	request := httptest.NewRequest(http.MethodPost, "/api/scan", strings.NewReader(`{"addresses":["`+target.URL+`"]}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	ScanHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	var results []ScanResult
+	if err := json.Unmarshal(response.Body.Bytes(), &results); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(results) != 1 || !results[0].HTTP {
+		t.Fatalf("results = %#v", results)
+	}
+	if !results[0].HTTPServerTruncated || len(results[0].HTTPServer) > maxScanHTTPServerBytes || !utf8.ValidString(results[0].HTTPServer) {
+		t.Fatalf("HTTP Server evidence = %q (%d bytes), truncated=%v", results[0].HTTPServer, len(results[0].HTTPServer), results[0].HTTPServerTruncated)
+	}
+
+	bounded := boundScanResult(ScanResult{
+		Error:        strings.Repeat("e", maxScanErrorBytes+1),
+		HTTPProtocol: strings.Repeat("p", maxScanHTTPProtocolBytes+1),
+		HTTPStatus:   strings.Repeat("s", maxScanHTTPStatusBytes+1),
+		HTTPServer:   strings.Repeat("h", maxScanHTTPServerBytes+1),
+		Details: []string{
+			strings.Repeat("d", maxScanDetailsBytes),
+			"overflow",
+		},
+		Services: []string{
+			strings.Repeat("v", maxScanServiceBytes),
+			strings.Repeat("x", maxScanServiceBytes+1),
+		},
+	})
+	if len(bounded.Error) != maxScanErrorBytes || !bounded.ErrorTruncated {
+		t.Fatalf("Error cap = %d, truncated=%v", len(bounded.Error), bounded.ErrorTruncated)
+	}
+	if len(bounded.HTTPProtocol) != maxScanHTTPProtocolBytes || !bounded.HTTPProtocolTruncated {
+		t.Fatalf("HTTP protocol cap = %d, truncated=%v", len(bounded.HTTPProtocol), bounded.HTTPProtocolTruncated)
+	}
+	if len(bounded.HTTPStatus) != maxScanHTTPStatusBytes || !bounded.HTTPStatusTruncated {
+		t.Fatalf("HTTP status cap = %d, truncated=%v", len(bounded.HTTPStatus), bounded.HTTPStatusTruncated)
+	}
+	if len(bounded.HTTPServer) != maxScanHTTPServerBytes || !bounded.HTTPServerTruncated {
+		t.Fatalf("HTTP Server cap = %d, truncated=%v", len(bounded.HTTPServer), bounded.HTTPServerTruncated)
+	}
+	if len(bounded.Details) != 1 || len(bounded.Details[0]) != maxScanDetailsBytes || !bounded.DetailsTruncated {
+		t.Fatalf("Details = %#v, truncated=%v", bounded.Details, bounded.DetailsTruncated)
+	}
+	if len(bounded.Services) != 1 || len(bounded.Services[0]) != maxScanServiceBytes || !bounded.ServicesTruncated {
+		t.Fatalf("Services = %#v, truncated=%v", bounded.Services, bounded.ServicesTruncated)
+	}
+	tooManyServices := make([]string, maxScanServices+1)
+	for index := range tooManyServices {
+		tooManyServices[index] = fmt.Sprintf("service-%02d", index)
+	}
+	bounded = boundScanResult(ScanResult{Services: tooManyServices, HTTPServer: string([]byte{0xff})})
+	if len(bounded.Services) != maxScanServices || !bounded.ServicesTruncated {
+		t.Fatalf("service count = %d, truncated=%v", len(bounded.Services), bounded.ServicesTruncated)
+	}
+	if !utf8.ValidString(bounded.HTTPServer) || !bounded.HTTPServerTruncated {
+		t.Fatalf("invalid UTF-8 HTTP Server was not repaired truthfully: %q, truncated=%v", bounded.HTTPServer, bounded.HTTPServerTruncated)
+	}
+}
+
+func TestScanHandlerRejectsOversizedAddressWithoutEcho(t *testing.T) {
+	t.Parallel()
+
+	address := strings.Repeat("secret-host", maxScanAddressBytes/len("secret-host")+2)
+	request := httptest.NewRequest(http.MethodPost, "/api/scan", strings.NewReader(`{"addresses":["`+address+`"],"explicit":true}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	ScanHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), address) || len(response.Body.String()) > maxScanAddressBytes {
+		t.Fatalf("oversized address leaked into response: %q", response.Body.String())
+	}
+}
+
+func TestMergeHTTPProbeAttemptPreservesCumulativeTruncation(t *testing.T) {
+	t.Parallel()
+
+	result := httpProbeResult{Details: make([]string, 0, 2)}
+	if mergeHTTPProbeAttempt(&result, httpProbeResult{Details: []string{strings.Repeat("x", maxScanDetailsBytes+1)}}) {
+		t.Fatal("failed attempt unexpectedly completed the probe")
+	}
+	if !mergeHTTPProbeAttempt(&result, httpProbeResult{Detected: true, Details: []string{"tls succeeded"}}) {
+		t.Fatal("detected attempt did not complete the probe")
+	}
+	if !result.DetailsTruncated {
+		t.Fatal("detected attempt lost truncation from the prior transport")
+	}
+	detailBytes := 0
+	for _, detail := range result.Details {
+		detailBytes += len(detail)
+	}
+	if detailBytes != maxScanDetailsBytes {
+		t.Fatalf("retained detail bytes = %d, want %d", detailBytes, maxScanDetailsBytes)
+	}
+}
+
+func scanReflectionFixture(t *testing.T, service reflectionpb.ServerReflectionServer) ScanResult {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	server := grpc.NewServer()
+	reflectionpb.RegisterServerReflectionServer(server, service)
+	done := make(chan struct{})
+	go func() {
+		_ = server.Serve(listener)
+		close(done)
+	}()
+	t.Cleanup(func() {
+		server.Stop()
+		_ = listener.Close()
+		<-done
+	})
+
+	request := httptest.NewRequest(http.MethodPost, "/api/scan", strings.NewReader(`{"addresses":["http://`+listener.Addr().String()+`"]}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	ScanHandler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %q", response.Code, response.Body.String())
+	}
+	var results []ScanResult
+	if err := json.Unmarshal(response.Body.Bytes(), &results); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("results = %#v", results)
+	}
+	return results[0]
 }
 
 func TestScanHandlerHonorsRequestCancellation(t *testing.T) {

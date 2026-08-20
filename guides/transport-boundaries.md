@@ -24,7 +24,13 @@ and transport story.
 - Scan evidence is independently labeled as verified gRPC, safe HTTP, or open TCP. HTTP evidence
   uses only `HEAD /`, verified TLS where applicable, fixed per-protocol and whole-request deadlines,
   no body, no authentication, and no redirect following. Closing or cancelling the dialog cancels
-  the request context.
+  the request context. The handler admits two scan requests at once and rejects excess work before
+  reading its body. One request accepts at most 20 inputs expanding to 24 candidates and has a
+  four-second wall deadline. Each retained service name is at most 1 KiB, with 64 names and 32 KiB
+  aggregate; reflection receive and response-header evidence are each capped at 64 KiB. Diagnostic
+  details and the primary error are capped at 2 KiB each, while HTTP protocol, status, and Server
+  evidence are capped at 64, 512, and 256 bytes. Truncation is explicit in the result rather than
+  silently presented as complete evidence.
 - Next-hop evidence is one read-only kernel-selected route per resolved address from the ProtoPeek
   process. It sends no hop probes (hostnames may still resolve through DNS), does not trace hops,
   does not poll or mutate routes, and requires no elevation. Its UI
@@ -59,8 +65,8 @@ ordered transport events -> protocol-specific inspector
 
 Bundled Nmap execution is not planned for the core binary; traceroute/hop probes, LAN range
 expansion, and live capture remain gated.
-Offline Nmap XML import is available in the v0.3 source build, but Nmap itself is not bundled or
-invoked. Next-hop evidence is available in that build, but it is not traceroute/hop probing.
+Offline Nmap XML import ships in v0.3.0, but Nmap itself is not bundled or invoked. Next-hop
+evidence ships in the same release, but it is not traceroute/hop probing.
 
 The shared boundary should stay deliberately small:
 
@@ -83,6 +89,23 @@ split view, explicit cancellation, callback-observed response timing, and visibl
 deadlines, streaming mode, and status. Headers, first message, final status, and invoke return are handler lifecycle
 boundaries, not packet-arrival, server-processing, or TTFB measurements; unary callbacks may cluster
 after transport completion.
+
+Health is a separate, explicit gRPC diagnostic rather than a background liveness monitor. Check
+accepts a 0.1–30 second deadline (5 seconds by default). Watch accepts a 1–600 second duration
+(60 seconds by default), performs no retry or polling, and shares four stream slots across direct
+and workspace sessions. The server accepts at most a 64 KiB JSON envelope, 1,024 UTF-8 bytes for a
+service name, and 64 request-body metadata entries / 32 KiB aggregate. Configured CLI metadata and
+explicitly preserved relay headers still follow the existing Invoke precedence. It emits at most 512 status
+observations; each flushed NDJSON line is at most 64 KiB and response headers plus trailers share a
+32 KiB retained evidence budget. The browser validates event order and attribution, retains the
+latest 200 transitions with a dropped count, and treats missing terminal evidence as truncation.
+
+Blank service means overall server health. Unknown service semantics are not normalized away:
+Check has no fabricated serving enum and ends `NOT_FOUND`; Watch reports `SERVICE_UNKNOWN` and stays
+open. `UNIMPLEMENTED` ends the one Watch epoch without retry. Live request metadata follows Invoke
+precedence and binary decoding but is never returned, persisted, or exported. Every timestamp is a
+ProtoPeek handler/relay observation against one selected connection, not packet arrival, server
+emission, dependency health, load-balancer coverage, or fleet health.
 
 ### 2. Keep the HTTP slice bounded
 

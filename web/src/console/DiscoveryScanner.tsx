@@ -107,17 +107,23 @@ export function DiscoveryScanner({
             reflection: 'not-checked',
             transport: '',
             services: [],
+            servicesTruncated: false,
             httpTransport: '',
             httpProtocol: '',
+            httpProtocolTruncated: false,
             httpStatus: '',
+            httpStatusTruncated: false,
             httpStatusCode: 0,
             httpServer: '',
+            httpServerTruncated: false,
             failure: 'request',
             error:
               error instanceof Error && error.message.trim()
                 ? error.message.trim()
                 : 'Scan request failed',
+            errorTruncated: false,
             details: [],
+            detailsTruncated: false,
             latencyMs: 0,
           },
         ]);
@@ -218,12 +224,37 @@ export function DiscoveryScanner({
               <li key={result.address}>
                 <code>{result.address}</code>
                 <span>{result.details?.[0] ?? result.error ?? 'Not reachable'}</span>
+                <ScanTruncationNote result={result} />
               </li>
             ))}
           </ul>
         </details>
       ) : null}
     </div>
+  );
+}
+
+const truncationEvidence = [
+  ['servicesTruncated', 'service names'],
+  ['httpProtocolTruncated', 'HTTP protocol'],
+  ['httpStatusTruncated', 'HTTP status'],
+  ['httpServerTruncated', 'HTTP server'],
+  ['errorTruncated', 'error text'],
+  ['detailsTruncated', 'probe details'],
+] as const satisfies ReadonlyArray<readonly [keyof ScanResult, string]>;
+
+function ScanTruncationNote({ result }: { result: ScanResult }) {
+  const fields = truncationEvidence
+    .filter(([field]) => result[field] === true)
+    .map(([, label]) => label);
+  if (fields.length === 0) return null;
+  return (
+    <small
+      className="pp-evidence-truncated"
+      title={`Relay limits truncated retained ${fields.join(', ')}.`}
+    >
+      Evidence truncated by relay limits
+    </small>
   );
 }
 
@@ -284,13 +315,21 @@ export function ScanResultCard({
           </span>
         ) : null}
         {!result.alive ? <span>{result.error ?? 'Not reachable'}</span> : null}
+        <ScanTruncationNote result={result} />
       </div>
       {result.grpc ? (
         <p className="pp-muted">
           {result.reflection === 'available'
             ? 'Reflection available'
             : 'gRPC confirmed; reflection unavailable'}
-          {result.services?.length ? ` · ${result.services.length} service(s)` : ''}
+          {result.services?.length ? (
+            <>
+              {' · '}
+              <span>
+                {result.services.length} {result.servicesTruncated ? 'retained ' : ''}service(s)
+              </span>
+            </>
+          ) : null}
         </p>
       ) : null}
       {result.details?.length ? (
@@ -305,8 +344,4 @@ export function ScanResultCard({
       ) : null}
     </article>
   );
-}
-
-export function scanResultHTTPURL(result: ScanResult) {
-  return `${result.httpTransport === 'tls' ? 'https' : 'http'}://${result.address}/`;
 }

@@ -26,7 +26,7 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **deferred until the v0.3 stable archives and checksums exist**. A formula
+Current execution state: **deferred until the v0.3.0 stable archives and checksums exist**. A formula
 or manifest published earlier would either point at v0.2 or at mutable preview artifacts. No
 third-party submission or founder-authored community post should be made from an agent account.
 

@@ -6,6 +6,10 @@ import {
 import type {
   BootstrapResponse,
   ExampleResponse,
+  HealthCheckRequest,
+  HealthCheckResponse,
+  HealthWatchEvent,
+  HealthWatchRequest,
   HTTPRequestInput,
   HTTPResponse,
   InvokeRequest,
@@ -15,6 +19,7 @@ import type {
   WorkspaceConnectResponse,
   WorkspaceTargetConfig,
 } from '@/shared/types';
+import { parseHealthCheckResponse, parseHealthWatchNDJSON } from './health';
 
 function urlFor(path: string) {
   return new URL(path, window.location.href).toString();
@@ -36,10 +41,47 @@ async function fetchJSON<T>(path: string, init?: RequestInit) {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    throw new Error(await boundedResponseError(response));
   }
 
   return (await response.json()) as T;
+}
+
+async function boundedResponseError(response: Response, limit = 8 * 1024) {
+  if (!response.body) {
+    const text = typeof response.text === 'function' ? (await response.text()).slice(0, limit) : '';
+    const fallback = `${response.status ?? ''} ${response.statusText ?? ''}`.trim();
+    return text.trim() || fallback || 'Request failed.';
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  let truncated = false;
+  try {
+    while (bytes < limit) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const remaining = limit - bytes;
+      chunks.push(value.subarray(0, remaining));
+      bytes += Math.min(value.length, remaining);
+      if (value.length > remaining) {
+        truncated = true;
+        break;
+      }
+    }
+    if (bytes === limit) truncated = true;
+  } finally {
+    if (truncated) await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+  const joined = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.length;
+  }
+  const text = new TextDecoder().decode(joined).trim();
+  return `${text || `${response.status} ${response.statusText}`.trim()}${truncated ? '…' : ''}`;
 }
 
 function arrayOrEmpty<T>(value: T[] | null | undefined): T[] {
@@ -173,6 +215,52 @@ export async function invokeMethod(method: string, payload: InvokeRequest, signa
   );
 }
 
+function healthPath(sessionId: string, operation: 'check' | 'watch') {
+  if (!sessionId) return `api/health/${operation}`;
+  return `api/workspace/health/${operation}?session_id=${encodeURIComponent(sessionId)}`;
+}
+
+export async function checkHealth(
+  sessionId: string,
+  payload: HealthCheckRequest,
+  signal?: AbortSignal
+): Promise<HealthCheckResponse> {
+  return parseHealthCheckResponse(
+    await fetchJSON<unknown>(healthPath(sessionId, 'check'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal,
+    })
+  );
+}
+
+export async function watchHealth(
+  sessionId: string,
+  payload: HealthWatchRequest,
+  onEvent: (event: HealthWatchEvent) => void,
+  signal?: AbortSignal
+) {
+  const response = await fetch(urlFor(healthPath(sessionId, 'watch')), {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-protopeek-csrf-token': csrfToken(),
+    },
+    body: JSON.stringify(payload),
+    signal,
+  });
+  if (!response.ok) throw new Error(await boundedResponseError(response));
+  const mediaType = response.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase();
+  if (mediaType !== 'application/x-ndjson') {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error('Health Watch relay must return application/x-ndjson.');
+  }
+  if (!response.body) throw new Error('Health Watch relay returned no response stream.');
+  await parseHealthWatchNDJSON(response.body, onEvent, signal);
+}
+
 export async function fetchProtoCatalog() {
   return normalizeProtoCatalog(await fetchJSON<unknown>('api/protos'));
 }
@@ -296,11 +384,15 @@ export type ScanResult = {
   reflection: 'available' | 'unavailable' | 'not-checked';
   transport: 'plaintext' | 'tls' | 'auto' | 'none' | '';
   services: string[] | null;
+  servicesTruncated: boolean;
   httpTransport: 'plaintext' | 'tls' | '';
   httpProtocol: string;
+  httpProtocolTruncated: boolean;
   httpStatus: string;
+  httpStatusTruncated: boolean;
   httpStatusCode: number;
   httpServer: string;
+  httpServerTruncated: boolean;
   failure:
     | 'unreachable'
     | 'non-grpc'
@@ -311,7 +403,9 @@ export type ScanResult = {
     | 'indeterminate'
     | '';
   error: string | null;
+  errorTruncated: boolean;
   details: string[] | null;
+  detailsTruncated: boolean;
   latencyMs: number;
 };
 
@@ -373,18 +467,27 @@ export type NmapImportResponse = {
   completion: string;
 };
 
-export function scanAddresses(
+export async function scanAddresses(
   addresses: string[],
   allowPrivateNetwork = false,
   explicit = false,
   signal?: AbortSignal
 ) {
-  return fetchJSON<ScanResult[]>('api/scan', {
+  const results = await fetchJSON<ScanResult[]>('api/scan', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ addresses, allowPrivateNetwork, explicit }),
     signal,
   });
+  return arrayOrEmpty(results).map((result) => ({
+    ...result,
+    servicesTruncated: result.servicesTruncated === true,
+    detailsTruncated: result.detailsTruncated === true,
+    errorTruncated: result.errorTruncated === true,
+    httpProtocolTruncated: result.httpProtocolTruncated === true,
+    httpStatusTruncated: result.httpStatusTruncated === true,
+    httpServerTruncated: result.httpServerTruncated === true,
+  }));
 }
 
 export async function lookupRoute(

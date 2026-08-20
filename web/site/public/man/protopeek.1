@@ -1,4 +1,4 @@
-.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.2.0" "User Commands"
+.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.3.0" "User Commands"
 .SH NAME
 protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .SH SYNOPSIS
@@ -10,10 +10,11 @@ protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .I target
 .SH DESCRIPTION
 ProtoPeek starts an unauthenticated local web workbench. With no target it opens
-the workspace launcher. An exact host:port connects directly to that gRPC
-target. A bare host opens the launcher and checks only port 50051 with plaintext
-and port 443 with verified TLS. An HTTP(S) authority checks its stated or
-default port. The HTTP workbench is available from the local browser interface.
+the Protocol Peek dashboard. An exact host:port connects directly to that gRPC
+target. A bare host opens the dashboard's visible scan and checks only port
+50051 with plaintext and port 443 with verified TLS. An HTTP(S) authority checks
+its stated or default port. The gRPC, HTTP, route, scan, and roadmap surfaces are
+available from the local browser interface.
 .PP
 The listener binds to 127.0.0.1 by default. Do not expose it to an untrusted
 network. A non-loopback bind requires the explicit
@@ -88,10 +89,10 @@ Permit a non-loopback browser listener. The listener has no built-in user
 authentication; use only behind an explicit trusted boundary.
 .SH EXAMPLES
 .TP
-Open the launcher:
+Open the Protocol Peek dashboard:
 .B protopeek
 .TP
-Probe the bounded candidates for a bare host in the launcher:
+Probe the bounded candidates for a bare host in the visible scan:
 .B protopeek localhost
 .TP
 Connect to a plaintext local gRPC server:

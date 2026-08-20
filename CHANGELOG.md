@@ -3,11 +3,22 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
-## Unreleased — v0.3
+## v0.3.0 — 2026-08-20
 
+- Added explicit canonical `grpc.health.v1` Check and Watch diagnostics. Check preserves serving
+  status, headers, trailers, final gRPC status, and handler-observed duration; Watch flushes one
+  bounded NDJSON epoch with status transitions, cancellation, trailers, and terminal evidence.
+  Blank-service, unknown-service, and `UNIMPLEMENTED` semantics remain canonical. Watch never polls
+  or retries, is capped at four concurrent streams per console, 1–600 seconds, and 512 observations,
+  while the browser retains the latest 200 with a dropped count. Request metadata is used live but
+  never echoed, persisted, or exported.
 - Direct `/grpc`, `/http`, `/routes`, and `/roadmap` links now canonicalize to the hash-routed
   workbench, including when ProtoPeek is mounted below a base path. Refreshing or sharing a protocol
   surface no longer falls through to a server 404 or silently renders Home.
+- Bounded the discovery relay against target-controlled evidence: two scan requests may run at once;
+  reflection receive/header data, retained service names, HTTP protocol/status/server values,
+  diagnostic details, and errors have explicit byte ceilings. Additive truncation flags keep a
+  genuine oversized reflection response distinguishable from absent or fabricated evidence.
 - Added real browser proto-folder snapshots for reflection-disabled services. File System Access
   uses an explicit user gesture where supported with directory-input fallback; only lowercase
   `.proto` files are included, nested import paths are preserved, and profiles persist no handle,
@@ -54,6 +65,13 @@ version source of truth.
 - Added a lazy in-app roadmap with Available in this build, Next, Exploring, and Gated states, and updated dashboard,
   help, README, site source, and detailed guides to distinguish next-hop lookup from traceroute and
   Nmap XML import from active Nmap execution.
+- Unified the console, website, favicon, and install icons around the ProtoPeek waveform mark; added
+  real light, persisted-dark, and 390 px dashboard captures; and aligned v0.3.0 canonical, social,
+  manifest, sitemap, and structured metadata. Internal launch/runbook pages remain in the repository
+  but are no longer indexed as end-user product documentation.
+- Made the repository CI gate ignore tool caches, pin its analyzers into a local tools directory,
+  and pass gofmt, vet, staticcheck, ineffassign, predeclared, Go tests, frontend tests, and a
+  deterministic production build after release tooling has populated `.tmp`.
 
 ### Milestone 1 foundation
 

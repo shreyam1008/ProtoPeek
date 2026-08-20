@@ -12,6 +12,7 @@ ProtoPeek is an independent local workbench focused on the parts teams need when
 - Local collections and history
 - A response lab that keeps headers, trailers, payloads, and status together
 - Bounded sequential Unary Repeat with cancellation, separate gRPC status and relay/transport failures, and explicit handler-vs-console timing—never presented as a load benchmark
+- Explicit canonical gRPC Health Check/Watch with bounded live transitions, cancellation, and no background polling or retry
 - A separate HTTP(S) editor with redirects off and TLS verification on by default
 - HTTP status, protocol, headers, text/base64 body, redirects, peer/TLS context, and phase timings
 - A public learn page that explains gRPC, gRPC-Web, Envoy, and why debugging gets hard
@@ -42,7 +43,7 @@ Historical note:
 
 Notes:
 
-- Do not post this draft until v0.2.0 is publicly released and its Unix and
+- Do not post this draft until v0.3.0 is publicly released and its Unix and
   Windows installers pass clean-machine acceptance.
 - After release, adapt the technical detail and limitations to each community;
   do not broadcast identical promotional copy or solicit votes.

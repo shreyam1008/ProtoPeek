@@ -239,17 +239,12 @@ func lookupRoutes(ctx context.Context, addresses []netip.Addr, lookup routeLooku
 			}
 		}()
 	}
+dispatch:
 	for index := range addresses {
-		if ctx.Err() != nil {
-			break
-		}
 		select {
 		case jobs <- index:
 		case <-ctx.Done():
-			break
-		}
-		if ctx.Err() != nil {
-			break
+			break dispatch
 		}
 	}
 	close(jobs)

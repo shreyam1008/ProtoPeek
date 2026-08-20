@@ -133,6 +133,9 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		EmitDefaults:    uiOpts.emitDefaults,
 		Verbosity:       uiOpts.invokeVerbosity,
 	}
+	healthHandlers := newHealthHandlerSet(uiOpts.extraMetadata, uiOpts.preserveHeaders)
+	mux.Handle("/api/health/check", healthHandlers.checkHandler(directHealthConnection(ch)))
+	mux.Handle("/api/health/watch", healthHandlers.watchHandler(directHealthConnection(ch)))
 	rpcInvokeHandler := http.StripPrefix("/invoke", grpcui.RPCInvokeHandlerWithOptions(ch, methods, invokeOpts))
 	mux.HandleFunc("/invoke/", func(w http.ResponseWriter, r *http.Request) {
 		// CSRF protection
@@ -158,12 +161,13 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		}
 	})
 
+	scanHandler := ScanHandler()
 	mux.HandleFunc("/api/scan", func(w http.ResponseWriter, r *http.Request) {
 		if !validCSRF(r) {
 			http.Error(w, "incorrect CSRF token", http.StatusUnauthorized)
 			return
 		}
-		ScanHandler().ServeHTTP(w, r)
+		scanHandler.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/http/request", func(w http.ResponseWriter, r *http.Request) {
 		if !validCSRF(r) {
@@ -188,6 +192,8 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	})
 
 	if uiOpts.workspaceManager != nil {
+		mux.Handle("/api/workspace/health/check", healthHandlers.checkHandler(workspaceHealthConnection(uiOpts.workspaceManager)))
+		mux.Handle("/api/workspace/health/watch", healthHandlers.watchHandler(workspaceHealthConnection(uiOpts.workspaceManager)))
 		mux.HandleFunc("/api/workspace/connect", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodPost {
 				w.Header().Set("Allow", http.MethodPost)

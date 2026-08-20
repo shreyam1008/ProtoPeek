@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
@@ -23,38 +24,55 @@ import (
 )
 
 const (
-	maxScanInputs        = 20
-	maxScanCandidates    = 24
-	maxScanServices      = 64
-	maxScanResolvedIPs   = 8
-	maxScanHTTPHeader    = 64 << 10
-	scanRequestTimeout   = 4 * time.Second
-	tcpProbeTimeout      = 500 * time.Millisecond
-	protocolProbeTimeout = 1200 * time.Millisecond
+	maxScanInputs                = 20
+	maxScanCandidates            = 24
+	maxScanServices              = 64
+	maxScanAddressBytes          = 512
+	maxScanServiceBytes          = 1 << 10
+	maxScanServiceAggregateBytes = 32 << 10
+	maxScanDetailsBytes          = 2 << 10
+	maxScanErrorBytes            = 2 << 10
+	maxScanHTTPProtocolBytes     = 64
+	maxScanHTTPStatusBytes       = 512
+	maxScanHTTPServerBytes       = 256
+	maxScanGRPCResponseBytes     = 64 << 10
+	maxScanGRPCHeaderBytes       = 64 << 10
+	maxScanResolvedIPs           = 8
+	maxScanHTTPHeader            = 64 << 10
+	maxConcurrentScans           = 2
+	scanRequestTimeout           = 4 * time.Second
+	tcpProbeTimeout              = 500 * time.Millisecond
+	protocolProbeTimeout         = 1200 * time.Millisecond
 )
 
 var explicitHostCandidatePorts = []string{"50051", "443"}
 
 // ScanResult describes what was found when probing a single bounded candidate.
 type ScanResult struct {
-	Address        string   `json:"address"`
-	Alive          bool     `json:"alive"`
-	TCP            bool     `json:"tcp"`
-	GRPC           bool     `json:"grpc"`
-	HTTP           bool     `json:"http"`
-	Protocols      []string `json:"protocols"`
-	Reflection     string   `json:"reflection"`
-	Transport      string   `json:"transport,omitempty"`
-	Services       []string `json:"services,omitempty"`
-	HTTPTransport  string   `json:"httpTransport,omitempty"`
-	HTTPProtocol   string   `json:"httpProtocol,omitempty"`
-	HTTPStatus     string   `json:"httpStatus,omitempty"`
-	HTTPStatusCode int      `json:"httpStatusCode,omitempty"`
-	HTTPServer     string   `json:"httpServer,omitempty"`
-	Failure        string   `json:"failure,omitempty"`
-	Error          string   `json:"error,omitempty"`
-	Details        []string `json:"details,omitempty"`
-	LatencyMs      int64    `json:"latencyMs"`
+	Address               string   `json:"address"`
+	Alive                 bool     `json:"alive"`
+	TCP                   bool     `json:"tcp"`
+	GRPC                  bool     `json:"grpc"`
+	HTTP                  bool     `json:"http"`
+	Protocols             []string `json:"protocols"`
+	Reflection            string   `json:"reflection"`
+	Transport             string   `json:"transport,omitempty"`
+	Services              []string `json:"services,omitempty"`
+	HTTPTransport         string   `json:"httpTransport,omitempty"`
+	HTTPProtocol          string   `json:"httpProtocol,omitempty"`
+	HTTPStatus            string   `json:"httpStatus,omitempty"`
+	HTTPStatusCode        int      `json:"httpStatusCode,omitempty"`
+	HTTPServer            string   `json:"httpServer,omitempty"`
+	HTTPProtocolTruncated bool     `json:"httpProtocolTruncated"`
+	HTTPStatusTruncated   bool     `json:"httpStatusTruncated"`
+	HTTPServerTruncated   bool     `json:"httpServerTruncated"`
+	Failure               string   `json:"failure,omitempty"`
+	Error                 string   `json:"error,omitempty"`
+	ErrorTruncated        bool     `json:"errorTruncated"`
+	Details               []string `json:"details,omitempty"`
+	DetailsTruncated      bool     `json:"detailsTruncated"`
+	ServicesTruncated     bool     `json:"servicesTruncated"`
+	LatencyMs             int64    `json:"latencyMs"`
 }
 
 // ScanRequest is the JSON body for the /api/scan endpoint.
@@ -75,13 +93,17 @@ type scanCandidate struct {
 }
 
 type httpProbeResult struct {
-	Detected   bool
-	Transport  string
-	Protocol   string
-	Status     string
-	StatusCode int
-	Server     string
-	Details    []string
+	Detected          bool
+	Transport         string
+	Protocol          string
+	Status            string
+	StatusCode        int
+	Server            string
+	ProtocolTruncated bool
+	StatusTruncated   bool
+	ServerTruncated   bool
+	Details           []string
+	DetailsTruncated  bool
 }
 
 type scanResolver interface {
@@ -178,6 +200,9 @@ func expandScanInput(input string) ([]scanCandidate, error) {
 	if input == "" {
 		return nil, fmt.Errorf("address is required")
 	}
+	if !utf8.ValidString(input) || len(input) > maxScanAddressBytes {
+		return nil, fmt.Errorf("address must be valid UTF-8 and at most %d bytes", maxScanAddressBytes)
+	}
 
 	if strings.Contains(input, "://") {
 		parsed, err := url.Parse(input)
@@ -251,10 +276,15 @@ func scanCandidates(req ScanRequest) ([]scanCandidate, error) {
 		}
 	}
 	result := make([]scanCandidate, 0, len(inputs))
-	for _, input := range inputs {
+	for index, input := range inputs {
 		expanded, err := expandScanInput(input)
 		if err != nil {
-			return nil, fmt.Errorf("%q: %w", strings.TrimSpace(input), err)
+			return nil, fmt.Errorf("input %d: %w", index+1, err)
+		}
+		for _, candidate := range expanded {
+			if !utf8.ValidString(candidate.Address) || len(candidate.Address) > maxScanAddressBytes {
+				return nil, fmt.Errorf("input %d expands beyond the %d-byte address limit", index+1, maxScanAddressBytes)
+			}
 		}
 		result = append(result, expanded...)
 		if len(result) > maxScanCandidates {
@@ -286,9 +316,9 @@ func probeCandidate(ctx context.Context, candidate scanCandidate) ScanResult {
 			result.Failure = "unreachable"
 			result.Error = "not reachable"
 		}
-		result.Details = append(result.Details, "tcp: "+err.Error())
+		appendScanDetail(&result, "tcp: "+err.Error())
 		result.LatencyMs = time.Since(start).Milliseconds()
-		return result
+		return boundScanResult(result)
 	}
 	_ = conn.Close()
 	result.Alive = true
@@ -306,31 +336,38 @@ func probeCandidate(ctx context.Context, candidate scanCandidate) ScanResult {
 
 	grpcAttempt := <-grpcResult
 	httpAttempt := <-httpResult
-	result.Details = append(result.Details, grpcAttempt.Details...)
-	result.Details = append(result.Details, httpAttempt.Details...)
+	mergeScanDetails(&result, grpcAttempt.Details, grpcAttempt.DetailsTruncated)
+	mergeScanDetails(&result, httpAttempt.Details, httpAttempt.DetailsTruncated)
 	if grpcAttempt.GRPC {
 		result.GRPC = true
 		result.Reflection = grpcAttempt.Reflection
 		result.Transport = grpcAttempt.Transport
 		result.Services = grpcAttempt.Services
+		result.ServicesTruncated = grpcAttempt.ServicesTruncated
 		result.Error = grpcAttempt.Error
+		result.ErrorTruncated = grpcAttempt.ErrorTruncated
 		result.Protocols = append(result.Protocols, "grpc")
 	} else {
 		result.Failure = grpcAttempt.Failure
 		result.Error = grpcAttempt.Error
+		result.ErrorTruncated = grpcAttempt.ErrorTruncated
 		result.Transport = grpcAttempt.Transport
 	}
 	if httpAttempt.Detected {
 		result.HTTP = true
 		result.HTTPTransport = httpAttempt.Transport
 		result.HTTPProtocol = httpAttempt.Protocol
+		result.HTTPProtocolTruncated = httpAttempt.ProtocolTruncated
 		result.HTTPStatus = httpAttempt.Status
+		result.HTTPStatusTruncated = httpAttempt.StatusTruncated
 		result.HTTPStatusCode = httpAttempt.StatusCode
 		result.HTTPServer = httpAttempt.Server
+		result.HTTPServerTruncated = httpAttempt.ServerTruncated
 		result.Protocols = append(result.Protocols, "http")
 		if !result.GRPC {
 			result.Failure = ""
 			result.Error = ""
+			result.ErrorTruncated = false
 		}
 	}
 	if !result.GRPC && !result.HTTP && result.Failure == "" {
@@ -339,7 +376,7 @@ func probeCandidate(ctx context.Context, candidate scanCandidate) ScanResult {
 		result.Error = "TCP port is open, but no supported application protocol responded"
 	}
 	result.LatencyMs = time.Since(start).Milliseconds()
-	return result
+	return boundScanResult(result)
 }
 
 func (candidate scanCandidate) targetAddress() string {
@@ -368,11 +405,13 @@ func probeGRPCTransports(ctx context.Context, candidate scanCandidate) ScanResul
 		if attempt.GRPC {
 			return attempt
 		}
-		bestAttempt.Details = append(bestAttempt.Details, attempt.Details...)
+		mergeScanDetails(&bestAttempt, attempt.Details, attempt.DetailsTruncated)
 		if scanFailurePriority(attempt.Failure) > scanFailurePriority(bestAttempt.Failure) {
 			details := bestAttempt.Details
+			detailsTruncated := bestAttempt.DetailsTruncated
 			bestAttempt = attempt
 			bestAttempt.Details = details
+			bestAttempt.DetailsTruncated = detailsTruncated
 		}
 	}
 
@@ -405,7 +444,12 @@ func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 	} else {
 		creds = insecure.NewCredentials()
 	}
-	dialOptions := []grpc.DialOption{grpc.WithTransportCredentials(creds), grpc.WithBlock()}
+	dialOptions := []grpc.DialOption{
+		grpc.WithTransportCredentials(creds),
+		grpc.WithBlock(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxScanGRPCResponseBytes)),
+		grpc.WithMaxHeaderListSize(uint32(maxScanGRPCHeaderBytes)),
+	}
 	if candidate.ServerName != "" {
 		dialOptions = append(dialOptions, grpc.WithAuthority(candidate.Address))
 	}
@@ -416,7 +460,7 @@ func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 			result.Failure = "non-grpc"
 			result.Error = "no gRPC transport responded"
 		}
-		result.Details = append(result.Details, fmt.Sprintf("%s: %s", transport, err.Error()))
+		appendScanDetail(&result, fmt.Sprintf("%s: %s", transport, err.Error()))
 		return result
 	}
 	defer cc.Close()
@@ -425,6 +469,15 @@ func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 	defer reflectionClient.Reset()
 	services, err := reflectionClient.ListServices()
 	if err != nil {
+		if isScanReflectionEvidenceLimit(err) {
+			result.GRPC = true
+			result.Alive = true
+			result.Reflection = "available"
+			result.ServicesTruncated = true
+			result.Error = "gRPC reflection responded, but its evidence exceeded the scan limit"
+			appendScanDetail(&result, "reflection: "+err.Error())
+			return result
+		}
 		result.Failure, result.Error = classifyProbeFailure(probeCtx, err)
 		if isVerifiedGRPCStatus(err) {
 			result.GRPC = true
@@ -432,16 +485,16 @@ func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 			result.Failure = ""
 			result.Reflection = "unavailable"
 			result.Error = "gRPC responded; reflection is unavailable"
-			result.Details = append(result.Details, "reflection: "+err.Error())
+			appendScanDetail(&result, "reflection: "+err.Error())
 			return result
 		}
 		if isNonGRPCProbeError(err) {
 			result.Failure = "non-grpc"
 			result.Error = "no gRPC transport responded"
-			result.Details = append(result.Details, fmt.Sprintf("%s: %s", transport, err.Error()))
+			appendScanDetail(&result, fmt.Sprintf("%s: %s", transport, err.Error()))
 			return result
 		}
-		result.Details = append(result.Details, "reflection: "+err.Error())
+		appendScanDetail(&result, "reflection: "+err.Error())
 		return result
 	}
 
@@ -450,12 +503,11 @@ func probeGRPCResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 	result.Reflection = "available"
 	for _, service := range services {
 		if !strings.HasPrefix(service, "grpc.reflection.") {
-			if len(result.Services) == maxScanServices {
-				result.Details = append(result.Details, fmt.Sprintf("reflection: service list limited to %d entries", maxScanServices))
-				break
-			}
-			result.Services = append(result.Services, service)
+			appendScanService(&result, service)
 		}
+	}
+	if result.ServicesTruncated {
+		appendScanDetail(&result, fmt.Sprintf("reflection: service evidence limited to %d entries and %d bytes", maxScanServices, maxScanServiceAggregateBytes))
 	}
 	return result
 }
@@ -470,10 +522,8 @@ func probeHTTP(ctx context.Context, candidate scanCandidate) httpProbeResult {
 	result := httpProbeResult{Details: make([]string, 0, len(transports))}
 	for _, transport := range transports {
 		attempt := probeHTTPResolvedTransport(ctx, candidate, transport)
-		result.Details = append(result.Details, attempt.Details...)
-		if attempt.Detected {
-			attempt.Details = result.Details
-			return attempt
+		if mergeHTTPProbeAttempt(&result, attempt) {
+			return result
 		}
 		if ctx.Err() != nil {
 			break
@@ -482,8 +532,15 @@ func probeHTTP(ctx context.Context, candidate scanCandidate) httpProbeResult {
 	return result
 }
 
-func probeHTTPTransport(ctx context.Context, address, transport string) httpProbeResult {
-	return probeHTTPResolvedTransport(ctx, scanCandidate{Address: address}, transport)
+func mergeHTTPProbeAttempt(result *httpProbeResult, attempt httpProbeResult) bool {
+	mergeHTTPScanDetails(result, attempt.Details, attempt.DetailsTruncated)
+	if !attempt.Detected {
+		return false
+	}
+	attempt.Details = result.Details
+	attempt.DetailsTruncated = result.DetailsTruncated
+	*result = attempt
+	return true
 }
 
 func probeHTTPResolvedTransport(ctx context.Context, candidate scanCandidate, transport string) httpProbeResult {
@@ -518,30 +575,122 @@ func probeHTTPResolvedTransport(ctx context.Context, candidate scanCandidate, tr
 	}
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodHead, scheme+"://"+candidate.Address+"/", nil)
 	if err != nil {
-		result.Details = append(result.Details, fmt.Sprintf("http %s: %s", transport, err.Error()))
+		appendHTTPScanDetail(&result, fmt.Sprintf("http %s: %s", transport, err.Error()))
 		return result
 	}
 	req.Header.Set("User-Agent", "ProtoPeek-Scan/1")
 	resp, err := client.Do(req)
 	if err != nil {
-		result.Details = append(result.Details, fmt.Sprintf("http %s: %s", transport, err.Error()))
+		appendHTTPScanDetail(&result, fmt.Sprintf("http %s: %s", transport, err.Error()))
 		return result
 	}
 	_ = resp.Body.Close()
 	result.Detected = true
-	result.Protocol = resp.Proto
-	result.Status = resp.Status
+	result.Protocol, result.ProtocolTruncated = boundedScanString(resp.Proto, maxScanHTTPProtocolBytes)
+	result.Status, result.StatusTruncated = boundedScanString(resp.Status, maxScanHTTPStatusBytes)
 	result.StatusCode = resp.StatusCode
-	result.Server = boundedEvidence(resp.Header.Get("Server"), 256)
-	result.Details = append(result.Details, fmt.Sprintf("http %s: %s %s", transport, resp.Proto, resp.Status))
+	result.Server, result.ServerTruncated = boundedScanString(resp.Header.Get("Server"), maxScanHTTPServerBytes)
+	appendHTTPScanDetail(&result, fmt.Sprintf("http %s: %s %s", transport, resp.Proto, resp.Status))
 	return result
 }
 
-func boundedEvidence(value string, limit int) string {
-	if len(value) <= limit {
-		return value
+func boundedScanString(value string, limit int) (string, bool) {
+	truncated := !utf8.ValidString(value)
+	if truncated {
+		value = strings.ToValidUTF8(value, "\uFFFD")
 	}
-	return value[:limit]
+	if len(value) <= limit {
+		return value, truncated
+	}
+	cut := limit
+	for cut > 0 && !utf8.ValidString(value[:cut]) {
+		cut--
+	}
+	return value[:cut], true
+}
+
+func appendBoundedScanList(values *[]string, truncated *bool, aggregateLimit int, value string) {
+	used := 0
+	for _, existing := range *values {
+		used += len(existing)
+	}
+	remaining := aggregateLimit - used
+	if remaining < 0 {
+		remaining = 0
+	}
+	bounded, wasTruncated := boundedScanString(value, remaining)
+	if bounded != "" {
+		*values = append(*values, bounded)
+	}
+	if wasTruncated || (value != "" && bounded == "") {
+		*truncated = true
+	}
+}
+
+func appendScanDetail(result *ScanResult, detail string) {
+	appendBoundedScanList(&result.Details, &result.DetailsTruncated, maxScanDetailsBytes, detail)
+}
+
+func mergeScanDetails(result *ScanResult, details []string, truncated bool) {
+	if truncated {
+		result.DetailsTruncated = true
+	}
+	for _, detail := range details {
+		appendScanDetail(result, detail)
+	}
+}
+
+func appendHTTPScanDetail(result *httpProbeResult, detail string) {
+	appendBoundedScanList(&result.Details, &result.DetailsTruncated, maxScanDetailsBytes, detail)
+}
+
+func mergeHTTPScanDetails(result *httpProbeResult, details []string, truncated bool) {
+	if truncated {
+		result.DetailsTruncated = true
+	}
+	for _, detail := range details {
+		appendHTTPScanDetail(result, detail)
+	}
+}
+
+func appendScanService(result *ScanResult, service string) {
+	serviceBytes := 0
+	for _, existing := range result.Services {
+		serviceBytes += len(existing)
+	}
+	if !utf8.ValidString(service) || len(service) > maxScanServiceBytes || len(result.Services) >= maxScanServices || serviceBytes+len(service) > maxScanServiceAggregateBytes {
+		result.ServicesTruncated = true
+		return
+	}
+	result.Services = append(result.Services, service)
+
+}
+
+func boundScanResult(result ScanResult) ScanResult {
+	var truncated bool
+	result.Error, truncated = boundedScanString(result.Error, maxScanErrorBytes)
+	result.ErrorTruncated = result.ErrorTruncated || truncated
+	result.HTTPProtocol, truncated = boundedScanString(result.HTTPProtocol, maxScanHTTPProtocolBytes)
+	result.HTTPProtocolTruncated = result.HTTPProtocolTruncated || truncated
+	result.HTTPStatus, truncated = boundedScanString(result.HTTPStatus, maxScanHTTPStatusBytes)
+	result.HTTPStatusTruncated = result.HTTPStatusTruncated || truncated
+	result.HTTPServer, truncated = boundedScanString(result.HTTPServer, maxScanHTTPServerBytes)
+	result.HTTPServerTruncated = result.HTTPServerTruncated || truncated
+
+	details, detailsTruncated := result.Details, result.DetailsTruncated
+	result.Details = make([]string, 0, len(details))
+	result.DetailsTruncated = detailsTruncated
+	for _, detail := range details {
+		appendScanDetail(&result, detail)
+	}
+
+	services, servicesTruncated := result.Services, result.ServicesTruncated
+	result.Services = make([]string, 0, len(services))
+	result.ServicesTruncated = servicesTruncated
+	for _, service := range services {
+		appendScanService(&result, service)
+	}
+	return result
 }
 
 func classifyProbeFailure(ctx context.Context, err error) (string, string) {
@@ -557,6 +706,11 @@ func classifyProbeFailure(ctx context.Context, err error) (string, string) {
 func isVerifiedGRPCStatus(err error) bool {
 	code := status.Code(err)
 	return code == codes.Unimplemented || code == codes.PermissionDenied || code == codes.Unauthenticated
+}
+
+func isScanReflectionEvidenceLimit(err error) bool {
+	message := strings.ToLower(status.Convert(err).Message())
+	return status.Code(err) == codes.ResourceExhausted && strings.Contains(message, "received message larger than max")
 }
 
 func scanFailurePriority(failure string) int {
@@ -594,12 +748,21 @@ func isNonGRPCProbeError(err error) bool {
 // ScanHandler returns the bounded POST /api/scan endpoint. The caller must
 // enforce ProtoPeek's local-access and CSRF policy.
 func ScanHandler() http.HandlerFunc {
+	slots := make(chan struct{}, maxConcurrentScans)
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if r.Method != http.MethodPost {
 			w.Header().Set("Allow", http.MethodPost)
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		select {
+		case slots <- struct{}{}:
+			defer func() { <-slots }()
+		default:
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "Scan capacity is busy; retry shortly", http.StatusServiceUnavailable)
 			return
 		}
 
@@ -623,7 +786,7 @@ func ScanHandler() http.HandlerFunc {
 				defer probes.Done()
 				prepared, err := prepareScanCandidate(scanCtx, net.DefaultResolver, candidate, req.AllowPrivateNetwork, req.Explicit)
 				if err != nil {
-					results[index] = ScanResult{
+					results[index] = boundScanResult(ScanResult{
 						Address:    candidate.Address,
 						Transport:  candidate.Transport,
 						Reflection: "not-checked",
@@ -632,10 +795,10 @@ func ScanHandler() http.HandlerFunc {
 						Protocols:  make([]string, 0),
 						Services:   make([]string, 0),
 						Details:    make([]string, 0),
-					}
+					})
 					return
 				}
-				results[index] = probeCandidate(scanCtx, prepared)
+				results[index] = boundScanResult(probeCandidate(scanCtx, prepared))
 			}(i, candidate)
 		}
 		probes.Wait()

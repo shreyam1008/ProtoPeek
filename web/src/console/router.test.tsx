@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -45,6 +44,14 @@ afterEach(() => {
 });
 
 describe('protocol routes', () => {
+  it('owns the HTTP query boundary inside the lazy HTTP route', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/http'] }));
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByText('Request workbench')).toBeInTheDocument();
+  });
+
   it('uses the dashboard at root and preserves lazy workbench and roadmap routes', async () => {
     vi.stubGlobal(
       'fetch',
@@ -59,12 +66,7 @@ describe('protocol routes', () => {
       })
     );
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={client}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    );
+    render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
     expect(screen.getByText('Next-hop lookup')).toBeInTheDocument();
@@ -72,10 +74,10 @@ describe('protocol routes', () => {
     expect(screen.getAllByText('Gated').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
-    expect(screen.getByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
     fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
-    expect(screen.getByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
 
     await act(async () => {
@@ -138,16 +140,11 @@ describe('protocol routes', () => {
       })
     );
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={client}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    );
+    render(<RouterProvider router={router} />);
 
     await screen.findByRole('heading', { name: 'Protocol Peek' });
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Scan target' }), {
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Scan target' }), {
       target: { value: 'http://127.0.0.1:8080' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Scan target' }));

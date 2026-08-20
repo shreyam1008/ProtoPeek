@@ -29,6 +29,14 @@ those appear only as gated plans in Help and the roadmap.
 | `output/multiprotocol-qa/http-desktop.png` | 1440 × 1000, 1× | HTTP request editor and dark evidence pane at the initial route |
 | `output/multiprotocol-qa/http-320.png` | 320 × 900, 1× | HTTP one-pane request layout at the minimum supported width |
 
+## v0.3.0 release captures
+
+| Capture | Viewport | State |
+|---|---:|---|
+| `web/site/public/assets/protopeek-dashboard.png` | 1600 × 1000, 1× | Final light-first dashboard from the embedded v0.3.0 binary |
+| `web/site/public/assets/protopeek-dashboard-dark.png` | 1600 × 913, 1× | Same dashboard after the versioned dark preference was stored and the app reloaded |
+| `web/site/public/assets/protopeek-dashboard-mobile.png` | 390 × 844, 1× | Compact top activity rail, global command header, scan action, and stacked protocol cards |
+
 ## Comparison and iteration
 
 The first connected desktop capture matched the concept's hierarchy and color system, but the
@@ -56,6 +64,11 @@ interaction is hidden without a mobile equivalent.
   names, focus-visible treatment is present, and reduced-motion preferences are honored.
 - No blocking runtime error or broken interactive state appeared during the connected desktop and
   mobile passes.
+- The final dashboard was rendered from the production embedded assets at 1600 × 1000 and 390 × 844.
+  A separate Chrome DevTools pass stored the dark preference, reloaded, and captured the dark shell,
+  confirming that theme persistence affects first paint instead of flashing the light theme.
+- Contrast guards keep faint/muted text at or above 4.5:1 on supported surfaces; live regions are
+  scoped to current/final status so response and Health timelines do not flood assistive technology.
 
 ## Multi-protocol slice notes
 
@@ -66,10 +79,11 @@ interaction is hidden without a mobile equivalent.
   authorization, cookies, proxy authorization, binary metadata, and key/token-like metadata.
 - The browser surface uses a hash route so both adapters remain addressable in an embedded binary;
   request secrets are component state and never route parameters.
-- Automated component coverage exercises HTTP send, safe history, tab semantics, and the default
-  TLS/redirect copy. The new initial-route captures verify the desktop and 320 px layout against the
-  generated concept; a full interaction pass against representative live HTTP targets remains a
-  release-candidate QA task.
+- Automated component coverage exercises HTTP send/cancel races, safe history, tab semantics,
+  discovery handoff, and the default TLS/redirect copy. The final v0.3.0 gate passed typecheck,
+  Biome, 185 frontend tests, every Go package, the Go race detector, vet, deep-link HTTP smokes,
+  cross-compilation, and a scratch-container runtime smoke.
 
-Prior connected gRPC capture result: passed. Multi-protocol initial-route visual result: passed.
-Backend interaction coverage and the remaining live-browser QA are recorded in the task handoff.
+Prior connected gRPC capture result: passed. Multi-protocol and v0.3.0 dashboard visual results:
+passed. Physical macOS and Windows browser auto-open remain post-release smoke checks rather than
+unverified claims.

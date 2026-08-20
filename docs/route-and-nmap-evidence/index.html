@@ -5,24 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Route and Nmap evidence | ProtoPeek</title>
     <meta name="description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="Route and Nmap evidence | ProtoPeek" />
     <meta property="og:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Route and Nmap evidence | ProtoPeek" />
     <meta name="twitter:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Route and Nmap evidence","description":"Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.","url":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -93,7 +103,7 @@
         <main class="pp-doc-main">
           <article class="pp-doc-article">
             <div class="pp-doc-prose">
-              <p>ProtoPeek&#39;s v0.3 source build adds two evidence inputs with deliberately different trust models. The route workbench reads the local kernel. The Nmap path imports a file produced elsewhere. Neither is a general network scanner.</p>
+              <p>ProtoPeek v0.3.0 ships two evidence inputs with deliberately different trust models. The route workbench reads the local kernel. The Nmap path imports a file produced elsewhere. Neither is a general network scanner.</p>
 <h2 id="next-hop-route-lookup">Next-hop route lookup</h2>
 <p><code>POST /api/route/lookup</code> accepts JSON with <code>destination</code> and an optional <code>family</code> of <code>auto</code>, <code>ipv4</code>, or <code>ipv6</code>. The same-origin CSRF token is required. The request body is capped at 16 KiB and the destination at 253 bytes. Resolution plus all route lookups request a two-second deadline. ProtoPeek keeps at most eight unique resolved addresses and runs at most four kernel lookups concurrently. Windows IP Helper calls are synchronous, so cancellation prevents new work but cannot interrupt an already-running operating-system call.</p>
 <p>The result is one kernel-selected route per address from the ProtoPeek process perspective. It can include source IP, interface index/name, exact next hop or on-link state, local-route state, prefix, route metric/table when known, backend, notes, and a per-address error. One address failing does not erase successful siblings.</p>
@@ -145,7 +155,7 @@
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">More ProtoPeek docs</div>
               <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a><a href="/launch-post/"><strong>Launch post draft</strong><span>Launch</span></a><a href="/go-to-market/"><strong>Go-to-market runbook</strong><span>Launch</span></a><a href="/contributor-rules/"><strong>Contributor rules</strong><span>Rules</span></a>
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
               </div>
             </section>
           </aside>

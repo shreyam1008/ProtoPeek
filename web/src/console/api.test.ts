@@ -3,10 +3,13 @@ import { buildBrowserProtoFolderSelection } from '@/shared/proto-folder';
 import type { WorkspaceTargetConfig } from '@/shared/types';
 
 import {
+  checkHealth,
   connectWorkspaceTarget,
   normalizeBootstrap,
   normalizeInvokeResponse,
   normalizeProtoCatalog,
+  scanAddresses,
+  watchHealth,
 } from './api';
 
 function workspaceTarget(overrides: Partial<WorkspaceTargetConfig> = {}): WorkspaceTargetConfig {
@@ -43,6 +46,45 @@ afterEach(() => {
 });
 
 describe('API response normalization', () => {
+  it('normalizes all scan evidence truncation flags to explicit booleans', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json([
+          { address: 'first:1' },
+          {
+            address: 'second:2',
+            servicesTruncated: true,
+            detailsTruncated: true,
+            errorTruncated: true,
+            httpProtocolTruncated: true,
+            httpStatusTruncated: true,
+            httpServerTruncated: true,
+          },
+        ])
+      )
+    );
+
+    const results = await scanAddresses(['first:1', 'second:2']);
+
+    expect(results[0]).toMatchObject({
+      servicesTruncated: false,
+      detailsTruncated: false,
+      errorTruncated: false,
+      httpProtocolTruncated: false,
+      httpStatusTruncated: false,
+      httpServerTruncated: false,
+    });
+    expect(results[1]).toMatchObject({
+      servicesTruncated: true,
+      detailsTruncated: true,
+      errorTruncated: true,
+      httpProtocolTruncated: true,
+      httpStatusTruncated: true,
+      httpServerTruncated: true,
+    });
+  });
+
   it('turns nullable invoke collections into arrays', () => {
     const response = normalizeInvokeResponse({
       headers: null,
@@ -198,5 +240,178 @@ describe('workspace connect request encoding', () => {
       connectWorkspaceTarget(workspaceTarget({ schemaSource: 'browser-proto-folder' }))
     ).rejects.toThrow(/Folder required/i);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('gRPC Health API', () => {
+  const startedAt = '2026-08-20T12:00:00.000Z';
+
+  it('posts a direct Check with live metadata and structurally validates the response', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(
+          JSON.stringify({
+            service: 'catalog.v1.Catalog',
+            startedAt,
+            handlerInvokeMs: 3.25,
+            servingStatus: { code: 1, name: 'SERVING' },
+            grpcStatus: { code: 0, name: 'OK', message: '', messageTruncated: false },
+            headers: [{ name: 'x-backend', value: 'blue' }],
+            trailers: [],
+            headersTruncated: false,
+            trailersTruncated: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await checkHealth(
+      '',
+      {
+        service: 'catalog.v1.Catalog',
+        timeout_seconds: 5,
+        metadata: [{ name: 'authorization', value: 'secret' }],
+      },
+      controller.signal
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/health/check');
+    expect(init?.signal).toBe(controller.signal);
+    expect(init?.credentials).toBe('same-origin');
+    expect(new Headers(init?.headers).get('content-type')).toBe('application/json');
+    expect(new Headers(init?.headers).has('x-protopeek-csrf-token')).toBe(true);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      service: 'catalog.v1.Catalog',
+      timeout_seconds: 5,
+      metadata: [{ name: 'authorization', value: 'secret' }],
+    });
+    expect(result).toMatchObject({
+      service: 'catalog.v1.Catalog',
+      handlerInvokeMs: 3.25,
+      servingStatus: { code: 1, name: 'SERVING' },
+    });
+    expect(result).not.toHaveProperty('metadata');
+  });
+
+  it('streams a workspace Watch through the bounded parser at the session-scoped path', async () => {
+    const lines = [
+      {
+        type: 'started',
+        service: '',
+        startedAt,
+        observedOffsetMs: 0,
+        durationSeconds: 60,
+        metadataCount: 1,
+      },
+      {
+        type: 'status-observed',
+        service: '',
+        startedAt,
+        observedOffsetMs: 2,
+        sequence: 1,
+        servingStatus: { code: 3, name: 'SERVICE_UNKNOWN' },
+      },
+      {
+        type: 'ended',
+        service: '',
+        startedAt,
+        observedOffsetMs: 60000,
+        reason: 'duration-limit',
+        observationCount: 1,
+        grpcStatus: {
+          code: 4,
+          name: 'DeadlineExceeded',
+          message: 'watch duration reached',
+          messageTruncated: false,
+        },
+        trailers: [],
+        trailersTruncated: false,
+      },
+    ];
+    const bytes = new TextEncoder().encode(
+      `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`
+    );
+    const body = new ReadableStream<Uint8Array>({
+      start(stream) {
+        stream.enqueue(bytes.slice(0, 17));
+        stream.enqueue(bytes.slice(17));
+        stream.close();
+      },
+    });
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        new Response(body, { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const events: unknown[] = [];
+
+    await watchHealth(
+      'session / one',
+      { service: '', duration_seconds: 60, metadata: [{ name: 'x-env', value: 'prod' }] },
+      (event) => events.push(event)
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/workspace/health/watch?session_id=session%20%2F%20one');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      service: '',
+      duration_seconds: 60,
+      metadata: [{ name: 'x-env', value: 'prod' }],
+    });
+    expect(init?.credentials).toBe('same-origin');
+    expect(new Headers(init?.headers).has('x-protopeek-csrf-token')).toBe(true);
+    expect(events).toHaveLength(3);
+    expect(events.at(-1)).toMatchObject({ type: 'ended', reason: 'duration-limit' });
+  });
+
+  it('classifies HTTP and truncated Watch responses as relay/protocol failures', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('watch capacity reached', { status: 429 }))
+    );
+    await expect(
+      watchHealth('', { service: '', duration_seconds: 60, metadata: [] }, () => undefined)
+    ).rejects.toThrow(/watch capacity reached/i);
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response('<html>proxy login</html>', {
+            status: 200,
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          })
+      )
+    );
+    await expect(
+      watchHealth('', { service: '', duration_seconds: 60, metadata: [] }, () => undefined)
+    ).rejects.toThrow(/application\/x-ndjson/i);
+
+    const incomplete = new TextEncoder().encode(
+      `${JSON.stringify({
+        type: 'started',
+        service: '',
+        startedAt,
+        observedOffsetMs: 0,
+        durationSeconds: 60,
+        metadataCount: 0,
+      })}\n`
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(incomplete, {
+            status: 200,
+            headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8' },
+          })
+      )
+    );
+    await expect(
+      watchHealth('', { service: '', duration_seconds: 60, metadata: [] }, () => undefined)
+    ).rejects.toThrow(/without a terminal/i);
   });
 });

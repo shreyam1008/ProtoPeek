@@ -20,6 +20,7 @@ import {
   useDeferredValue,
   useEffect,
   useEffectEvent,
+  useMemo,
   useReducer,
   useRef,
   useState,
@@ -54,7 +55,6 @@ import {
   appStorageKeys,
   buildRepeatRun,
   classNames,
-  commandPreview,
   compactDate,
   displayBuildVersion,
   durationLabel,
@@ -91,10 +91,10 @@ import {
 } from '@/shared/utils';
 
 import {
+  checkHealth,
   connectWorkspaceTarget,
   disconnectWorkspaceSession,
   fetchBootstrap,
-  fetchExamples,
   fetchProtoCatalog,
   fetchSchema,
   fetchWorkspaceProtoCatalog,
@@ -102,11 +102,21 @@ import {
   invokeMethod,
   invokeWorkspaceMethod,
   type ScanResult,
+  watchHealth,
 } from './api';
 import { BrowserProtoFolderPicker } from './BrowserProtoFolderPicker';
 import { CallWorkspace } from './CallWorkspace';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { DiscoveryPanel } from './DiscoveryScanner';
+import { HealthPanel } from './HealthPanel';
+import {
+  applyHealthCheckResult,
+  applyHealthWatchEvent,
+  finishHealthRun,
+  type HealthRun,
+  type HealthRunEndReason,
+  hasCanonicalHealthDescriptor,
+} from './health';
 import { protocolShellEvents } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
 import { ServiceNavigator, type WorkbenchView } from './ServiceNavigator';
@@ -169,6 +179,17 @@ const defaultRepeat: RepeatConfig = { count: 5, thinkTimeMs: 0, deadlineSeconds:
 type ActiveRepeat = {
   controller: AbortController;
   stopReason: RepeatStopReason | null;
+};
+
+type LocalHealthStopReason = Extract<
+  HealthRunEndReason,
+  'user-cancelled' | 'navigation' | 'context-changed' | 'relay-error' | 'protocol-error'
+>;
+
+type ActiveHealth = {
+  controller: AbortController;
+  generation: number;
+  operation: 'check' | 'watch';
 };
 
 function repeatAbortError() {
@@ -374,7 +395,6 @@ export function App() {
   const workspaceSessionId = consoleSession.sessionId;
   const activeTargetId = consoleSession.activeTargetId;
   const workspaceBusy = consoleSession.connectStatus === 'connecting';
-  const [examples, setExamples] = useState<ExampleResponse[]>([]);
   const [schemaResource, setSchemaResource] = useState<{
     method: string;
     sessionId: string;
@@ -451,6 +471,12 @@ export function App() {
   const [repeatBusy, setRepeatBusy] = useState(false);
   const [repeatError, setRepeatError] = useState<string | null>(null);
   const [repeatProgress, setRepeatProgress] = useState({ attempted: 0, requested: 0 });
+  const [healthService, setHealthService] = useState('');
+  const [healthCheckDeadlineSeconds, setHealthCheckDeadlineSeconds] = useState(5);
+  const [healthWatchDurationSeconds, setHealthWatchDurationSeconds] = useState(60);
+  const [healthRun, setHealthRun] = useState<HealthRun | null>(null);
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
   const [operationMessage, setOperationMessage] = useState<OperationMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -470,6 +496,8 @@ export function App() {
   const connectAbortRef = useRef<AbortController | null>(null);
   const invokeAbortRef = useRef<AbortController | null>(null);
   const repeatRef = useRef<ActiveRepeat | null>(null);
+  const healthRef = useRef<ActiveHealth | null>(null);
+  const healthGenerationRef = useRef(0);
   const workspaceSessionIdRef = useRef(workspaceSessionId);
   workspaceSessionIdRef.current = workspaceSessionId;
   const deferredSearchText = useDeferredValue(searchText);
@@ -486,6 +514,10 @@ export function App() {
       const repeat = repeatRef.current;
       repeatRef.current = null;
       repeat?.controller.abort();
+      healthGenerationRef.current++;
+      const health = healthRef.current;
+      healthRef.current = null;
+      health?.controller.abort();
       const sessionId = workspaceSessionIdRef.current;
       if (sessionId) void disconnectWorkspaceSession(sessionId).catch(() => undefined);
     },
@@ -525,6 +557,7 @@ export function App() {
   }, []);
 
   function applyBootstrap(next: BootstrapResponse) {
+    cancelActiveHealth('context-changed');
     invalidateActiveRepeat();
     pendingDraftRef.current = null;
     const methods = next.services.flatMap((s) => s.methods);
@@ -583,11 +616,10 @@ export function App() {
     let cancelled = false;
     async function load() {
       try {
-        const [b, e] = await Promise.all([fetchBootstrap(), fetchExamples()]);
+        const b = await fetchBootstrap();
         if (cancelled) return;
         dispatchSession({ type: 'bootstrap.loaded', bootstrap: b });
         applyBootstrapEffect(b);
-        setExamples(e);
         const pendingTarget = loadStoredValue<{ address: string; plaintext: boolean } | null>(
           appStorageKeys.pendingGRPCTarget,
           null
@@ -724,59 +756,73 @@ export function App() {
     };
   }, [bootstrap, showWellKnownProto, workspaceSessionId]);
 
-  const currentService =
-    bootstrap?.services.find((s) => s.methods.some((m) => m.fullName === selectedMethod)) ?? null;
-  const currentMethod = currentService?.methods.find((m) => m.fullName === selectedMethod) ?? null;
+  const selectedMethodContext = useMemo(() => {
+    for (const service of bootstrap?.services ?? []) {
+      const method = service.methods.find((candidate) => candidate.fullName === selectedMethod);
+      if (method) return { service, method };
+    }
+    return { service: null, method: null };
+  }, [bootstrap?.services, selectedMethod]);
+  const currentService = selectedMethodContext.service;
+  const currentMethod = selectedMethodContext.method;
+  const healthServices = bootstrap?.services;
+  const healthCatalog = useMemo(
+    () => ({
+      serviceSuggestions: (healthServices ?? []).map((service) => service.name),
+      advertised: healthServices ? hasCanonicalHealthDescriptor(healthServices) : false,
+    }),
+    [healthServices]
+  );
+  const healthContextKey = workspaceSessionId
+    ? `workspace:${workspaceSessionId}`
+    : `direct:${bootstrap?.target ?? ''}:${consoleSession.requestId}`;
   const activeTarget = targets.find((target) => target.id === activeTargetId) ?? null;
   const currentReplayScope = {
     targetId: activeTarget?.id,
     targetAddress: (activeTarget?.address || bootstrap?.target || '').trim(),
   };
-  const _matchingExamples = examples.filter(
-    (e) =>
-      `${e.service}.${e.method}` === selectedMethod || `${e.service}/${e.method}` === selectedMethod
-  );
   const q = deferredSearchText.trim().toLowerCase();
-  const visibleServices = (bootstrap?.services ?? [])
-    .map((s) => {
-      const sMatch = !q || s.name.toLowerCase().includes(q);
-      return {
-        ...s,
-        methods: s.methods.filter(
-          (m) =>
-            matchesMethodFilter(m, methodFilter) &&
-            (sMatch ||
-              !q ||
-              m.name.toLowerCase().includes(q) ||
-              m.fullName.toLowerCase().includes(q))
-        ),
-      };
-    })
-    .filter((s) => s.methods.length > 0);
-  const filteredProtoFiles = (protoCatalog?.files ?? []).filter((f) => {
-    if (!showWellKnownProto && f.wellKnown) return false;
-    const pq = protoSearchText.trim().toLowerCase();
-    if (!pq) return true;
-    return (
-      f.name.toLowerCase().includes(pq) ||
-      f.package.toLowerCase().includes(pq) ||
-      f.services.some((s) => s.fullName.toLowerCase().includes(pq)) ||
-      f.messages.some((m) => m.fullName.toLowerCase().includes(pq))
-    );
-  });
-  const selectedProto = filteredProtoFiles.find((f) => f.name === selectedProtoFile) ?? null;
-  const _grpcCommand =
-    bootstrap && currentMethod
-      ? commandPreview({
-          target: bootstrap.target,
-          method: currentMethod.fullName,
-          metadata,
-          timeoutSeconds,
-          requestText,
-          grpcurlOptions: bootstrap.grpcurlOptions,
+  const visibleServices = useMemo(
+    () =>
+      (bootstrap?.services ?? [])
+        .map((service) => {
+          const serviceMatches = !q || service.name.toLowerCase().includes(q);
+          return {
+            ...service,
+            methods: service.methods.filter(
+              (method) =>
+                matchesMethodFilter(method, methodFilter) &&
+                (serviceMatches ||
+                  !q ||
+                  method.name.toLowerCase().includes(q) ||
+                  method.fullName.toLowerCase().includes(q))
+            ),
+          };
         })
-      : '';
-  const responsePayload = invokeState.result?.responses.map((e) => e.message) ?? [];
+        .filter((service) => service.methods.length > 0),
+    [bootstrap?.services, methodFilter, q]
+  );
+  const filteredProtoFiles = useMemo(() => {
+    const protoQuery = protoSearchText.trim().toLowerCase();
+    return (protoCatalog?.files ?? []).filter((file) => {
+      if (!showWellKnownProto && file.wellKnown) return false;
+      if (!protoQuery) return true;
+      return (
+        file.name.toLowerCase().includes(protoQuery) ||
+        file.package.toLowerCase().includes(protoQuery) ||
+        file.services.some((service) => service.fullName.toLowerCase().includes(protoQuery)) ||
+        file.messages.some((message) => message.fullName.toLowerCase().includes(protoQuery))
+      );
+    });
+  }, [protoCatalog?.files, protoSearchText, showWellKnownProto]);
+  const selectedProto = useMemo(
+    () => filteredProtoFiles.find((file) => file.name === selectedProtoFile) ?? null,
+    [filteredProtoFiles, selectedProtoFile]
+  );
+  const responsePayload = useMemo(
+    () => invokeState.result?.responses.map((entry) => entry.message) ?? [],
+    [invokeState.result]
+  );
   const repeatLatencySparkline = sparklinePath(
     repeatRun?.attempts
       .filter(
@@ -811,6 +857,25 @@ export function App() {
     setRepeatProgress({ attempted: 0, requested: 0 });
   }
 
+  function cancelActiveHealth(reason: LocalHealthStopReason) {
+    const active = healthRef.current;
+    if (!active) return;
+    healthGenerationRef.current++;
+    healthRef.current = null;
+    active.controller.abort();
+    setHealthBusy(false);
+    setHealthError(null);
+    setHealthRun((current) =>
+      current?.phase === 'running' ? finishHealthRun(current, reason) : current
+    );
+  }
+
+  function healthFailureReason(error: unknown): 'relay-error' | 'protocol-error' {
+    return error instanceof Error && /Invalid gRPC Health evidence/i.test(error.message)
+      ? 'protocol-error'
+      : 'relay-error';
+  }
+
   function invalidateConnectionAttempt() {
     connectRequestRef.current++;
     const active = connectAbortRef.current;
@@ -833,6 +898,7 @@ export function App() {
     target: WorkspaceTargetProfile,
     folder?: BrowserProtoFolderSelection
   ) {
+    cancelActiveHealth('context-changed');
     invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
@@ -992,6 +1058,7 @@ export function App() {
   function handleDeleteTarget(id: string) {
     setTargets((x) => x.filter((e) => e.id !== id));
     if (activeTargetId === id) {
+      cancelActiveHealth('context-changed');
       invalidateActiveRepeat();
       invalidateConnectionAttempt();
       cancelActiveInvokeSilently();
@@ -1008,6 +1075,7 @@ export function App() {
   }
 
   function handleResetToLauncher() {
+    cancelActiveHealth('context-changed');
     invalidateActiveRepeat();
     invalidateConnectionAttempt();
     cancelActiveInvokeSilently();
@@ -1114,6 +1182,11 @@ export function App() {
   }
 
   async function handleInvoke() {
+    if (healthRef.current) {
+      setHealthError('Cancel Health first, then invoke the RPC or run assertions.');
+      setActiveView('tests');
+      return;
+    }
     if (repeatRef.current) {
       setRepeatError('Cancel Repeat first, then invoke the RPC or run assertions.');
       setActiveView('tests');
@@ -1223,6 +1296,11 @@ export function App() {
   }
 
   async function handleRepeat() {
+    if (healthRef.current) {
+      setHealthError('Cancel Health first, then start Unary Repeat.');
+      setActiveView('tests');
+      return;
+    }
     if (!schema || !currentMethod || !bootstrap || repeatRef.current) return;
     if (currentMethod.clientStreaming || currentMethod.serverStreaming || schema.requestStream) {
       setRepeatError('Unary Repeat is available only when request and response are both unary.');
@@ -1374,7 +1452,137 @@ export function App() {
     active.controller.abort();
   }
 
+  async function handleHealthOperation(operation: 'check' | 'watch') {
+    if (!bootstrap || healthRef.current) return;
+    if (repeatRef.current) {
+      setHealthError('Cancel Repeat first, then start a Health operation.');
+      return;
+    }
+    if (invokeAbortRef.current || invokeState.loading) {
+      setHealthError('Cancel the active RPC first, then start a Health operation.');
+      return;
+    }
+    if (workspaceBusy) {
+      setHealthError('Wait for the target connection to settle before starting Health.');
+      return;
+    }
+
+    const service = healthService.trim();
+    if (new TextEncoder().encode(service).byteLength > 1024) {
+      setHealthError('Health service exceeds the 1024-byte limit.');
+      return;
+    }
+    if (
+      operation === 'check' &&
+      (!Number.isFinite(healthCheckDeadlineSeconds) ||
+        healthCheckDeadlineSeconds < 0.1 ||
+        healthCheckDeadlineSeconds > 30)
+    ) {
+      setHealthError('Check deadline must be between 0.1 and 30 seconds.');
+      return;
+    }
+    if (
+      operation === 'watch' &&
+      (!Number.isFinite(healthWatchDurationSeconds) ||
+        healthWatchDurationSeconds < 1 ||
+        healthWatchDurationSeconds > 600)
+    ) {
+      setHealthError('Watch duration must be between 1 and 600 seconds.');
+      return;
+    }
+
+    const sendableMetadata = filterMetadataForInvoke(metadata);
+    if (sendableMetadata.length > 64) {
+      setHealthError('Health accepts at most 64 sendable metadata entries.');
+      return;
+    }
+    const generation = healthGenerationRef.current + 1;
+    healthGenerationRef.current = generation;
+    const active: ActiveHealth = {
+      controller: new AbortController(),
+      generation,
+      operation,
+    };
+    healthRef.current = active;
+    let evidence: HealthRun = {
+      operation,
+      phase: 'running',
+      contextKey: healthContextKey,
+      target: bootstrap.target,
+      service,
+      startedAt: new Date().toISOString(),
+      metadataCount: sendableMetadata.length,
+      checkDeadlineSeconds: operation === 'check' ? healthCheckDeadlineSeconds : null,
+      watchDurationSeconds: operation === 'watch' ? healthWatchDurationSeconds : null,
+      handlerInvokeMs: null,
+      latestStatus: null,
+      transitions: [],
+      droppedTransitions: 0,
+      headers: [],
+      trailers: [],
+      headersTruncated: false,
+      trailersTruncated: false,
+      grpcStatus: null,
+      endReason: null,
+      observationCount: 0,
+      error: '',
+    };
+    const sessionId = workspaceSessionId;
+    setHealthRun(evidence);
+    setHealthBusy(true);
+    setHealthError(null);
+
+    try {
+      if (operation === 'check') {
+        const result = await checkHealth(
+          sessionId,
+          {
+            service,
+            timeout_seconds: healthCheckDeadlineSeconds,
+            metadata: sendableMetadata,
+          },
+          active.controller.signal
+        );
+        if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+        evidence = applyHealthCheckResult(evidence, result);
+        setHealthRun(evidence);
+      } else {
+        await watchHealth(
+          sessionId,
+          {
+            service,
+            duration_seconds: healthWatchDurationSeconds,
+            metadata: sendableMetadata,
+          },
+          (event) => {
+            if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+            evidence = applyHealthWatchEvent(evidence, event);
+            setHealthRun(evidence);
+          },
+          active.controller.signal
+        );
+      }
+    } catch (error) {
+      if (healthRef.current !== active || healthGenerationRef.current !== generation) return;
+      const message =
+        error instanceof Error ? error.message.slice(0, 2048) : 'Health operation failed.';
+      evidence = finishHealthRun(evidence, healthFailureReason(error), message);
+      setHealthRun(evidence);
+    } finally {
+      if (healthRef.current === active && healthGenerationRef.current === generation) {
+        healthRef.current = null;
+        setHealthBusy(false);
+        setHealthError(null);
+      }
+    }
+  }
+
+  function handleCancelHealth() {
+    cancelActiveHealth('user-cancelled');
+  }
+
   function navigateToView(view: ActiveView) {
+    if (view !== 'tests') cancelActiveHealth('navigation');
     const active = repeatRef.current;
     if (view !== 'tests' && active && !active.controller.signal.aborted) {
       active.stopReason = 'user-cancelled';
@@ -1566,6 +1774,7 @@ export function App() {
   }
 
   function applyReplayDraft(draft: NonNullable<ReturnType<typeof prepareReplay>>) {
+    if (draft.method !== selectedMethod) cancelActiveHealth('context-changed');
     invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     setInvokeState({ loading: false, error: null, result: null, latencyMs: 0 });
@@ -1647,6 +1856,7 @@ export function App() {
   }
 
   function handleSelectMethod(method: string) {
+    cancelActiveHealth('context-changed');
     invalidateActiveRepeat();
     cancelActiveInvokeSilently();
     pendingDraftRef.current = null;
@@ -2034,6 +2244,36 @@ export function App() {
 
           {activeView === 'tests' ? (
             <TestsView
+              healthService={healthService}
+              onHealthServiceChange={setHealthService}
+              selectedHealthService={currentService.name}
+              healthServiceSuggestions={healthCatalog.serviceSuggestions}
+              healthCheckDeadlineSeconds={healthCheckDeadlineSeconds}
+              onHealthCheckDeadlineChange={setHealthCheckDeadlineSeconds}
+              healthWatchDurationSeconds={healthWatchDurationSeconds}
+              onHealthWatchDurationChange={setHealthWatchDurationSeconds}
+              healthRun={healthRun}
+              healthBusy={healthBusy}
+              healthBlockedBy={
+                repeatBusy
+                  ? 'Cancel Repeat first to use Health.'
+                  : invokeState.loading
+                    ? 'Cancel the active RPC first to use Health.'
+                    : workspaceBusy
+                      ? 'Wait for the target connection to settle.'
+                      : null
+              }
+              healthError={healthError}
+              healthAdvertised={healthCatalog.advertised}
+              currentHealthContextKey={healthContextKey}
+              currentTarget={bootstrap.target}
+              onHealthCheck={() => {
+                void handleHealthOperation('check');
+              }}
+              onHealthWatch={() => {
+                void handleHealthOperation('watch');
+              }}
+              onCancelHealth={handleCancelHealth}
               rules={assertionRules}
               results={assertionResults}
               onChangeRule={handleAssertionChange}
@@ -2552,6 +2792,24 @@ function HistoryView({
 // ─── Tests view ────────────────────────────────────────────────
 
 function TestsView({
+  healthService,
+  onHealthServiceChange,
+  selectedHealthService,
+  healthServiceSuggestions,
+  healthCheckDeadlineSeconds,
+  onHealthCheckDeadlineChange,
+  healthWatchDurationSeconds,
+  onHealthWatchDurationChange,
+  healthRun,
+  healthBusy,
+  healthBlockedBy,
+  healthError,
+  healthAdvertised,
+  currentHealthContextKey,
+  currentTarget,
+  onHealthCheck,
+  onHealthWatch,
+  onCancelHealth,
   rules,
   results,
   onChangeRule,
@@ -2571,6 +2829,24 @@ function TestsView({
   repeatLatencySparkline,
   passingAssertions,
 }: {
+  healthService: string;
+  onHealthServiceChange: (value: string) => void;
+  selectedHealthService: string;
+  healthServiceSuggestions: string[];
+  healthCheckDeadlineSeconds: number;
+  onHealthCheckDeadlineChange: (value: number) => void;
+  healthWatchDurationSeconds: number;
+  onHealthWatchDurationChange: (value: number) => void;
+  healthRun: HealthRun | null;
+  healthBusy: boolean;
+  healthBlockedBy: string | null;
+  healthError: string | null;
+  healthAdvertised: boolean;
+  currentHealthContextKey: string;
+  currentTarget: string;
+  onHealthCheck: () => void;
+  onHealthWatch: () => void;
+  onCancelHealth: () => void;
   rules: AssertionRule[];
   results: AssertionResult[];
   onChangeRule: (id: string, r: AssertionRule) => void;
@@ -2602,6 +2878,27 @@ function TestsView({
   );
   return (
     <div className="space-y-6">
+      <HealthPanel
+        service={healthService}
+        onServiceChange={onHealthServiceChange}
+        selectedService={selectedHealthService}
+        serviceSuggestions={healthServiceSuggestions}
+        checkDeadlineSeconds={healthCheckDeadlineSeconds}
+        onCheckDeadlineChange={onHealthCheckDeadlineChange}
+        watchDurationSeconds={healthWatchDurationSeconds}
+        onWatchDurationChange={onHealthWatchDurationChange}
+        run={healthRun}
+        busy={healthBusy}
+        blockedBy={healthBlockedBy}
+        operationError={healthError}
+        healthAdvertised={healthAdvertised}
+        currentContextKey={currentHealthContextKey}
+        currentTarget={currentTarget}
+        onCheck={onHealthCheck}
+        onWatch={onHealthWatch}
+        onCancel={onCancelHealth}
+      />
+
       <section>
         <div className="flex items-center justify-between">
           <h3 className="pp-heading text-base">Assertions</h3>
@@ -2609,8 +2906,14 @@ function TestsView({
             <button
               className="pp-button-primary py-1.5 text-xs"
               type="button"
-              disabled={repeatBusy}
-              title={repeatBusy ? 'Cancel Repeat first, then run assertions.' : undefined}
+              disabled={repeatBusy || healthBusy}
+              title={
+                healthBusy
+                  ? 'Cancel Health first, then run assertions.'
+                  : repeatBusy
+                    ? 'Cancel Repeat first, then run assertions.'
+                    : undefined
+              }
               onClick={onRunAssertions}
             >
               <CheckCircle2 className="size-3" />
@@ -2744,7 +3047,7 @@ function TestsView({
             )}
             type="button"
             aria-label={repeatBusy ? 'Cancel repeat' : 'Run repeat'}
-            disabled={!repeatBusy && !repeatEligible}
+            disabled={!repeatBusy && (!repeatEligible || healthBusy)}
             onClick={repeatBusy ? onCancelRepeat : onRepeat}
           >
             {repeatBusy ? <X className="size-3" /> : <Play className="size-3" />}
@@ -2769,7 +3072,7 @@ function TestsView({
             <button
               key={preset.label}
               type="button"
-              disabled={repeatBusy || !repeatEligible}
+              disabled={repeatBusy || healthBusy || !repeatEligible}
               onClick={() => setRepeatConfig(() => preset.config)}
             >
               {preset.label}
@@ -2785,7 +3088,7 @@ function TestsView({
               min={2}
               max={50}
               step={1}
-              disabled={repeatBusy || !repeatEligible}
+              disabled={repeatBusy || healthBusy || !repeatEligible}
               value={Number.isFinite(repeatConfig.count) ? repeatConfig.count : ''}
               onChange={(event) =>
                 setRepeatConfig((config) => ({
@@ -2804,7 +3107,7 @@ function TestsView({
                 min={0}
                 max={5000}
                 step={1}
-                disabled={repeatBusy || !repeatEligible}
+                disabled={repeatBusy || healthBusy || !repeatEligible}
                 value={Number.isFinite(repeatConfig.thinkTimeMs) ? repeatConfig.thinkTimeMs : ''}
                 onChange={(event) =>
                   setRepeatConfig((config) => ({
@@ -2826,7 +3129,7 @@ function TestsView({
                 min={0.1}
                 max={30}
                 step={0.1}
-                disabled={repeatBusy || !repeatEligible}
+                disabled={repeatBusy || healthBusy || !repeatEligible}
                 value={
                   Number.isFinite(repeatConfig.deadlineSeconds) ? repeatConfig.deadlineSeconds : ''
                 }

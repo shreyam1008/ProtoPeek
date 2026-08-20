@@ -4,17 +4,13 @@ ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the req
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Latest stable:** v0.2.0. The verified shell and PowerShell installers, and
+> **Latest stable:** v0.3.0. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
-> **v0.3 source build:** the dashboard, themes, expanded discovery, browser proto-folder snapshots,
-> callback-observed gRPC timing, bounded Unary Repeat, next-hop evidence, and Nmap XML import
-> documented below are available in this checkout and remain release-candidate features until the
-> v0.3 tag, archives, installers, and public site are published together.
+![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
-![ProtoPeek local gRPC console showing a successful request and response evidence](https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg)
-
-The screenshot is a real local capture against the repository's reflection-enabled KitchenSink test server. The console shows the pieces that usually disappear in a generic API client: method shape, headers, response timeline, status, and latency.
+The screenshot is a real local Chrome capture of the embedded v0.3 dashboard. It is the default when
+`pp` starts without a target and keeps every shipped protocol surface one action away.
 
 ## Install
 
@@ -69,7 +65,7 @@ requires a fresh selection after reload.
 read by the ProtoPeek process, so a path in a remotely opened or containerized console is not a
 path on the browser machine.
 
-Ambient discovery checks only a fixed list of loopback candidates. A private or link-local IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Hostnames are resolved once, every returned address is classified against that opt-in, and probes dial a validated numeric address so DNS cannot silently change the destination between policy and connection. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. Scans are cancellable, never follow redirects, and never send a state-changing request.
+Ambient discovery checks only a fixed list of loopback candidates. A private or link-local IP requires the per-scan private-network opt-in. A public address or hostname is accepted only as the single explicit target: ProtoPeek does not expand it into an arbitrary port scan. Hostnames are resolved once, every returned address is classified against that opt-in, and probes dial a validated numeric address so DNS cannot silently change the destination between policy and connection. Passing that explicit target to the CLI opens the same visible scan dialog. A host without a port tries only `50051` with plaintext and `443` with verified TLS; an explicit HTTP(S) authority uses its stated or default port. Each candidate has fixed time limits and can report verified gRPC, a safe non-following HTTP `HEAD` response, or open TCP evidence. At most two scan requests run at once; retained service names, reflection responses, HTTP fields, errors, and details have explicit byte limits, and the result says when evidence was truncated. Scans are cancellable, never follow redirects, and never send a state-changing request.
 
 Next-hop lookup asks the local kernel for one currently selected route per resolved address from the ProtoPeek process. It resolves at most eight addresses, performs at most four route lookups concurrently, and requests a two-second aggregate deadline. It reports source address, interface, reported gateway or on-link status, prefix, and metric/table when the platform provides them. It is not traceroute: it performs no hop probes, mutates no routes, and requires no elevation. Entering a hostname can still perform normal DNS resolution. VPN, proxy, policy-routing, ECMP, and later route changes remain explicit sources of uncertainty.
 
@@ -90,6 +86,7 @@ The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -
 | **Metadata and auth** | Editable live metadata, Bearer helper, and deadlines; automatic history and default exports redact credentials and binary metadata |
 | **Saved gRPC requests** | Keep secret-sanitized gRPC recipes locally, replay them, and import/export workspace JSON |
 | **Unary Repeat** | Run 2–50 sequential unary checks with cancellation, explicit deadlines, a 60 s cap, separate gRPC status and relay/transport failures, and honest handler-vs-console timing |
+| **gRPC Health** | Run canonical `grpc.health.v1` Check or one bounded live Watch with headers, transitions, trailers, cancellation, and final gRPC status kept distinct |
 | **Response timeline** | Ordered messages with callback-observed timing, filtering, copy/export, headers, trailers, and final status |
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
@@ -111,6 +108,13 @@ are marked as a previous run.
 Unary Repeat export includes the method, target, run ID/start timestamp, frozen configuration,
 counts, per-attempt offsets/timings, classifications, and error/status text. It excludes request
 bodies and metadata; review internal addresses and service/relay text before sharing.
+
+Health is an explicit diagnostic, never background polling. A blank service asks for overall server
+health; an unknown named service is canonical `NOT_FOUND` for Check and `SERVICE_UNKNOWN` for Watch.
+Watch observes one selected backend connection for 1–600 seconds, retains the latest 200 of at most
+512 status observations, and never retries. Its timestamps are ProtoPeek handler/relay observations,
+not server emission time or fleet-wide proof. Health results and request metadata are neither saved
+nor exported.
 
 Workspace export writes the explicit `protopeek-workspace` version 1 format. The default export
 contains saved requests, environments, assertions, and inactive target profiles, but excludes
@@ -146,10 +150,10 @@ cancellation, and its native inspector.
 
 | Adapter | Status | First useful slice |
 |---|---|---|
-| gRPC | Stable · v0.2, expanded in v0.3 source | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
-| HTTP / REST | Stable · v0.2 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
-| Next-hop route evidence | Available in this v0.3 build | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
-| Nmap XML evidence | Available in this v0.3 build · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
+| gRPC | Stable · v0.3.0 | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, canonical Health Check/Watch, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
+| HTTP / REST | Stable · v0.3.0 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
+| Next-hop route evidence | Shipped · v0.3.0 | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
+| Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Traceroute / hop probes | Gated | Requires explicit consent, strict probe budgets, truthful partial failures, and reliable unprivileged backends |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |

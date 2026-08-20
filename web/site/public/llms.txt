@@ -1,18 +1,17 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first protocol workbench and independent open source project by Shreyam Adhikari. gRPC and bounded HTTP are stable as separate protocol-native request surfaces. The v0.3 source preview adds a dashboard, expanded bounded discovery, read-only kernel next-hop evidence, and offline Nmap XML import. Cap'n Proto, traceroute/hop probes, and LAN expansion remain research or gated plans.
+ProtoPeek (Protocol Peek) is a lightweight local-first protocol workbench and independent open source project by Shreyam Adhikari. v0.3.0 ships a light/dark dashboard, native gRPC and bounded HTTP request surfaces, browser proto-folder snapshots, canonical gRPC Health Check/Watch, bounded Unary Repeat and discovery, read-only kernel next-hop evidence, and offline Nmap XML import. Cap'n Proto, traceroute/hop probes, LAN expansion, and live capture remain research or gated plans.
 
 Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
 Repository: https://github.com/shreyam1008/ProtoPeek
-Release status: v0.2.0 is the current public stable release.
-Preview status: v0.3 features remain in source until the tag, release archives, installers, and public site ship together.
+Release status: v0.3.0 is the current public stable release.
 
 Summary:
 - Launch ProtoPeek with no target and define one or more saved gRPC endpoints from the UI.
 - Explore proto files, services, messages, enums, dependencies, and export raw `.proto` text.
 - Generate starter JSON payloads from reflected schemas.
-- Inspect metadata, trailers, status, and latency; use bounded browser repetition only as a local diagnostic.
+- Inspect metadata, trailers, status, callback-observed lifecycle timing, and explicit canonical Health; use bounded sequential repetition only as a local diagnostic.
 - Send explicit HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect choice, and native response evidence.
 - Keep automatic history and default exports secret-safe while each adapter preserves its native request and response concepts.
 - Install with `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh` or the matching `wget` form.
@@ -25,8 +24,6 @@ Preferred docs:
 - https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
 - https://protopeek.shreyam1008.com.np/transport-boundaries/
 - https://protopeek.shreyam1008.com.np/vscode-extension-spec/
-- https://protopeek.shreyam1008.com.np/launch-post/
-- https://protopeek.shreyam1008.com.np/contributor-rules/
 - https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md

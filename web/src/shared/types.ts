@@ -231,6 +231,89 @@ export type InvokeResponse = {
   timings: InvokeTimings | null;
 };
 
+export type HealthServingStatus = {
+  code: number;
+  name: string;
+};
+
+export type HealthGRPCStatus = {
+  code: number;
+  name: string;
+  message: string;
+  messageTruncated: boolean;
+};
+
+export type HealthCheckRequest = {
+  service: string;
+  timeout_seconds: number;
+  metadata: MetadataEntry[];
+};
+
+export type HealthCheckResponse = {
+  service: string;
+  startedAt: string;
+  handlerInvokeMs: number;
+  servingStatus: HealthServingStatus | null;
+  grpcStatus: HealthGRPCStatus;
+  headers: MetadataEntry[];
+  trailers: MetadataEntry[];
+  headersTruncated: boolean;
+  trailersTruncated: boolean;
+};
+
+export type HealthWatchRequest = {
+  service: string;
+  duration_seconds: number;
+  metadata: MetadataEntry[];
+};
+
+type HealthWatchEventBase = {
+  service: string;
+  startedAt: string;
+  observedOffsetMs: number;
+};
+
+export type HealthWatchStartedEvent = HealthWatchEventBase & {
+  type: 'started';
+  durationSeconds: number;
+  metadataCount: number;
+};
+
+export type HealthWatchHeadersEvent = HealthWatchEventBase & {
+  type: 'headers-observed';
+  headers: MetadataEntry[];
+  headersTruncated: boolean;
+};
+
+export type HealthWatchStatusEvent = HealthWatchEventBase & {
+  type: 'status-observed';
+  sequence: number;
+  servingStatus: HealthServingStatus;
+};
+
+export type HealthWatchEndReason =
+  | 'completed'
+  | 'rpc-error'
+  | 'unsupported'
+  | 'duration-limit'
+  | 'observation-limit'
+  | 'canceled';
+
+export type HealthWatchEndedEvent = HealthWatchEventBase & {
+  type: 'ended';
+  reason: HealthWatchEndReason;
+  observationCount: number;
+  grpcStatus: HealthGRPCStatus;
+  trailers: MetadataEntry[];
+  trailersTruncated: boolean;
+};
+
+export type HealthWatchEvent =
+  | HealthWatchStartedEvent
+  | HealthWatchHeadersEvent
+  | HealthWatchStatusEvent
+  | HealthWatchEndedEvent;
+
 export type SavedCollection = {
   id: string;
   createdAt: string;

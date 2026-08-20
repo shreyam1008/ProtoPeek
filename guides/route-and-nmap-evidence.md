@@ -1,6 +1,6 @@
 # Route and Nmap evidence boundary
 
-ProtoPeek's v0.3 source build adds two evidence inputs with deliberately different trust models. The
+ProtoPeek v0.3.0 ships two evidence inputs with deliberately different trust models. The
 route workbench reads the local kernel. The Nmap path imports a file produced elsewhere. Neither is
 a general network scanner.
 

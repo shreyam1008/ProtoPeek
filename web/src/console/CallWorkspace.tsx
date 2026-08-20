@@ -137,6 +137,15 @@ export function CallWorkspace({
     ? (response?.responses[visibleSelectedIndex] ?? null)
     : null;
   const mode = streamMode(method);
+  const responseStatus = invokeState.loading
+    ? method.serverStreaming || method.clientStreaming
+      ? 'STREAMING'
+      : 'IN FLIGHT'
+    : invokeState.error || response?.error
+      ? 'ERROR'
+      : response
+        ? 'OK'
+        : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -358,7 +367,6 @@ export function CallWorkspace({
         id="grpc-mobile-pane-panel-response"
         role="tabpanel"
         aria-labelledby="grpc-mobile-pane-tab-response"
-        aria-live="polite"
       >
         <div className="pp-response-summary">
           <span
@@ -367,16 +375,12 @@ export function CallWorkspace({
               (invokeState.error || response?.error) && 'pp-status-mark-error',
               invokeState.loading && 'pp-status-mark-running'
             )}
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+            aria-label={`RPC status ${responseStatus}`}
           >
-            {invokeState.loading
-              ? method.serverStreaming || method.clientStreaming
-                ? 'STREAMING'
-                : 'IN FLIGHT'
-              : invokeState.error || response?.error
-                ? 'ERROR'
-                : response
-                  ? 'OK'
-                  : 'READY'}
+            {responseStatus}
           </span>
           <span title="ProtoPeek handler invoke duration; includes conversion and callbacks, but excludes the browser and HTTP relay">
             Handler {timingLabel(response?.timings?.totalMs)}

@@ -160,4 +160,42 @@ describe('CallWorkspace', () => {
     expect(screen.queryByText('26 ms')).not.toBeInTheDocument();
     expect(screen.queryByText('51 ms', { selector: '.pp-message-time *' })).not.toBeInTheDocument();
   });
+
+  it('announces only an atomic current or final status when a stream has many messages', () => {
+    const manyResponses = Array.from({ length: 200 }, (_, index) => ({
+      isError: false,
+      sequence: index + 1,
+      elapsedMs: index + 1,
+      message: { sequence: index + 1 },
+    }));
+    const { container, rerender } = render(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            error: null,
+            latencyMs: 205,
+            result: { ...response, responses: manyResponses },
+          },
+        })}
+      />
+    );
+
+    const timeline = screen.getByLabelText('Response message timeline');
+    const status = screen.getByRole('status', { name: 'RPC status OK' });
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveAttribute('aria-atomic', 'true');
+    expect(timeline.closest('[aria-live]')).toBeNull();
+    expect(container.querySelectorAll('[aria-live]')).toHaveLength(1);
+
+    rerender(
+      <CallWorkspace
+        {...props({
+          invokeState: { loading: true, error: null, latencyMs: 0, result: null },
+        })}
+      />
+    );
+    expect(screen.getByRole('status', { name: 'RPC status STREAMING' })).toBeInTheDocument();
+    expect(container.querySelectorAll('[aria-live]')).toHaveLength(1);
+  });
 });

@@ -25,7 +25,7 @@ const publishedPages = [
     title: 'Feature roadmap',
     section: 'Roadmap',
     description:
-      'Stable gRPC and HTTP, the v0.3 source build, and the gates for future transport-aware work.',
+      'The shipped v0.3.0 protocol workbench and the gates for future transport-aware work.',
     sourcePath: 'guides/feature-roadmap.md',
     sourceURL: `${repoRootURL}/blob/master/guides/feature-roadmap.md`,
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
@@ -59,36 +59,6 @@ const publishedPages = [
     sourcePath: 'guides/vscode-extension-spec.md',
     sourceURL: `${repoRootURL}/blob/master/guides/vscode-extension-spec.md`,
     highlights: ['Launch helper', '1 MB target', 'No duplicate client'],
-  },
-  {
-    slug: 'launch-post',
-    title: 'Launch post draft',
-    section: 'Launch',
-    description:
-      'Positioning copy for introducing ProtoPeek as an independent local gRPC and HTTP workbench.',
-    sourcePath: 'guides/launch-post.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/launch-post.md`,
-    highlights: ['gRPC + HTTP', 'Independent branding', 'Protocol-native story'],
-  },
-  {
-    slug: 'go-to-market',
-    title: 'Go-to-market runbook',
-    section: 'Launch',
-    description:
-      'A release-gated distribution and launch sequence for GitHub, native package managers, technical communities, and Product Hunt.',
-    sourcePath: 'guides/go-to-market.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/go-to-market.md`,
-    highlights: ['Release gate', 'Package channels', 'Human launch voice'],
-  },
-  {
-    slug: 'contributor-rules',
-    title: 'Contributor rules',
-    section: 'Rules',
-    description:
-      'The engineering and product constraints that keep ProtoPeek dependency-conscious, transport-aware, and reliable under production debugging pressure.',
-    sourcePath: 'AGENTS.md',
-    sourceURL: `${repoRootURL}/blob/master/AGENTS.md`,
-    highlights: ['Dependency budget', 'gRPC-aware UX', 'Docs stay aligned'],
   },
 ];
 
@@ -141,7 +111,7 @@ async function writeDocsHubPage() {
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, release planning, and contributor rules.</p>
+          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
           <a href="${siteBase}/learn-grpc/">Start with Learn gRPC</a>
         </article>
       </div>
@@ -179,7 +149,7 @@ async function writeDocsHubPage() {
       title: 'Docs hub',
       documentTitle: 'Docs hub | ProtoPeek',
       description:
-        'Published ProtoPeek guides for gRPC, HTTP boundaries, roadmap planning, extension design, and contributor rules.',
+        'Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design.',
       canonicalPath: '/docs/',
       section: 'Docs',
       intro:
@@ -187,9 +157,10 @@ async function writeDocsHubPage() {
       body,
       toc: [{ id: 'published-guides', text: 'Published guides', level: 2 }],
       sourceURL: `${repoRootURL}/tree/master/guides`,
-      sourcePath: 'guides/ + AGENTS.md',
+      sourcePath: 'guides/',
       highlights: ['Published pages', 'SEO-friendly routes', 'GitHub source links'],
       heroVisual: renderHeroVisual('Docs hub', ['Homepage', 'Published guides', 'Source markdown']),
+      schemaType: 'CollectionPage',
     })
   );
 }
@@ -404,8 +375,27 @@ function renderPageTemplate({
   sourcePath,
   highlights,
   heroVisual,
+  schemaType = 'TechArticle',
 }) {
   const canonicalURL = `${siteRoot}${canonicalPath}`;
+  const structuredData = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': schemaType,
+    headline: title,
+    description,
+    url: canonicalURL,
+    mainEntityOfPage: canonicalURL,
+    author: {
+      '@type': 'Person',
+      name: 'Shreyam Adhikari',
+      url: 'https://shreyam1008.com.np/',
+    },
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'ProtoPeek',
+      url: `${siteRoot}/`,
+    },
+  }).replaceAll('<', '\\u003c');
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -413,24 +403,34 @@ function renderPageTemplate({
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(documentTitle)}</title>
     <meta name="description" content="${escapeAttr(description)}" />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0d9488" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="${canonicalURL}" />
     <link rel="icon" type="image/svg+xml" href="${siteBase}/favicon.svg" />
+    <link rel="manifest" href="${siteBase}/site.webmanifest" />
     <link rel="stylesheet" href="${siteBase}/docs.css" />
     <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="${escapeAttr(documentTitle)}" />
     <meta property="og:description" content="${escapeAttr(description)}" />
     <meta property="og:url" content="${canonicalURL}" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="${siteRoot}/protopeek-social-v3.png" />
     <meta property="og:image:secure_url" content="${siteRoot}/protopeek-social-v3.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeAttr(documentTitle)}" />
     <meta name="twitter:description" content="${escapeAttr(description)}" />
     <meta name="twitter:image" content="${siteRoot}/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
     <div class="pp-doc-shell">

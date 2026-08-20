@@ -5,7 +5,7 @@
   --pp-panel-strong: rgba(255, 255, 255, 0.94);
   --pp-border: rgba(11, 46, 46, 0.1);
   --pp-ink: #103133;
-  --pp-muted: #5f7d7f;
+  --pp-muted: #566f71;
   --pp-brand: #0d8b84;
   --pp-brand-strong: #0b5f5b;
   --pp-accent: #f5a524;
@@ -539,5 +539,14 @@ pre {
 
   .pp-doc-hero-copy h1 {
     font-size: 2.2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-doc-orb,
+  .pp-doc-visual-card path,
+  .pp-doc-visual-card circle,
+  .pp-doc-visual-fill {
+    animation: none;
   }
 }

@@ -31,6 +31,10 @@ const roadmap = [
         'Browser proto folders',
         'Review and upload a bounded relative-path .proto manifest to the running ProtoPeek instance; folder access and schema bytes are never saved in profiles.',
       ],
+      [
+        'gRPC Health Check + Watch',
+        'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
+      ],
     ],
   },
   {
@@ -39,8 +43,8 @@ const roadmap = [
     icon: Compass,
     items: [
       [
-        'Incremental gRPC streams + health',
-        'Render each server message immediately with bounded retention, and add gRPC Health Check/Watch while keeping headers, trailers, cancellation, and final status distinct.',
+        'Incremental response-lab streams',
+        'Render each general server-stream message immediately with bounded retention while keeping headers, trailers, cancellation, and final status distinct.',
       ],
       [
         'Saved HTTP requests + profiles',

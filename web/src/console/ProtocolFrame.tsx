@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import { CircleHelp, Home, ListTodo, Moon, Radar, Route, Server, Sun, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
   applyTheme,
@@ -11,7 +11,7 @@ import {
 
 import type { ScanResult } from './api';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
-import { scanResultHTTPURL } from './DiscoveryScanner';
+import { scanResultHTTPURL } from './discovery-url';
 import {
   ProtocolShellContext,
   protocolShellEvents,
@@ -19,7 +19,11 @@ import {
   type ScanDialogRequest,
 } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
-import { ScanTargetDialog } from './ScanTargetDialog';
+
+const ScanTargetDialog = lazy(async () => {
+  const module = await import('./ScanTargetDialog');
+  return { default: module.ScanTargetDialog };
+});
 
 export function ProtocolFrame() {
   const navigate = useNavigate();
@@ -276,16 +280,29 @@ export function ProtocolFrame() {
           </main>
         </div>
 
-        <ScanTargetDialog
-          key={scanGeneration}
-          open={scanOpen}
-          initialTarget={scanRequest.initialTarget}
-          autoStart={scanRequest.autoStart}
-          onClose={() => setScanOpen(false)}
-          onResults={recordResults}
-          onOpenGRPC={openGRPCDiscovery}
-          onOpenHTTP={openHTTPDiscovery}
-        />
+        {scanOpen ? (
+          <Suspense
+            fallback={
+              <div className="pp-scan-dialog-layer">
+                <div className="pp-scan-dialog-backdrop" aria-hidden="true" />
+                <div className="pp-scan-dialog pp-scan-dialog-loading" role="status">
+                  Opening scan tools…
+                </div>
+              </div>
+            }
+          >
+            <ScanTargetDialog
+              key={scanGeneration}
+              open
+              initialTarget={scanRequest.initialTarget}
+              autoStart={scanRequest.autoStart}
+              onClose={() => setScanOpen(false)}
+              onResults={recordResults}
+              onOpenGRPC={openGRPCDiscovery}
+              onOpenHTTP={openHTTPDiscovery}
+            />
+          </Suspense>
+        ) : null}
         <CommandPalette
           open={commandOpen}
           actions={actions}

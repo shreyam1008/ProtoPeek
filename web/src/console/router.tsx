@@ -23,7 +23,7 @@ const grpcRoute = createRoute({
 const httpRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/http',
-  component: lazyRouteComponent(() => import('./HTTPWorkbench'), 'HTTPWorkbench'),
+  component: lazyRouteComponent(() => import('./HTTPRoute'), 'HTTPRoute'),
 });
 const routesRoute = createRoute({
   getParentRoute: () => rootRoute,

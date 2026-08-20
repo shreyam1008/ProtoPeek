@@ -331,7 +331,7 @@ func parseNmapXML(ctx context.Context, reader io.Reader) (NmapImportResponse, er
 		return response, fmt.Errorf("root element must be nmaprun")
 	}
 	if host != nil || port != nil || len(path) != 0 {
-		return response, fmt.Errorf("Nmap XML ended before all elements closed")
+		return response, fmt.Errorf("nmap XML ended before all elements closed")
 	}
 	return response, nil
 }

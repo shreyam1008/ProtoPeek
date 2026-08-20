@@ -168,14 +168,20 @@ function reflectedTarget(address: string): ScanResult {
     reflection: 'available',
     transport: 'plaintext',
     services: ['demo.Echo'],
+    servicesTruncated: false,
     httpTransport: '',
     httpProtocol: '',
+    httpProtocolTruncated: false,
     httpStatus: '',
+    httpStatusTruncated: false,
     httpStatusCode: 0,
     httpServer: '',
+    httpServerTruncated: false,
     failure: '',
     error: '',
+    errorTruncated: false,
     details: ['gRPC plaintext: reflection available'],
+    detailsTruncated: false,
     latencyMs: 2,
   };
 }
@@ -745,14 +751,20 @@ describe('gRPC launcher recents', () => {
       reflection: 'available',
       transport: 'plaintext',
       services: ['demo.Echo'],
+      servicesTruncated: false,
       httpTransport: '',
       httpProtocol: '',
+      httpProtocolTruncated: false,
       httpStatus: '',
+      httpStatusTruncated: false,
       httpStatusCode: 0,
       httpServer: '',
+      httpServerTruncated: false,
       failure: '',
       error: '',
+      errorTruncated: false,
       details: ['gRPC plaintext: reflection available'],
+      detailsTruncated: false,
       latencyMs: 2,
     };
     window.localStorage.setItem(
@@ -1993,5 +2005,252 @@ describe('unary repeat', () => {
     expect(invokeCalls()).toHaveLength(2);
     expect(screen.getByText('2 of 2 attempts')).toBeVisible();
     expect(screen.getByText('Completed all requested calls.')).toBeVisible();
+  });
+});
+
+describe('gRPC Health Check and Watch', () => {
+  it('runs reflection-independent Check with sendable live metadata and keeps frozen evidence', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(directBootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.endsWith('/api/health/check')) {
+        return response({
+          service: 'demo.Echo',
+          startedAt: '2026-08-20T12:00:00.000Z',
+          handlerInvokeMs: 4.5,
+          servingStatus: { code: 1, name: 'SERVING' },
+          grpcStatus: { code: 0, name: 'OK', message: '', messageTruncated: false },
+          headers: [{ name: 'x-backend', value: 'blue' }],
+          trailers: [{ name: 'grpc-status', value: '0' }],
+          headersTruncated: false,
+          trailersTruncated: false,
+        });
+      }
+      throw new Error(`Unexpected request: ${path} ${init?.method ?? 'GET'}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(within(workspace).getByRole('tab', { name: /Metadata/ }));
+    fireEvent.click(within(workspace).getByRole('button', { name: 'Bearer auth' }));
+    fireEvent.change(within(workspace).getByLabelText('Metadata value 1'), {
+      target: { value: 'Bearer health-secret' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use selected service' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+
+    expect(await screen.findByText('Health Check returned once.')).toBeVisible();
+    expect(screen.getByText('SERVING')).toBeVisible();
+    expect(screen.getByText(/5 s Check deadline/)).toBeVisible();
+    expect(screen.getByText(/1 editor metadata entry/)).toBeVisible();
+    expect(screen.getByText(/4.5 ms ProtoPeek handler invoke/)).toBeVisible();
+    expect(document.body).not.toHaveTextContent('health-secret');
+
+    const healthCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/api/health/check')
+    );
+    expect(JSON.parse(String(healthCall?.[1]?.body))).toEqual({
+      service: 'demo.Echo',
+      timeout_seconds: 5,
+      metadata: [{ name: 'authorization', value: 'Bearer health-secret' }],
+    });
+  });
+
+  it('gives Watch explicit ownership, refuses Invoke, and preserves partials on navigation', async () => {
+    let watchSignal: AbortSignal | undefined;
+    let watchController: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(directBootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.endsWith('/api/health/watch')) {
+        watchSignal = init?.signal as AbortSignal;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            watchController = controller;
+          },
+        });
+        return new Response(body, {
+          status: 200,
+          headers: { 'Content-Type': 'application/x-ndjson' },
+        });
+      }
+      if (path.includes('/invoke/')) {
+        return response({ headers: [], responses: [], requests: null, trailers: [], error: null });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start Watch' }));
+    await waitFor(() => expect(watchSignal).toBeDefined());
+
+    const startedAt = '2026-08-20T12:00:00.000Z';
+    const frames = [
+      {
+        type: 'started',
+        service: '',
+        startedAt,
+        observedOffsetMs: 0,
+        durationSeconds: 60,
+        metadataCount: 0,
+      },
+      {
+        type: 'status-observed',
+        service: '',
+        startedAt,
+        observedOffsetMs: 3,
+        sequence: 1,
+        servingStatus: { code: 3, name: 'SERVICE_UNKNOWN' },
+      },
+    ];
+    await act(async () => {
+      watchController?.enqueue(
+        new TextEncoder().encode(`${frames.map((frame) => JSON.stringify(frame)).join('\n')}\n`)
+      );
+    });
+    expect((await screen.findAllByText('SERVICE_UNKNOWN'))[0]).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Run repeat' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Invoke current method/ }));
+    expect(await screen.findByText(/Cancel Health first/i)).toBeVisible();
+    expect(watchSignal?.aborted).toBe(false);
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
+    ).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /^History & saved/ }));
+    expect(watchSignal?.aborted).toBe(true);
+    expect(await screen.findByText('Recent calls')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    expect(await screen.findByText(/Cancelled when you left Checks/i)).toBeVisible();
+    expect(screen.getAllByText('SERVICE_UNKNOWN')[0]).toBeVisible();
+    expect(screen.queryByText(/Cancel Health first/i)).not.toBeInTheDocument();
+  });
+
+  it('aborts an active Watch when the workbench unmounts', async () => {
+    let watchSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(directBootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.endsWith('/api/health/watch')) {
+        watchSignal = init?.signal as AbortSignal;
+        return new Response(new ReadableStream<Uint8Array>(), {
+          status: 200,
+          headers: { 'Content-Type': 'application/x-ndjson' },
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { unmount } = render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start Watch' }));
+    await waitFor(() => expect(watchSignal).toBeDefined());
+
+    unmount();
+
+    expect(watchSignal?.aborted).toBe(true);
+  });
+
+  it('ignores a late Watch response after the selected method changes', async () => {
+    const otherMethod = {
+      ...directMethod,
+      name: 'Other',
+      fullName: 'demo.Echo/Other',
+    };
+    const bootstrap = {
+      ...directBootstrap,
+      services: [
+        {
+          ...directBootstrap.services[0],
+          methods: [directMethod, otherMethod],
+        },
+      ],
+    };
+    let watchSignal: AbortSignal | undefined;
+    let resolveWatch: ((value: Response) => void) | undefined;
+    const pendingWatch = new Promise<Response>((resolve) => {
+      resolveWatch = resolve;
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return response(bootstrap);
+      if (path.endsWith('/examples')) return response([]);
+      if (path.endsWith('/metadata')) return response(directSchema);
+      if (path.endsWith('/api/protos')) return response({ files: [] });
+      if (path.endsWith('/api/health/watch')) {
+        watchSignal = init?.signal as AbortSignal;
+        return pendingWatch;
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Start Watch' }));
+    await waitFor(() => expect(watchSignal).toBeDefined());
+
+    fireEvent.click(screen.getByText('Other').closest('button') as HTMLButtonElement);
+    expect(watchSignal?.aborted).toBe(true);
+
+    const startedAt = '2026-08-20T12:00:00.000Z';
+    const lateFrames = [
+      {
+        type: 'started',
+        service: '',
+        startedAt,
+        observedOffsetMs: 0,
+        durationSeconds: 60,
+        metadataCount: 0,
+      },
+      {
+        type: 'status-observed',
+        service: '',
+        startedAt,
+        observedOffsetMs: 1,
+        sequence: 1,
+        servingStatus: { code: 1, name: 'SERVING' },
+      },
+      {
+        type: 'ended',
+        service: '',
+        startedAt,
+        observedOffsetMs: 2,
+        reason: 'completed',
+        observationCount: 1,
+        grpcStatus: { code: 0, name: 'OK', message: '', messageTruncated: false },
+        trailers: [],
+        trailersTruncated: false,
+      },
+    ];
+    await act(async () => {
+      resolveWatch?.(
+        new Response(`${lateFrames.map((frame) => JSON.stringify(frame)).join('\n')}\n`, {
+          headers: { 'Content-Type': 'application/x-ndjson' },
+        })
+      );
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Checks' }));
+    expect(await screen.findByText(/target or method context changed/i)).toBeVisible();
+    expect(screen.getByText('NO STATUS OBSERVED')).toBeVisible();
+    expect(screen.queryByText(/^SERVING$/)).not.toBeInTheDocument();
   });
 });

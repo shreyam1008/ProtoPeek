@@ -33,6 +33,7 @@ install:
 	go install -ldflags '-X "main.version=dev build $(dev_build_version)"' ./cmd/pp
 
 GORELEASER_VERSION := v2.17.1
+TOOLS_BIN := $(CURDIR)/.tmp/tools
 
 .PHONY: release-snapshot
 release-snapshot:
@@ -63,8 +64,8 @@ checkgenerate: generate
 
 .PHONY: checkgofmt
 checkgofmt:
-	gofmt -s -w .
-	@if [ -n "$$(gofmt -s -l .)" ]; then \
+	@git ls-files --cached --others --exclude-standard -- '*.go' | xargs gofmt -s -w
+	@if [ -n "$$(git ls-files --cached --others --exclude-standard -- '*.go' | xargs gofmt -s -l)" ]; then \
 		git diff; \
 		exit 1; \
 	fi
@@ -75,18 +76,21 @@ vet:
 
 .PHONY: staticcheck
 staticcheck:
-	@go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
-	staticcheck -checks "inherit,-SA1019" ./...
+	@mkdir -p $(TOOLS_BIN)
+	@GOBIN=$(TOOLS_BIN) go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
+	$(TOOLS_BIN)/staticcheck -checks "inherit,-SA1019" ./...
 
 .PHONY: ineffassign
 ineffassign:
-	@go install github.com/gordonklaus/ineffassign@latest
-	ineffassign .
+	@mkdir -p $(TOOLS_BIN)
+	@GOBIN=$(TOOLS_BIN) go install github.com/gordonklaus/ineffassign@v0.2.0
+	$(TOOLS_BIN)/ineffassign .
 
 .PHONY: predeclared
 predeclared:
-	@go install github.com/nishanths/predeclared@latest
-	predeclared ./...
+	@mkdir -p $(TOOLS_BIN)
+	@GOBIN=$(TOOLS_BIN) go install github.com/nishanths/predeclared@v0.2.3-0.20250331095553-51e8c974458a
+	$(TOOLS_BIN)/predeclared ./...
 
 .PHONY: test
 test:

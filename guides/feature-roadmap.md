@@ -36,9 +36,11 @@ The gRPC adapter remains the quality bar for protocol-native depth:
 4. Invoke locally with deadlines, cancellation, plaintext/TLS choices, metadata, and Bearer helpers.
 5. Render ordered response messages, headers, trailers, final status, and callback-observed handler
    lifecycle timing together without presenting it as packet arrival, server processing, or TTFB.
-6. Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts
+6. Run explicit canonical Health Check/Watch against the selected connection without polling,
+   retrying, or presenting one backend observation as fleet health.
+7. Preserve saved requests, secret-sanitized history/default export, checks, and command shortcuts
    without a server account.
-7. Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public
+8. Keep the local safety boundary explicit: loopback discovery by default and no arbitrary public
    network probing.
 
 The HTTP adapter is the first additional protocol slice:
@@ -52,7 +54,7 @@ The HTTP adapter is the first additional protocol slice:
    are redacted before persistence or default export.
 6. Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.
 
-The v0.3 source build adds two deliberately narrow evidence inputs:
+v0.3.0 ships two deliberately narrow evidence inputs:
 
 1. Read one kernel-selected next hop per resolved address from the ProtoPeek process without
    packets, polling, route dumps, mutation, or privilege.
@@ -149,9 +151,25 @@ surface and would require separate product and security review.
 - Bounded Unary Repeat and callback-observed lifecycle timing close a common evidence gap without
   pretending to be packet timing or a load generator.
 
+### Milestone 4 — explicit gRPC health evidence (available in this build)
+
+- Canonical `grpc.health.v1.Health/Check` keeps the reported serving enum separate from the final
+  gRPC status and preserves bounded response headers, trailers, and handler-observed duration.
+- `Health/Watch` is one user-started server stream, not polling: it has a 1–600 second wall duration,
+  a 512-observation server cap, latest-200 browser retention with a dropped count, cancellation, and
+  a final NDJSON evidence frame. Four Watches may run across direct and workspace sessions per
+  console; Check does not consume those slots.
+- A blank service requests overall server health. Unknown named services remain canonical:
+  Check ends `NOT_FOUND`, while Watch reports `SERVICE_UNKNOWN` and stays open until the server or
+  local bound ends it. `UNIMPLEMENTED` ends once and is never retried.
+- Health uses the live request metadata with the same precedence and binary decoding as Invoke, but
+  never echoes, stores, or exports those request values. Observed times belong to the ProtoPeek
+  handler/relay and one selected backend connection; they are not packet, server-emission,
+  dependency, replica-set, or fleet-health evidence.
+
 ### Next — daily workflow gaps
 
-- incremental gRPC stream delivery with bounded retention plus Health Check/Watch;
+- incremental delivery in the general gRPC response lab with bounded retention;
 - saved HTTP requests and profiles;
 - bounded cURL import/export;
 - target DNS, SNI, ALPN, certificate, and TLS-handshake preflight.
@@ -227,21 +245,26 @@ Before an adapter is called shipped:
 - README, website, roadmap, product metadata, and screenshots all describe the same current state;
 - the adapter has a rollback flag or can be omitted from the default binary.
 
-### Milestone 2 bundle evidence
+### v0.3.0 bundle evidence
 
-The v0.3 milestone 2 production console build measures 324.80 kB / 102.45 kB gzip for the shared
-entry and 110.43 kB / 20.65 kB gzip for CSS. The next-hop and roadmap workspaces stay lazy at
-6.04 kB / 1.95 kB gzip and 4.43 kB / 2.10 kB gzip. Compared with the milestone 1 embedded build,
-the shared entry grew 12.46 kB raw / 3.68 kB gzip and CSS grew 12.64 kB raw / 2.27 kB gzip. No
-frontend dependency was added; `x/sys` was already a transitive Go dependency and is now direct for
-native route lookup. This measured increase is accepted for the bounded XML inventory UI, shared
-evidence styling, and OS-native route workbench. Future adapters must preserve the same lazy-loading
-and no-heavy-chart-library budget.
+The final v0.3.0 production console build measures 304.24 kB / 97.56 kB gzip for the shared entry,
+107.35 kB / 28.22 kB gzip for the lazy gRPC workspace, and 130.98 kB / 23.84 kB gzip for shared CSS.
+The HTTP workbench and its React Query provider stay in a 43.53 kB / 12.92 kB gzip lazy route; scan
+tools stay behind an 11.26 kB / 4.06 kB gzip dialog boundary. Next-hop and roadmap remain lazy at
+6.05 kB / 1.96 kB gzip and 4.67 kB / 2.18 kB gzip.
+
+Compared with the previously recorded v0.3 milestone build, the shared entry is 4.89 kB smaller
+gzip after moving HTTP-only query infrastructure out of startup. The gRPC workspace adds 3.98 kB
+gzip for canonical Health Check/Watch and bounded evidence handling, while CSS adds 1.49 kB gzip for
+the Health inspector, responsive states, contrast, and motion safeguards. No frontend dependency was
+added. Future adapters must preserve these lazy boundaries and the no-heavy-chart-library budget.
 
 ## Research trail
 
 - [gRPC guides](https://grpc.io/docs/guides/)
 - [gRPC debugging](https://grpc.io/docs/guides/debugging/)
+- [gRPC health checking](https://grpc.io/docs/guides/health-checking/)
+- [Canonical gRPC Health protocol](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto)
 - [gRPC-Web basics](https://grpc.io/docs/platforms/web/basics/)
 - [Envoy gRPC overview](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html)
 - [Postman gRPC request interface](https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/)

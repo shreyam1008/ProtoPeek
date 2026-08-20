@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="ProtoPeek is a lightweight local protocol workbench with native gRPC and HTTP inspection, plus a v0.3 preview of bounded discovery and read-only network evidence."
+      content="ProtoPeek is a lightweight local protocol workbench with native gRPC and HTTP inspection, explicit gRPC Health, bounded discovery, and read-only network evidence."
     />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
@@ -32,7 +32,7 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ProtoPeek | Local gRPC and HTTP Workbench" />
@@ -41,7 +41,7 @@
       content="Inspect gRPC and bounded HTTP requests locally without flattening their native evidence."
     />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local gRPC and HTTP protocol workbench" />
+    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
 
     <title>ProtoPeek | Local gRPC and HTTP Workbench</title>
 
@@ -52,13 +52,22 @@
         "name": "ProtoPeek",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": ["Linux", "macOS", "Windows"],
-        "softwareVersion": "0.2.0",
+        "softwareVersion": "0.3.0",
         "isAccessibleForFree": true,
         "url": "https://protopeek.shreyam1008.com.np/",
-        "downloadUrl": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.2.0",
-        "releaseNotes": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.2.0",
-        "description": "ProtoPeek is a local-first workbench with protocol-native gRPC and bounded HTTP request surfaces.",
-        "screenshot": "https://protopeek.shreyam1008.com.np/assets/protopeek-console-response.jpg",
+        "downloadUrl": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.0",
+        "releaseNotes": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.0",
+        "description": "ProtoPeek is a lightweight local protocol workbench with native gRPC and HTTP, explicit gRPC Health, bounded discovery, next-hop evidence, and offline Nmap XML import.",
+        "screenshot": "https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png",
+        "featureList": [
+          "Protocol-native gRPC request and response inspection",
+          "Canonical gRPC Health Check and bounded Watch",
+          "Bounded HTTP and local target discovery",
+          "Browser proto-folder snapshots",
+          "Read-only kernel next-hop evidence",
+          "Offline Nmap XML import"
+        ],
+        "softwareHelp": "https://protopeek.shreyam1008.com.np/docs/",
         "offers": {
           "@type": "Offer",
           "price": "0",

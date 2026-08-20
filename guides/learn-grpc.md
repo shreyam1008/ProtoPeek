@@ -354,7 +354,30 @@ retained in results or exports.
 > Start with Quick for a local sanity check. Use Tail sample when p95 is useful, and treat every
 > result as debugging evidence rather than production capacity evidence.
 
-## 10. Why debugging gets hard fast
+## 10. Health Check and Watch are protocol calls, not magic
+
+The standard `grpc.health.v1.Health` service has two deliberately different methods:
+
+- `Check` returns one serving status for a service name. An empty name asks for overall server
+  health. An unknown non-empty name ends with gRPC `NOT_FOUND`; there is no serving enum to invent.
+- `Watch` is a server stream. It reports the current status immediately and then changes. An unknown
+  service reports `SERVICE_UNKNOWN` and remains open. A server that does not implement Watch returns
+  `UNIMPLEMENTED`.
+
+ProtoPeek exposes both only as user-started diagnostics. Check uses a bounded deadline. Watch opens
+one real stream for a bounded duration, does not poll or retry, keeps headers, each observed status,
+trailers, cancellation, and the final gRPC status separate, and reports when older retained
+transitions were dropped. Request metadata is sent live but never copied into Health evidence or
+browser storage.
+
+A healthy response is evidence from one selected backend connection at one moment. It does not prove
+that dependencies are healthy, that every replica is reachable, or that a load balancer would choose
+the same backend next time. ProtoPeek's offsets mark when its handler/relay observed each event; they
+are not packet timestamps or the server's emission clock. gRPC Health is also distinct from HTTP/2
+keepalive: keepalive tests whether a connection remains usable, while Health reports application
+status chosen by the service.
+
+## 11. Why debugging gets hard fast
 
 The painful gRPC bugs are rarely serialization bugs. They are transport and configuration issues:
 
@@ -369,15 +392,18 @@ The painful gRPC bugs are rarely serialization bugs. They are transport and conf
 | Works locally, fails in staging | Authority override needed, or different TLS config | Target registry per-environment |
 | Browser client behaves differently | gRPC-Web proxy issue, not backend | Transport lens |
 | Streaming closes unexpectedly | Keepalive timeout, proxy idle timeout | Response lab trailers |
+| Readiness differs by backend | One replica, dependency, or load-balancer path is unhealthy | Explicit Health Check/Watch, then backend-aware infrastructure evidence |
 | One sequential call is much slower | Backend variance, proxy delay, or connection setup | Unary Repeat timing and attempt evidence |
 
 That is why ProtoPeek combines request authoring, response inspection, metadata visibility, bounded browser repetition, and transport education in one console — each of those surfaces helps diagnose a different class of gRPC issue.
 
-## 11. Further reading
+## 12. Further reading
 
 **Official gRPC documentation:**
 
 - [gRPC core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/) — services, messages, deadlines, metadata
+- [gRPC health checking](https://grpc.io/docs/guides/health-checking/) — canonical Check/Watch behavior and client configuration
+- [Health protocol definition](https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto) — the canonical service and serving-status enum
 - [gRPC guides](https://grpc.io/docs/guides/) — auth, error handling, performance, benchmarking, keepalive
 - [gRPC debugging guide](https://grpc.io/docs/guides/debugging/) — admin services, channelz, `grpcdebug`
 - [gRPC status codes](https://grpc.io/docs/guides/status-codes/) — canonical error code semantics
