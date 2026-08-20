@@ -31,6 +31,12 @@ bucket are public**. WinGet and community launch submissions remain gated on ini
 feedback. No third-party submission or founder-authored community post should be made from an agent
 account.
 
+The owned feedback channels are live: use [Issues](https://github.com/shreyam1008/ProtoPeek/issues)
+for reproducible installer/runtime defects and
+[Discussions](https://github.com/shreyam1008/ProtoPeek/discussions) for questions and workflow
+feedback. Keep request bodies, metadata, internal addresses, and exported evidence out of public
+reports unless the reporter has reviewed and intentionally shared them.
+
 ### 1. Direct release: day zero
 
 - The tested v0.3.0 GitHub release and matching website are public.

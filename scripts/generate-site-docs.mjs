@@ -31,6 +31,16 @@ const publishedPages = [
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
   },
   {
+    slug: 'competitive-landscape',
+    title: 'Competitive workflow decisions',
+    section: 'Product research',
+    description:
+      'A source-backed comparison of workflows worth learning from and the boundaries that keep ProtoPeek focused.',
+    sourcePath: 'guides/competitive-landscape.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/competitive-landscape.md`,
+    highlights: ['Official sources', 'Workflow decisions', 'Lightweight boundaries'],
+  },
+  {
     slug: 'route-and-nmap-evidence',
     title: 'Route and Nmap evidence',
     section: 'Guide',
@@ -111,7 +121,7 @@ async function writeDocsHubPage() {
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for gRPC, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
+          <p>Long-form pages for gRPC, product research, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
           <a href="${siteBase}/learn-grpc/">Start with Learn gRPC</a>
         </article>
       </div>

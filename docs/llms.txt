@@ -21,11 +21,13 @@ Preferred docs:
 - https://protopeek.shreyam1008.com.np/docs/
 - https://protopeek.shreyam1008.com.np/learn-grpc/
 - https://protopeek.shreyam1008.com.np/feature-roadmap/
+- https://protopeek.shreyam1008.com.np/competitive-landscape/
 - https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
 - https://protopeek.shreyam1008.com.np/transport-boundaries/
 - https://protopeek.shreyam1008.com.np/vscode-extension-spec/
 - https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/competitive-landscape.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md
 - https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md

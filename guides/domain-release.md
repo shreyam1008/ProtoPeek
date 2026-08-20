@@ -19,6 +19,16 @@ v0.3.0 release state: **Published stable and deployed**
 6. Confirm the install copy still resolves the public stable release, not a
    draft or edge release.
 
+## Search indexing handoff
+
+Search Console is an owner-account operation and is not inferred from a successful Pages deploy.
+After a release, Shreyam should verify the custom-domain property, submit
+`https://protopeek.shreyam1008.com.np/sitemap.xml`, and request indexing for the homepage and
+feature-roadmap page. Record the submission date and any coverage error in the distribution log;
+do not describe indexing as complete until Search Console reports the custom URLs as discovered or
+indexed. Recheck search impressions after two weeks, while treating ordinary crawl delay as external
+state rather than changing working canonical/redirect metadata without evidence.
+
 ## Rollback
 
 For a bad site build, restore the previous known-good `docs/` artifact set and

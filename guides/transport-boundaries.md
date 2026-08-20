@@ -11,6 +11,10 @@ and transport story.
   bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and
   visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.
 - Every session runs locally, without an account, remote sync, or external database.
+- The native listener binds to loopback. A container may use `-allow-non-loopback-bind` only when
+  its outer host port is published on loopback; that mode retains loopback request Host and Origin
+  checks. `-unsafe-allow-remote` is a separate, unauthenticated remote mode that requires an
+  external TLS, authentication, and rate-limit boundary.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.
 - Reflection, temporary browser-folder snapshots, host proto paths, and host protoset paths remain
@@ -40,6 +44,23 @@ and transport story.
   separately. ProtoPeek only imports bounded `nmap -oX` XML, retains no command
   arguments/scripts/OS/trace data, persists no inventory, and treats service names as hints until
   the existing bounded scanner verifies a literal-IP endpoint.
+- The running handler admits at most eight ordinary gRPC invokes across direct and workspace
+  sessions, four HTTP relays, and two native route requests. Each class has one shared budget, not a
+  per-browser or per-workspace pool. Method and CSRF checks happen first; saturation returns a
+  non-cacheable `429 Too Many Requests` with `nosniff` before request-body reads or network work.
+  Deferred release covers success, validation/error, cancellation, and panic unwinding; deleting a
+  workspace closes its connection so admitted workspace invokes finish and release. These admission
+  budgets do not weaken the smaller fan-out, deadline, body, message, redirect, address, or evidence
+  limits within an admitted request.
+- One ordinary invoke retains at most 512 response messages and 8 MiB of serialized message JSON.
+  The callback for message 513 stops before serialization; a message that would make retained JSON
+  exceed 8 MiB is observed but not retained. Equality at either boundary may still receive natural
+  trailers and status. Crossing a boundary cancels the underlying RPC and returns headers, retained
+  messages, request counts, and available timing as `localLimit` evidence with no fabricated server
+  gRPC status. A missing or greater-than-60-second request deadline is replaced by a 60-second local
+  wall; a positive deadline up to 60 seconds keeps its requested semantics. Timer/status races are
+  attributed by callback order: an already-observed server status wins, while a locally generated
+  deadline callback does not become server evidence.
 - New transports must not add a heavy runtime or materially grow the browser bundle without a
   measured reason. The first HTTP adapter uses the Go standard library.
 
@@ -123,6 +144,22 @@ body. Replaying an entry resets params, auth, body mode/body, timeout, redirect 
 state, and previous response before restoring those persisted fields, so a stale editor value cannot
 silently join the replayed request.
 
+Copy as cURL is manual export only: no draft is copied or persisted until the user activates the
+action, and cURL import remains Next. Send and Copy first pass through the same method, URL,
+user-info, header, active-body, and timeout preparation boundary. The command then uses POSIX-safe
+quoting for those explicit prepared fields. Existing credential classifiers blank sensitive URL
+values and omit auth and credential-like headers rather than placing a `[redacted]` sentinel into
+the executable command. Redirect-enabled drafts are refused because one portable cURL command
+cannot reproduce the relay's ten-hop cap, method/header rewriting, cross-origin stripping, and
+HTTPS-downgrade refusal.
+
+The exported command runs in the user's shell and cURL process, not through ProtoPeek's HTTP relay.
+Its network namespace and localhost, DNS, proxies, trust roots, implicit headers, and cURL version
+may differ, so export is a reviewed handoff rather than a transport replay claim. At most 64
+effective headers are inspected and the UTF-8 command may be at most 512 KiB; invalid/non-HTTP(S)
+URLs and over-limit drafts fail before clipboard access. Request bodies are deliberate user-authored
+content, are copied verbatim, and must be reviewed before sharing or execution.
+
 ### 3. Bound workspace transfer and replay
 
 The default workspace export is the explicit `protopeek-workspace` version 1 JSON format. It
@@ -165,6 +202,29 @@ reserved, and non-`.proto` paths fail before compilation. Google well-known prot
 non-manifest fallback. The server clears bounded in-memory upload buffers before the target is dialed
 or the session is published and writes no schema staging files. Snapshot bytes go only to the
 current ProtoPeek process or container and never to the gRPC target.
+
+The remaining workspace schema sources have a separate host-process boundary. One JSON connection
+may name at most 128 proto entry files, 64 import roots, or 32 protosets. Every configured path is
+valid UTF-8 without NUL, is at most 4,096 bytes, and contributes to a 32 KiB aggregate path budget.
+Explicit proto entry and protoset files must be regular files; before target dial or parsing, their
+reported sizes are capped at 4 MiB each and 16 MiB aggregate. Import roots deliberately are not
+walked or pre-read: selecting one grants the ProtoPeek process authority to resolve only imports
+referenced by the chosen entry schemas. Those resolved imports meet the retained descriptor limits
+before publication even though their directory contents are not part of the explicit-file preflight.
+
+Each workspace manager admits two concurrent non-upload JSON schema connections; the existing two
+browser-folder upload/parse slots remain separate. Reflection lists services once, resolves their
+descriptor graphs incrementally, checks cancellation between requests, and stops at the first
+resource limit instead of calling an unbounded all-files helper. Every source—reflection, host proto,
+host protoset, or browser snapshot—must fit 512 retained services, 10,000 methods, 1,024 descriptor
+files, 10,000 messages, 50,000 fields, 4,096 enums, 50,000 enum values, 32 levels of message nesting,
+8 MiB of serialized descriptors, and a 16 MiB generated catalog before a session becomes visible.
+The structural walk is iterative and runs before recursive catalog summaries/proto text are
+materialized. Manager shutdown cancels tracked connections; request cancellation is checked before
+dial, between reflection fetches, after non-cancellable parser calls, and again before publication.
+Errors name the source, boundary, and corrective action but do not include schema contents,
+reflection metadata values, or credentials. Direct CLI `-proto`/`-protoset` operation remains
+outside this browser workspace-manager admission boundary.
 
 New saved requests and automatic gRPC history carry target-profile ID plus target address. Replay
 requires the method to exist and the stored scope to match. Legacy records without scope may be
