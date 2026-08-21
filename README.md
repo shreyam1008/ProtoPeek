@@ -50,8 +50,8 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 ```
 
 The verified release installer resolves v0.4.0 from immutable archives pinned to its published
-SHA-256 entries. The owned Homebrew and Scoop channels remain on v0.3.2 until their v0.4.0
-checksums are promoted and independently tested. See the
+SHA-256 entries. The owned Homebrew and Scoop channels now publish v0.4.0 from the same immutable
+archives, with independent install and smoke-test workflows. See the
 [install guide](guides/INSTALLING.md) for package updates, pinned versions,
 rollback, PATH behavior, and uninstall.
 

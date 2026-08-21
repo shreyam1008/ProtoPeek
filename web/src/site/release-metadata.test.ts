@@ -21,8 +21,8 @@ describe('release metadata', () => {
       url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0',
     });
     expect(packageVersions['GitHub Releases']).toBe('0.4.0');
-    expect(packageVersions['Homebrew Tap']).toBe('0.3.2');
-    expect(packageVersions['Scoop Bucket']).toBe('0.3.2');
+    expect(packageVersions['Homebrew Tap']).toBe('0.4.0');
+    expect(packageVersions['Scoop Bucket']).toBe('0.4.0');
   });
 
   it('aligns public discovery metadata and packaged manual headers', () => {
@@ -32,7 +32,7 @@ describe('release metadata', () => {
     expect(siteIndex).toContain('"softwareVersion": "0.4.0"');
     expect(siteIndex).toContain('/releases/tag/v0.4.0');
     expect(llms).toContain('v0.4.0 is the current stable release');
-    expect(llms).toContain('Homebrew and Scoop channels remain on v0.3.2');
+    expect(llms).toContain('owned Homebrew/Scoop channels publish its independently tested');
     expect(readRepositoryFile('web/site/public/man/protopeek.1')).toMatch(
       /^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.4\.0"/
     );

@@ -49,7 +49,7 @@ const roadmap = [
       ],
       [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows currently install the same checksum-pinned v0.3.2 archives with both protopeek and pp; v0.4.0 promotion follows its release checksum tests.',
+        'Homebrew on macOS/Linux and Scoop on Windows now install the same checksum-pinned v0.4.0 archives with both protopeek and pp; WinGet remains gated on initial package feedback.',
       ],
     ],
   },

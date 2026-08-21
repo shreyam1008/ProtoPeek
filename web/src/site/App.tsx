@@ -488,7 +488,7 @@ function Roadmap() {
   const phases = [
     {
       phase: '01',
-      status: 'Shipped · v0.3.2',
+      status: 'Shipped · v0.4.0',
       title: 'Protocol workbenches + bounded evidence',
       detail:
         'Dashboard, themes, stable gRPC and HTTP workbenches, bounded cURL export with credential redaction, browser proto-folder snapshots, canonical Health Check/Watch, bounded sequential Unary Repeat, TCP/gRPC/TLS/HTTP discovery, read-only kernel next-hop evidence, offline Nmap XML import, and owned Homebrew/Scoop channels.',
@@ -597,7 +597,7 @@ function Install() {
       <SectionHeader
         label="Install · stable v0.4.0"
         title="Start the local workbench"
-        subtitle="The verified release installer resolves v0.4.0 from checksum-pinned public archives. Owned Homebrew and Scoop channels follow after their v0.4.0 checksums are independently tested."
+        subtitle="The verified release installer and owned Homebrew/Scoop channels resolve v0.4.0 from independently tested checksum-pinned public archives."
       />
 
       <div className="mt-8 space-y-3">

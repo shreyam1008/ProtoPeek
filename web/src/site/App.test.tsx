@@ -51,9 +51,10 @@ describe('public site navigation', () => {
         'go install github.com/shreyam1008/ProtoPeek/cmd/protopeek@latest github.com/shreyam1008/ProtoPeek/cmd/pp@latest'
       )
     ).toBeInTheDocument();
-    expect(screen.getByText(/release installer resolves v0\.4\.0/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/owned Homebrew\/Scoop channels resolve v0\.4\.0/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/v0\.4\.0 stable/i)).toBeInTheDocument();
-    expect(screen.getByText('Shipped · v0.3.2')).toBeInTheDocument();
     expect(screen.getAllByText('Shipped · v0.4.0').length).toBeGreaterThan(0);
     expect(screen.getByText(/WinGet only after initial package feedback/)).toBeInTheDocument();
   });
