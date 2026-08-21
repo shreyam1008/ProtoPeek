@@ -26,8 +26,8 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **v0.4.0 is prepared for stable publication; the owned Homebrew tap and
-Scoop bucket still serve v0.3.2 until the new release checksums are promoted and tested**. WinGet
+Current execution state: **v0.4.0 is public; the owned Homebrew tap and Scoop bucket now serve v0.4.0
+after their independent checksum-backed workflows passed**. WinGet
 and community launch submissions remain gated on initial package/user feedback. No third-party
 submission or founder-authored community post should be made from an agent account.
 
@@ -39,8 +39,8 @@ reports unless the reporter has reviewed and intentionally shared them.
 
 ### 1. Direct release: day zero
 
-- The v0.4.0 GitHub release and matching website become public only after the stable tag and Pages
-  workflow pass; until then v0.3.2 remains the last public stable baseline.
+- The v0.4.0 GitHub release, matching website, and owned package channels are public after the stable
+  tag, Pages workflow, artifact acceptance, and package CI passed.
 - Keep the verified shell and PowerShell installers as canonical fallbacks alongside the owned
   package channels.
 - Update Shreyam's portfolio entry from “gRPC Tooling” to “local gRPC + HTTP
@@ -52,7 +52,7 @@ desktop operating systems can install and reach a successful request.
 
 ### 2. Native package discovery: owned channels live
 
-The owned Homebrew tap and Scoop bucket currently publish v0.3.2 from immutable release archives. Homebrew CI
+The owned Homebrew tap and Scoop bucket currently publish v0.4.0 from immutable release archives. Homebrew CI
 runs style, strict audit, cross-platform readall, install, test, linkage, both command checks, and
 manpage checks on macOS and Linux. Scoop CI runs schema validation, checksum-backed install, both
 command checks, update, uninstall, and three-architecture autoupdate validation on Windows. WinGet

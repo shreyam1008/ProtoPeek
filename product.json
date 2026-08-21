@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "protopeek",
   "name": "ProtoPeek",
-  "summary": "A lightweight local protocol workbench with native gRPC and HTTP, bounded discovery, gRPC Health, next-hop evidence, and offline Nmap XML import.",
+  "summary": "A lightweight local protocol and network workbench with native gRPC and HTTP, bounded discovery, Linux path evidence, logical topology, and offline Nmap XML import.",
   "visibility": "public",
   "portfolioApproved": true,
   "lifecycle": "released",
@@ -39,14 +39,14 @@
       "channel": "Homebrew Tap",
       "status": "live",
       "url": "https://github.com/shreyam1008/homebrew-tap/blob/main/Formula/protopeek.rb",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "verifiedAt": "2026-08-21"
     },
     {
       "channel": "Scoop Bucket",
       "status": "live",
       "url": "https://github.com/shreyam1008/scoop-bucket/blob/main/bucket/protopeek.json",
-      "version": "0.3.2",
+      "version": "0.4.0",
       "verifiedAt": "2026-08-21"
     }
   ]
