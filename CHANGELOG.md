@@ -5,6 +5,13 @@ version source of truth.
 
 ## Unreleased
 
+## v0.4.0 — 2026-08-21
+
+- Added the dependency-free Network Workbench for bounded native path evidence, authorized private
+  discovery, browser-local snapshots, lossless JSON/GraphML exchange, and an SVG/CSS topology
+  canvas. The embedded binary and web assets grow to carry those diagnostics and their strict data
+  model; `/network` remains route-lazy, while Local Scan and Map are split into on-demand chunks so
+  the dashboard and protocol workspaces do not pay their interactive cost.
 - Promoted the owned Homebrew tap and Scoop bucket to the public v0.3.2 archives after Homebrew's
   audit, install, test, and linkage checks and Scoop's install, update, uninstall, and
   multi-architecture autoupdate checks passed.

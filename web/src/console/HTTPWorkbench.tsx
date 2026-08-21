@@ -28,7 +28,11 @@ import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
 import { buildCurlCommand } from './http-curl';
-import { prepareHTTPRequestDraft } from './http-request-draft';
+import {
+  formatJSONDraft,
+  normalizeHTTPDraftURL,
+  prepareHTTPRequestDraft,
+} from './http-request-draft';
 import { protocolShellEvents } from './ProtocolShellContext';
 
 type RequestTab = 'params' | 'headers' | 'auth' | 'body';
@@ -85,20 +89,14 @@ export function HTTPWorkbench() {
   >({
     mutationFn: ({ input, signal }) => sendHTTPRequest(input, signal),
   });
-  const applyDiscoveryURL = useEffectEvent((nextURL: string) => {
-    try {
-      const parsed = new URL(nextURL);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-    } catch {
-      return;
-    }
+
+  function resetRequest(nextURL = 'http://localhost:8080/') {
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
     const active = abortRef.current;
     abortRef.current = null;
     active?.abort();
     mutation.reset();
-    removeStoredValue(appStorageKeys.pendingHTTPURL);
     setMethod('GET');
     setURL(nextURL);
     setParams([]);
@@ -119,6 +117,17 @@ export function HTTPWorkbench() {
     setMobilePane('request');
     if (historyRef.current) historyRef.current.open = false;
     requestAnimationFrame(() => urlInputRef.current?.focus());
+  }
+
+  const applyDiscoveryURL = useEffectEvent((nextURL: string) => {
+    try {
+      const parsed = new URL(nextURL);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
+    } catch {
+      return;
+    }
+    removeStoredValue(appStorageKeys.pendingHTTPURL);
+    resetRequest(nextURL);
   });
 
   useEffect(() => {
@@ -159,7 +168,9 @@ export function HTTPWorkbench() {
   }
 
   function buildURL() {
-    const parsed = new URL(url.trim());
+    const normalized = normalizeHTTPDraftURL(url);
+    if (!normalized.ok) throw new Error(normalized.error);
+    const parsed = new URL(normalized.url);
     for (const param of params) {
       const name = param.name.trim();
       if (name) parsed.searchParams.append(name, param.value);
@@ -373,6 +384,7 @@ export function HTTPWorkbench() {
     validationError ??
     (mutation.error ? mutation.error.message.trim() || 'HTTP request failed.' : null);
   const visibleHistoryNotice = historyStorageError ?? historyNotice;
+  const jsonDraft = bodyMode === 'json' ? formatJSONDraft(body) : null;
 
   function loadHistory(entry: HTTPHistoryEntry) {
     requestGenerationRef.current++;
@@ -423,13 +435,19 @@ export function HTTPWorkbench() {
         <span className="pp-connection-fact">
           <LockKeyhole aria-hidden="true" /> Local relay
         </span>
+        <button type="button" className="pp-http-new-request" onClick={() => resetRequest()}>
+          <Plus aria-hidden="true" /> New request
+        </button>
         <details ref={historyRef} className="pp-http-history">
           <summary>
             <History aria-hidden="true" /> History <span>{history.length}</span>
           </summary>
           <div>
             <header>
-              <strong>Secret-safe local history</strong>
+              <strong>
+                Secret-safe local history
+                {history.length > 12 ? ` · 12 newest of ${history.length}` : ''}
+              </strong>
               {history.length ? (
                 <button type="button" onClick={() => setHistory([])}>
                   Clear
@@ -442,7 +460,9 @@ export function HTTPWorkbench() {
                   <span>{entry.method}</span>
                   <strong>{entry.status || 'Failed'}</strong>
                   <code>{entry.url}</code>
-                  <small>{compactDate(entry.createdAt)}</small>
+                  <small>
+                    {compactDate(entry.createdAt)} · {entry.totalMs.toFixed(1)} ms total
+                  </small>
                 </button>
               ))
             ) : (
@@ -702,11 +722,31 @@ export function HTTPWorkbench() {
                     <option value="text">Text</option>
                   </select>
                 </label>
-                <span>
-                  {new TextEncoder()
-                    .encode(bodyMode === 'none' ? '' : body)
-                    .length.toLocaleString()}{' '}
-                  bytes
+                <span className="pp-http-body-state">
+                  {jsonDraft ? (
+                    <>
+                      <em className={jsonDraft.ok ? 'is-valid' : 'is-invalid'}>
+                        {jsonDraft.ok ? 'Valid JSON' : jsonDraft.error}
+                      </em>
+                      <button
+                        type="button"
+                        disabled={!jsonDraft.ok}
+                        onClick={() => {
+                          if (!jsonDraft.ok) return;
+                          invalidateCurlCopy();
+                          setBody(jsonDraft.text);
+                        }}
+                      >
+                        Format JSON
+                      </button>
+                    </>
+                  ) : null}
+                  <span>
+                    {new TextEncoder()
+                      .encode(bodyMode === 'none' ? '' : body)
+                      .length.toLocaleString()}{' '}
+                    bytes
+                  </span>
                 </span>
               </div>
               <textarea

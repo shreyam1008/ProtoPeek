@@ -4,7 +4,7 @@ Canonical URL: `https://protopeek.shreyam1008.com.np/`
 
 Current public state: **Live over HTTPS**
 
-v0.3.2 release state: **Published stable and deployed**
+v0.4.0 release state: **Prepared; publish after the stable tag and Pages workflow complete**
 
 ## Verification after a website deployment
 

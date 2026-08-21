@@ -16,11 +16,11 @@ describe('release metadata', () => {
     );
 
     expect(product.latestRelease).toEqual({
-      version: '0.3.2',
+      version: '0.4.0',
       status: 'published',
-      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.3.2',
+      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0',
     });
-    expect(packageVersions['GitHub Releases']).toBe('0.3.2');
+    expect(packageVersions['GitHub Releases']).toBe('0.4.0');
     expect(packageVersions['Homebrew Tap']).toBe('0.3.2');
     expect(packageVersions['Scoop Bucket']).toBe('0.3.2');
   });
@@ -29,15 +29,15 @@ describe('release metadata', () => {
     const siteIndex = readRepositoryFile('web/site/index.html');
     const llms = readRepositoryFile('web/site/public/llms.txt');
 
-    expect(siteIndex).toContain('"softwareVersion": "0.3.2"');
-    expect(siteIndex).toContain('/releases/tag/v0.3.2');
-    expect(llms).toContain('v0.3.2 is the current public stable release');
-    expect(llms).toContain('Homebrew and Scoop definitions all install checksum-pinned v0.3.2');
+    expect(siteIndex).toContain('"softwareVersion": "0.4.0"');
+    expect(siteIndex).toContain('/releases/tag/v0.4.0');
+    expect(llms).toContain('v0.4.0 is the current stable release');
+    expect(llms).toContain('Homebrew and Scoop channels remain on v0.3.2');
     expect(readRepositoryFile('web/site/public/man/protopeek.1')).toMatch(
-      /^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.3\.2"/
+      /^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.4\.0"/
     );
     expect(readRepositoryFile('web/site/public/man/pp.1')).toMatch(
-      /^\.TH PP 1 "August 2026" "ProtoPeek 0\.3\.2"/
+      /^\.TH PP 1 "August 2026" "ProtoPeek 0\.4\.0"/
     );
   });
 });

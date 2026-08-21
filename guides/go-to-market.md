@@ -26,10 +26,10 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **the v0.3.2 release, matching website, owned Homebrew tap, and owned Scoop
-bucket are public and independently verified**. WinGet and community launch submissions remain
-gated on initial package/user feedback. No third-party submission or founder-authored community
-post should be made from an agent account.
+Current execution state: **v0.4.0 is prepared for stable publication; the owned Homebrew tap and
+Scoop bucket still serve v0.3.2 until the new release checksums are promoted and tested**. WinGet
+and community launch submissions remain gated on initial package/user feedback. No third-party
+submission or founder-authored community post should be made from an agent account.
 
 The owned feedback channels are live: use [Issues](https://github.com/shreyam1008/ProtoPeek/issues)
 for reproducible installer/runtime defects and
@@ -39,7 +39,8 @@ reports unless the reporter has reviewed and intentionally shared them.
 
 ### 1. Direct release: day zero
 
-- The tested v0.3.2 GitHub release and matching website are public.
+- The v0.4.0 GitHub release and matching website become public only after the stable tag and Pages
+  workflow pass; until then v0.3.2 remains the last public stable baseline.
 - Keep the verified shell and PowerShell installers as canonical fallbacks alongside the owned
   package channels.
 - Update Shreyam's portfolio entry from “gRPC Tooling” to “local gRPC + HTTP
@@ -51,7 +52,7 @@ desktop operating systems can install and reach a successful request.
 
 ### 2. Native package discovery: owned channels live
 
-The owned Homebrew tap and Scoop bucket publish v0.3.2 from immutable release archives. Homebrew CI
+The owned Homebrew tap and Scoop bucket currently publish v0.3.2 from immutable release archives. Homebrew CI
 runs style, strict audit, cross-platform readall, install, test, linkage, both command checks, and
 manpage checks on macOS and Linux. Scoop CI runs schema validation, checksum-backed install, both
 command checks, update, uninstall, and three-architecture autoupdate validation on Windows. WinGet
@@ -128,10 +129,12 @@ Use one factual spine, then write for the channel:
 - **One sentence:** ProtoPeek is a single local binary that opens a browser
   workbench for discovering and invoking gRPC services and sending HTTP
   requests while preserving protocol-native evidence.
-- **Proof:** no account, local history, secret-safe exports, bounded discovery, read-only next-hop
-  evidence, offline Nmap XML import, verified installers, and native gRPC/HTTP response views.
-- **Boundary:** next-hop is not traceroute; Nmap import does not execute Nmap. Active Nmap,
-  traceroute/hop probes, LAN expansion, and live capture remain gated.
+- **Proof:** no account, local history, secret-safe exports, native gRPC/HTTP response views,
+  read-only next-hop evidence, consented Linux UDP path evidence, authorized private `/24`-or-smaller
+  selected-TCP discovery, logical local topology, and offline Nmap XML import.
+- **Boundary:** next-hop stays distinct from active paths; source RTT is not link latency; logical
+  topology is not physical cabling; Nmap import does not execute Nmap. Darwin/Windows active path
+  backends, broader/public range expansion, active Nmap, and live capture remain future or gated.
 
 Never paste the same launch paragraph everywhere. Never claim “all protocols,”
 “zero configuration,” benchmarks that were not measured, or packages that are

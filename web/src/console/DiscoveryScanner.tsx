@@ -18,10 +18,12 @@ export function DiscoveryPanel({
   initialTarget = '',
   autoStart = false,
   onOpenGRPC,
+  onOpenHTTP,
 }: {
   initialTarget?: string;
   autoStart?: boolean;
   onOpenGRPC: (result: ScanResult) => void;
+  onOpenHTTP?: (result: ScanResult) => void;
 }) {
   return (
     <section className="pp-panel pp-discovery-panel" aria-labelledby="grpc-discovery-title">
@@ -38,6 +40,7 @@ export function DiscoveryPanel({
         autoStart={autoStart}
         initialTarget={initialTarget}
         onOpenGRPC={onOpenGRPC}
+        onOpenHTTP={onOpenHTTP}
       />
     </section>
   );
@@ -63,6 +66,7 @@ export function DiscoveryScanner({
   const [results, setResults] = useState<ScanResult[]>([]);
   const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
   const [lastScanWasExplicit, setLastScanWasExplicit] = useState(false);
+  const [scanCompleted, setScanCompleted] = useState(false);
   const [scanMessage, setScanMessage] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -77,6 +81,7 @@ export function DiscoveryScanner({
     scanIDRef.current = scanID;
     abortRef.current = controller;
     setScanning(true);
+    setScanCompleted(false);
     setScanMessage('');
     setLastScanWasExplicit(explicit && Boolean(address));
     setResults([]);
@@ -90,12 +95,14 @@ export function DiscoveryScanner({
       if (!mountedRef.current || scanIDRef.current !== scanID) return;
       if (!Array.isArray(nextResults)) throw new Error('Scan returned an invalid result list.');
       setResults(nextResults);
+      setScanCompleted(true);
       onResults?.(nextResults);
     } catch (error) {
       if (!mountedRef.current || scanIDRef.current !== scanID) return;
       if (controller.signal.aborted) {
         setScanMessage('Scan cancelled.');
       } else {
+        setScanCompleted(true);
         setResults([
           {
             address: addresses[0] ?? '',
@@ -157,10 +164,11 @@ export function DiscoveryScanner({
   return (
     <div className="pp-discovery-scanner">
       <p className="pp-scan-policy">
-        Loopback checks use six fixed endpoints. An explicit host checks only its supplied port, or
-        50051 and 443 when no port is given. Probes are HEAD, gRPC reflection, and TCP connect;
-        redirects are never followed. Hostnames are resolved once before dialing, and private or
-        link-local results require the opt-in below.
+        Common local checks use six fixed local endpoints: localhost ports 50051, 9090, 6565, 7000,
+        and 8080, plus an IPv4 fallback on 127.0.0.1:50051. An entered host checks only its supplied
+        port, or 50051 and 443 when no port is given. Probes are HEAD, gRPC reflection, and TCP
+        connect; redirects are never followed. Hostnames are resolved once before dialing, and
+        private or link-local results require the opt-in below.
       </p>
       <div className="pp-discovery-controls">
         <input
@@ -184,7 +192,7 @@ export function DiscoveryScanner({
           }
         >
           {scanning ? <Square aria-hidden="true" /> : <Search aria-hidden="true" />}
-          {scanning ? 'Cancel scan' : scanInput.trim() ? 'Scan target' : 'Scan loopback'}
+          {scanning ? 'Cancel scan' : scanInput.trim() ? 'Scan target' : 'Scan common local'}
         </button>
       </div>
       <label className="pp-private-scan-toggle">
@@ -215,6 +223,12 @@ export function DiscoveryScanner({
         <div className="pp-scan-progress" role="status">
           <LoaderCircle aria-hidden="true" /> Checking bounded candidates…
         </div>
+      ) : scanCompleted ? (
+        <p className="pp-scan-message" role="status">
+          {lastScanWasExplicit
+            ? `No service evidence was returned for ${scanInput.trim()}. Check the exact target and private-network permission.`
+            : 'No reachable services found on the common local candidates. Enter an exact host:port, or import Nmap XML for a wider inventory.'}
+        </p>
       ) : null}
       {routineFailures.length > 0 ? (
         <details className="pp-scan-failures">

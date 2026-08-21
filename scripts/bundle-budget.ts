@@ -35,8 +35,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'HTTP workspace JavaScript',
     pattern: /^HTTPRoute-.+\.js$/,
-    maxRawBytes: 50 * kibibyte,
-    maxGzipBytes: 15 * kibibyte,
+    maxRawBytes: 54 * kibibyte,
+    maxGzipBytes: 16 * kibibyte,
   },
   {
     label: 'scan dialog JavaScript',
@@ -50,12 +50,33 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxRawBytes: 140 * kibibyte,
     maxGzipBytes: 27 * kibibyte,
   },
+  // Network diagnostics stay dependency-free and route-lazy. Budget every lazy stage together so
+  // moving code between the shell, local scan, topology canvas, and shared model cannot hide growth.
+  {
+    label: 'network workbench shell JavaScript',
+    pattern: /^NetworkWorkbench-.+\.js$/,
+    maxRawBytes: 64 * kibibyte,
+    maxGzipBytes: 20 * kibibyte,
+  },
+  {
+    label: 'network workbench JavaScript',
+    pattern: /^(?:NetworkWorkbench|LocalNetworkPanel|TopologyCanvas|network-model)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 132 * kibibyte,
+    maxGzipBytes: 40 * kibibyte,
+  },
+  {
+    label: 'network workbench CSS',
+    pattern: /^NetworkWorkbench-.+\.css$/,
+    maxRawBytes: 34 * kibibyte,
+    maxGzipBytes: 6 * kibibyte,
+  },
   {
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    maxRawBytes: 560 * kibibyte,
-    maxGzipBytes: 175 * kibibyte,
+    maxRawBytes: 680 * kibibyte,
+    maxGzipBytes: 212 * kibibyte,
   },
 ];
 

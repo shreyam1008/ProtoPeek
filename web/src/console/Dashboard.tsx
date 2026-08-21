@@ -5,6 +5,7 @@ import {
   Cable,
   Globe2,
   LockKeyhole,
+  Network,
   Radar,
   Route,
   Server,
@@ -18,9 +19,9 @@ import { useProtocolShell } from './ProtocolShellContext';
 
 const gatedCapabilities = [
   {
-    name: 'Next-hop lookup',
+    name: 'Network Path',
     state: 'This build',
-    detail: 'One read-only kernel route per resolved address; no hop probes.',
+    detail: 'Linux-native hops; RTT stays source-to-responder.',
   },
   {
     name: 'Nmap XML import',
@@ -33,9 +34,9 @@ const gatedCapabilities = [
     detail: 'Never installed, located, or run by ProtoPeek.',
   },
   {
-    name: 'Traceroute',
-    state: 'Gated',
-    detail: 'Hop probes are separate from kernel route evidence.',
+    name: 'Private discovery',
+    state: 'Opt-in',
+    detail: 'Only an authorized /24-or-smaller selected-port plan.',
   },
 ];
 
@@ -137,6 +138,18 @@ export function Dashboard() {
               <p>
                 Read-only process-perspective source, interface, gateway, prefix, metric, and table
                 evidence.
+              </p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/network/path" className="pp-protocol-card">
+              <Network aria-hidden="true" />
+              <span>
+                <small>New · Linux path probes</small>
+                <strong>Network</strong>
+              </span>
+              <p>
+                DNS, kernel route, per-TTL source RTT, authorized local discovery, saved snapshots,
+                and a logical evidence map.
               </p>
               <ArrowRight aria-hidden="true" />
             </Link>

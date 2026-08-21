@@ -40,13 +40,39 @@ and transport story.
   does not poll or mutate routes, and requires no elevation. Its UI
   permanently states that VPNs, proxies, policy routing, ECMP, and later changes can alter a real
   connection path.
+- Network Path is a separate active operation. Linux uses a built-in unprivileged UDP error-queue
+  backend after explicit active-probe and public-target consent. It resolves once, pins one numeric
+  destination, and preserves DNS, kernel route, per-TTL samples, silent hops, and multiple
+  responders under a 96-probe and 30-second maximum. Every RTT is source-to-responder, statistics
+  are per responder, and a destination median uses only replies from the exact pinned address—not
+  the last responding router or per-link latency. Returned total duration is admitted only through
+  the selected wall plus a 2-second resolver/return allowance. Saved responders are observed;
+  silent-hop and unconfirmed-destination placeholders plus logical trace edges are inferred.
+  Bounded safe interface zones preserve scoped IPv6 identities. Darwin and Windows report active
+  probing as unsupported rather than installing or shelling out to another tool.
+- Local network discovery is another explicit boundary. A capability read sends no probes; the
+  active request accepts only one authorized RFC 1918 IPv4 `/24`-or-smaller CIDR and one exact
+  selected-TCP profile. Capabilities expose at most 32 deduplicated interface suggestions and omit
+  any configured prefix not wholly contained by one RFC 1918 block. Profile
+  `applicationProbePorts` are Quick `80, 443, 50051, 8080`; gRPC `443, 6565, 7000, 7443, 9090,
+  50051`; Web/API `80, 443, 3000, 4000, 5000, 8000, 8080, 8443`;
+  and Expanded `80, 443, 3000, 8000, 8080, 8443, 9090, 50051`. Only those ports may receive
+  bounded gRPC reflection and non-following HTTP `HEAD /`; every other selected port is
+  TCP-connect-only, including Expanded's `22, 53, 445, 631, 1883, 3306, 3389, 5432, 6379, 9100`.
+  It previews and caps the work at 18 ports, 4,572 attempts, 32 workers, 15 seconds, and one scan.
+  Its 64 KiB aggregate verbose-detail budget retains every open-port record. `attemptsCompleted`
+  counts probe calls that returned,
+  including cancellation returns, while `probeDurationMs` is full probe duration rather than
+  network latency. Missing hosts are not called offline, and role hints never become OS, hardware,
+  VLAN, ownership, or physical-link claims.
 - Nmap is not required to import an existing XML file. To create new XML, users obtain and run Nmap
   separately. ProtoPeek only imports bounded `nmap -oX` XML, retains no command
   arguments/scripts/OS/trace data, persists no inventory, and treats service names as hints until
   the existing bounded scanner verifies a literal-IP endpoint.
 - The running handler admits at most eight ordinary gRPC invokes across direct and workspace
-  sessions, four HTTP relays, and two native route requests. Each class has one shared budget, not a
-  per-browser or per-workspace pool. Method and CSRF checks happen first; saturation returns a
+  sessions, four HTTP relays, two native route requests, and two active path traces. Local-network
+  discovery has a separate one-operation slot. Each class has one shared budget, not a per-browser
+  or per-workspace pool. Method and CSRF checks happen first; saturation returns a
   non-cacheable `429 Too Many Requests` with `nosniff` before request-body reads or network work.
   Deferred release covers success, validation/error, cancellation, and panic unwinding; deleting a
   workspace closes its connection so admitted workspace invokes finish and release. These admission
@@ -78,16 +104,19 @@ console session manager
         +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | bounded stdlib client
         +-- route evidence     kernel-selected next hop | no probe packets
+        +-- Network Path       Linux native UDP error queue | consented bounded samples
+        +-- local network      authorized private /24-or-smaller | selected TCP profiles
+        +-- topology notebook  logical evidence | immutable snapshots | bounded local storage
         +-- Nmap import        offline XML hints -> bounded verification
         +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         |
 ordered transport events -> protocol-specific inspector
 ```
 
-Bundled Nmap execution is not planned for the core binary; traceroute/hop probes, LAN range
-expansion, and live capture remain gated.
-Offline Nmap XML import ships in v0.3.0, but Nmap itself is not bundled or invoked. Next-hop
-evidence ships in the same release, but it is not traceroute/hop probing.
+Bundled Nmap execution is not planned for the core binary; public or broader range expansion and
+live capture remain gated. Offline Nmap XML import does not bundle or invoke Nmap. Read-only
+next-hop evidence remains distinct from active Network Path, and logical topology remains distinct
+from physical network discovery.
 
 The shared boundary should stay deliberately small:
 
@@ -240,13 +269,28 @@ request body or metadata. Review target/internal addresses and service/relay tex
 `handlerInvokeMs` includes JSON/protobuf conversion and callbacks but excludes the browser/HTTP
 relay; `consoleRoundTripMs` includes that relay and response parsing.
 
-### 4. Keep route and imported evidence read-only
+### 4. Keep passive, active, discovered, and imported evidence distinct
 
 Use OS-native route APIs for one selected next hop and bounded streaming XML for offline Nmap
 evidence. Preserve source/interface/gateway and table/probed confidence, but require a fresh
 ProtoPeek scan before an imported hint can open a workbench. See
-[the route and Nmap evidence guide](https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/)
+[the network evidence boundary guide](https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/)
 for exact limits and platform behavior.
+
+Linux active paths use only the native unprivileged UDP backend after explicit consent. Private
+discovery accepts only a reviewed RFC 1918 IPv4 `/24`-or-smaller selected-TCP plan. Saved network
+workspaces preserve provenance and immutable snapshots. Appending evidence preserves saved manual
+labels, tags, notes, pinned positions, group assignments, manual groups, services, and relationships;
+dirty edits are guarded until saved or deliberately discarded, and snapshot-to-current-map restore
+requires two actions. Stale cross-tab IndexedDB writes/deletes overwrite nothing; failed persistent
+deletes remain visibly retained, and restore uses a 20-record cursor bound. The interactive map is
+bounded at 160 nodes, 640 relationships, and 64 groups, with a complete 100-record paged inventory
+above any threshold. Its canvas represents logical evidence, not physical cabling or scan-derived
+VLAN membership. Canonical JSON is the lossless format; lossy GraphML accepts only one flat directed
+graph and rejects undirected/mixed, nested, hyperedge, port, duplicate, and XML-invalid-control
+structures. See the
+[network workbench guide](https://protopeek.shreyam1008.com.np/network-workbench/) for the user
+workflow and exchange losses.
 
 ### 5. Cap'n Proto experiment (exploring)
 
@@ -254,12 +298,13 @@ Build one local, schema-file-driven unary/capability call path behind an explici
 flag. Show capability resolution and message segments in its own inspector. Measure binary and
 bundle cost before deciding whether it belongs in the main binary or an optional companion.
 
-### 6. Traceroute and LAN expansion (gated)
+### 6. Cross-platform paths and wider discovery (future)
 
-Traceroute requires consent, a bounded probe source, explicit uncertainty, and partial-failure tests.
-LAN discovery requires a user-enabled, previewed private scope plus strict candidate/time budgets
-and cancellation. Neither is a clickable surface today; public or ambient network crawling remains
-out of scope.
+Darwin and Windows active paths require verified unprivileged native backends; no package install,
+shell parser, or elevation fallback substitutes for them. Discovery broader than one authorized
+RFC 1918 IPv4 `/24`, public-range expansion, IPv6 range expansion, and ambient crawling remain out
+of scope. Optional Nmap XML-to-topology mapping may be considered with explicit import provenance,
+but it must not execute Nmap.
 
 ## Release gates for any adapter
 

@@ -12,9 +12,19 @@ rebinding. It is not a remote-access mode. `-unsafe-allow-remote` additionally
 accepts non-loopback browser Hosts and must be placed behind a trusted TLS,
 authentication, and rate-limit boundary.
 
-CSRF protection is not authentication. In remote mode, `/api/scan`,
-`/api/route/lookup`, HTTP relay, and RPC invocation let an authenticated user
-contact targets or inspect network evidence from the ProtoPeek process. Add
-gateway authentication and rate limits, and expose the container only to users
-who are trusted with that network perspective. The public ProtoPeek website is
-static and must never proxy these local-console endpoints.
+CSRF protection is not authentication. A remote gateway must authenticate the
+entire console before forwarding any request; do not expose selected API paths
+as an unauthenticated shortcut. In particular, `/api/scan`,
+`/api/http/request`, `/api/route/lookup`, `/api/path/trace`, and
+`/api/network/discover` can contact targets or inspect network evidence from
+the ProtoPeek process. `/invoke/*`, `/api/workspace/invoke/*`, and the health
+endpoints can contact configured gRPC services. Even the read-only
+`/api/path/capabilities` and `/api/network/capabilities` responses reveal local
+runtime or interface metadata.
+
+Keep ProtoPeek's Host, Origin, CSRF, request-size, deadline, and concurrency
+checks enabled behind the gateway. Add gateway authentication and per-user
+rate limits, and deny the network-path or private-discovery endpoints entirely
+unless every authenticated user is authorized to use that network perspective.
+The public ProtoPeek website is static and must never proxy these local-console
+endpoints.

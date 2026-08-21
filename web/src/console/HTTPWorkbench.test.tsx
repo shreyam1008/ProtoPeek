@@ -46,6 +46,63 @@ describe('HTTPWorkbench', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Request workbench' })).toBeVisible();
   });
 
+  it('sends loopback shorthand as http but refuses to guess a remote scheme', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL, _init?: RequestInit) =>
+        ({ ok: true, json: async () => response, text: async () => '' }) as Response
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkbench();
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'localhost:9090/v1/health' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      url: 'http://localhost:9090/v1/health',
+    });
+
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'api.example.test:8080/v1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(screen.getByRole('alert')).toHaveTextContent(/explicit http:\/\/ or https:\/\//i);
+  });
+
+  it('starts a clean localhost request and reports JSON validity without blocking raw sends', () => {
+    renderWorkbench();
+    fireEvent.change(screen.getByLabelText('HTTP method'), { target: { value: 'POST' } });
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'https://example.test/items' },
+    });
+    fireEvent.click(
+      within(screen.getByRole('tablist', { name: 'HTTP request settings' })).getByRole('tab', {
+        name: 'Body',
+      })
+    );
+    fireEvent.change(screen.getByLabelText('Body type'), { target: { value: 'json' } });
+    fireEvent.change(screen.getByLabelText('HTTP request body'), {
+      target: { value: '{"name":"ProtoPeek"}' },
+    });
+    expect(screen.getByText('Valid JSON')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Format JSON' }));
+    expect(screen.getByLabelText('HTTP request body')).toHaveValue('{\n  "name": "ProtoPeek"\n}');
+    fireEvent.change(screen.getByLabelText('HTTP request body'), {
+      target: { value: '{"broken":' },
+    });
+    expect(screen.getByText('Invalid JSON · will send verbatim')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New request' }));
+    expect(screen.getByLabelText('HTTP method')).toHaveValue('GET');
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+    expect(screen.getByLabelText('Body type')).toHaveValue('none');
+    expect(screen.getByLabelText('HTTP request body')).toHaveValue('');
+  });
+
   it('copies the current credential-redacted draft and discloses verbatim body handling', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
