@@ -274,27 +274,29 @@ func (f optFunc) apply(opts *handlerOptions) {
 }
 
 type handlerOptions struct {
-	indexTmpl           *template.Template
-	css                 []byte
-	cssPublic           bool
-	examples            []byte
-	tmplResources       []*resource
-	servedOnlyResources []*resource
-	defaultMetadata     []string
-	extraMetadata       []string
-	preserveHeaders     []string
-	emitDefaults        bool
-	invokeVerbosity     int
-	invokeMaxDuration   time.Duration
-	debug               *bool
-	gRPCurlOptions      []string
-	version             string
-	basePath            string
-	workspaceManager    *WorkspaceManager
-	launcherMode        bool
-	initialScanTarget   string
-	targetDefaults      WorkspaceTargetConfig
-	routeLookupHandler  http.Handler
+	indexTmpl               *template.Template
+	css                     []byte
+	cssPublic               bool
+	examples                []byte
+	tmplResources           []*resource
+	servedOnlyResources     []*resource
+	defaultMetadata         []string
+	extraMetadata           []string
+	preserveHeaders         []string
+	emitDefaults            bool
+	invokeVerbosity         int
+	invokeMaxDuration       time.Duration
+	debug                   *bool
+	gRPCurlOptions          []string
+	version                 string
+	basePath                string
+	workspaceManager        *WorkspaceManager
+	launcherMode            bool
+	initialScanTarget       string
+	targetDefaults          WorkspaceTargetConfig
+	routeLookupHandler      http.Handler
+	pathCapabilitiesHandler http.Handler
+	pathTraceHandler        http.Handler
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

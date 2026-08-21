@@ -4,6 +4,7 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  redirect,
 } from '@tanstack/react-router';
 
 import { Dashboard } from './Dashboard';
@@ -30,17 +31,55 @@ const routesRoute = createRoute({
   path: '/routes',
   component: lazyRouteComponent(() => import('./RoutesWorkbench'), 'RoutesWorkbench'),
 });
+const networkComponent = lazyRouteComponent(() => import('./NetworkWorkbench'), 'NetworkWorkbench');
+const networkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network',
+  component: networkComponent,
+});
+const networkPathRoute = createRoute({
+  getParentRoute: () => networkRoute,
+  path: '/path',
+});
+const networkIndexRoute = createRoute({
+  getParentRoute: () => networkRoute,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/network/path' });
+  },
+});
+const networkLocalRoute = createRoute({
+  getParentRoute: () => networkRoute,
+  path: '/local',
+});
+const networkMapRoute = createRoute({
+  getParentRoute: () => networkRoute,
+  path: '/map',
+});
+const networkHistoryRoute = createRoute({
+  getParentRoute: () => networkRoute,
+  path: '/history',
+});
 const roadmapRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/roadmap',
   component: lazyRouteComponent(() => import('./Roadmap'), 'Roadmap'),
 });
 
+const networkRouteTree = networkRoute.addChildren([
+  networkIndexRoute,
+  networkPathRoute,
+  networkLocalRoute,
+  networkMapRoute,
+  networkHistoryRoute,
+]);
+
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
   grpcRoute,
   httpRoute,
   routesRoute,
+  networkRouteTree,
   roadmapRoute,
 ]);
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { httpRequestDraftLimits, prepareHTTPRequestDraft } from './http-request-draft';
+import {
+  formatJSONDraft,
+  httpRequestDraftLimits,
+  normalizeHTTPDraftURL,
+  prepareHTTPRequestDraft,
+} from './http-request-draft';
 
 const baseDraft = {
   method: 'GET',
@@ -12,6 +17,49 @@ const baseDraft = {
 };
 
 describe('prepareHTTPRequestDraft', () => {
+  it('adds http:// only for explicit loopback shorthand and never guesses remote transport', () => {
+    for (const [draft, normalized] of [
+      ['localhost:8080/v1/health?verbose=1', 'http://localhost:8080/v1/health?verbose=1'],
+      ['127.0.0.1:3000/', 'http://127.0.0.1:3000/'],
+      ['[::1]:9090/status', 'http://[::1]:9090/status'],
+      ['HTTPS://example.test/path', 'https://example.test/path'],
+    ]) {
+      expect(normalizeHTTPDraftURL(draft)).toEqual({ ok: true, url: normalized });
+      expect(prepareHTTPRequestDraft({ ...baseDraft, url: draft })).toMatchObject({
+        ok: true,
+        input: { url: normalized },
+      });
+    }
+
+    for (const draft of [
+      'api.example.test:8080/path',
+      'localhost.example.test:8080/path',
+      '192.168.1.4:8080/path',
+      '//localhost:8080/path',
+    ]) {
+      expect(normalizeHTTPDraftURL(draft)).toMatchObject({
+        ok: false,
+        error: expect.stringMatching(/explicit http:\/\/ or https:\/\/.*non-loopback/i),
+      });
+      expect(prepareHTTPRequestDraft({ ...baseDraft, url: draft }).ok).toBe(false);
+    }
+  });
+
+  it('formats valid JSON deterministically and leaves invalid JSON untouched', () => {
+    expect(formatJSONDraft('{"service":"catalog","ports":[443,50051]}')).toEqual({
+      ok: true,
+      text: '{\n  "service": "catalog",\n  "ports": [\n    443,\n    50051\n  ]\n}',
+    });
+    expect(formatJSONDraft('{"broken":')).toEqual({
+      ok: false,
+      error: 'Invalid JSON · will send verbatim',
+    });
+    expect(formatJSONDraft('')).toEqual({
+      ok: false,
+      error: 'Empty JSON · will send verbatim',
+    });
+  });
+
   it('normalizes the same method, URL, header, fragment, and active-empty body sent to the relay', () => {
     expect(
       prepareHTTPRequestDraft({

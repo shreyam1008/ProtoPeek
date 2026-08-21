@@ -1,15 +1,19 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first protocol workbench for seeing the request-to-server path clearly. Its protocol-native gRPC and HTTP surfaces keep transport details visible, and its evidence tools add bounded discovery, read-only kernel-selected next-hop lookup, and offline Nmap XML import without background polling or a database.
+ProtoPeek (Protocol Peek) is a local-first protocol and network workbench for seeing the
+request-to-server path clearly. Its protocol-native gRPC and HTTP surfaces keep transport details
+visible. Its bounded evidence tools add DNS and kernel-route context, Linux-native active hop
+observations, authorized private-network service discovery, a logical topology notebook, and
+offline Nmap XML import without background polling or an external database.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Latest stable:** v0.3.2. The verified shell and PowerShell installers, and
+> **Latest stable:** v0.4.0. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
-The screenshot is a real local Chrome capture of the embedded v0.3 dashboard. It is the default when
+The screenshot is a real local Chrome capture of the embedded dashboard. It is the default when
 `pp` starts without a target and keeps every shipped protocol surface one action away.
 
 ## Install
@@ -45,9 +49,9 @@ Windows PowerShell, per user:
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
-The verified release installers and owned Homebrew and Scoop channels resolve
-v0.3.2 from immutable archives pinned to their published SHA-256 entries. Each
-package update passed its independent default-branch install checks. See the
+The verified release installer resolves v0.4.0 from immutable archives pinned to its published
+SHA-256 entries. The owned Homebrew and Scoop channels remain on v0.3.2 until their v0.4.0
+checksums are promoted and independently tested. See the
 [install guide](guides/INSTALLING.md) for package updates, pinned versions,
 rollback, PATH behavior, and uninstall.
 
@@ -67,7 +71,16 @@ pp https://api.example.test       # dashboard + probe of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 ```
 
-With no target, the dashboard opens at `/`. The protocol rail keeps gRPC (`/grpc`), HTTP (`/http`), next-hop evidence (`/routes`), and the in-app roadmap (`/roadmap`) one command away. Each saved gRPC target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a browser-folder snapshot, host proto paths, or host protoset paths), and cert paths. Light is the first-run theme; dark mode and recent protocol discoveries are stored only in the local browser profile.
+With no target, the dashboard opens at `/`. The rail keeps gRPC (`/grpc`), HTTP (`/http`), the
+network workbench (`/network/path`), compatibility next-hop evidence (`/routes`), and the in-app
+roadmap (`/roadmap`) one command away. A new gRPC target defaults to `localhost:50051`; each saved
+target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a
+browser-folder snapshot, host proto paths, or host protoset paths), and cert paths. A new HTTP draft
+defaults to `http://localhost:8080/`. Exact `localhost`, `127.0.0.1`, and `[::1]` shorthand may omit
+the scheme and is normalized to HTTP; every non-loopback host must state `http://` or `https://`.
+HTTP history shows its 12 newest secret-safe entries with total observed time, and JSON formatting
+is optional—invalid JSON remains sendable verbatim. Light is the first-run theme; dark mode and
+local histories are stored only in the browser profile.
 
 For a server without reflection, choose **Browser folder** and then **Choose folder**. ProtoPeek
 preserves relative imports and uploads only lowercase `.proto` files when Connect is pressed. The
@@ -101,6 +114,66 @@ Ambient discovery checks only a fixed list of loopback candidates. A private or 
 
 Next-hop lookup asks the local kernel for one currently selected route per resolved address from the ProtoPeek process. It resolves at most eight addresses, performs at most four route lookups concurrently, and requests a two-second aggregate deadline. It reports source address, interface, reported gateway or on-link status, prefix, and metric/table when the platform provides them. It is not traceroute: it performs no hop probes, mutates no routes, and requires no elevation. Entering a hostname can still perform normal DNS resolution. VPN, proxy, policy-routing, ECMP, and later route changes remain explicit sources of uncertainty.
 
+Network Path adds a separate active observation. Linux uses ProtoPeek's built-in unprivileged UDP
+error-queue backend; it does not shell out, install a tool, or request root. A trace resolves once,
+pins one numeric address, retains bounded DNS answers and the kernel-selected route, then preserves
+every per-TTL probe sample—including timeouts and multiple responders. The default plan is 24 hops
+× 3 probes; hard bounds are 32 hops, 4 probes per hop, 96 probes total, 100–2,000 ms per probe, a
+30-second wall, and 20 probes per second. Returned total duration is accepted only through the
+selected wall plus a fixed 2-second resolver/return allowance; that allowance is not extra probe
+time or a latency measurement. Every RTT is round-trip time from the ProtoPeek process to one
+responder, never claimed as latency between adjacent hops. Minimum, median, and maximum values
+are calculated independently per responder instead of blending ECMP replies. The destination
+median appears only when reply samples came from the exact pinned destination; ProtoPeek never
+substitutes the last responding router. Silent hops do not prove a device is down, and ECMP or other
+load balancing can produce several responders at one TTL. Active probes require explicit consent,
+with an additional acknowledgement for public targets. Darwin and Windows currently report active
+hop probing as unsupported; ProtoPeek offers no automatic package manager or elevation path.
+
+Local network discovery is another explicit operation, not ambient crawling. Its capability check
+only reads interface metadata. A scan accepts an authorized RFC 1918 IPv4 CIDR no broader than
+`/24` and one visible TCP profile. The capability response returns at most 32 deduplicated interface
+suggestions and omits a configured CIDR unless the whole prefix is inside one RFC 1918 block; a
+broad accepted interface is suggested as its containing `/24`. Each profile exposes both `ports`
+and the exact `applicationProbePorts`: Quick uses `80, 443, 50051, 8080` for both; gRPC common uses
+`443, 6565, 7000, 7443, 9090, 50051` for both; Web/API uses `80, 443, 3000, 4000, 5000, 8000,
+8080, 8443` for both; Expanded selects `22, 53, 80, 443, 445, 631, 1883, 3000, 3306, 3389, 5432, 6379, 8000,
+8080, 8443, 9090, 9100, 50051`, but its application subset is only `80, 443, 3000, 8000, 8080,
+8443, 9090, 50051`.
+
+Application-probe ports may receive bounded gRPC reflection plus HTTP `HEAD /`; redirects are off.
+Every other selected port—including Expanded's `22, 53, 445, 631, 1883, 3306, 3389, 5432, 6379,
+9100`—receives a TCP connect only. Limits are 18 ports, 4,572 attempts, 32 workers, 15 seconds, and
+one scan at a time. A 64 KiB aggregate verbose-evidence budget can omit additional protocol detail,
+but every observed open-port record remains. `probeDurationMs` is the full elapsed duration of that
+TCP-connect or application probe, not network latency. `attemptsCompleted` counts selected endpoint
+probe calls that returned, including cancellation returns; it is not an open-port,
+successful-connect, or reached-target count. Only positive selected-TCP evidence is retained. An
+absent address is not labeled offline, and inferred roles are never presented as OS,
+hardware, ownership, VLAN, or physical-link evidence.
+
+Path and discovery evidence can be saved into a versioned `protopeek-network` JSON workspace with
+editable labels, tags, notes, groups, positions, and immutable snapshots. Appending a later
+observation preserves saved manual labels, tags, notes, pinned positions, group assignments, manual
+groups, and manual relationships instead of replacing them with scanner output. Unsaved edits are
+guarded before switching workspaces, importing, appending an observation, restoring history,
+deleting, unloading, or leaving the network workbench; the user must save or deliberately discard
+them. Saved path responders are observed; silent-hop placeholders, an unconfirmed synthetic
+destination, and logical trace-adjacency edges are inferred. Scoped IPv6 identities are retained
+only with a bounded safe interface zone. The map is logical evidence, not physical topology. Its
+interactive canvas is capped at 160 nodes, 640 relationships, and 64 groups; larger workspaces use
+a complete 100-record paged inventory instead of dropping evidence.
+
+IndexedDB persistence uses a 20-record bounded cursor restore and refuses overflow instead of
+evicting old work: at most 20 workspaces, 4 MiB each, and 32 MiB total. Compare-and-swap writes and
+deletes reject a stale cross-tab copy without overwriting it. A failed persistent delete keeps the
+workspace visibly present, while denial, quota failure, unavailability, or corrupt/overflow restore
+produces a visible session-only fallback. Historical snapshot restore takes two explicit actions and
+replaces only the editable current map. Canonical JSON is the lossless import/export path. GraphML is
+lossy and accepts only one flat directed graph; undirected or mixed edges, nested graphs, hyperedges,
+ports, duplicate structures, and XML 1.0-invalid controls are rejected rather than reinterpreted.
+CSV is an export-only flat inventory.
+
 The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`. Nmap is not required to import an existing file. To create new XML, users obtain and run Nmap separately; ProtoPeek does not bundle, install, locate, or execute Nmap/Npcap and accepts no Nmap arguments. Imported service names and table/probed confidence are untrusted hints; an open TCP endpoint at a validated literal IP must run through **Verify with ProtoPeek** and the existing bounded scanner before gRPC or HTTP can open. Uploaded XML and imported inventory are not persisted.
 
 One running ProtoPeek handler also shares small admission budgets across browser sessions: eight
@@ -126,6 +199,10 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Target registry** | Save and switch gRPC endpoints without restarting |
 | **Local discovery** | Distinguish reflection, gRPC-without-reflection, safe HTTP response evidence, and open TCP with bounded loopback and explicit-target policies |
 | **Next-hop evidence** | Read one kernel-selected route per resolved address from the ProtoPeek process without hop probes, polling, privilege, or route mutation |
+| **Network Path** | On Linux, resolve and pin one destination, retain kernel-route context, and run consented unprivileged UDP probes with truthful per-TTL source RTT, silent hops, ECMP responders, and fixed limits |
+| **Private-network inventory** | Preview one RFC 1918 IPv4 `/24`-or-smaller plan; only profile-declared application ports receive bounded gRPC/HTTP probes, every other selected port is TCP-connect-only, and full probe duration is not labeled network latency |
+| **Topology notebook** | Save tagged immutable snapshots, preserve manual annotations across later observations, guard unsaved edits, and use a bounded logical canvas with a complete paged-list fallback—never a physical-link or VLAN claim |
+| **Network exchange** | Use canonical `protopeek-network` JSON for lossless round trips, one-flat-directed-graph disclosed-loss GraphML, and CSV for flat inventory export |
 | **Offline Nmap import** | Parse bounded `nmap -oX` host/port hints and require ProtoPeek verification before opening a workbench |
 | **Payload generator** | Scaffold JSON from reflected protobuf schemas |
 | **Browser proto folder** | Upload one bounded, temporary `.proto` snapshot with nested imports while keeping browser handles and server paths out of saved profiles |
@@ -211,16 +288,26 @@ cancellation, and its native inspector.
 | gRPC | Stable · v0.3.0 | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, canonical Health Check/Watch, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
 | HTTP / REST | Stable · v0.3.0 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
 | Next-hop route evidence | Shipped · v0.3.0 | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
+| Network Path | Shipped · v0.4.0 · Linux | Built-in unprivileged UDP error-queue tracing with separate DNS, route, per-TTL sample, and source-RTT evidence; active probes require explicit consent |
+| Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |
+| Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
-| Traceroute / hop probes | Gated | Requires explicit consent, strict probe budgets, truthful partial failures, and reliable unprivileged backends |
+| Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
-| LAN discovery | Planned, gated | Explicit, previewable private ranges only; requires opt-in scope, strict candidate budgets, cancellation, and no ambient or public crawling |
+| Broader or public range discovery | Not planned for the core flow | Current discovery remains selected TCP ports inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope |
 | SMTP, FTP, and others | Later | Only after protocol-specific security, evidence, and UX are designed |
 
-Bundled Nmap execution is not planned for the core binary. Traceroute/hop probes, LAN range expansion, and live capture remain gated. The current route surface is kernel evidence only; the current Nmap surface is offline XML import only.
+Bundled Nmap execution is not planned for the core binary. Active path and private-network
+operations never start on page load and remain distinct from the passive kernel-route lookup and
+offline Nmap XML import. Wider range expansion and live capture remain gated.
 
-See the detailed [route and Nmap evidence boundary](guides/route-and-nmap-evidence.md), [protocol roadmap](guides/feature-roadmap.md), [competitive workflow decisions](guides/competitive-landscape.md), [transport boundaries](guides/transport-boundaries.md), and [go-to-market runbook](guides/go-to-market.md).
+See the detailed [network workbench guide](guides/network-workbench.md),
+[route, path, discovery, and Nmap evidence boundary](guides/route-and-nmap-evidence.md),
+[protocol roadmap](guides/feature-roadmap.md),
+[competitive workflow decisions](guides/competitive-landscape.md),
+[transport boundaries](guides/transport-boundaries.md), and
+[go-to-market runbook](guides/go-to-market.md).
 
 Found an installer/runtime defect? Open a [GitHub issue](https://github.com/shreyam1008/ProtoPeek/issues).
 Questions and workflow feedback belong in [GitHub Discussions](https://github.com/shreyam1008/ProtoPeek/discussions).

@@ -24,7 +24,7 @@ transport events, and the final evidence stay close together.
 - A promise that every protocol belongs in the default binary. Future adapters should be opt-in when
   they add meaningful binary, dependency, or security cost.
 
-## Current workbench: gRPC + HTTP + bounded evidence
+## Current workbench: gRPC + HTTP + bounded network evidence
 
 The gRPC adapter remains the quality bar for protocol-native depth:
 
@@ -54,7 +54,7 @@ The HTTP adapter is the first additional protocol slice:
    are redacted before persistence or default export.
 6. Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.
 
-v0.3.0 ships two deliberately narrow evidence inputs:
+The evidence workbench keeps passive, active, discovered, imported, and manual records distinct:
 
 1. Read one kernel-selected next hop per resolved address from the ProtoPeek process without
    packets, polling, route dumps, mutation, or privilege.
@@ -62,7 +62,19 @@ v0.3.0 ships two deliberately narrow evidence inputs:
    evidence.
 3. Treat every imported service label as an untrusted hint and require the existing bounded scanner
    before opening gRPC or HTTP.
-4. Keep next-hop versus traceroute and Nmap import versus Nmap execution permanently distinct.
+4. On Linux, run one explicit unprivileged UDP path plan while preserving DNS answers, the pinned
+   destination, kernel route, every per-TTL sample, silent hops, and multiple responders. RTT stays
+   source-to-responder, statistics stay per responder, and the destination median uses only replies
+   from the exact pinned address; none is described as per-link latency. Saved responders are
+   observed, while silent/destination placeholders and logical trace edges remain inferred.
+5. Probe selected TCP ports inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope, retaining
+   positive evidence without inferring offline devices, OS, hardware, ownership, VLANs, or physical
+   links. Only exact profile `applicationProbePorts` may receive bounded gRPC reflection plus a
+   non-following HTTP `HEAD /`; every other selected port is TCP-connect-only.
+6. Save observed, inferred, manual, and unknown evidence in a bounded local topology workspace with
+   immutable snapshots and explicit import/export loss notices.
+7. Keep next hop versus active path, selected TCP discovery versus general port scanning, and Nmap
+   import versus Nmap execution permanently distinct.
 
 ## Shared adapter architecture
 
@@ -74,6 +86,9 @@ console shell: target -> operation -> request -> response evidence
         +-- gRPC adapter       reflection | browser snapshot | host .proto | protoset
         +-- HTTP adapter       explicit HTTP(S) URL | standard library transport
         +-- route evidence     OS kernel query | one selected next hop
+        +-- Network Path       native bounded probes | source RTT per responder
+        +-- local network      authorized private /24-or-smaller | selected TCP profiles
+        +-- topology notebook  logical evidence | immutable snapshots | local exchange
         +-- Nmap import        offline XML hints | explicit ProtoPeek verification
         +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
@@ -92,6 +107,34 @@ The shared boundary stays deliberately small:
 Do not erase protocol differences to make the types look uniform. The shell can count messages and
 show timing consistently, but the inspector must say “gRPC trailers”, “Cap'n Proto capability”, or
 “HTTP response headers” when that is what the user is looking at.
+
+## Network workbench roadmap
+
+### Now — shipped in v0.4.0
+
+- A new gRPC target defaults to `localhost:50051`; a new HTTP draft defaults to `http://localhost:8080/`. Only exact loopback shorthand gains an implicit HTTP scheme, while remote targets must state `http://` or `https://`.
+- Secret-safe HTTP history exposes the newest 12 entries with total observed time, and optional JSON formatting never blocks a deliberate raw invalid-JSON request.
+- Linux Network Path uses the built-in unprivileged UDP error queue. It resolves once, pins a numeric destination, retains the process-selected route, and preserves bounded per-TTL samples, timeouts, ICMP details, and ECMP responders. Public probes require explicit acknowledgement. Saved responders are observed; silent-hop and unconfirmed-destination placeholders plus logical trace edges are inferred. Bounded safe zones preserve scoped IPv6 identities.
+- The default path plan is 24 hops × 3 probes. Fixed maxima are 32 hops, four probes per hop, 96 probes total, 2,000 ms per probe, a 30-second wall, and 20 probes per second. Returned total duration is accepted only through the selected wall plus a 2-second resolver/return allowance.
+- Local discovery requires an exact authorized RFC 1918 IPv4 CIDR of `/24` or narrower and one visible selected-TCP profile; capabilities return at most 32 deduplicated interface suggestions whose complete configured prefix lies inside RFC 1918. Exact `applicationProbePorts` are Quick `80, 443, 50051, 8080`; gRPC `443, 6565, 7000, 7443, 9090, 50051`; Web/API `80, 443, 3000, 4000, 5000, 8000, 8080, 8443`; and Expanded `80, 443, 3000, 8000, 8080, 8443, 9090, 50051`. Only those ports may receive bounded gRPC reflection and non-following HTTP `HEAD /`; every other selected port is TCP-connect-only, including Expanded's `22, 53, 445, 631, 1883, 3306, 3389, 5432, 6379, 9100`.
+- Local discovery is capped at 18 ports, 4,572 attempts, 32 workers, 15 seconds, and one active scan. A 64 KiB aggregate verbose-detail budget never removes an observed open-port record. `attemptsCompleted` counts probe calls that returned, including cancellation returns; `probeDurationMs` is full probe duration—not network latency.
+- The canonical `protopeek-network` JSON v1 model keeps logical nodes, identities, services, provenance, groups, positions, and full immutable snapshots. Later observations preserve saved manual labels, tags, notes, pinned positions, assignments, groups, services, and relationships; dirty edits are guarded until saved or deliberately discarded, and current-map restore is two-step. IndexedDB uses a 20-record cursor-bounded restore, compare-and-swap mutation with no stale-tab overwrite, visible failed-delete retention, the 4 MiB/workspace and 32 MiB total bounds, and explicit session-only fallback.
+- GraphML import/export is explicitly lossy; import accepts one flat directed graph and rejects undirected/mixed, nested, hyperedge, port, duplicate, and XML-invalid-control structures. CSV is a flat inventory export. The topology map never presents TTL adjacency or inferred groups as physical links or observed VLAN membership; above 160 nodes, 640 relationships, or 64 groups it switches to a complete 100-record paged inventory.
+- No Nmap, Npcap, `traceroute`, or `tracepath` executable is bundled, located, auto-installed, or run. Capability checks themselves send no probes.
+
+### Soon — improve evidence depth
+
+- Add verified unprivileged native active-hop backends for Darwin and Windows. Until then those platforms report active trace as unsupported while their passive kernel next-hop lookup remains available.
+- Add editable source-labelled region/provider evidence and privacy-conscious passive enrichment. Codes such as `SIN`, `BOM`, `IAD`, or `us-east-1` remain context hints, never automatic datacenter proof.
+- Compare immutable snapshots as added, removed, and changed evidence without calling an unobserved address offline.
+- Refine manual subnet and VLAN organization while keeping it visually and semantically separate from scan-derived facts.
+
+### Later — optional integrations after safety and size review
+
+- Map bounded existing Nmap XML into a topology workspace with import provenance and clear loss notices. This remains optional input and does not execute Nmap.
+- Consider native TCP or ICMP path methods only after reliable unprivileged implementations preserve the same consent, cancellation, partial-evidence, and resource-limit contract.
+- Consider a geographic base-map view only if download size, network requests, privacy, offline behavior, and evidence provenance remain explicit. The dependency-free logical canvas stays the primary view.
+- Keep live capture gated until privilege, lifecycle, secret-redaction, and teardown behavior are dependable across supported platforms.
 
 ## Delivery plan
 
@@ -202,9 +245,9 @@ gRPC result.
 
 ### Distribution — owned package channels (available)
 
-- The owned Homebrew tap installs the same checked v0.3.2 archives as `protopeek` and `pp` on macOS
+- The owned Homebrew tap currently installs the checked v0.3.2 archives as `protopeek` and `pp` on macOS
   and Linux, with both manpages.
-- The owned Scoop bucket installs the checked v0.3.2 Windows archives with both command shims and
+- The owned Scoop bucket currently installs the checked v0.3.2 Windows archives with both command shims and
   a checksum-backed autoupdate contract.
 - WinGet is next only after these owned paths and the PowerShell installer accumulate initial user
   feedback. Community submission remains an explicit owner action.
@@ -224,14 +267,10 @@ cost.
 
 ### Gated — operations with a wider safety boundary
 
-- Bundled Nmap execution is not planned for the core binary. Any future opt-in companion needs an
-  explicit executable choice, previewed scope, hard budgets, and an auditable command.
-- Traceroute/hop probes need consent, strict budgets, truthful partial failures, and reliable
-  unprivileged backends.
-- LAN range expansion needs previewed private scope, opt-in, hard candidate/time limits, and
-  cancellation.
-- Live capture needs explicit lifecycle, redaction/export policy, privilege handling, and reliable
-  teardown.
+- Bundled Nmap execution is not planned for the core binary. Any future opt-in companion needs an explicit executable choice, previewed scope, hard budgets, and an auditable command.
+- Darwin and Windows active path probing remains unavailable until each has a verified unprivileged native backend; no shell-parser or elevation fallback is offered.
+- Network discovery broader than one authorized RFC 1918 IPv4 `/24`, public-range expansion, and IPv6 range discovery remain outside the current selected-TCP workflow.
+- Live capture needs explicit lifecycle, redaction/export policy, privilege handling, and reliable teardown.
 
 ### Later experiment — Cap'n Proto
 
@@ -311,6 +350,8 @@ normalizing large dependency or architecture regressions.
 
 ## Research trail
 
+- [Network workbench guide](/network-workbench/)
+- [Route, path, discovery, and Nmap boundaries](/route-and-nmap-evidence/)
 - [ProtoPeek competitive workflow decisions](/competitive-landscape/)
 - [gRPC guides](https://grpc.io/docs/guides/)
 - [gRPC debugging](https://grpc.io/docs/guides/debugging/)

@@ -17,6 +17,7 @@ import {
   type ChangeEvent,
   type ReactNode,
   startTransition,
+  useContext,
   useDeferredValue,
   useEffect,
   useEffectEvent,
@@ -117,7 +118,7 @@ import {
   type HealthRunEndReason,
   hasCanonicalHealthDescriptor,
 } from './health';
-import { protocolShellEvents } from './ProtocolShellContext';
+import { ProtocolShellContext, protocolShellEvents } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
 import { ServiceNavigator, type WorkbenchView } from './ServiceNavigator';
 import { initialConsoleSession, sessionReducer } from './session';
@@ -281,7 +282,7 @@ function newTargetDraft(defaults?: WorkspaceTargetConfig): WorkspaceTargetProfil
     name: '',
     notes: '',
     config: {
-      address: '',
+      address: defaults?.address?.trim() || 'localhost:50051',
       plaintext: defaults?.plaintext ?? true,
       insecure: defaults?.insecure ?? false,
       authority: defaults?.authority ?? '',
@@ -632,7 +633,7 @@ export function App() {
           });
           removeStoredValue(appStorageKeys.pendingGRPCTarget);
         } else {
-          setTargetDraft((x) => (x.address ? x : newTargetDraft(b.targetDefaults)));
+          setTargetDraft(newTargetDraft(b.targetDefaults));
         }
       } catch (err) {
         if (!cancelled)
@@ -3591,9 +3592,10 @@ function WorkspaceView({
   onReset: () => void;
   onOpenDiscovered: (result: ScanResult) => void;
 }) {
+  const protocolShell = useContext(ProtocolShellContext);
   return (
     <div className="space-y-6">
-      <DiscoveryPanel onOpenGRPC={onOpenDiscovered} />
+      <DiscoveryPanel onOpenGRPC={onOpenDiscovered} onOpenHTTP={protocolShell?.openHTTPDiscovery} />
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-4">
           <h3 className="pp-heading text-base">Target connection</h3>
@@ -3724,6 +3726,7 @@ function LauncherView({
   onDelete: (id: string) => void;
   onOpenDiscovered: (result: ScanResult) => void;
 }) {
+  const protocolShell = useContext(ProtocolShellContext);
   return (
     <div className="pp-launcher">
       <header className="pp-launcher-header">
@@ -3780,6 +3783,7 @@ function LauncherView({
           autoStart
           initialTarget={bootstrap.initialScanTarget}
           onOpenGRPC={onOpenDiscovered}
+          onOpenHTTP={protocolShell?.openHTTPDiscovery}
         />
 
         <section className="pp-saved-targets" aria-labelledby="saved-targets-title">

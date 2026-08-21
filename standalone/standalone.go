@@ -45,7 +45,7 @@ const maxWorkspaceConnectBodyBytes = 256 << 10
 
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
-	case "/grpc", "/http", "/routes", "/roadmap":
+	case "/grpc", "/http", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap":
 		return true
 	default:
 		return false
@@ -138,6 +138,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	grpcInvokeAdmission := newAdmissionLimiter(maxConcurrentGRPCInvokes)
 	httpRelayAdmission := newAdmissionLimiter(maxConcurrentHTTPRelays)
 	routeLookupAdmission := newAdmissionLimiter(maxConcurrentRouteLookups)
+	pathTraceAdmission := newAdmissionLimiter(maxConcurrentPathTraces)
 	mux.Handle("/api/health/check", healthHandlers.checkHandler(directHealthConnection(ch)))
 	mux.Handle("/api/health/watch", healthHandlers.watchHandler(directHealthConnection(ch)))
 	rpcInvokeHandler := http.StripPrefix("/invoke", grpcui.RPCInvokeHandlerWithOptions(ch, methods, invokeOpts))
@@ -185,6 +186,30 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 			return
 		}
 		routeLookupAdmission.serveHTTP("route lookup", w, r, routeLookupHandler)
+	})
+	pathService := defaultPathService()
+	pathCapabilitiesEndpoint := uiOpts.pathCapabilitiesHandler
+	if pathCapabilitiesEndpoint == nil {
+		pathCapabilitiesEndpoint = pathCapabilitiesHandler(pathService)
+	}
+	mux.Handle("/api/path/capabilities", pathCapabilitiesEndpoint)
+	pathTraceEndpoint := uiOpts.pathTraceHandler
+	if pathTraceEndpoint == nil {
+		pathTraceEndpoint = pathTraceHandler(pathService)
+	}
+	mux.HandleFunc("/api/path/trace", func(w http.ResponseWriter, r *http.Request) {
+		if !validateAdmittedPOST(w, r) {
+			return
+		}
+		pathTraceAdmission.serveHTTP("path trace", w, r, pathTraceEndpoint)
+	})
+	mux.Handle("/api/network/capabilities", NetworkDiscoveryCapabilitiesHandler())
+	networkDiscoveryEndpoint := NetworkDiscoveryHandler()
+	mux.HandleFunc("/api/network/discover", func(w http.ResponseWriter, r *http.Request) {
+		if !validateAdmittedPOST(w, r) {
+			return
+		}
+		networkDiscoveryEndpoint.ServeHTTP(w, r)
 	})
 	mux.HandleFunc("/api/nmap/import", func(w http.ResponseWriter, r *http.Request) {
 		if !validCSRF(r) {

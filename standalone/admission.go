@@ -6,6 +6,7 @@ const (
 	maxConcurrentGRPCInvokes  = 8
 	maxConcurrentHTTPRelays   = 4
 	maxConcurrentRouteLookups = 2
+	maxConcurrentPathTraces   = 2
 )
 
 type admissionLimiter struct {

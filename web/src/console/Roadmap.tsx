@@ -24,6 +24,18 @@ const roadmap = [
         'One read-only kernel route lookup per resolved address from the ProtoPeek process; no hop probes.',
       ],
       [
+        'Network Path · Linux',
+        'Built-in unprivileged UDP error-queue probes with one pinned destination, separate DNS and kernel-route evidence, silent hops, ECMP responders, and source-to-responder RTT.',
+      ],
+      [
+        'Authorized private discovery',
+        'Explicit RFC 1918 IPv4 /24-or-smaller discovery with a previewed plan: bounded gRPC/HTTP inspection only on named application ports, TCP connect-only evidence elsewhere, hard limits, and cancellation.',
+      ],
+      [
+        'Network map + history',
+        'Responsive topology and accessible inventory views, manual subnet/site/VLAN/region groups, immutable snapshots, tags and notes, bounded browser persistence, and JSON/GraphML/CSV exchange.',
+      ],
+      [
         'Offline Nmap XML import',
         'Bounded hints from an existing nmap -oX file. Nmap is not required for import; literal-IP endpoints are verified before opening a workbench.',
       ],
@@ -37,7 +49,7 @@ const roadmap = [
       ],
       [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows install the same checksum-pinned v0.3.2 archives with both protopeek and pp.',
+        'Homebrew on macOS/Linux and Scoop on Windows currently install the same checksum-pinned v0.3.2 archives with both protopeek and pp; v0.4.0 promotion follows its release checksum tests.',
       ],
     ],
   },
@@ -63,6 +75,14 @@ const roadmap = [
         'Explain resolution, SNI, ALPN, certificate verification, and handshake timing before an RPC or HTTP request.',
       ],
       [
+        'Darwin + Windows path backends',
+        'Earn native unprivileged implementations with equivalent cancellation and evidence semantics; no localized subprocess parsing or elevation prompts.',
+      ],
+      [
+        'Snapshot diff + sourced enrichment',
+        'Compare immutable observations and attach attributed, user-supplied region/ASN evidence without pretending an IP address proves a datacenter.',
+      ],
+      [
         'WinGet package',
         'Prepare and owner-submit a schema-valid Windows package only after the owned Scoop path and installer have initial user feedback.',
       ],
@@ -80,6 +100,10 @@ const roadmap = [
       [
         'Bounded PCAP import',
         'Offline evidence with an explicit Wireshark/TShark handoff; no hidden capture.',
+      ],
+      [
+        'Nmap XML to topology',
+        'Map bounded existing XML hints into a saved workspace with import provenance and explicit loss notices, without executing Nmap.',
       ],
       [
         "Cap'n Proto",
@@ -101,12 +125,12 @@ const roadmap = [
         'Not planned for the core binary. Reconsider only as an opt-in companion with explicit executable choice, previewed scope, hard budgets, and an auditable command.',
       ],
       [
-        'Traceroute / hop probes',
-        'Why: probe packets are not kernel route evidence and can require platform privileges. Gate: consent, strict budgets, truthful partial failure, and reliable unprivileged backends.',
+        'Broader/public range discovery',
+        'Why: one authorized private /24 must not become ambient or Internet-wide crawling. Gate: a distinct workflow, previewed scope, harder budgets, and a defensible user need.',
       ],
       [
-        'LAN range expansion',
-        'Why: one target must not become ambient network crawling. Gate: previewed private scope, opt-in, hard candidate/time limits, and cancellation.',
+        'Automatic datacenter geolocation claims',
+        'Why: SIN, BOM, provider-region labels, WHOIS, and IP geolocation are hints rather than measured facilities. Gate: user-supplied sources, attribution, freshness, and confidence.',
       ],
       [
         'Live capture',

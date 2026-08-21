@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Route and Nmap evidence | ProtoPeek</title>
-    <meta name="description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <title>Network evidence boundaries | ProtoPeek</title>
+    <meta name="description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="Route and Nmap evidence | ProtoPeek" />
-    <meta property="og:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <meta property="og:title" content="Network evidence boundaries | ProtoPeek" />
+    <meta property="og:description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -28,11 +28,11 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Route and Nmap evidence | ProtoPeek" />
-    <meta name="twitter:description" content="Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import." />
+    <meta name="twitter:title" content="Network evidence boundaries | ProtoPeek" />
+    <meta name="twitter:description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Route and Nmap evidence","description":"Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.","url":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Network evidence boundaries","description":"Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.","url":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
   </head>
   <body>
     <div class="pp-doc-shell">
@@ -53,17 +53,17 @@
           <div class="pp-doc-eyebrow">Guide</div>
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>Route and Nmap evidence</h1>
-              <p>Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.</p>
+              <h1>Network evidence boundaries</h1>
+              <p>Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.</p>
               <div class="pp-doc-chip-row">
-                <span>Kernel next hop</span><span>Offline Nmap XML</span><span>No hidden execution</span>
+                <span>Source RTT</span><span>Authorized discovery</span><span>No hidden execution</span>
               </div>
             </div>
 
     <div class="pp-doc-visual">
       <div class="pp-doc-visual-card">
         <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">Route and Nmap evidence boundary</div>
+        <div class="pp-doc-visual-title">Route, path, discovery, and Nmap evidence boundary</div>
         <svg viewBox="0 0 300 120" aria-hidden="true">
           <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
           <circle cx="12" cy="88" r="6" />
@@ -74,14 +74,14 @@
       <div class="pp-doc-visual-metrics">
 
         <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>Kernel next hop</span>
+          <span>Source RTT</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-1"></div>
           </div>
         </div>
 
         <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Offline Nmap XML</span>
+          <span>Authorized discovery</span>
           <div class="pp-doc-visual-bar">
             <div class="pp-doc-visual-fill fill-2"></div>
           </div>
@@ -103,7 +103,7 @@
         <main class="pp-doc-main">
           <article class="pp-doc-article">
             <div class="pp-doc-prose">
-              <p>ProtoPeek v0.3.0 ships two evidence inputs with deliberately different trust models. The route workbench reads the local kernel. The Nmap path imports a file produced elsewhere. Neither is a general network scanner.</p>
+              <p>ProtoPeek keeps four network-evidence paths separate because they have different authority and trust models. Next-hop lookup reads the local kernel without probes. Network Path sends a bounded, consented active probe plan. Local discovery opens selected TCP connections inside one authorized private IPv4 scope. The Nmap path imports a file produced elsewhere. None is a general-purpose or ambient network scanner.</p>
 <h2 id="next-hop-route-lookup">Next-hop route lookup</h2>
 <p><code>POST /api/route/lookup</code> accepts JSON with <code>destination</code> and an optional <code>family</code> of <code>auto</code>, <code>ipv4</code>, or <code>ipv6</code>. The same-origin CSRF token is required. The request body is capped at 16 KiB and the destination at 253 bytes. Resolution plus all route lookups request a two-second deadline. ProtoPeek keeps at most eight unique resolved addresses and runs at most four kernel lookups concurrently. Windows IP Helper calls are synchronous, so cancellation prevents new work but cannot interrupt an already-running operating-system call.</p>
 <p>The result is one kernel-selected route per address from the ProtoPeek process perspective. It can include source IP, interface index/name, exact next hop or on-link state, local-route state, prefix, route metric/table when known, backend, notes, and a per-address error. One address failing does not erase successful siblings.</p>
@@ -120,21 +120,45 @@
 <ul><li>Other build targets compile an explicit <code>unsupported</code> backend result. No fallback shells out to</li></ul>
 <p><code>route</code>, <code>ip</code>, PowerShell, or another executable.</p>
 <p>Unspecified, multicast, IPv4 limited-broadcast, and unzoned IPv6 link-local destinations are rejected. Zoned link-local destinations use the named or numeric interface scope.</p>
+<h2 id="active-network-path">Active Network Path</h2>
+<p><code>GET /api/path/capabilities</code> reports the current operating system, native method availability, and fixed limits without sending path probes. <code>POST /api/path/trace</code> accepts a bounded JSON plan and requires the same-origin CSRF token. The request body is capped at 32 KiB.</p>
+<p>Every trace requires <code>consent.activeProbe: true</code>. A destination that resolves to a public address also requires <code>consent.publicTarget: true</code>. ProtoPeek validates the target, resolves it once, keeps at most eight unique answers from at most 32 resolver candidates, and pins one numeric address for the route lookup and active trace. DNS therefore cannot silently move the destination after policy and route evidence are recorded.</p>
+<p>The fixed trace contract is:</p>
+<ul><li>destination text at most 253 bytes;</li><li>24 hops and three probes per hop by default;</li><li>at most 32 hops, four probes per hop, and 96 probes total;</li><li>750 ms per probe by default, with a 100–2,000 ms range;</li><li>a 20-second wall by default and a 30-second maximum;</li><li>returned total <code>durationMs</code> accepted only through the echoed wall plus a 2,000 ms</li></ul>
+<p>resolver/return allowance, which is not extra probe time;</p>
+<ul><li>at most 20 probes per second; and</li><li>two admitted path traces across one running handler.</li></ul>
+<h3 id="linux-native-udp-evidence">Linux native UDP evidence</h3>
+<p>Linux uses an in-process UDP socket with <code>IP_RECVERR</code> or <code>IPV6_RECVERR</code> and reads matching asynchronous ICMP errors from the kernel error queue. It uses one stable UDP five-tuple where possible and defaults to destination port <code>33434</code>. It does not shell out, parse localized command output, install a package, or require elevation. Native ICMP and TCP trace methods are not implemented in this slice.</p>
+<p>Darwin and Windows compile explicit unsupported capability evidence for active hop probing. The UI does not offer to install Nmap, <code>traceroute</code>, <code>tracepath</code>, or another fallback, and it does not ask for administrator access. Their read-only next-hop backends remain available independently.</p>
+<h3 id="interpretation-boundary">Interpretation boundary</h3>
+<p>Each sample records the TTL, sequence, reply/timeout/unreachable/error state, responder when known, round-trip duration when observed, ICMP type/code when available, and bounded detail. A hop retains all samples and all distinct responders. This matters for silent routers, rate limiting, and ECMP:</p>
+<ul><li>a timeout means no matching reply arrived before the bound; it does not prove the router or destination is offline;</li><li>several responders at one TTL are preserved rather than collapsed into a fabricated single route; and</li><li>the path is the result of this specific bounded probe set, not a guarantee that later traffic takes one stable route.</li></ul>
+<p>Every hop RTT is source-to-responder round-trip time from the ProtoPeek process. It is not link latency between adjacent hops, and subtracting one hop&#39;s RTT from the next is not a dependable link measurement. Minimum, median, and maximum values are calculated independently for each responder; several ECMP responders are never blended into one statistic. The destination median uses only reply samples whose responder is the exact pinned numeric destination, and remains unavailable rather than substituting the last responding router. DNS answers, kernel-route evidence, and active-hop evidence remain separate even when one of those stages fails.</p>
+<p>Saving a trace marks actual responding addresses as <code>observed</code>. Silent TTL placeholders, an exact pinned destination that did not answer, and every logical trace-adjacency edge are <code>inferred</code>. Those synthetic records preserve the shape and endpoint of the bounded observation; they do not assert a responding device or physical link. Scoped IPv6 source and responder identities are accepted only with a bounded 1–64-character portable interface zone; malformed addresses, repeated <code>%</code>, whitespace/unsafe zone characters, and XML 1.0-invalid controls are rejected.</p>
+<p>ProtoPeek does not bundle a GeoIP database. Metro or airport aliases such as <code>SIN</code>, <code>BOM</code>, or <code>IAD</code>, and provider-region identifiers such as <code>us-east-1</code>, are not automatic datacenter proof. Region and provider annotations must remain manual or explicitly sourced evidence.</p>
+<h2 id="authorized-local-network-discovery">Authorized local-network discovery</h2>
+<p><code>GET /api/network/capabilities</code> reads local interface metadata, returns exact built-in profiles and limits, and sends no probes. Only up, non-loopback private IPv4 interfaces become suggestions. A response retains at most 32 deduplicated suggestions. A configured interface prefix must be wholly inside one RFC 1918 block or it is omitted rather than rewritten; a valid broader interface is narrowed to its containing <code>/24</code> suggestion.</p>
+<p><code>POST /api/network/discover</code> accepts JSON with <code>cidr</code>, <code>profile</code>, and <code>consent</code>. It requires the same-origin CSRF token and explicit consent. The scope must be a literal RFC 1918 IPv4 CIDR of <code>/24</code> or narrower. Loopback, public, IPv6, a bare address, and broader prefixes are rejected. For <code>/30</code> and broader host subnets ProtoPeek skips the traditional network and broadcast addresses; it keeps both addresses in <code>/31</code> and the sole address in <code>/32</code>.</p>
+<p>Profiles expose exact <code>ports</code> and ordered-subset <code>applicationProbePorts</code> plans:</p>
+<table><thead><tr><th>Profile</th><th>All selected TCP ports</th><th><code>applicationProbePorts</code></th><th>TCP connect only</th></tr></thead><tbody><tr><td>Quick services</td><td><code>80, 443, 50051, 8080</code></td><td><code>80, 443, 50051, 8080</code></td><td>None</td></tr><tr><td>gRPC common</td><td><code>443, 6565, 7000, 7443, 9090, 50051</code></td><td><code>443, 6565, 7000, 7443, 9090, 50051</code></td><td>None</td></tr><tr><td>Web and API</td><td><code>80, 443, 3000, 4000, 5000, 8000, 8080, 8443</code></td><td><code>80, 443, 3000, 4000, 5000, 8000, 8080, 8443</code></td><td>None</td></tr><tr><td>Expanded services</td><td><code>22, 53, 80, 443, 445, 631, 1883, 3000, 3306, 3389, 5432, 6379, 8000, 8080, 8443, 9090, 9100, 50051</code></td><td><code>80, 443, 3000, 8000, 8080, 8443, 9090, 50051</code></td><td><code>22, 53, 445, 631, 1883, 3306, 3389, 5432, 6379, 9100</code></td></tr></tbody></table>
+<p>Application-probe ports may receive bounded gRPC reflection and an HTTP <code>HEAD /</code> request with redirects disabled. Every other selected port receives only a TCP connect and close. Selecting a raw or legacy service port in Expanded is not permission to send it gRPC or HTTP application data.</p>
+<p>The hard limits are 18 ports, 4,572 TCP attempts, 32 workers, a 15-second wall, and one running local discovery per handler. Results report planned and completed attempts, completion, and a stopping reason. <code>attemptsCompleted</code> counts selected endpoint probe calls that returned, including a call returning due to cancellation; it does not mean open ports, successful connects, or reached targets. Calls not dispatched after cancellation are not completed. Cancellation and deadline keep partial positive evidence.</p>
+<p>Only ports with positive TCP evidence are retained. On application-probe ports, the existing bounded scanner can add gRPC, reflection, safe non-following HTTP, and bounded service details. A 64 KiB aggregate verbose-evidence budget covers those strings and evidence notes; if exhausted, every observed open TCP port record remains while only additional protocol detail is omitted.</p>
+<p>The response names timing <code>probeDurationMs</code>. It is the complete elapsed TCP-connect-only attempt or the complete application probe, not network latency, link RTT, one-way delay, or server-processing time. An address absent from the result was not observed on the selected ports; it is never classified as offline. Role labels are low-confidence inferences from ports and protocols, not OS or hardware identification. Discovery does not infer ownership, VLAN membership, or physical links.</p>
+<h2 id="saved-network-evidence">Saved network evidence</h2>
+<p>The canonical workspace format is <code>protopeek-network</code> JSON version 1. It retains logical nodes, identities, observed ports and services, provenance, groups, positions, and full immutable snapshots. One imported or serialized workspace is capped at 4 MiB and is validated as a complete versioned document before use.</p>
+<p>Appending a later observation preserves saved manual labels, tags, notes, device types, pinned positions, group assignments, manual groups, manually sourced services, and manual relationships. Fresh scanner evidence updates the current view without mutating older snapshots. Dirty map edits are guarded before switching/importing, appending observations, restoring history, deletion, unload, or leaving the network workbench; save and deliberate discard remain separate actions.</p>
+<p>IndexedDB holds at most 20 workspaces, at most 4 MiB each, and at most 32 MiB total. Capacity is refused without silent eviction. Restore uses a cursor bounded at 20 records and detects additional records as overflow rather than bulk-loading them. Corrupt/overflow, unavailable, denied, or over-quota storage preserves usable in-memory records for the current session and visibly instructs the user to export before leaving. IndexedDB writes and deletes compare the exact previously loaded record in one transaction; a stale tab reports a conflict and overwrites nothing. A persistent delete failure leaves the workspace visibly retained instead of letting it silently reappear later. Restoring an immutable snapshot to the editable current map requires two explicit actions and does not remove the snapshot history.</p>
+<p>GraphML is a portable but lossy graph exchange. Export omits identities, ports, services, original provenance, and immutable snapshots; custom tag, note, and grouping keys can be discarded by other tools. Import cannot reconstruct ProtoPeek protocol evidence or snapshots and marks its evidence as <code>graphml-import</code>. It accepts only one flat <code>edgedefault=&quot;directed&quot;</code> graph and rejects undirected or mixed edges, nested graphs, hyperedges, ports/edge-port references, duplicate identifiers or data keys, unsupported topology structures, and XML 1.0-invalid controls rather than reinterpreting them. CSV is an export-only flat inventory, not a round-trip workspace format. The topology canvas represents logical observed/manual/inferred/unknown evidence, never asserted physical cabling. It is interactive through 160 nodes, 640 relationships, and 64 groups; above any bound, a complete 100-record paged node/group/relationship inventory replaces the map without dropping records.</p>
 <h2 id="offline-nmap-xml-import">Offline Nmap XML import</h2>
 <p><code>POST /api/nmap/import</code> accepts raw <code>application/xml</code> previously produced by <code>nmap -oX</code>. It never accepts command arguments and never bundles, installs, locates, or executes Nmap or Npcap. Uploaded XML and parsed inventory live only for the request and current UI state; neither is written to a file or database.</p>
 <p>The importer uses streaming <code>encoding/xml</code>, requires an unnamespaced <code>nmaprun</code> root with <code>scanner=&quot;nmap&quot;</code>, accepts only the ordinary bare <code>DOCTYPE nmaprun</code> declaration, ignores stylesheet processing instructions without fetching them, and rejects external/public/internal DTD and entity input. It retains only:</p>
 <ul><li>host state/reason, up to eight addresses, and up to sixteen hostnames per host;</li><li>port number, protocol, state, and reason;</li><li>service name, product, version, extra info, tunnel, method, and confidence.</li></ul>
 <p>It discards the original Nmap arguments, NSE scripts, OS fingerprints, and trace hops. Bounds are 8 MiB, XML depth 32, 250,000 tokens, 100,000 start elements, 512 attributes per element, 1,024 hosts, 16,384 ports total, and 512 bytes for every returned attribute. Collection fields always encode as arrays, and a missing or failed Nmap completion record is labeled as partial evidence.</p>
 <p>Service metadata is an untrusted hint even when Nmap labels its method <code>probed</code>. A usable open TCP endpoint at a validated literal IPv4 or IPv6 address offers <strong>Verify with ProtoPeek</strong>, which calls the existing explicit bounded scanner. Imported hostnames remain display-only. Only that fresh TCP/gRPC/TLS/HTTP evidence enables a protocol workbench. UDP, IP protocol entries, port zero, and non-open states are shown as imported evidence but cannot be verified by the current TCP scanner.</p>
-<h2 id="permanently-gated-distinctions">Permanently gated distinctions</h2>
-<ul><li><strong>Bundled Nmap execution:</strong> not planned for the core binary because executable discovery,</li></ul>
-<p>argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.</p>
-<ul><li><strong>Traceroute/hop probes:</strong> gated because they send packets and can require platform privilege.</li></ul>
-<p>Release requires consent, strict budgets, reliable unprivileged backends, cancellation, and truthful partial failures.</p>
-<ul><li><strong>LAN range expansion:</strong> gated because one target must not become ambient crawling. Release</li></ul>
-<p>requires previewed private scope, opt-in, hard candidate/time limits, and cancellation.</p>
-<ul><li><strong>Live capture:</strong> gated because it can require privilege and expose secrets. Release requires an</li></ul>
-<p>explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.</p>
+<h2 id="remaining-wider-boundaries">Remaining wider boundaries</h2>
+<ul><li><strong>Bundled Nmap execution:</strong> not planned for the core binary because executable discovery, argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.</li><li><strong>Darwin and Windows active hop probes:</strong> need verified unprivileged native backends. ProtoPeek will not hide an executable install or privilege escalation behind a trace action.</li><li><strong>Broader, public, or IPv6 range discovery:</strong> excluded from the current local workflow. The implemented path stays inside one authorized RFC 1918 IPv4 <code>/24</code>-or-smaller scope and one exact selected-TCP profile.</li><li><strong>Nmap-to-topology integration:</strong> may later map existing bounded XML into a workspace with explicit import provenance and loss reporting. It does not imply command execution.</li><li><strong>Live capture:</strong> gated because it can require privilege and expose secrets. Release requires an explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.</li></ul>
+<p>For the user workflow, storage behavior, and Now/Soon/Later plan, see the <a href="/network-workbench/">network workbench guide</a>.</p>
             </div>
           </article>
 
@@ -142,7 +166,7 @@
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">On this page</div>
               <div class="pp-doc-toc">
-                <a class="level-2" href="#next-hop-route-lookup">Next-hop route lookup</a><a class="level-3" href="#platform-boundary">Platform boundary</a><a class="level-2" href="#offline-nmap-xml-import">Offline Nmap XML import</a><a class="level-2" href="#permanently-gated-distinctions">Permanently gated distinctions</a>
+                <a class="level-2" href="#next-hop-route-lookup">Next-hop route lookup</a><a class="level-3" href="#platform-boundary">Platform boundary</a><a class="level-2" href="#active-network-path">Active Network Path</a><a class="level-3" href="#linux-native-udp-evidence">Linux native UDP evidence</a><a class="level-3" href="#interpretation-boundary">Interpretation boundary</a><a class="level-2" href="#authorized-local-network-discovery">Authorized local-network discovery</a><a class="level-2" href="#saved-network-evidence">Saved network evidence</a><a class="level-2" href="#offline-nmap-xml-import">Offline Nmap XML import</a><a class="level-2" href="#remaining-wider-boundaries">Remaining wider boundaries</a>
               </div>
             </section>
 
@@ -155,7 +179,7 @@
             <section class="pp-doc-side-card">
               <div class="pp-doc-side-label">More ProtoPeek docs</div>
               <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
+                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
               </div>
             </section>
           </aside>

@@ -19,4 +19,26 @@ describe('Roadmap', () => {
     expect(within(next).getByRole('heading', { name: 'cURL import' })).toBeVisible();
     expect(within(next).queryByText(/cURL import\/export/i)).not.toBeInTheDocument();
   });
+
+  it('shows the bounded network workbench as available and keeps wider scanning gated', () => {
+    render(<Roadmap />);
+
+    const available = screen
+      .getByRole('heading', { name: 'Available in this build' })
+      .closest('section');
+    const gated = screen.getByRole('heading', { name: 'Gated' }).closest('section');
+    expect(available).not.toBeNull();
+    expect(gated).not.toBeNull();
+    if (!available || !gated) return;
+
+    expect(within(available).getByRole('heading', { name: 'Network Path · Linux' })).toBeVisible();
+    expect(
+      within(available).getByRole('heading', { name: 'Authorized private discovery' })
+    ).toBeVisible();
+    expect(within(available).getByRole('heading', { name: 'Network map + history' })).toBeVisible();
+    expect(
+      within(gated).getByRole('heading', { name: 'Broader/public range discovery' })
+    ).toBeVisible();
+    expect(within(gated).queryByText('Traceroute / hop probes')).not.toBeInTheDocument();
+  });
 });

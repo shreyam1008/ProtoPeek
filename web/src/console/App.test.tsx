@@ -276,6 +276,28 @@ afterEach(() => {
 });
 
 describe('gRPC launcher recents', () => {
+  it('defaults a new target to localhost:50051 while preserving a bootstrap address', async () => {
+    vi.stubGlobal('fetch', installLauncherFetch({ connectOK: false }));
+    const first = render(<App />);
+
+    expect(await screen.findByLabelText('Address')).toHaveValue('localhost:50051');
+    first.unmount();
+
+    vi.stubGlobal(
+      'fetch',
+      installLauncherFetch({
+        connectOK: false,
+        bootstrap: {
+          ...launcherBootstrap,
+          targetDefaults: { ...launcherBootstrap.targetDefaults, address: 'grpc.dev.test:7443' },
+        },
+      })
+    );
+    render(<App />);
+
+    expect(await screen.findByLabelText('Address')).toHaveValue('grpc.dev.test:7443');
+  });
+
   it('renders startup recovery controls in launcher mode without overwriting the source', async () => {
     const raw = JSON.stringify({ malformed: true });
     window.localStorage.setItem(appStorageKeys.collections, raw);

@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { CircleHelp, Home, ListTodo, Moon, Radar, Route, Server, Sun, X } from 'lucide-react';
+import { CircleHelp, Home, ListTodo, Moon, Network, Radar, Server, Sun, X } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
@@ -19,6 +19,7 @@ import {
   type ScanDialogRequest,
 } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
+import { normalizeRecentDiscoveries } from './recent-discovery';
 
 const ScanTargetDialog = lazy(async () => {
   const module = await import('./ScanTargetDialog');
@@ -34,7 +35,7 @@ export function ProtocolFrame() {
   const [scanGeneration, setScanGeneration] = useState(0);
   const [theme, setThemeState] = useState<ProtoPeekTheme>(() => readThemePreference());
   const [discoveries, setDiscoveries] = useState<RecentDiscovery[]>(() =>
-    loadStoredValue<RecentDiscovery[]>(appStorageKeys.discoveries, []).slice(0, 12)
+    normalizeRecentDiscoveries(loadStoredValue<unknown>(appStorageKeys.discoveries, []))
   );
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const modifier = modifierKeyLabel();
@@ -131,6 +132,24 @@ export function ProtocolFrame() {
         run: () => void navigate({ to: '/routes' }),
       },
       {
+        id: 'network-path',
+        label: 'Trace a measured network path',
+        keywords: 'network hops latency dns route traceroute udp',
+        run: () => void navigate({ to: '/network/path' }),
+      },
+      {
+        id: 'network-local',
+        label: 'Discover an authorized local network',
+        keywords: 'network local cidr ports inventory private scan',
+        run: () => void navigate({ to: '/network/local' }),
+      },
+      {
+        id: 'network-map',
+        label: 'Open the network evidence map',
+        keywords: 'network map topology graph inventory history',
+        run: () => void navigate({ to: '/network/map' }),
+      },
+      {
         id: 'roadmap',
         label: 'Open product roadmap',
         keywords: 'available next exploring gated',
@@ -221,12 +240,12 @@ export function ProtocolFrame() {
           </button>
           <span className="pp-rail-divider" aria-hidden="true" />
           <Link
-            to="/routes"
+            to="/network"
             activeProps={{ className: 'is-active' }}
-            aria-label="Open next-hop route evidence"
+            aria-label="Open the network workbench"
           >
-            <Route aria-hidden="true" />
-            <span>Routes</span>
+            <Network aria-hidden="true" />
+            <span>Network</span>
           </Link>
           <Link
             to="/roadmap"
@@ -396,14 +415,21 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             <li>Auth values remain in the live editor and are redacted from local history.</li>
           </ul>
         </section>
-        <section className="pp-help-planned">
-          <h3>Routes + external evidence</h3>
-          <p>
-            Next-hop lookup reads one kernel-selected route and is not traceroute. Nmap XML import
-            is offline and treats service names as hints; ProtoPeek never installs or executes Nmap.
-            Bundled Nmap execution is not planned for the core binary. Traceroute, LAN expansion,
-            and live capture remain gated.
-          </p>
+        <section>
+          <h3>Network · available with explicit boundaries</h3>
+          <ul>
+            <li>
+              Linux Network Path separates DNS, kernel route, and active per-hop RTT evidence.
+            </li>
+            <li>Local discovery scans only an authorized private IPv4 /24-or-smaller plan.</li>
+            <li>
+              Maps and immutable snapshots stay browser-local and export as JSON, GraphML, or CSV.
+            </li>
+            <li>
+              ProtoPeek never installs or executes Nmap; offline Nmap XML topology import remains
+              future work.
+            </li>
+          </ul>
         </section>
       </aside>
     </div>

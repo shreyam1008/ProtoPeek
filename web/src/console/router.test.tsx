@@ -44,6 +44,20 @@ afterEach(() => {
 });
 
 describe('protocol routes', () => {
+  it('ignores malformed recent-discovery storage while rendering the dashboard', async () => {
+    window.localStorage.setItem('protopeek.discoveries.v1', JSON.stringify({ invalid: true }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(bootstrap))
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
+
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
+    expect(screen.getByText(/No protocol evidence recorded/i)).toBeVisible();
+  });
+
   it('owns the HTTP query boundary inside the lazy HTTP route', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/http'] }));
 
@@ -52,7 +66,7 @@ describe('protocol routes', () => {
     expect(await screen.findByText('Request workbench')).toBeInTheDocument();
   });
 
-  it('uses the dashboard at root and preserves lazy workbench and roadmap routes', async () => {
+  it('uses the dashboard at root and preserves lazy workbench, network, and roadmap routes', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -69,9 +83,10 @@ describe('protocol routes', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
-    expect(screen.getByText('Next-hop lookup')).toBeInTheDocument();
+    expect(screen.getByText('Network Path')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
-    expect(screen.getAllByText('Gated').length).toBeGreaterThan(0);
+    expect(screen.getByText('Private discovery')).toBeInTheDocument();
+    expect(screen.getByText('Opt-in')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
     expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
@@ -96,6 +111,25 @@ describe('protocol routes', () => {
     expect(await screen.findByRole('heading', { name: 'Next-hop route' })).toBeInTheDocument();
 
     await act(async () => {
+      await router.navigate({ to: '/network' });
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'See how this machine reaches a target.' })
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/network/path');
+    expect(screen.getByRole('link', { name: 'Open the network workbench' })).toHaveClass(
+      'is-active'
+    );
+
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    expect(
+      await screen.findByRole('heading', { name: 'Network evidence map' })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/logical evidence.*not physical cabling/i)).toBeVisible();
+
+    await act(async () => {
       await router.navigate({ to: '/roadmap' });
     });
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
@@ -105,7 +139,51 @@ describe('protocol routes', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
-    expect(screen.getByText('Traceroute / hop probes')).toBeInTheDocument();
+    expect(screen.getByText('Network Path · Linux')).toBeInTheDocument();
+    expect(screen.getByText('Broader/public range discovery')).toBeInTheDocument();
+  });
+
+  it('opens an HTTP service found by the gRPC launcher in the HTTP workbench', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/api/scan')) {
+          return Response.json([
+            {
+              address: '127.0.0.1:8080',
+              alive: true,
+              tcp: true,
+              grpc: false,
+              http: true,
+              protocols: ['tcp', 'http'],
+              reflection: 'not-checked',
+              transport: 'plaintext',
+              services: [],
+              httpTransport: 'plaintext',
+              httpProtocol: 'HTTP/1.1',
+              httpStatus: '200 OK',
+              httpStatusCode: 200,
+              httpServer: '',
+              failure: '',
+              error: null,
+              details: ['http plaintext: HTTP/1.1 200 OK'],
+              latencyMs: 2,
+            },
+          ]);
+        }
+        if (path.endsWith('/examples')) return Response.json([]);
+        return Response.json(bootstrap);
+      })
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/grpc'] }));
+    render(<RouterProvider router={router} />);
+
+    await screen.findByRole('heading', { name: 'Open a gRPC target.' });
+    fireEvent.click(await screen.findByRole('button', { name: 'HTTP' }));
+
+    expect(await screen.findByRole('heading', { name: 'Request workbench' })).toBeVisible();
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8080/');
   });
 
   it('stores truthful recent discoveries in the local browser profile', async () => {

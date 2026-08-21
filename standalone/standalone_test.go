@@ -10,7 +10,17 @@ func TestHandlerRedirectsDirectSPADeepLinksToHashRoutes(t *testing.T) {
 	t.Parallel()
 
 	handler := Handler(nil, "", nil, nil)
-	for _, route := range []string{"/grpc", "/http", "/routes", "/roadmap"} {
+	for _, route := range []string{
+		"/grpc",
+		"/http",
+		"/routes",
+		"/network",
+		"/network/path",
+		"/network/local",
+		"/network/map",
+		"/network/history",
+		"/roadmap",
+	} {
 		route := route
 		for _, method := range []string{http.MethodGet, http.MethodHead} {
 			method := method

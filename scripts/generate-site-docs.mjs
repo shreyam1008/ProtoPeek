@@ -30,6 +30,16 @@ const publishedPages = [
     highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
   },
   {
+    slug: 'network-workbench',
+    title: 'Network workbench',
+    section: 'Guide',
+    description:
+      'A practical guide to DNS, kernel routes, Linux hop evidence, authorized private discovery, logical topology, local storage, and exchange formats.',
+    sourcePath: 'guides/network-workbench.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/network-workbench.md`,
+    highlights: ['Source RTT', 'Authorized /24 discovery', 'Logical topology'],
+  },
+  {
     slug: 'competitive-landscape',
     title: 'Competitive workflow decisions',
     section: 'Product research',
@@ -41,13 +51,13 @@ const publishedPages = [
   },
   {
     slug: 'route-and-nmap-evidence',
-    title: 'Route and Nmap evidence',
+    title: 'Network evidence boundaries',
     section: 'Guide',
     description:
-      'Exact safety, trust, platform, and verification boundaries for read-only next-hop lookup and offline Nmap XML import.',
+      'Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.',
     sourcePath: 'guides/route-and-nmap-evidence.md',
     sourceURL: `${repoRootURL}/blob/master/guides/route-and-nmap-evidence.md`,
-    highlights: ['Kernel next hop', 'Offline Nmap XML', 'No hidden execution'],
+    highlights: ['Source RTT', 'Authorized discovery', 'No hidden execution'],
   },
   {
     slug: 'transport-boundaries',
@@ -120,8 +130,8 @@ async function writeDocsHubPage() {
         <article class="pp-doc-card">
           <div class="pp-doc-pill">Detailed path</div>
           <h2>Published guides</h2>
-          <p>Long-form pages for gRPC, product research, route and Nmap evidence, transport boundaries, the roadmap, and extension design.</p>
-          <a href="${siteBase}/learn-grpc/">Start with Learn gRPC</a>
+          <p>Long-form pages for gRPC, the network workbench, product research, evidence boundaries, transport architecture, the roadmap, and extension design.</p>
+          <a href="${siteBase}/network-workbench/">Open the network workbench guide</a>
         </article>
       </div>
     </section>
@@ -158,17 +168,21 @@ async function writeDocsHubPage() {
       title: 'Docs hub',
       documentTitle: 'Docs hub | ProtoPeek',
       description:
-        'Published ProtoPeek guides for gRPC, HTTP boundaries, route evidence, roadmap planning, and extension design.',
+        'Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design.',
       canonicalPath: '/docs/',
       section: 'Docs',
       intro:
-        'ProtoPeek now publishes its guides as first-class pages instead of leaving them buried as raw markdown in the repository.',
+        'ProtoPeek publishes its guides as first-class pages, from the gRPC fast path through bounded network evidence and its trust boundaries.',
       body,
       toc: [{ id: 'published-guides', text: 'Published guides', level: 2 }],
       sourceURL: `${repoRootURL}/tree/master/guides`,
       sourcePath: 'guides/',
-      highlights: ['Published pages', 'SEO-friendly routes', 'GitHub source links'],
-      heroVisual: renderHeroVisual('Docs hub', ['Homepage', 'Published guides', 'Source markdown']),
+      highlights: ['Protocol guides', 'Network evidence', 'GitHub source links'],
+      heroVisual: renderHeroVisual('Docs hub', [
+        'Homepage',
+        'Network workbench',
+        'Source markdown',
+      ]),
       schemaType: 'CollectionPage',
     })
   );

@@ -39,6 +39,54 @@ afterEach(() => {
 });
 
 describe('DiscoveryScanner relay evidence limits', () => {
+  it('discloses the fixed common-local candidates and guides an empty result', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      Response.json([])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<DiscoveryScanner />);
+
+    expect(screen.getByText(/six fixed local endpoints/i)).toHaveTextContent(
+      /50051.*9090.*6565.*7000.*8080/i
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
+
+    expect(
+      await screen.findByText(/No reachable services found on the common local candidates/i)
+    ).toBeVisible();
+    const payload = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(payload).toEqual({
+      addresses: [
+        'localhost:50051',
+        'localhost:9090',
+        'localhost:6565',
+        'localhost:7000',
+        'localhost:8080',
+        '127.0.0.1:50051',
+      ],
+      allowPrivateNetwork: false,
+      explicit: false,
+    });
+  });
+
+  it('does not describe an empty explicit result as a common-local scan', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([]))
+    );
+    render(<DiscoveryScanner />);
+
+    fireEvent.change(screen.getByLabelText('Scan target'), {
+      target: { value: 'api.example.test:50051' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan target' }));
+
+    expect(await screen.findByText(/No service evidence was returned for/i)).toHaveTextContent(
+      /api\.example\.test:50051/
+    );
+    expect(screen.queryByText(/common local candidates/i)).not.toBeInTheDocument();
+  });
+
   it('marks retained card evidence when any relay field was truncated', () => {
     render(
       <ScanResultCard
@@ -82,7 +130,7 @@ describe('DiscoveryScanner relay evidence limits', () => {
     );
     render(<DiscoveryScanner />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Scan loopback' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
     const failures = await screen.findByText('1 routine loopback probes were not reachable');
     fireEvent.click(failures);
 
