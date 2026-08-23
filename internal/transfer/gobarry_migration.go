@@ -22,6 +22,7 @@ import (
 const (
 	goBarryMigrationVersion   = 1
 	maxGoBarryPreferencesSize = int64(1 << 20)
+	maxGoBarryConfigSize      = int64(maxConfigFileBytes)
 	maxGoBarrySessionSize     = int64(16 << 20)
 	maxGoBarrySessionEntries  = 4096
 	maxGoBarrySessionLine     = 64 << 10
@@ -268,13 +269,11 @@ func (service *Service) RollbackGoBarry(ctx context.Context, request GoBarryRoll
 		if err := ensureGoBarryReceiptTargets(targetPaths, receipt, false); err != nil {
 			return GoBarryRollbackResult{}, err
 		}
-		config, _, err := NewConfigStore(targetPaths.ConfigFile).Load()
+		config, _, revision, err := NewConfigStore(targetPaths.ConfigFile).LoadWithRevision()
 		if err != nil {
 			return GoBarryRollbackResult{}, err
 		}
-		service.mu.Lock()
-		service.config = config
-		service.mu.Unlock()
+		service.setConfig(config, revision)
 		return goBarryRollbackResult(receiptID, marker.RolledBackAt), nil
 	}
 	if err := ensureGoBarryReceiptTargets(targetPaths, receipt, true); err != nil {
@@ -282,7 +281,7 @@ func (service *Service) RollbackGoBarry(ctx context.Context, request GoBarryRoll
 	}
 
 	ledgerPath := goBarryLedgerPath(targetPaths)
-	originalConfig, err := receiptBackupBytes(receiptDirectory, receipt.TargetConfigBefore, maxGoBarryPreferencesSize)
+	originalConfig, err := receiptBackupBytes(receiptDirectory, receipt.TargetConfigBefore, maxGoBarryConfigSize)
 	if err != nil {
 		return GoBarryRollbackResult{}, err
 	}
@@ -312,7 +311,7 @@ func (service *Service) RollbackGoBarry(ctx context.Context, request GoBarryRoll
 	if err := restoreOptionalTarget(targetPaths.ConfigFile, originalConfig, receipt.TargetConfigBefore.Exists, 0o600); err != nil {
 		return GoBarryRollbackResult{}, rollbackFailure(err)
 	}
-	if err := ensureGoBarryReceiptTarget(targetPaths.ConfigFile, maxGoBarryPreferencesSize, receipt.TargetConfigBefore); err != nil {
+	if err := ensureGoBarryReceiptTarget(targetPaths.ConfigFile, maxGoBarryConfigSize, receipt.TargetConfigBefore); err != nil {
 		return GoBarryRollbackResult{}, rollbackFailure(err)
 	}
 	if err := restoreOptionalTarget(targetPaths.SessionFile, originalSession, receipt.TargetSessionBefore.Exists, 0o600); err != nil {
@@ -341,13 +340,11 @@ func (service *Service) RollbackGoBarry(ctx context.Context, request GoBarryRoll
 	if err := removeGoBarryPending(targetPaths); err != nil {
 		return GoBarryRollbackResult{}, fmt.Errorf("rollback committed but pending marker cleanup failed: %w", err)
 	}
-	config, _, err := NewConfigStore(targetPaths.ConfigFile).Load()
+	config, _, revision, err := NewConfigStore(targetPaths.ConfigFile).LoadWithRevision()
 	if err != nil {
 		return GoBarryRollbackResult{}, err
 	}
-	service.mu.Lock()
-	service.config = config
-	service.mu.Unlock()
+	service.setConfig(config, revision)
 	return goBarryRollbackResult(receiptID, now), nil
 }
 
@@ -378,7 +375,6 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	defer service.queueMu.Unlock()
 
 	service.mu.RLock()
-	current := service.config
 	running := service.starting || service.runtime != nil
 	targetPaths := service.paths
 	service.mu.RUnlock()
@@ -391,12 +387,11 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	}
 	defer func() { _ = lease.Release() }()
 
-	recovered, err := recoverPendingGoBarryMigration(targetPaths)
-	if err != nil {
+	if _, err := recoverPendingGoBarryMigration(targetPaths); err != nil {
 		return GoBarryImportResult{}, err
 	}
 	ledgerPath := goBarryLedgerPath(targetPaths)
-	originalConfig, configExisted, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryPreferencesSize)
+	originalConfig, configExisted, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryConfigSize)
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
@@ -408,13 +403,11 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
-	current, err = decodeGoBarryTargetConfig(originalConfig, configExisted, current, recovered)
+	current, err := decodeGoBarryTargetConfig(originalConfig, configExisted)
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
-	service.mu.Lock()
-	service.config = current
-	service.mu.Unlock()
+	service.setConfig(current, HostConfigRevision(current))
 	ledger, ledgerExists, err := decodeGoBarryLedger(originalLedger, ledgerFileExisted)
 	if err != nil {
 		return GoBarryImportResult{}, err
@@ -530,7 +523,7 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 		if err := writeAtomicPrivate(targetPaths.ConfigFile, plannedConfig); err != nil {
 			return GoBarryImportResult{}, rollback(fmt.Errorf("save imported transfer preferences: %w", err))
 		}
-		if err := ensureGoBarryReceiptTarget(targetPaths.ConfigFile, maxGoBarryPreferencesSize, receipt.TargetConfigAfter); err != nil {
+		if err := ensureGoBarryReceiptTarget(targetPaths.ConfigFile, maxGoBarryConfigSize, receipt.TargetConfigAfter); err != nil {
 			return GoBarryImportResult{}, rollback(err)
 		}
 		result.PreferencesImported = true
@@ -569,9 +562,7 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	if err := removeGoBarryPending(targetPaths); err != nil {
 		return GoBarryImportResult{}, fmt.Errorf("migration committed but pending marker cleanup failed: %w", err)
 	}
-	service.mu.Lock()
-	service.config = newConfig
-	service.mu.Unlock()
+	service.setConfig(newConfig, HostConfigRevision(newConfig))
 	result.Imported = result.PreferencesImported || result.SessionImported
 	result.ImportedAt = &now
 	result.ReceiptID = receiptID
@@ -1066,22 +1057,14 @@ func parseAria2Size(raw string) (int64, error) {
 	return number * multiplier, nil
 }
 
-func decodeGoBarryTargetConfig(data []byte, exists bool, fallback HostConfig, resetMissing bool) (HostConfig, error) {
+func decodeGoBarryTargetConfig(data []byte, exists bool) (HostConfig, error) {
 	if !exists {
-		if resetMissing {
-			return DefaultHostConfig(), nil
-		}
-		return fallback, nil
+		return DefaultHostConfig(), nil
 	}
 	config := DefaultHostConfig()
 	config.Version = 0
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&config); err != nil {
+	if err := decodeStrictJSON(data, &config); err != nil {
 		return HostConfig{}, fmt.Errorf("decode migration target config: %w", err)
-	}
-	if err := ensureJSONEOF(decoder); err != nil {
-		return HostConfig{}, err
 	}
 	if err := ValidateHostConfig(config); err != nil {
 		return HostConfig{}, fmt.Errorf("validate migration target config: %w", err)
@@ -1090,14 +1073,11 @@ func decodeGoBarryTargetConfig(data []byte, exists bool, fallback HostConfig, re
 }
 
 func encodeGoBarryTargetConfig(config HostConfig) ([]byte, error) {
-	if err := ValidateHostConfig(config); err != nil {
-		return nil, fmt.Errorf("validate imported transfer preferences: %w", err)
-	}
-	data, err := json.MarshalIndent(config, "", "  ")
+	data, err := marshalHostConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("encode imported transfer preferences: %w", err)
 	}
-	return append(data, '\n'), nil
+	return data, nil
 }
 
 func loadGoBarryLedger(path string) (goBarryImportLedger, bool, error) {
@@ -1446,7 +1426,7 @@ func recoverPendingGoBarryMigration(paths Paths) (bool, error) {
 		before  goBarryReceiptFile
 		after   goBarryReceiptFile
 	}{
-		{paths.ConfigFile, maxGoBarryPreferencesSize, pending.TargetConfigBefore, pending.TargetConfigAfter},
+		{paths.ConfigFile, maxGoBarryConfigSize, pending.TargetConfigBefore, pending.TargetConfigAfter},
 		{paths.SessionFile, maxGoBarrySessionSize, pending.TargetSessionBefore, pending.TargetSessionAfter},
 		{ledgerPath, maxGoBarryPreferencesSize, pending.TargetLedgerBefore, pending.TargetLedgerAfter},
 	} {
@@ -1458,7 +1438,7 @@ func recoverPendingGoBarryMigration(paths Paths) (bool, error) {
 			return false, fmt.Errorf("%w: pending migration target no longer matches its before or planned state", ErrGoBarryRollbackConflict)
 		}
 	}
-	originalConfig, err := receiptBackupBytes(receiptDirectory, pending.TargetConfigBefore, maxGoBarryPreferencesSize)
+	originalConfig, err := receiptBackupBytes(receiptDirectory, pending.TargetConfigBefore, maxGoBarryConfigSize)
 	if err != nil {
 		return false, err
 	}
@@ -1544,7 +1524,7 @@ func ensureGoBarryReceiptTargets(paths Paths, receipt goBarryMigrationReceipt, a
 		maximum  int64
 		expected goBarryReceiptFile
 	}{
-		{paths.ConfigFile, maxGoBarryPreferencesSize, receipt.TargetConfigBefore},
+		{paths.ConfigFile, maxGoBarryConfigSize, receipt.TargetConfigBefore},
 		{paths.SessionFile, maxGoBarrySessionSize, receipt.TargetSessionBefore},
 		{ledgerPath, maxGoBarryPreferencesSize, receipt.TargetLedgerBefore},
 	}

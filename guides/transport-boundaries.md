@@ -15,6 +15,12 @@ and transport story.
   its outer host port is published on loopback; that mode retains loopback request Host and Origin
   checks. `-unsafe-allow-remote` is a separate, unauthenticated remote mode that requires an
   external TLS, authentication, and rate-limit boundary.
+- The Downloader host-settings mutation is a stricter direct-loopback exception: `POST /api/transfers/config`
+  accepts no forwarded-header or Host-header proxy assertion, even when `-unsafe-allow-remote` is
+  enabled. The server requires CSRF, rejects standard forwarding headers, and validates the direct
+  transport peer from a well-formed `RemoteAddr` before reading the bounded JSON body; it then
+  requires a stopped engine, the cooperative engine lock, and an expected config revision.
+  Reverse-proxy use for this endpoint is unsupported; forwarded headers never grant trust.
 - Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,
   Cap'n Proto capabilities, or HTTP status and headers into a misleading common response object.
 - Reflection, temporary browser-folder snapshots, host proto paths, and host protoset paths remain

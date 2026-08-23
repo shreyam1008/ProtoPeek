@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"strings"
 
@@ -17,6 +18,7 @@ const (
 	maxTransferBatchBodyBytes  = 1 << 20
 	maxTransferActionBodyBytes = 1 << 10
 	maxTransferImportBodyBytes = 2 << 10
+	maxTransferConfigBodyBytes = 16 << 10
 	maxConcurrentTransferOps   = 2
 )
 
@@ -32,6 +34,19 @@ type TransferService interface {
 	Retry(context.Context, string) (transfer.AddResult, error)
 	Cancel(context.Context, string) error
 	Shutdown(context.Context) error
+}
+
+// transferHostConfigService is deliberately optional so existing embedders
+// that provide only the queue contract keep compiling. The process-scoped
+// internal/transfer.Service implements this stronger host-settings contract.
+type transferHostConfigService interface {
+	ConfigureAndSavePatch(string, transfer.HostConfigPatch) (transfer.HostConfig, string, error)
+}
+
+type transferHostConfigResponse struct {
+	transfer.HostConfig
+	ConfigRevision string `json:"configRevision"`
+	Warning        string `json:"warning,omitempty"`
 }
 
 type goBarryMigrationService interface {
@@ -80,6 +95,41 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 		}
 		writeTransferJSON(writer, http.StatusOK, health)
 	})
+
+	if hostConfig, ok := service.(transferHostConfigService); ok {
+		registerTransferConfigPOST(mux, admission, "/api/transfers/config", "transfer host configuration", func(writer http.ResponseWriter, request *http.Request) {
+			var input transfer.HostConfigPatchRequest
+			if !decodeStrictTransferJSON(writer, request, maxTransferConfigBodyBytes, &input) {
+				return
+			}
+			if err := transfer.ValidateHostConfigPatch(input.HostConfigPatch); err != nil {
+				http.Error(writer, "Invalid transfer host configuration", http.StatusBadRequest)
+				return
+			}
+			if err := transfer.ValidateHostConfigRevision(input.ExpectedRevision); err != nil {
+				writeTransferError(writer, err, http.StatusBadRequest)
+				return
+			}
+			config, revision, err := hostConfig.ConfigureAndSavePatch(input.ExpectedRevision, input.HostConfigPatch)
+			if err != nil {
+				var committed *transfer.ConfigCommitError
+				if errors.As(err, &committed) {
+					writeTransferJSON(writer, http.StatusOK, transferHostConfigResponse{
+						HostConfig:     config,
+						ConfigRevision: revision,
+						Warning:        "Host settings were saved, but directory durability could not be confirmed. Reload before starting the Downloader.",
+					})
+					return
+				}
+				writeTransferError(writer, err, http.StatusInternalServerError)
+				return
+			}
+			writeTransferJSON(writer, http.StatusOK, transferHostConfigResponse{
+				HostConfig:     config,
+				ConfigRevision: revision,
+			})
+		})
+	}
 
 	registerTransferPOST(mux, admission, "/api/transfers/add", "transfer add", func(writer http.ResponseWriter, request *http.Request) {
 		var input transfer.AddRequest
@@ -264,6 +314,70 @@ func registerTransferPOST(mux *http.ServeMux, admission *admissionLimiter, route
 	})
 }
 
+// Host configuration controls executable paths, filesystem paths, and process
+// policy. It remains loopback-only even when the console's general unsafe
+// remote mode is enabled. This direct-console endpoint does not support
+// reverse proxies: forwarding headers are rejected. The peer and header checks
+// happen before admission and before the request body can be read.
+func registerTransferConfigPOST(mux *http.ServeMux, admission *admissionLimiter, route, operation string, handler http.HandlerFunc) {
+	mux.HandleFunc(route, func(writer http.ResponseWriter, request *http.Request) {
+		if !validateLoopbackAdmittedPOST(writer, request) {
+			return
+		}
+		admission.serveHTTP(operation, writer, request, handler)
+	})
+}
+
+func validateLoopbackAdmittedPOST(writer http.ResponseWriter, request *http.Request) bool {
+	if !validateAdmittedPOST(writer, request) {
+		return false
+	}
+	if hasForwardingHeaders(request) {
+		writer.Header().Set("Cache-Control", "no-store")
+		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		http.Error(writer, "Host configuration changes do not support reverse-proxy forwarding", http.StatusForbidden)
+		return false
+	}
+	if !isLoopbackPeer(request.RemoteAddr) {
+		writer.Header().Set("Cache-Control", "no-store")
+		writer.Header().Set("X-Content-Type-Options", "nosniff")
+		http.Error(writer, "Host configuration changes require a loopback browser connection", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+var hostConfigForwardingHeaders = [...]string{
+	"Forwarded",
+	"X-Forwarded-For",
+	"X-Real-IP",
+	"X-Forwarded-Host",
+	"X-Forwarded-Proto",
+}
+
+func hasForwardingHeaders(request *http.Request) bool {
+	for key := range request.Header {
+		for _, forwardingHeader := range hostConfigForwardingHeaders {
+			if strings.EqualFold(key, forwardingHeader) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isLoopbackPeer(remoteAddr string) bool {
+	remoteAddr = strings.TrimSpace(remoteAddr)
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil || host == "" {
+		return false
+	}
+	// This is intentionally derived only from the direct transport peer. No
+	// forwarded header, Host value, or unsafe-remote setting can grant trust.
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
 func requireEmptyTransferBody(writer http.ResponseWriter, request *http.Request) bool {
 	if request.ContentLength > 0 {
 		http.Error(writer, "This transfer action does not accept a request body", http.StatusBadRequest)
@@ -291,10 +405,12 @@ func decodeStrictTransferJSON(writer http.ResponseWriter, request *http.Request,
 		http.Error(writer, "Request body is too large", http.StatusRequestEntityTooLarge)
 		return false
 	}
-	request.Body = http.MaxBytesReader(writer, request.Body, maxBytes)
-	decoder := json.NewDecoder(request.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(destination); err != nil {
+	if request.Body == nil {
+		http.Error(writer, "Invalid JSON body", http.StatusBadRequest)
+		return false
+	}
+	data, err := io.ReadAll(http.MaxBytesReader(writer, request.Body, maxBytes))
+	if err != nil {
 		var limitError *http.MaxBytesError
 		if errors.As(err, &limitError) {
 			http.Error(writer, "Request body is too large", http.StatusRequestEntityTooLarge)
@@ -303,14 +419,12 @@ func decodeStrictTransferJSON(writer http.ResponseWriter, request *http.Request,
 		http.Error(writer, "Invalid JSON body", http.StatusBadRequest)
 		return false
 	}
-	var trailing any
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		var limitError *http.MaxBytesError
-		if errors.As(err, &limitError) {
-			http.Error(writer, "Request body is too large", http.StatusRequestEntityTooLarge)
+	if err := transfer.DecodeStrictJSON(data, destination); err != nil {
+		if strings.Contains(err.Error(), "multiple JSON values") || strings.Contains(err.Error(), "trailing") {
+			http.Error(writer, "Request body must contain one JSON object", http.StatusBadRequest)
 			return false
 		}
-		http.Error(writer, "Request body must contain one JSON object", http.StatusBadRequest)
+		http.Error(writer, "Invalid JSON body", http.StatusBadRequest)
 		return false
 	}
 	return true
@@ -337,6 +451,18 @@ func writeTransferError(writer http.ResponseWriter, err error, fallbackStatus in
 	case errors.Is(err, transfer.ErrInvalidAddRequest), errors.Is(err, transfer.ErrInvalidBatchRequest):
 		status = http.StatusBadRequest
 		message = "Invalid transfer request"
+	case errors.Is(err, transfer.ErrInvalidHostConfig):
+		status = http.StatusBadRequest
+		message = "Invalid transfer host configuration"
+	case errors.Is(err, transfer.ErrHostConfigRunning):
+		status = http.StatusConflict
+		message = "Stop the downloader before changing host configuration"
+	case errors.Is(err, transfer.ErrHostConfigConflict):
+		status = http.StatusConflict
+		message = "Host settings changed on this host; reload before saving"
+	case errors.Is(err, transfer.ErrHostConfigRevision):
+		status = http.StatusBadRequest
+		message = "A valid host-settings revision is required"
 	case errors.Is(err, transfer.ErrEngineNotRunning), errors.Is(err, transfer.ErrAlreadyStarting), errors.Is(err, transfer.ErrQueueFull):
 		status = http.StatusConflict
 		message = "The downloader cannot perform that operation in its current state"

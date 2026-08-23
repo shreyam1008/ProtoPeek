@@ -154,6 +154,27 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 	if _, err := os.Stat(targetPaths.ConfigFile); !os.IsNotExist(err) {
 		t.Fatalf("rollback did not restore absent config: %v", err)
 	}
+	snapshot, err := service.Snapshot(context.Background())
+	if err != nil {
+		t.Fatalf("snapshot after rollback to absent config: %v", err)
+	}
+	defaults := DefaultHostConfig()
+	if snapshot.Config != defaults || snapshot.ConfigRevision != HostConfigRevision(defaults) {
+		t.Fatalf("rollback absent snapshot = %#v revision=%q, want defaults %#v revision=%q", snapshot.Config, snapshot.ConfigRevision, defaults, HostConfigRevision(defaults))
+	}
+	startService, control, _ := newServiceForPaths(t, defaults, targetPaths, &fakeEngine{})
+	launcher := startService.launcher.(*fakeLauncher)
+	if _, err := startService.Start(context.Background()); err != nil {
+		t.Fatalf("start after rollback to absent config: %v", err)
+	}
+	control.exit(nil)
+	_ = startService.Shutdown(context.Background())
+	launcher.mu.Lock()
+	launched := launcher.lastConfig
+	launcher.mu.Unlock()
+	if launched != defaults {
+		t.Fatalf("start after rollback used stale config = %#v, want defaults %#v", launched, defaults)
+	}
 	if string(mustReadMigrationFile(t, targetPaths.SessionFile)) != "https://example.com/one.zip\n out=one.zip\n" {
 		t.Fatalf("rollback did not restore original session: %q", mustReadMigrationFile(t, targetPaths.SessionFile))
 	}
@@ -341,6 +362,9 @@ func TestGoBarrySessionMergeEnforcesEffectiveAndHardEntryLimits(t *testing.T) {
 	if err := service.Configure(config); err != nil {
 		t.Fatal(err)
 	}
+	if err := NewConfigStore(targetPaths.ConfigFile).Save(config); err != nil {
+		t.Fatal(err)
+	}
 	_, err = service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
@@ -373,6 +397,9 @@ func TestGoBarrySessionMergeRefusesOversizedCombinedTargetAtomically(t *testing.
 	config.MaxQueuedJobs = maxGoBarrySessionEntries
 	config.MaxTrackedJobs = maxGoBarrySessionEntries
 	if err := service.Configure(config); err != nil {
+		t.Fatal(err)
+	}
+	if err := NewConfigStore(targetPaths.ConfigFile).Save(config); err != nil {
 		t.Fatal(err)
 	}
 	_, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
@@ -424,6 +451,45 @@ func TestGoBarryImportReloadsCanonicalDiskConfigUnderMigrationLock(t *testing.T)
 		t.Fatal("canonical-config refusal changed target session")
 	}
 	assertGoBarryImportCreatedNoState(t, targetPaths)
+}
+
+func TestGoBarryImportUsesDefaultsAfterExternalConfigDeletion(t *testing.T) {
+	root := t.TempDir()
+	sourcePaths := GoBarryPaths{
+		PreferencesFile: filepath.Join(root, "gobarrygo", "preferences.json"),
+		SessionFile:     filepath.Join(root, "gobarrygo", "session.aria2"),
+	}
+	targetPaths := migrationTestPaths(filepath.Join(root, "protopeek"))
+	service := newMigrationTestService(t, targetPaths)
+	custom := DefaultHostConfig()
+	custom.UserAgent = "stale-process-config"
+	if err := NewConfigStore(targetPaths.ConfigFile).Save(custom); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Snapshot(context.Background()); err != nil {
+		t.Fatalf("load custom config: %v", err)
+	}
+	if err := os.Remove(targetPaths.ConfigFile); err != nil {
+		t.Fatalf("external config deletion: %v", err)
+	}
+	writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/from-gobarry.zip\n out=from-gobarry.zip\n")
+	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+		ImportSession:              true,
+		AcknowledgeSourcePreserved: true,
+	})
+	if err != nil {
+		t.Fatalf("import after external deletion: %v", err)
+	}
+	if !result.Imported || !result.SessionImported {
+		t.Fatalf("import result after external deletion: %#v", result)
+	}
+	defaults := DefaultHostConfig()
+	service.mu.RLock()
+	active, revision := service.config, service.configRevision
+	service.mu.RUnlock()
+	if active != defaults || revision != HostConfigRevision(defaults) {
+		t.Fatalf("import reused stale config after deletion = %#v revision=%q, want defaults %#v revision=%q", active, revision, defaults, HostConfigRevision(defaults))
+	}
 }
 
 func TestGoBarryPendingJournalRecoversAtomicCrashPoints(t *testing.T) {
@@ -597,6 +663,39 @@ func TestGoBarryLedgerAndReceiptRejectTrailingJSON(t *testing.T) {
 	writeMigrationFixture(t, filepath.Join(receiptDirectory, "receipt.json"), string(append(receiptBytes, []byte(" \n\t")...)))
 	if _, err := loadGoBarryReceipt(receiptDirectory, receiptID); err != nil {
 		t.Fatalf("receipt with trailing whitespace: %v", err)
+	}
+}
+
+func TestGoBarryTargetConfigRejectsExactDuplicateJSONFields(t *testing.T) {
+	data, err := marshalHostConfig(DefaultHostConfig())
+	if err != nil {
+		t.Fatalf("marshal default config: %v", err)
+	}
+	if _, err := decodeGoBarryTargetConfig(data, true); err != nil {
+		t.Fatalf("valid target config: %v", err)
+	}
+	needle := fmt.Sprintf("\"maxActiveJobs\": %d,", DefaultHostConfig().MaxActiveJobs)
+	duplicate := strings.Replace(string(data), needle, needle+" \"maxActiveJobs\": 5,", 1)
+	if duplicate == string(data) {
+		t.Fatal("test fixture did not contain maxActiveJobs")
+	}
+	if _, err := decodeGoBarryTargetConfig([]byte(duplicate), true); err == nil {
+		t.Fatal("GoBarry target config accepted an exact duplicate field")
+	}
+}
+
+func TestGoBarryTargetConfigRejectsCaseFoldDuplicateJSONFields(t *testing.T) {
+	data, err := marshalHostConfig(DefaultHostConfig())
+	if err != nil {
+		t.Fatalf("marshal default config: %v", err)
+	}
+	needle := fmt.Sprintf("\"maxActiveJobs\": %d,", DefaultHostConfig().MaxActiveJobs)
+	duplicate := strings.Replace(string(data), needle, needle+" \"MaxActiveJobs\": 5,", 1)
+	if duplicate == string(data) {
+		t.Fatal("test fixture did not contain maxActiveJobs")
+	}
+	if _, err := decodeGoBarryTargetConfig([]byte(duplicate), true); err == nil {
+		t.Fatal("GoBarry target config accepted a case-fold duplicate field")
 	}
 }
 

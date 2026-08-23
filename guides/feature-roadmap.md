@@ -144,6 +144,16 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 ### Available in current source after v0.5.0
 
+- The Downloader Settings card (unreleased post-v0.5.0 source) reads the
+  existing transfer snapshot and exposes only supported host controls: the
+  aria2 executable/path, download directory, active jobs, per-host
+  connections, bandwidth cap, disk reserve, resume behavior, file allocation,
+  overwrite policy, and TLS verification. A strict flat JSON patch at
+  `/api/transfers/config` carries a deterministic config revision, preserves
+  hidden config fields, requires CSRF and a direct loopback peer, and refuses
+  writes unless the engine is stopped and the cooperative process lock is
+  held. Browser localStorage remains limited to appearance/preferences; host
+  settings stay in the private transfer config.
 - A successful one-HEAD website observation now gains a deterministic local evidence report for
   HTTPS/TLS certificate validity, selected response headers, frame-embedding controls, Server
   disclosure, and retained redirect/HTTPS-upgrade evidence. The analyzer makes no additional
@@ -392,7 +402,10 @@ are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; 
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
 36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; suite shell pages CSS 12 KiB / 3 KiB; Settings CSS
-8 KiB / 2 KiB; all JavaScript 768 KiB / 240 KiB; and all CSS 224 KiB / 42 KiB. Single-chunk rules
+12 KiB / 3 KiB (current 10.80 KiB / 1.92 KiB gzip baseline, with explicit headroom for the
+unreleased host-settings card); all JavaScript 768 KiB / 240 KiB; and all CSS 236 KiB / 44 KiB
+(current 226.37 KiB / 40.82 KiB gzip after the same unreleased card, with explicit aggregate
+headroom). Single-chunk rules
 fail on a missing or duplicate match, and aggregate rules keep growth visible across lazy boundaries.
 These are regression ceilings for the current unified suite, not target payload sizes; individual
 route budgets preserve the lighter v0.3 architecture.

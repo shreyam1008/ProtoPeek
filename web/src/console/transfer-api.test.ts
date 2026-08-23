@@ -12,6 +12,7 @@ import {
   normalizeTransferSnapshot,
   previewGoBarryMigration,
   rollbackGoBarryState,
+  saveTransferHostConfig,
 } from './transfer-api';
 
 afterEach(() => {
@@ -67,6 +68,56 @@ describe('transfer API', () => {
     expect(init.credentials).toBe('same-origin');
     expect(init.method).toBe('GET');
     expect(new Headers(init.headers).has('x-protopeek-csrf-token')).toBe(false);
+  });
+
+  it('saves an allowlisted host patch with JSON, revision, and CSRF protection', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=host-token; path=/';
+    const config = {
+      version: 1,
+      aria2Path: '/usr/bin/aria2c',
+      downloadDirectory: '/downloads',
+      maxActiveJobs: 4,
+      maxQueuedJobs: 128,
+      maxTrackedJobs: 512,
+      maxConnectionsPerHost: 8,
+      split: 8,
+      minSplitSizeBytes: 1 << 20,
+      maxDownloadBytesPerSecond: 0,
+      minimumFreeDiskBytes: 512 << 20,
+      continuePartialDownloads: true,
+      alwaysResume: true,
+      fileAllocation: 'prealloc',
+      autoRenameConflictingFiles: true,
+      allowOverwriteExistingFiles: false,
+      allowInsecureTls: false,
+      userAgent: 'ProtoPeek',
+    };
+    const revision = 'a'.repeat(64);
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      Response.json({ ...config, configRevision: 'b'.repeat(64) })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      saveTransferHostConfig(revision, { maxActiveJobs: 6, maxDownloadBytesPerSecond: 123456 })
+    ).resolves.toMatchObject({
+      ...config,
+      configRevision: 'b'.repeat(64),
+      warning: '',
+    });
+
+    const [input, init] = fetchMock.mock.calls[0] ?? [];
+    expect(new URL(String(input)).pathname).toMatch(/\/api\/transfers\/config$/);
+    expect(init?.method).toBe('POST');
+    expect(init?.credentials).toBe('same-origin');
+    expect(new Headers(init?.headers).get('content-type')).toBe('application/json');
+    expect(new Headers(init?.headers).get('x-protopeek-csrf-token')).toBe('host-token');
+    expect(JSON.parse(String(init?.body))).toEqual({
+      expectedRevision: revision,
+      maxActiveJobs: 6,
+      maxDownloadBytesPerSecond: 123456,
+    });
   });
 
   it('sends optional output and checksum values only after an explicit add', async () => {

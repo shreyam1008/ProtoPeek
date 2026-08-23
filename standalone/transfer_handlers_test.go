@@ -2,6 +2,7 @@ package standalone
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,21 +18,25 @@ import (
 type fakeTransferService struct {
 	mu sync.Mutex
 
-	snapshot    transfer.Snapshot
-	snapshotErr error
-	startHealth transfer.Health
-	startErr    error
-	addResult   transfer.AddResult
-	addErr      error
-	batchResult transfer.BatchAddResult
-	batchErr    error
-	retryResult transfer.AddResult
-	actionErr   error
+	snapshot           transfer.Snapshot
+	snapshotErr        error
+	startHealth        transfer.Health
+	startErr           error
+	hostConfig         transfer.HostConfig
+	hostConfigErr      error
+	hostConfigRevision string
+	addResult          transfer.AddResult
+	addErr             error
+	batchResult        transfer.BatchAddResult
+	batchErr           error
+	retryResult        transfer.AddResult
+	actionErr          error
 
-	calls     []string
-	lastAdd   transfer.AddRequest
-	lastBatch transfer.BatchAddRequest
-	lastID    string
+	calls          []string
+	lastAdd        transfer.AddRequest
+	lastBatch      transfer.BatchAddRequest
+	lastID         string
+	lastHostConfig transfer.HostConfig
 }
 
 type fakeGoBarryMigrationService struct {
@@ -77,6 +82,12 @@ func (service *fakeTransferService) Snapshot(context.Context) (transfer.Snapshot
 func (service *fakeTransferService) Start(context.Context) (transfer.Health, error) {
 	service.record("start")
 	return service.startHealth, service.startErr
+}
+
+func (service *fakeTransferService) ConfigureAndSavePatch(_ string, patch transfer.HostConfigPatch) (transfer.HostConfig, string, error) {
+	service.record("configure")
+	service.lastHostConfig = patch.Apply(service.hostConfig)
+	return service.lastHostConfig, service.hostConfigRevision, service.hostConfigErr
 }
 
 func (service *fakeTransferService) Add(_ context.Context, request transfer.AddRequest) (transfer.AddResult, error) {
@@ -216,6 +227,200 @@ func TestTransferStartAndActions(t *testing.T) {
 	}
 	if service.lastAdd.Sources[0] != "https://example.com/archive.zip" || service.lastID != "aabbccdd" {
 		t.Fatalf("last add=%#v last id=%q", service.lastAdd, service.lastID)
+	}
+}
+
+func TestTransferHostConfigMutationIsStrictBoundedAndValidated(t *testing.T) {
+	t.Parallel()
+	config := transfer.DefaultHostConfig()
+	config.DownloadDirectory = t.TempDir()
+	revision := transfer.HostConfigRevision(config)
+	service := &fakeTransferService{hostConfig: config, hostConfigRevision: revision}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+
+	validBody := `{"expectedRevision":"` + revision + `","maxActiveJobs":6}`
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", strings.NewReader(validBody))
+	request.RemoteAddr = "127.0.0.1:43123"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "downloadDirectory") {
+		t.Fatalf("valid config = %d %q", response.Code, response.Body.String())
+	}
+	wantConfig := config
+	wantConfig.MaxActiveJobs = 6
+	if service.lastHostConfig != wantConfig {
+		t.Fatalf("saved config = %#v, want %#v", service.lastHostConfig, wantConfig)
+	}
+
+	tests := []struct {
+		name        string
+		contentType string
+		body        string
+		wantStatus  int
+	}{
+		{name: "unknown field", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","future":true}`, wantStatus: http.StatusBadRequest},
+		{name: "duplicate field", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","maxActiveJobs":5,"maxActiveJobs":6}`, wantStatus: http.StatusBadRequest},
+		{name: "case-fold duplicate field", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","maxActiveJobs":5,"MaxActiveJobs":6}`, wantStatus: http.StatusBadRequest},
+		{name: "null field", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","maxActiveJobs":null}`, wantStatus: http.StatusBadRequest},
+		{name: "trailing value", contentType: "application/json", body: `{"expectedRevision":"` + revision + `"} {}`, wantStatus: http.StatusBadRequest},
+		{name: "malformed json", contentType: "application/json", body: `{"expectedRevision":"` + revision + `"`, wantStatus: http.StatusBadRequest},
+		{name: "invalid revision", contentType: "application/json", body: `{"expectedRevision":"stale","maxActiveJobs":6}`, wantStatus: http.StatusBadRequest},
+		{name: "wrong content type", contentType: "text/plain", body: validBody, wantStatus: http.StatusUnsupportedMediaType},
+		{name: "oversized", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","aria2Path":"` + strings.Repeat("x", maxTransferConfigBodyBytes) + `"}`, wantStatus: http.StatusRequestEntityTooLarge},
+		{name: "invalid config", contentType: "application/json", body: `{"expectedRevision":"` + revision + `","maxActiveJobs":17}`, wantStatus: http.StatusBadRequest},
+	}
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", strings.NewReader(test.body))
+			request.RemoteAddr = "127.0.0.1:43123"
+			request.Header.Set("Content-Type", test.contentType)
+			request.Header.Set(csrfHeaderName, cookie.Value)
+			request.AddCookie(cookie)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != test.wantStatus {
+				t.Fatalf("status = %d body=%q, want %d", response.Code, response.Body.String(), test.wantStatus)
+			}
+		})
+	}
+	service.mu.Lock()
+	configureCalls := 0
+	for _, call := range service.calls {
+		if call == "configure" {
+			configureCalls++
+		}
+	}
+	service.mu.Unlock()
+	if configureCalls != 1 {
+		t.Fatalf("configure calls = %d, want only the valid request", configureCalls)
+	}
+}
+
+func TestTransferHostConfigMutationChecksCSRFAndLoopbackBeforeBody(t *testing.T) {
+	t.Parallel()
+	service := &fakeTransferService{}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+
+	missingCSRFBody := &failOnReadBody{}
+	missingCSRF := httptest.NewRequest(http.MethodPost, "/api/transfers/config", missingCSRFBody)
+	missingCSRF.RemoteAddr = "203.0.113.4:1234"
+	missingCSRF.Header.Set("Content-Type", "application/json")
+	missingCSRFResponse := httptest.NewRecorder()
+	handler.ServeHTTP(missingCSRFResponse, missingCSRF)
+	if missingCSRFResponse.Code != http.StatusUnauthorized || missingCSRFBody.read {
+		t.Fatalf("missing CSRF = %d reads=%v body=%q", missingCSRFResponse.Code, missingCSRFBody.read, missingCSRFResponse.Body.String())
+	}
+
+	remoteBody := &failOnReadBody{}
+	remote := httptest.NewRequest(http.MethodPost, "/api/transfers/config", remoteBody)
+	remote.RemoteAddr = "203.0.113.4:1234"
+	remote.Header.Set("Content-Type", "application/json")
+	remote.Header.Set(csrfHeaderName, cookie.Value)
+	remote.AddCookie(cookie)
+	remoteResponse := httptest.NewRecorder()
+	handler.ServeHTTP(remoteResponse, remote)
+	if remoteResponse.Code != http.StatusForbidden || remoteBody.read {
+		t.Fatalf("remote peer = %d reads=%v body=%q", remoteResponse.Code, remoteBody.read, remoteResponse.Body.String())
+	}
+
+	for _, remoteAddr := range []string{"127.0.0.1", "[::1]", "not-a-remote-address"} {
+		body := &failOnReadBody{}
+		request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", body)
+		request.RemoteAddr = remoteAddr
+		request.Header.Set("X-Forwarded-For", "127.0.0.1")
+		request.Header.Set("X-Forwarded-Host", "localhost")
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		request.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusForbidden || body.read {
+			t.Fatalf("malformed/direct peer %q = %d reads=%v body=%q", remoteAddr, response.Code, body.read, response.Body.String())
+		}
+	}
+
+	for _, header := range []string{"Forwarded", "X-Forwarded-For", "X-Real-IP", "X-Forwarded-Host", "X-Forwarded-Proto"} {
+		body := &failOnReadBody{}
+		request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", body)
+		request.RemoteAddr = "127.0.0.1:43123"
+		request.Header.Set(header, "127.0.0.1")
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		request.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusForbidden || body.read {
+			t.Fatalf("forwarding header %q = %d reads=%v body=%q", header, response.Code, body.read, response.Body.String())
+		}
+	}
+}
+
+func TestTransferHostConfigMutationMapsHeldLockTruthfully(t *testing.T) {
+	t.Parallel()
+	config := transfer.DefaultHostConfig()
+	config.DownloadDirectory = t.TempDir()
+	service := &fakeTransferService{hostConfigErr: transfer.ErrLockHeld}
+	service.hostConfig = config
+	service.hostConfigRevision = transfer.HostConfigRevision(config)
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	body := `{"expectedRevision":"` + service.hostConfigRevision + `","maxActiveJobs":6}`
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", strings.NewReader(body))
+	request.RemoteAddr = "127.0.0.1:43123"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusLocked {
+		t.Fatalf("held-lock status = %d body=%q, want %d", response.Code, response.Body.String(), http.StatusLocked)
+	}
+	if !strings.Contains(response.Body.String(), "Another ProtoPeek process already owns the downloader") {
+		t.Fatalf("held-lock body = %q", response.Body.String())
+	}
+}
+
+func TestTransferHostConfigMutationReturnsCommittedDurabilityWarning(t *testing.T) {
+	t.Parallel()
+	config := transfer.DefaultHostConfig()
+	config.DownloadDirectory = t.TempDir()
+	revision := transfer.HostConfigRevision(config)
+	updated := config
+	updated.MaxActiveJobs = 6
+	service := &fakeTransferService{
+		hostConfig:         config,
+		hostConfigRevision: transfer.HostConfigRevision(updated),
+		hostConfigErr:      transfer.NewConfigCommitError(errors.New("directory sync unavailable")),
+	}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	body := `{"expectedRevision":"` + revision + `","maxActiveJobs":6}`
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/config", strings.NewReader(body))
+	request.RemoteAddr = "127.0.0.1:43123"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("committed durability response = %d body=%q", response.Code, response.Body.String())
+	}
+	var decoded struct {
+		transfer.HostConfig
+		ConfigRevision string `json:"configRevision"`
+		Warning        string `json:"warning"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &decoded); err != nil {
+		t.Fatalf("decode committed durability response: %v", err)
+	}
+	if decoded.MaxActiveJobs != 6 || decoded.ConfigRevision != transfer.HostConfigRevision(updated) || decoded.Warning == "" {
+		t.Fatalf("committed durability response = %#v", decoded)
 	}
 }
 

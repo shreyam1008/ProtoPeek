@@ -116,8 +116,11 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'Settings workspace CSS',
     pattern: /^Settings-.+\.css$/,
-    maxRawBytes: 8 * kibibyte,
-    maxGzipBytes: 2 * kibibyte,
+    // The host-settings card is intentionally route-lazy. Its current
+    // measured baseline is 10.80 KiB / 1.92 KiB gzip; keep a small explicit
+    // headroom allowance for accessible control copy without hiding growth.
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
   },
   // Downloader and Security are route-lazy: neither is transferred when the
   // dashboard or a protocol workbench opens. Keep their own budgets tight,
@@ -135,10 +138,11 @@ export const consoleBundleBudgets: BundleBudget[] = [
     pattern: /\.css$/,
     mode: 'aggregate',
     // The stable shared stylesheet remains independently capped above; the
-    // aggregate includes every route-lazy feature stylesheet and keeps a
-    // deliberately tight regression ceiling above the current measured suite.
-    maxRawBytes: 224 * kibibyte,
-    maxGzipBytes: 42 * kibibyte,
+    // aggregate includes every route-lazy feature stylesheet. The Settings
+    // host-controls card moved the measured suite baseline to 231,799 raw /
+    // 41,796 gzip bytes, so keep a small explicit post-slice headroom budget.
+    maxRawBytes: 236 * kibibyte,
+    maxGzipBytes: 44 * kibibyte,
   },
 ];
 

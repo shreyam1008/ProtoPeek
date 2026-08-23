@@ -16,6 +16,10 @@ import (
 var (
 	ErrAlreadyStarting        = errors.New("transfer engine is already starting")
 	ErrEngineNotRunning       = errors.New("transfer engine is not running; start it explicitly first")
+	ErrInvalidHostConfig      = errors.New("invalid transfer host configuration")
+	ErrHostConfigRunning      = errors.New("stop the transfer engine before changing host configuration")
+	ErrHostConfigConflict     = errors.New("transfer host configuration changed; reload before saving")
+	ErrHostConfigRevision     = errors.New("transfer host configuration revision is invalid")
 	ErrInvalidAddRequest      = errors.New("invalid transfer add request")
 	ErrQueueFull              = errors.New("transfer queue limit reached")
 	ErrInsufficientDisk       = errors.New("download directory is below the configured free-space reserve")
@@ -28,11 +32,13 @@ type Service struct {
 	queueMu     sync.Mutex
 	mu          sync.RWMutex
 
-	config   HostConfig
-	paths    Paths
-	launcher Launcher
-	locker   Locker
-	now      func() time.Time
+	config         HostConfig
+	configRevision string
+	paths          Paths
+	configStore    *ConfigStore
+	launcher       Launcher
+	locker         Locker
+	now            func() time.Time
 
 	starting      bool
 	stopping      bool
@@ -61,11 +67,13 @@ func NewServiceWithDependencies(config HostConfig, paths Paths, launcher Launche
 		return nil, errors.New("transfer locker is required")
 	}
 	return &Service{
-		config:   config,
-		paths:    paths,
-		launcher: launcher,
-		locker:   locker,
-		now:      time.Now,
+		config:         config,
+		configRevision: HostConfigRevision(config),
+		paths:          paths,
+		configStore:    NewConfigStore(paths.ConfigFile),
+		launcher:       launcher,
+		locker:         locker,
+		now:            time.Now,
 		health: Health{
 			Status:  "stopped",
 			Message: "Downloader is stopped. Start it when you need it.",
@@ -75,21 +83,112 @@ func NewServiceWithDependencies(config HostConfig, paths Paths, launcher Launche
 	}, nil
 }
 
-// Configure replaces host-owned settings only while the engine is stopped.
-// Persisting the config remains an explicit ConfigStore.Save operation.
+// Configure updates the process-local config for migration setup and tests.
+// Browser host-settings writes must use ConfigureAndSavePatch so they retain
+// hidden fields and participate in revision/lock checks.
 func (service *Service) Configure(config HostConfig) error {
 	if err := ValidateHostConfig(config); err != nil {
 		return err
 	}
 	service.operationMu.Lock()
 	defer service.operationMu.Unlock()
-
 	service.mu.Lock()
 	defer service.mu.Unlock()
-	if service.starting || service.runtime != nil {
-		return errors.New("stop the transfer engine before changing host configuration")
+	if service.starting || service.stopping || service.runtime != nil {
+		return ErrHostConfigRunning
 	}
 	service.config = config
+	service.configRevision = HostConfigRevision(config)
+	return nil
+}
+
+// ConfigureAndSavePatch applies only the allowlisted browser host settings.
+// The current config is reloaded while holding the cross-process engine lock,
+// then compared with expectedRevision before any write. Unsupported fields
+// therefore survive another process's patch and stale browser drafts cannot
+// overwrite newer disk state.
+func (service *Service) ConfigureAndSavePatch(expectedRevision string, patch HostConfigPatch) (HostConfig, string, error) {
+	if err := ValidateHostConfigPatch(patch); err != nil {
+		return HostConfig{}, "", fmt.Errorf("%w: %v", ErrInvalidHostConfig, err)
+	}
+	if err := ValidateHostConfigRevision(expectedRevision); err != nil {
+		return HostConfig{}, "", err
+	}
+
+	service.operationMu.Lock()
+	defer service.operationMu.Unlock()
+
+	service.mu.RLock()
+	running := service.starting || service.stopping || service.runtime != nil
+	store := service.configStore
+	paths := service.paths
+	service.mu.RUnlock()
+	if running {
+		return HostConfig{}, "", ErrHostConfigRunning
+	}
+	lease, err := service.locker.TryLock(paths.LockFile)
+	if err != nil {
+		return HostConfig{}, "", fmt.Errorf("acquire transfer config lock: %w", err)
+	}
+	if lease == nil {
+		return HostConfig{}, "", errors.New("acquire transfer config lock: locker returned no lease")
+	}
+	defer func() { _ = lease.Release() }()
+	if store == nil {
+		store = NewConfigStore(paths.ConfigFile)
+	}
+	current, _, currentRevision, err := store.LoadWithRevision()
+	if err != nil {
+		return HostConfig{}, "", fmt.Errorf("reload transfer config: %w", err)
+	}
+	if currentRevision != expectedRevision {
+		return HostConfig{}, currentRevision, fmt.Errorf("%w: expected %s, found %s", ErrHostConfigConflict, expectedRevision, currentRevision)
+	}
+	updated := patch.Apply(current)
+	if err := ValidateHostConfig(updated); err != nil {
+		return HostConfig{}, currentRevision, fmt.Errorf("%w: %v", ErrInvalidHostConfig, err)
+	}
+	if patch.Empty() {
+		service.setConfig(updated, currentRevision)
+		return updated, currentRevision, nil
+	}
+	if err := store.Save(updated); err != nil {
+		var committed *ConfigCommitError
+		if errors.As(err, &committed) {
+			newRevision := HostConfigRevision(updated)
+			service.setConfig(updated, newRevision)
+			return updated, newRevision, fmt.Errorf("save transfer config: %w", err)
+		}
+		return HostConfig{}, currentRevision, fmt.Errorf("save transfer config: %w", err)
+	}
+	newRevision := HostConfigRevision(updated)
+	service.setConfig(updated, newRevision)
+	return updated, newRevision, nil
+}
+
+func (service *Service) setConfig(config HostConfig, revision string) {
+	service.mu.Lock()
+	service.config = config
+	service.configRevision = revision
+	service.mu.Unlock()
+}
+
+func validHostConfigRevision(revision string) bool {
+	if len(revision) != 64 {
+		return false
+	}
+	var digest [32]byte
+	_, err := hex.Decode(digest[:], []byte(revision))
+	return err == nil
+}
+
+// ValidateHostConfigRevision keeps malformed optimistic-concurrency tokens
+// outside the service dependency boundary and gives HTTP callers a stable
+// client error before any lock or config-file work begins.
+func ValidateHostConfigRevision(revision string) error {
+	if !validHostConfigRevision(revision) {
+		return ErrHostConfigRevision
+	}
 	return nil
 }
 
@@ -97,20 +196,56 @@ func (service *Service) Configure(config HostConfig) error {
 // it also reconciles private retry metadata so credentials are not retained
 // after a transfer completes successfully.
 func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
+	// A stopped snapshot reloads the disk-authoritative config. Serialize the
+	// read-and-publish transaction with patches, starts, shutdown, and GoBarry
+	// migration so a slower disk read cannot overwrite a newer same-process
+	// config. The operationMu -> queueMu order matches migration and shutdown.
+	service.operationMu.Lock()
+	defer service.operationMu.Unlock()
 	service.queueMu.Lock()
 	defer service.queueMu.Unlock()
 
 	service.mu.RLock()
 	runtime := service.runtime
+	starting := service.starting
+	stopping := service.stopping
 	config := service.config
+	configRevision := service.configRevision
+	store := service.configStore
 	health := service.health
 	service.mu.RUnlock()
+	if runtime == nil && !starting && !stopping && store != nil {
+		// A stopped process is observational but must not present a stale
+		// in-memory revision after another ProtoPeek process saves settings.
+		// ConfigStore.LoadWithRevision only reads; it never creates defaults or
+		// starts the engine.
+		diskConfig, _, diskRevision, loadErr := store.LoadWithRevision()
+		if loadErr != nil {
+			snapshot := Snapshot{
+				ObservedAt:     service.now().UTC(),
+				Health:         Health{Status: "unavailable", Message: "Saved transfer host settings could not be loaded safely."},
+				Config:         config,
+				ConfigRevision: configRevision,
+				Jobs:           []Job{},
+			}
+			return snapshot, loadErr
+		}
+		service.mu.Lock()
+		if service.runtime == nil && !service.starting && !service.stopping {
+			service.config = diskConfig
+			service.configRevision = diskRevision
+			config = diskConfig
+			configRevision = diskRevision
+		}
+		service.mu.Unlock()
+	}
 
 	snapshot := Snapshot{
-		ObservedAt: service.now().UTC(),
-		Health:     health,
-		Config:     config,
-		Jobs:       []Job{},
+		ObservedAt:     service.now().UTC(),
+		Health:         health,
+		Config:         config,
+		ConfigRevision: configRevision,
+		Jobs:           []Job{},
 	}
 	if runtime == nil {
 		return snapshot, nil
@@ -183,8 +318,8 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		service.mu.Unlock()
 		return Health{}, ErrAlreadyStarting
 	}
-	config := service.config
 	paths := service.paths
+	store := service.configStore
 	service.starting = true
 	service.health = Health{Status: "starting", Message: "Starting the configured aria2c engine."}
 	service.mu.Unlock()
@@ -211,6 +346,20 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		}
 		return fail(status, message, err)
 	}
+	if lease == nil {
+		return fail("failed", "Could not acquire the transfer engine lock.", errors.New("transfer locker returned no lease"))
+	}
+	if store == nil {
+		store = NewConfigStore(paths.ConfigFile)
+	}
+	config, _, configRevision, err := store.LoadWithRevision()
+	if err != nil {
+		_ = lease.Release()
+		return fail("failed", "Saved transfer host settings could not be loaded safely.", err)
+	}
+	// The lock covers this reload and the subsequent launch. A second process
+	// cannot replace the config between the disk read and aria2 startup.
+	service.setConfig(config, configRevision)
 	restoredChecksums, err := loadVerificationState(paths.VerificationFile, config.MaxTrackedJobs)
 	if err != nil {
 		_ = lease.Release()
