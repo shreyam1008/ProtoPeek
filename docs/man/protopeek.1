@@ -1,4 +1,4 @@
-.TH PROTOPEEK 1 "August 2026" "ProtoPeek current source" "User Commands"
+.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.5.0" "User Commands"
 .SH NAME
 protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .SH SYNOPSIS
@@ -26,8 +26,8 @@ ProtoPeek starts an unauthenticated local web workbench. With no target it opens
 the Protocol Peek dashboard. An exact host:port connects directly to that gRPC
 target. A bare host opens the dashboard's visible scan and checks only port
 50051 with plaintext and port 443 with verified TLS. An HTTP(S) authority checks
-its stated or default port. The gRPC, HTTP, route, scan, and roadmap surfaces are
-available from the local browser interface.
+its stated or default port. Overview, Protocols, Network, Downloader, Security,
+and Settings are the six primary local browser areas.
 .PP
 The listener binds to 127.0.0.1 by default. Do not expose it to an untrusted
 network. For a container published only on host loopback,
@@ -113,11 +113,12 @@ Enable or disable automatic browser opening.
 Permit a non-loopback browser listener and accept non-loopback browser Hosts.
 The listener has no built-in user authentication; use only behind an explicit
 TLS, authentication, and rate-limit boundary.
-.SH DEVELOPMENT DOWNLOAD COMMAND
+.SH DOWNLOADER COMMAND
 The
 .B download
-subcommand is implemented in the current development source. It is unreleased
-and is not included in stable v0.4.0 archives or package-manager installs.
+subcommand ships in ProtoPeek v0.5.0. Homebrew and Scoop remain at v0.4.0 until
+their separate dependency-aware package updates pass, so those package-manager
+installs do not provide this command yet.
 .PP
 It accepts exactly one absolute HTTP(S) URL without user information and uses
 an explicitly configured or system-installed
@@ -141,13 +142,12 @@ Progress is written to standard error and only the completed output path is
 written to standard output. Interrupting the command returns status 130 and
 preserves partial data plus the aria2 session for later resumption. Shutdown is
 bounded to five seconds.
-.SH DEVELOPMENT GOBARRYGO MIGRATION COMMAND
+.SH GOBARRYGO MIGRATION COMMAND
 The
 .B migrate-gobarry
-subcommand is implemented in current development source and is not included in
-stable v0.4.0. With no mutation flag it performs an observational preview of
-the one known GoBarryGo local profile. It does not accept an arbitrary source
-path, start aria2, or write either product's state.
+subcommand ships in ProtoPeek v0.5.0. With no mutation flag it performs an
+observational preview of the one known GoBarryGo local profile. It does not
+accept an arbitrary source path, start aria2, or write either product's state.
 .TP
 .B --apply
 Copy the selected compatible preferences and resumable aria2 session into
@@ -189,10 +189,10 @@ Connect to a plaintext local gRPC server:
 Start without opening a browser:
 .B protopeek \-open-browser=false
 .TP
-Current development source only: download one file with checksum evidence:
+Download one file with checksum evidence:
 .B protopeek download --output artifact.bin --sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef https://example.test/artifact.bin
 .TP
-Current development source only: preview the GoBarryGo bridge without writing:
+Preview the GoBarryGo bridge without writing:
 .B protopeek migrate-gobarry
 .TP
 Copy compatible preferences and session after reviewing the preview:

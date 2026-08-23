@@ -1,4 +1,4 @@
-.TH PP 1 "August 2026" "ProtoPeek current source" "User Commands"
+.TH PP 1 "August 2026" "ProtoPeek 0.5.0" "User Commands"
 .SH NAME
 pp \- short executable name for ProtoPeek
 .SH SYNOPSIS
@@ -24,8 +24,8 @@ is an identical executable entrypoint for
 .BR protopeek .
 Use the canonical name if another installed program already owns
 .BR pp .
-.SH DEVELOPMENT DOWNLOAD COMMAND
-The current development source, but not stable v0.4.0, adds
+.SH DOWNLOADER COMMAND
+ProtoPeek v0.5.0 ships
 .BR "pp download" .
 It accepts exactly one absolute HTTP(S) URL without user information, an
 optional safe output filename with no directory components, and an optional
@@ -33,14 +33,18 @@ exact 64-hexadecimal-character SHA-256 digest. It uses a configured or system
 .BR aria2c ;
 aria2 is not bundled.
 .PP
+Homebrew and Scoop remain at v0.4.0 until their separate dependency-aware
+package updates pass, so those package-manager installs do not provide the
+v0.5.0 Downloader or migration commands yet.
+.PP
 The one-shot command owns its local engine session instead of attaching to an
 already-running ProtoPeek process. It writes progress to standard error and the
 completed path to standard output. An interrupt returns status 130 and
 preserves partial data plus the aria2 session. See
 .BR protopeek (1)
 for the complete lifecycle and flag constraints.
-.SH DEVELOPMENT GOBARRYGO MIGRATION COMMAND
-The current development source, but not stable v0.4.0, also adds
+.SH GOBARRYGO MIGRATION COMMAND
+ProtoPeek v0.5.0 also ships
 .BR "pp migrate-gobarry" .
 With no mutation flag it only previews the bounded, known GoBarryGo local
 profile. Use

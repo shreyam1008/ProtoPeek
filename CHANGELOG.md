@@ -5,7 +5,9 @@ version source of truth.
 
 ## Unreleased
 
-- Unified the development console around six primary areas—Overview, Protocols, Network,
+## v0.5.0 — 2026-08-24
+
+- Unified the console around six primary areas—Overview, Protocols, Network,
   Downloader, Security, and Settings—with canonical hash routes, compatibility redirects, a
   responsive keyboard-accessible shell, and browser-local appearance preferences.
 - Added an explicit local Downloader backed only by a configured or system-installed `aria2c`.
@@ -22,10 +24,10 @@ version source of truth.
 - Added consent-gated Security evidence: passive historical certificate-name candidates through
   `crt.name`, plus a separate resolve-once, public-only, pinned, non-following, bodyless one-HEAD
   website observation. Neither path probes returned candidates or emits a security score.
-- Reworked the public site, README, man pages, guides, screenshots, and bundle budgets to describe
-  stable v0.4.0 separately from these current-source additions. Current source includes a crawlable
-  `/downloader/` page backed by real captures; GoBarryGo retirement, redirects, broader
-  protocol/security plans, stable publication, and deployment remain future gated work.
+- Reworked the public site, README, man pages, guides, screenshots, and bundle budgets for the
+  v0.5.0 release. The release includes a crawlable `/downloader/` page backed by real captures;
+  Homebrew/Scoop promotion, indexing, GoBarryGo retirement and redirects, and broader
+  protocol/security plans remain separately gated work.
 
 ## v0.4.0 — 2026-08-21
 

@@ -16,11 +16,11 @@ describe('release metadata', () => {
     );
 
     expect(product.latestRelease).toEqual({
-      version: '0.4.0',
+      version: '0.5.0',
       status: 'published',
-      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0',
+      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0',
     });
-    expect(packageVersions['GitHub Releases']).toBe('0.4.0');
+    expect(packageVersions['GitHub Releases']).toBe('0.5.0');
     expect(packageVersions['Homebrew Tap']).toBe('0.4.0');
     expect(packageVersions['Scoop Bucket']).toBe('0.4.0');
   });
@@ -35,42 +35,41 @@ describe('release metadata', () => {
     };
 
     expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
-    expect(siteIndex).toContain('"softwareVersion": "0.4.0"');
-    expect(siteIndex).toContain('/releases/tag/v0.4.0');
+    expect(siteIndex).toContain('"softwareVersion": "0.5.0"');
+    expect(siteIndex).toContain('/releases/tag/v0.5.0');
     expect(siteIndex).toContain(
-      'unified six-area suite is current development source and remains unreleased'
+      'six areas: Overview, Protocols, Network, Downloader, Security, and Settings'
     );
-    expect(llms).toContain('v0.4.0 is the current stable release');
-    expect(llms).toContain(
-      'unified six-area interface is current development source and remains unreleased'
-    );
+    expect(llms).toContain('v0.5.0 is the current stable release');
+    expect(llms).toContain('Homebrew and Scoop channels remain at v0.4.0');
     expect(llms).toContain('ProtoPeek does not bundle aria2');
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
     );
     expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
-    expect(sitemap).toContain('<lastmod>2026-08-23</lastmod>');
+    expect(sitemap).toContain('<lastmod>2026-08-24</lastmod>');
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
     expect(sitemap).not.toContain('/security/');
     expect(manifest).toEqual(
       expect.objectContaining({
         name: 'ProtoPeek — Local Systems Workbench',
-        description: expect.stringContaining('bounded network evidence'),
+        description: expect.stringContaining('bounded network and security evidence'),
       })
     );
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');
-    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek current source"/);
-    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek current source"/);
+    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.5\.0"/);
+    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek 0\.5\.0"/);
     expect(protopeekMan).toContain('.B protopeek download');
-    expect(protopeekMan).toContain('not included in stable v0.4.0');
+    expect(protopeekMan).toContain('subcommand ships in ProtoPeek v0.5.0');
+    expect(protopeekMan).toContain('Homebrew and Scoop remain at v0.4.0');
     expect(protopeekMan).toContain('does not attach to an\nalready-running ProtoPeek process');
     expect(protopeekMan).toContain('.B protopeek migrate-gobarry');
     expect(protopeekMan).toContain('observational preview');
     expect(ppMan).toContain('.B pp download');
     expect(ppMan).toContain('.B pp migrate-gobarry');
-    expect(ppMan).toContain('current development source, but not stable v0.4.0');
+    expect(ppMan).toContain('ProtoPeek v0.5.0 ships');
   });
 
   it('keeps consolidation and website-analysis guides split into current and planned work', () => {
@@ -78,7 +77,7 @@ describe('release metadata', () => {
     const security = readRepositoryFile('guides/website-analysis-security.md');
 
     expect(consolidation).toContain(
-      'No public redirect, package promotion, release, or repository archive has'
+      'No public redirect, package\npromotion, or repository archive has'
     );
     expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');
     expect(consolidation).toContain('`download --ui`, `downloads list`, job-action subcommands');
@@ -102,7 +101,7 @@ describe('release metadata', () => {
     expect(security).toMatch(/does\s+not emit a security score/);
   });
 
-  it('labels real Downloader captures as current-source development evidence', () => {
+  it('labels real Downloader captures as v0.5.0 release-source evidence', () => {
     const manifest = JSON.parse(readRepositoryFile('guides/screenshots.json')) as {
       screenshots: Array<{
         file: string;
@@ -113,19 +112,19 @@ describe('release metadata', () => {
     };
 
     expect(manifest.screenshots).toHaveLength(5);
-    const developmentCaptures = manifest.screenshots.filter(
-      (screenshot) => screenshot.releaseStatus === 'unreleased-development'
+    const releaseCaptures = manifest.screenshots.filter(
+      (screenshot) => screenshot.releaseStatus === 'released-v0.5.0'
     );
-    expect(developmentCaptures.map((screenshot) => screenshot.file)).toEqual([
+    expect(releaseCaptures.map((screenshot) => screenshot.file)).toEqual([
       '../web/site/public/assets/protopeek-downloader-development.jpg',
       '../web/site/public/assets/protopeek-downloader-development-mobile.jpg',
     ]);
     expect(
-      developmentCaptures.every(
+      releaseCaptures.every(
         (screenshot) =>
-          screenshot.capturedVersion === 'current source after v0.4.0' &&
+          screenshot.capturedVersion === 'v0.5.0 release source' &&
           /Real Chrome capture/.test(screenshot.workflow) &&
-          /not a stable v0\.4\.0 feature/.test(screenshot.workflow)
+          /promoted into v0\.5\.0/.test(screenshot.workflow)
       )
     ).toBe(true);
   });

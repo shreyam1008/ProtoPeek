@@ -18,7 +18,7 @@ const siteNavigation = [
   { href: '#product', label: 'Product' },
   { href: '/downloader/', label: 'Downloader' },
   { href: '#screenshots', label: 'Screenshots' },
-  { href: '#development', label: 'Development build' },
+  { href: '#release', label: 'v0.5.0' },
   { href: '#install', label: 'Install' },
 ] as const;
 
@@ -50,7 +50,8 @@ const suiteAreas = [
   },
   {
     name: 'Settings',
-    description: 'Keep appearance and presentation preferences local to this browser profile.',
+    description:
+      'Keep browser preferences local and explicitly preview, import, or roll back GoBarryGo state.',
     icon: Settings2,
   },
 ] as const;
@@ -58,22 +59,22 @@ const suiteAreas = [
 const verifiedScreenshots = [
   {
     src: '/assets/protopeek-downloader-development.jpg',
-    alt: 'ProtoPeek current development Downloader desktop with two completed local aria2 transfers and selected expected SHA-256 evidence',
+    alt: 'ProtoPeek v0.5.0 Downloader desktop with two completed local aria2 transfers and selected expected SHA-256 evidence',
     width: 1487,
     height: 1058,
-    label: 'Downloader · development desktop',
+    label: 'Downloader · v0.5.0 desktop',
     caption:
-      'Real Chrome capture of the current unreleased source using system aria2: two completed local transfers, with expected SHA-256 enforcement on the selected transfer. Not stable v0.4.0.',
+      'Real Chrome capture of the feature source promoted into v0.5.0 using system aria2: two completed local transfers, with expected SHA-256 enforcement on the selected transfer.',
     layout: 'md:col-span-2',
   },
   {
     src: '/assets/protopeek-downloader-development-mobile.jpg',
-    alt: 'ProtoPeek current development Downloader queue at a 390 by 844 responsive viewport',
+    alt: 'ProtoPeek v0.5.0 Downloader queue at a 390 by 844 responsive viewport',
     width: 390,
     height: 844,
-    label: 'Downloader · development mobile',
+    label: 'Downloader · v0.5.0 mobile',
     caption:
-      'Real Chrome capture of the current unreleased source at 390 × 844 with the local Downloader running and two completed transfers. Not stable v0.4.0.',
+      'Real Chrome capture of the feature source promoted into v0.5.0 at 390 × 844 with the local Downloader running and two completed transfers.',
     layout: 'md:col-span-1',
   },
   {
@@ -105,23 +106,27 @@ const verifiedScreenshots = [
   },
 ] as const;
 
-const stableInstallCommands = [
+const installCommands = [
   {
     label: 'Homebrew',
+    status: 'v0.4.0 channel',
     command: 'brew install shreyam1008/tap/protopeek',
   },
   {
     label: 'Scoop',
+    status: 'v0.4.0 channel',
     command:
       'scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket; scoop install shreyam/protopeek',
   },
   {
     label: 'Unix',
+    status: 'v0.5.0 resolver',
     command:
       'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
   },
   {
     label: 'PowerShell',
+    status: 'v0.5.0 resolver',
     command: 'irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex',
   },
 ] as const;
@@ -134,7 +139,7 @@ export function App() {
         <Hero />
         <SuiteAreas />
         <ScreenshotGallery />
-        <DevelopmentBuild />
+        <ReleaseHighlights />
         <Install />
         <Footer />
       </main>
@@ -250,15 +255,14 @@ function Hero() {
     >
       <div>
         <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-pp-brand">
-          Stable v0.4.0 · unified suite in development
+          Stable v0.5.0 · six-area local workbench
         </p>
         <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-pp-ink sm:text-5xl lg:text-6xl">
           One local workbench for the path from request to system.
         </h1>
         <p className="mt-5 max-w-3xl text-base leading-relaxed text-pp-muted sm:text-lg">
-          Stable v0.4.0 handles native gRPC, HTTP, and bounded network evidence. The current source
-          adds a six-area shell, Downloader, Security evidence, and local Settings; those additions
-          are unreleased until the next tagged version.
+          v0.5.0 ships native gRPC and HTTP, bounded network evidence, a local Downloader, consented
+          Security evidence, and Settings with a reversible GoBarryGo bridge in one explicit shell.
         </p>
       </div>
 
@@ -269,11 +273,11 @@ function Hero() {
         </a>
         <a
           className="pp-button-secondary"
-          href="https://github.com/shreyam1008/ProtoPeek"
+          href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
           target="_blank"
           rel="noreferrer"
         >
-          Current source
+          Release v0.5.0
           <ArrowRight className="size-4" aria-hidden="true" />
         </a>
       </div>
@@ -287,7 +291,7 @@ function SuiteAreas() {
       <SectionHeading
         id="suite-title"
         title="Six areas. One explicit local shell."
-        description="This information architecture describes the current development source, not the published v0.4.0 interface. Every active operation stays visible and user-triggered."
+        description="This information architecture ships in v0.5.0. Every active operation stays visible and user-triggered."
       />
 
       <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-pp-border bg-pp-border sm:grid-cols-2 lg:grid-cols-3">
@@ -317,7 +321,7 @@ function ScreenshotGallery() {
       <SectionHeading
         id="screenshots-title"
         title="Verified product captures."
-        description="Every capture is recorded in the repository manifest. The Downloader pair shows current unreleased source—not stable v0.4.0—while the remaining three are versioned v0.3.0 dashboard captures."
+        description="Every capture is recorded in the repository manifest. The Downloader pair is v0.5.0 release-source evidence; the remaining three preserve the versioned v0.3.0 dashboard."
       />
 
       <div className="mt-8 grid gap-5 md:grid-cols-3">
@@ -351,17 +355,17 @@ function ScreenshotFigure({ screenshot }: { screenshot: (typeof verifiedScreensh
   );
 }
 
-function DevelopmentBuild() {
+function ReleaseHighlights() {
   return (
     <section
-      id="development"
+      id="release"
       className="border-t border-pp-border py-14 sm:py-16"
-      aria-labelledby="development-title"
+      aria-labelledby="release-title"
     >
       <SectionHeading
-        id="development-title"
-        title="What is available in the current source build."
-        description="Downloader and Security are implemented development surfaces. They are not part of stable v0.4.0 and should not be advertised as published package features yet."
+        id="release-title"
+        title="What ships in v0.5.0."
+        description="Downloader and Security are stable v0.5.0 surfaces. Homebrew and Scoop remain at v0.4.0 until their separate dependency-aware manifest updates pass."
       />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
@@ -425,12 +429,12 @@ function Install() {
     >
       <SectionHeading
         id="install-title"
-        title="Install stable v0.4.0."
-        description="The verified release resolvers and owned Homebrew and Scoop channels use the published v0.4.0 archives. The unified development additions above require the current source until a later release exists."
+        title="Install v0.5.0 or choose a package channel."
+        description="The verified release resolvers install v0.5.0. Homebrew and Scoop remain at v0.4.0 until separate manifests verify the external aria2 dependency, so those package channels do not provide Downloader yet."
       />
 
       <div className="mt-8 grid gap-3">
-        {stableInstallCommands.map((option) => (
+        {installCommands.map((option) => (
           <InstallCommand key={option.label} option={option} />
         ))}
       </div>
@@ -445,19 +449,19 @@ function Install() {
         or inspect the{' '}
         <a
           className="text-pp-brand hover:underline"
-          href="https://github.com/shreyam1008/ProtoPeek"
+          href="https://github.com/shreyam1008/ProtoPeek/tree/v0.5.0"
           target="_blank"
           rel="noreferrer"
         >
-          current source
+          v0.5.0 release source
         </a>{' '}
-        for development-build setup.
+        for release setup.
       </p>
     </section>
   );
 }
 
-function InstallCommand({ option }: { option: (typeof stableInstallCommands)[number] }) {
+function InstallCommand({ option }: { option: (typeof installCommands)[number] }) {
   const commandRef = useRef<HTMLInputElement | null>(null);
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'manual'>('idle');
 
@@ -488,6 +492,9 @@ function InstallCommand({ option }: { option: (typeof stableInstallCommands)[num
       <div className="flex min-w-0 items-center gap-3">
         <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-neutral-400">
           {option.label}
+        </span>
+        <span className="hidden shrink-0 font-mono text-[0.65rem] text-neutral-500 sm:inline">
+          {option.status}
         </span>
         <input
           ref={commandRef}

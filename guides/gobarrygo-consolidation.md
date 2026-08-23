@@ -1,16 +1,16 @@
 # GoBarryGo consolidation
 
-Status: transfer, migration, and crawlable documentation slices are implemented in current source;
-the stable release, package promotion, public redirect, and repository retirement remain gated.
+Status: the transfer, migration, and crawlable documentation slices ship in ProtoPeek v0.5.0;
+Homebrew/Scoop promotion, public deployment/indexing, the GoBarryGo redirect, and repository
+retirement remain separately gated.
 
-ProtoPeek's current development source now contains a local transfer service, the canonical
+ProtoPeek v0.5.0 contains a local transfer service, the canonical
 `/downloader` UI, explicit `download` and `migrate-gobarry` CLI subcommands, and a read-first
-GoBarryGo state bridge with guarded rollback. The generated public site also contains a crawlable `/downloader/` landing page,
-but it is not live until this source is merged and deployed. GoBarryGo remains an independent live
-product and repository. No public redirect, package promotion, release, or repository archive has
-happened. This document separates implemented local capability from the still-gated public cutover.
-Current-source man pages identify themselves as development source; a versioned title must be stamped
-only during the gated v0.5 release promotion.
+GoBarryGo state bridge with guarded rollback. The release source also contains a crawlable
+`/downloader/` landing page, but deployment and indexing require separate live verification.
+GoBarryGo remains an independent live product and repository. No public redirect, package
+promotion, or repository archive has happened. This document separates the shipped v0.5.0
+capability from the still-gated public cutover.
 
 ## Product boundary
 
@@ -82,10 +82,10 @@ A read-only capability or snapshot request never starts the subprocess. Start an
 mutations. Removing a job does not delete its output file. Two ProtoPeek processes must not own the
 same transfer session concurrently.
 
-## Current CLI contract
+## v0.5.0 CLI contract
 
 Existing `pp [flags] [target]` and `protopeek [flags] [target]` behavior remains compatible. The
-current development source recognizes two explicit subcommands before the legacy target form:
+v0.5.0 release recognizes two explicit subcommands before the legacy target form:
 `download` and `migrate-gobarry`. The bounded one-shot download contract is:
 
 ```text
@@ -108,7 +108,7 @@ actually proves it.
 
 ## Implemented GoBarryGo state bridge
 
-The current development source implements an explicit, local-only bridge:
+ProtoPeek v0.5.0 implements an explicit, local-only bridge:
 
 ```text
 pp migrate-gobarry                              # observational preview; no writes
@@ -159,16 +159,16 @@ GoBarryGo identifiers.
 
 ## Proposed reversible public migration
 
-Nothing in this section is live or approved. A public migration could happen only after Downloader
-parity and a released ProtoPeek build exist:
+Nothing in this section changes public routing or repository state by itself. ProtoPeek v0.5.0
+satisfies the released-build prerequisite, but the public migration can happen only after the
+remaining deployment, package, and indexing gates pass:
 
-1. Merge and deploy the generated `/downloader/` page with the two manifest-backed captures already
-   present in current source, then verify its direct HTML, canonical, structured data, assets,
+1. Deploy the generated `/downloader/` page with the two manifest-backed v0.5.0 captures, then
+   verify its direct HTML, canonical, structured data, assets,
    sitemap entry, and mobile rendering on the public origin.
-2. Publish the current install, state-import, compatibility, and rollback documentation with the
-   first stable ProtoPeek release that contains Downloader. Before tagging, promote both public
-   man-page titles from `ProtoPeek current source` to the exact release version; the release workflow
-   rejects a tag whose manual title does not match it.
+2. Verify the v0.5.0 archives and release-resolver installs, then promote Homebrew and Scoop only
+   after their dependency-aware manifests pass independent install and update checks. The package
+   channels remain at v0.4.0 until then.
 3. Replace the GoBarryGo site with a clear “GoBarryGo has merged into ProtoPeek” page that still
    links to standalone v0.0.9, checksums, source, and migration help.
 4. Only after the released packages and public page pass installation and Search Console checks,
@@ -184,7 +184,7 @@ or a documented support window. Releases, tags, binaries, and user data are neve
 
 ## Delivery and proof
 
-Current development source:
+Shipped in v0.5.0:
 
 1. Transfer service, host config, exclusive ownership, recovery, and tests.
 2. Loopback API with explicit start/add/batch/job/global-queue mutations, plus
@@ -197,7 +197,7 @@ Current development source:
 Still planned and separately gated:
 
 1. Cross-area Artifact handoff and bounded workflows.
-2. Stable ProtoPeek release/package promotion with proved external `aria2c` dependency.
+2. Homebrew/Scoop promotion with a proved external `aria2c` dependency.
 3. Public deployment and indexing of `/downloader/`, followed by an approved GoBarryGo retirement
    page and permanent redirect after the support gate.
 4. Native desktop notifications and open/reveal integration, if a later native-shell decision can
