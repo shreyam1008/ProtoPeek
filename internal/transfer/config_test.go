@@ -66,9 +66,7 @@ func TestConfigStoreRoundTripAndPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat config: %v", err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
-		t.Fatalf("config permissions = %o; want user-only", info.Mode().Perm())
-	}
+	assertPrivateFileContract(t, info)
 }
 
 func TestConfigStoreDefaultsFieldsAddedWithinVersionOne(t *testing.T) {

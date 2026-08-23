@@ -38,16 +38,12 @@ func TestRetryStateRoundTripIsNormalizedPrivateAndDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("retry state mode = %o, want 600", info.Mode().Perm())
-	}
+	assertPrivateFileContract(t, info)
 	directoryInfo, err := os.Stat(filepath.Dir(path))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if directoryInfo.Mode().Perm() != 0o700 {
-		t.Fatalf("retry state directory mode = %o, want 700", directoryInfo.Mode().Perm())
-	}
+	assertPrivateDirectoryContract(t, directoryInfo)
 	first, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

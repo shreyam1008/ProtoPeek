@@ -318,12 +318,13 @@ func TestAria2CancelNeverDeletesOutputFile(t *testing.T) {
 func TestAria2RetryReappliesExpectedChecksum(t *testing.T) {
 	t.Parallel()
 	checksum := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	retryDirectory := t.TempDir()
 	rpc := &fakeAriaRPC{
 		status: aria2Status{
 			GID:    "aabbccdd",
 			Status: "error",
 			Files: []aria2File{{
-				Path: "/tmp/archive.zip",
+				Path: filepath.Join(retryDirectory, "archive.zip"),
 				URIs: []aria2URI{{URI: "https://example.com/archive.zip"}},
 			}},
 		},
@@ -334,7 +335,7 @@ func TestAria2RetryReappliesExpectedChecksum(t *testing.T) {
 	newID, err := (&aria2Engine{rpc: rpc}).Retry(context.Background(), "aabbccdd", AddRequest{
 		Sources:              []string{"https://example.com/archive.zip"},
 		SHA256:               checksum,
-		DestinationDirectory: "/tmp/custom-retry",
+		DestinationDirectory: retryDirectory,
 		UserAgent:            "RetryClient/1",
 		Headers:              []RequestHeader{{Name: "Authorization", Value: "Bearer private"}},
 	}, config)
@@ -347,7 +348,7 @@ func TestAria2RetryReappliesExpectedChecksum(t *testing.T) {
 	if rpc.lastOpts["checksum"] != "sha-256="+checksum {
 		t.Fatalf("retry options = %#v", rpc.lastOpts)
 	}
-	if rpc.lastOpts["dir"] != "/tmp/custom-retry" || rpc.lastOpts["user-agent"] != "RetryClient/1" {
+	if rpc.lastOpts["dir"] != retryDirectory || rpc.lastOpts["user-agent"] != "RetryClient/1" {
 		t.Fatalf("retry routing options = %#v", rpc.lastOpts)
 	}
 	headers, ok := rpc.lastOpts["header"].([]string)

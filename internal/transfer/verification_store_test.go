@@ -28,9 +28,7 @@ func TestVerificationStateRoundTripIsBoundedAndPrivate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm()&0o077 != 0 {
-		t.Fatalf("verification state permissions = %o", info.Mode().Perm())
-	}
+	assertPrivateFileContract(t, info)
 }
 
 func TestVerificationStateMissingLoadIsReadOnly(t *testing.T) {

@@ -68,9 +68,10 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 		SessionFile:     filepath.Join(root, "gobarrygo", "session.aria2"),
 	}
 	targetPaths := migrationTestPaths(filepath.Join(root, "protopeek"))
+	downloadDirectory := filepath.Join(root, "gobarry-downloads")
 	preferences := `{
   "aria2Binary": "",
-  "downloadDirectory": "/tmp/gobarry-downloads",
+  "downloadDirectory": ` + fmt.Sprintf("%q", downloadDirectory) + `,
   "maxConcurrentDownloads": 4,
   "split": 8,
   "maxConnectionsPerServer": 8,
@@ -115,7 +116,7 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 	if err != nil || !exists {
 		t.Fatalf("load imported config: exists=%v err=%v", exists, err)
 	}
-	if config.DownloadDirectory != "/tmp/gobarry-downloads" || config.UserAgent != "CustomFetcher/1.0" {
+	if config.DownloadDirectory != downloadDirectory || config.UserAgent != "CustomFetcher/1.0" {
 		t.Fatalf("imported config mismatch: %#v", config)
 	}
 	merged := string(mustReadMigrationFile(t, targetPaths.SessionFile))
