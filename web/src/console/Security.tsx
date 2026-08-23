@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Square,
 } from 'lucide-react';
-import { type FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { type FormEvent, lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
 
 import {
   type DomainCandidatesResult,
@@ -28,6 +28,8 @@ import {
 import './security.css';
 
 type SearchPhase = 'idle' | 'loading' | 'success' | 'error' | 'cancelled';
+
+const WebsiteEvidenceReport = lazy(() => import('./WebsiteEvidenceReport'));
 
 const evidenceTools = [
   {
@@ -524,7 +526,12 @@ function WebsiteObservationPanel() {
               <span>{message}</span>
             </div>
           ) : null}
-          {phase === 'success' && result ? <WebsiteObservationResultView result={result} /> : null}
+          {phase === 'success' && result ? (
+            <WebsiteObservationResultView
+              key={`${result.observedAt}:${result.url}`}
+              result={result}
+            />
+          ) : null}
         </div>
 
         <aside className="pp-security-website-boundary" aria-label="Website observation boundary">
@@ -542,14 +549,14 @@ function WebsiteObservationPanel() {
               <small>Reported, never followed</small>
             </span>
           </div>
-          <div>
+          <div className="pp-security-boundary-item">
             <Square aria-hidden="true" />
             <span>
               <strong>Response body</strong>
               <small>Never read</small>
             </span>
           </div>
-          <div>
+          <div className="pp-security-boundary-item">
             <ShieldCheck aria-hidden="true" />
             <span>
               <strong>Address policy</strong>
@@ -643,6 +650,16 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
           </dl>
         </article>
       </div>
+
+      <Suspense
+        fallback={
+          <div className="pp-security-report-loading" role="status" aria-live="polite">
+            Preparing the local HEAD evidence report…
+          </div>
+        }
+      >
+        <WebsiteEvidenceReport result={result} />
+      </Suspense>
 
       {result.tls ? (
         <details className="pp-security-tls-detail">

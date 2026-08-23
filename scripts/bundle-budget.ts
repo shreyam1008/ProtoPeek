@@ -96,6 +96,12 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 10 * kibibyte,
   },
   {
+    label: 'Security evidence-report JavaScript',
+    pattern: /^WebsiteEvidenceReport-.+\.js$/,
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
     label: 'Security workspace CSS',
     pattern: /^Security-.+\.css$/,
     maxRawBytes: 22 * kibibyte,
