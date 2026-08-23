@@ -11,7 +11,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - v0.5.0 is the current stable release. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
 - Stable v0.5.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, offline Nmap XML import, local downloads, and consented Security evidence.
 - The verified release resolvers and `@latest` install v0.5.0 from checksum-pinned release archives.
-- The owned Homebrew and Scoop channels remain at v0.4.0 until their separate manifests declare and verify the external aria2 dependency. Those package-manager installs do not provide Downloader yet.
+- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. Those package-manager installs provide Downloader without bundling aria2 into ProtoPeek.
 - The v0.4.0 release and package history remain preserved.
 
 ## v0.5.0 capability boundary
@@ -28,8 +28,8 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 ## Stable install
 
-- Homebrew (currently v0.4.0): `brew install shreyam1008/tap/protopeek`
-- Scoop (currently v0.4.0): `scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket`, then `scoop install shreyam/protopeek`
+- Homebrew (v0.5.0): `brew install shreyam1008/tap/protopeek`
+- Scoop (v0.5.0): `scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket`, then `scoop install shreyam/protopeek`
 - Unix resolver (v0.5.0): `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh`
 - PowerShell resolver (v0.5.0): `irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex`
 

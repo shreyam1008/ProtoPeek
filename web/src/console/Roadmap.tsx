@@ -61,7 +61,7 @@ const roadmap = [
       ],
       [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows remain checksum-pinned to v0.4.0 until separate v0.5.0 manifests declare and verify the external aria2 dependency; both still provide protopeek and pp.',
+        'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned v0.5.0 archives, declare aria2 as an external dependency, and provide both protopeek and pp.',
       ],
     ],
   },

@@ -109,12 +109,12 @@ const verifiedScreenshots = [
 const installCommands = [
   {
     label: 'Homebrew',
-    status: 'v0.4.0 channel',
+    status: 'v0.5.0 channel',
     command: 'brew install shreyam1008/tap/protopeek',
   },
   {
     label: 'Scoop',
-    status: 'v0.4.0 channel',
+    status: 'v0.5.0 channel',
     command:
       'scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket; scoop install shreyam/protopeek',
   },
@@ -365,7 +365,7 @@ function ReleaseHighlights() {
       <SectionHeading
         id="release-title"
         title="What ships in v0.5.0."
-        description="Downloader and Security are stable v0.5.0 surfaces. Homebrew and Scoop remain at v0.4.0 until their separate dependency-aware manifest updates pass."
+        description="Downloader and Security are stable v0.5.0 surfaces. Homebrew and Scoop install v0.5.0 and declare aria2 as an external package dependency."
       />
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
@@ -429,8 +429,8 @@ function Install() {
     >
       <SectionHeading
         id="install-title"
-        title="Install v0.5.0 or choose a package channel."
-        description="The verified release resolvers install v0.5.0. Homebrew and Scoop remain at v0.4.0 until separate manifests verify the external aria2 dependency, so those package channels do not provide Downloader yet."
+        title="Install v0.5.0 from a verified channel."
+        description="The release resolvers, Homebrew tap, and Scoop bucket install v0.5.0. Both package-manager definitions keep aria2 external to ProtoPeek while declaring it as a dependency."
       />
 
       <div className="mt-8 grid gap-3">

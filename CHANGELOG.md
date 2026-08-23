@@ -5,6 +5,10 @@ version source of truth.
 
 ## Unreleased
 
+- Promoted the owned Homebrew tap and Scoop bucket to v0.5.0 after their dependency-aware
+  definitions and default-branch install checks passed. Both channels keep aria2 external to the
+  MIT ProtoPeek archives while making Downloader available through the package-manager install.
+
 ## v0.5.0 — 2026-08-24
 
 - Unified the console around six primary areas—Overview, Protocols, Network,
@@ -26,7 +30,7 @@ version source of truth.
   website observation. Neither path probes returned candidates or emits a security score.
 - Reworked the public site, README, man pages, guides, screenshots, and bundle budgets for the
   v0.5.0 release. The release includes a crawlable `/downloader/` page backed by real captures;
-  Homebrew/Scoop promotion, indexing, GoBarryGo retirement and redirects, and broader
+  indexing, GoBarryGo retirement and redirects, and broader
   protocol/security plans remain separately gated work.
 
 ## v0.4.0 — 2026-08-21

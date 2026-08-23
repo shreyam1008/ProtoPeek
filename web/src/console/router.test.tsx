@@ -141,7 +141,7 @@ describe('protocol routes', () => {
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
     expect(screen.getByText('Owned package channels')).toBeInTheDocument();
     expect(
-      screen.getByText(/remain checksum-pinned to v0\.4\.0 until separate v0\.5\.0 manifests/)
+      screen.getByText(/install checksum-pinned v0\.5\.0 archives, declare aria2/)
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Downloader', level: 3 })).toBeInTheDocument();
     expect(

@@ -132,13 +132,13 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 - Settings ships the read-first GoBarryGo bridge: observational preview, bounded copy-only import,
   paused imported jobs, private receipts, idempotence, and guarded rollback. GoBarryGo files,
   releases, repository history, and public origin remain independent.
+- The owned Homebrew and Scoop channels install checksum-pinned v0.5.0 archives and declare aria2
+  as an external package dependency. ProtoPeek itself still does not bundle aria2.
 
 ### Still gated after v0.5.0
 
-- Homebrew and Scoop remain at v0.4.0 until their separate manifests declare and verify the
-  external aria2 dependency against immutable v0.5.0 archives.
-- The ProtoPeek `/downloader/` deployment and indexing, GoBarryGo retirement page and redirect, and
-  any repository archival remain separate public-state gates.
+- Search indexing evidence, the GoBarryGo retirement page and redirect, and any repository archival
+  remain separate public-state gates.
 - Artifact handoff, multi-step workflows, broader website plans, and additional protocols remain
   planned rather than implied by this release.
 
@@ -279,12 +279,12 @@ gRPC result.
 
 ### Distribution — owned package channels (available)
 
-- The verified release resolvers and `@v0.5.0` install the v0.5.0 release archive once the stable
-  tag is published; Downloader still requires a separate system or configured `aria2c`.
-- The owned Homebrew tap currently installs the checked v0.4.0 archives as `protopeek` and `pp` on macOS
-  and Linux, with both manpages.
-- The owned Scoop bucket currently installs the checked v0.4.0 Windows archives with both command shims and
-  a checksum-backed autoupdate contract.
+- The verified release resolvers and `@v0.5.0` install the published v0.5.0 release archives;
+  Downloader still uses a separate system or configured `aria2c`.
+- The owned Homebrew tap installs the checked v0.5.0 archives as `protopeek` and `pp` on macOS and
+  Linux, with both manpages, and declares aria2 as an external dependency.
+- The owned Scoop bucket installs the checked v0.5.0 Windows archives with both command shims, an
+  external aria2 dependency, and a checksum-backed autoupdate contract.
 - WinGet is next only after these owned paths and the PowerShell installer accumulate initial user
   feedback. Community submission remains an explicit owner action.
 

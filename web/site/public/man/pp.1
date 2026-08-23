@@ -33,9 +33,9 @@ exact 64-hexadecimal-character SHA-256 digest. It uses a configured or system
 .BR aria2c ;
 aria2 is not bundled.
 .PP
-Homebrew and Scoop remain at v0.4.0 until their separate dependency-aware
-package updates pass, so those package-manager installs do not provide the
-v0.5.0 Downloader or migration commands yet.
+Homebrew and Scoop install v0.5.0 and declare aria2 as an external package
+dependency, so those package-manager installs provide the Downloader and
+migration commands without bundling aria2 into ProtoPeek.
 .PP
 The one-shot command owns its local engine session instead of attaching to an
 already-running ProtoPeek process. It writes progress to standard error and the

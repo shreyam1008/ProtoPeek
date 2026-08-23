@@ -15,7 +15,7 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 
 > **v0.5.0 workbench:** the shipped unified shell has exactly six primary areas: Overview,
 > Protocols, Network, Downloader, Security, and Settings. The owned Homebrew and Scoop channels
-> remain at v0.4.0 until their separate dependency-aware manifest updates pass.
+> install v0.5.0 and declare aria2 as an external package dependency.
 
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
@@ -25,13 +25,13 @@ Downloader captures.
 
 ## Install
 
-Homebrew on macOS or Linux (currently v0.4.0):
+Homebrew on macOS or Linux:
 
 ```sh
 brew install shreyam1008/tap/protopeek
 ```
 
-Scoop on Windows (currently v0.4.0):
+Scoop on Windows:
 
 ```powershell
 scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
@@ -57,9 +57,8 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 ```
 
 The verified release installers resolve v0.5.0 from immutable archives pinned to its published
-SHA-256 entries. The owned Homebrew and Scoop channels still publish v0.4.0 from immutable archives
-and do not yet declare the external `aria2c` dependency; use a release installer or Go install for
-v0.5.0 until those package manifests are promoted separately. See the
+SHA-256 entries. The owned Homebrew and Scoop definitions pin the same v0.5.0 release archives and
+declare aria2 as an external package dependency. ProtoPeek itself does not bundle aria2. See the
 [install guide](guides/INSTALLING.md) for package updates, pinned versions,
 rollback, PATH behavior, and uninstall.
 
@@ -113,7 +112,7 @@ It accepts exactly one absolute HTTP(S) URL and uses an explicitly configured or
 `aria2c`; ProtoPeek does not bundle aria2. The command owns its local engine session, writes progress
 to stderr, prints only the completed path to stdout, and preserves partial data plus the aria2
 session when interrupted. It does not attach to an already-running ProtoPeek process. The command
-ships in v0.5.0; the still-v0.4.0 Homebrew and Scoop channels do not provide it yet.
+ships in v0.5.0 and is available through the release installers, Homebrew, and Scoop.
 
 v0.5.0 also includes a read-first, non-destructive GoBarryGo state bridge:
 

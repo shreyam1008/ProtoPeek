@@ -26,10 +26,9 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **v0.4.0 is the verified public baseline, and the owned Homebrew tap and
-Scoop bucket still serve v0.4.0 after their independent checksum-backed workflows passed. The
-v0.5.0 release source is prepared, but its stable tag, draft assets, publication, Pages verification,
-and package promotions remain separate gates.** WinGet
+Current execution state: **v0.5.0 is the verified public baseline. Its stable release, Pages site,
+Homebrew tap, and Scoop bucket are live after their release, deployment, dependency-aware, and
+default-branch checks passed.** WinGet
 and community launch submissions remain gated on initial package/user feedback. No third-party
 submission or founder-authored community post should be made from an agent account.
 
@@ -41,9 +40,8 @@ reports unless the reporter has reviewed and intentionally shared them.
 
 ### 1. Direct release: day zero
 
-- Preserve the verified v0.4.0 GitHub release, matching website history, and owned package channels.
-  Publish v0.5.0 only after its tag, draft assets, artifact acceptance, and Pages checks pass; promote
-  Homebrew and Scoop afterward through their separate dependency-aware pull requests.
+- Preserve the verified v0.4.0 release and package history. v0.5.0 is now published, deployed, and
+  promoted through the owned Homebrew and Scoop channels after their separate checks passed.
 - Keep the verified shell and PowerShell installers as canonical fallbacks alongside the owned
   package channels.
 - Update Shreyam's portfolio entry from “gRPC Tooling” to “local gRPC + HTTP
@@ -55,7 +53,8 @@ desktop operating systems can install and reach a successful request.
 
 ### 2. Native package discovery: owned channels live
 
-The owned Homebrew tap and Scoop bucket currently publish v0.4.0 from immutable release archives. Homebrew CI
+The owned Homebrew tap and Scoop bucket publish v0.5.0 from immutable release archives and declare
+aria2 as an external package dependency. Homebrew CI
 runs style, strict audit, cross-platform readall, install, test, linkage, both command checks, and
 manpage checks on macOS and Linux. Scoop CI runs schema validation, checksum-backed install, both
 command checks, update, uninstall, and three-architecture autoupdate validation on Windows. WinGet
