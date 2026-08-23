@@ -25,6 +25,24 @@
       "capturedVersion": "v0.3.0",
       "capturedAt": "2026-08-20",
       "workflow": "Real local headless Chrome capture against the final embedded dashboard at 390 by 844 CSS pixels."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-downloader-development.jpg",
+      "alt": "ProtoPeek current development Downloader desktop with two completed local aria2 transfers and selected expected SHA-256 evidence",
+      "platform": "desktop-development",
+      "capturedVersion": "current source after v0.4.0",
+      "releaseStatus": "unreleased-development",
+      "capturedAt": "2026-08-23",
+      "workflow": "Real Chrome capture of the current unreleased source at the selected-reference-matched viewport, using system aria2 with two completed local fixture transfers. The selected transfer reports expected SHA-256 enforcement; this is development evidence, not a stable v0.4.0 feature."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-downloader-development-mobile.jpg",
+      "alt": "ProtoPeek current development Downloader queue at a 390 by 844 responsive viewport",
+      "platform": "mobile-development",
+      "capturedVersion": "current source after v0.4.0",
+      "releaseStatus": "unreleased-development",
+      "capturedAt": "2026-08-23",
+      "workflow": "Real Chrome capture of the current unreleased source at a 390 by 844 responsive viewport with the local Downloader running and two completed fixture transfers. This is development evidence, not a stable v0.4.0 feature."
     }
   ]
 }

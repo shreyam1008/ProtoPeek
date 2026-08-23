@@ -1,6 +1,31 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import { CircleHelp, Home, ListTodo, Moon, Network, Radar, Server, Sun, X } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  CircleHelp,
+  Download,
+  Home,
+  ListTodo,
+  Menu,
+  Monitor,
+  Moon,
+  Network,
+  Radar,
+  Search,
+  Server,
+  Settings as SettingsIcon,
+  ShieldCheck,
+  Sun,
+  X,
+} from 'lucide-react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
   applyTheme,
@@ -13,6 +38,12 @@ import type { ScanResult } from './api';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { scanResultHTTPURL } from './discovery-url';
 import {
+  applyInterfacePreferences,
+  type InterfacePreferences,
+  persistInterfacePreferences,
+  readInterfacePreferences,
+} from './interface-preferences';
+import {
   ProtocolShellContext,
   protocolShellEvents,
   type RecentDiscovery,
@@ -20,20 +51,34 @@ import {
 } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
 import { normalizeRecentDiscoveries } from './recent-discovery';
+import './unified-shell.css';
 
 const ScanTargetDialog = lazy(async () => {
   const module = await import('./ScanTargetDialog');
   return { default: module.ScanTargetDialog };
 });
 
+const primaryNavigation = [
+  { id: 'overview', label: 'Overview', to: '/', icon: Home, exact: true },
+  { id: 'protocols', label: 'Protocols', to: '/protocols', icon: Server, exact: false },
+  { id: 'network', label: 'Network', to: '/network', icon: Network, exact: false },
+  { id: 'downloader', label: 'Downloader', to: '/downloader', icon: Download, exact: false },
+  { id: 'security', label: 'Security', to: '/security', icon: ShieldCheck, exact: false },
+  { id: 'settings', label: 'Settings', to: '/settings', icon: SettingsIcon, exact: false },
+] as const;
+
 export function ProtocolFrame() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [scanRequest, setScanRequest] = useState<ScanDialogRequest>({});
   const [scanGeneration, setScanGeneration] = useState(0);
   const [theme, setThemeState] = useState<ProtoPeekTheme>(() => readThemePreference());
+  const [interfacePreferences, setInterfacePreferencesState] = useState<InterfacePreferences>(() =>
+    readInterfacePreferences()
+  );
   const [discoveries, setDiscoveries] = useState<RecentDiscovery[]>(() =>
     normalizeRecentDiscoveries(loadStoredValue<unknown>(appStorageKeys.discoveries, []))
   );
@@ -46,9 +91,19 @@ export function ProtocolFrame() {
     persistThemePreference(nextTheme);
   }, []);
 
+  const setInterfacePreferences = useCallback((preferences: InterfacePreferences) => {
+    setInterfacePreferencesState(preferences);
+    applyInterfacePreferences(preferences);
+    persistInterfacePreferences(preferences);
+  }, []);
+
   useEffect(() => {
     applyTheme(theme, document.documentElement);
   }, [theme]);
+
+  useEffect(() => {
+    applyInterfacePreferences(interfacePreferences);
+  }, [interfacePreferences]);
 
   useEffect(() => {
     storeValue(appStorageKeys.discoveries, discoveries);
@@ -81,7 +136,7 @@ export function ProtocolFrame() {
         new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
       );
       setScanOpen(false);
-      void navigate({ to: '/grpc' });
+      void navigate({ to: '/protocols/grpc' });
     },
     [navigate]
   );
@@ -94,7 +149,7 @@ export function ProtocolFrame() {
         new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, { detail: url })
       );
       setScanOpen(false);
-      void navigate({ to: '/http' });
+      void navigate({ to: '/protocols/http' });
     },
     [navigate]
   );
@@ -103,21 +158,27 @@ export function ProtocolFrame() {
     () => [
       {
         id: 'home',
-        label: 'Open Protocol Peek dashboard',
-        keywords: 'home protocols',
+        label: 'Open ProtoPeek overview',
+        keywords: 'home dashboard suite',
         run: () => void navigate({ to: '/' }),
+      },
+      {
+        id: 'protocols',
+        label: 'Open Protocols',
+        keywords: 'protocol grpc http workbench',
+        run: () => void navigate({ to: '/protocols' }),
       },
       {
         id: 'grpc',
         label: 'Open gRPC workbench',
         keywords: 'reflection proto protoset streams trailers',
-        run: () => void navigate({ to: '/grpc' }),
+        run: () => void navigate({ to: '/protocols/grpc' }),
       },
       {
         id: 'http',
         label: 'Open HTTP workbench',
         keywords: 'rest request response headers tls',
-        run: () => void navigate({ to: '/http' }),
+        run: () => void navigate({ to: '/protocols/http' }),
       },
       {
         id: 'scan',
@@ -129,7 +190,7 @@ export function ProtocolFrame() {
         id: 'routes',
         label: 'Open next-hop route evidence',
         keywords: 'route kernel next hop interface source',
-        run: () => void navigate({ to: '/routes' }),
+        run: () => void navigate({ to: '/network/route' }),
       },
       {
         id: 'network-path',
@@ -148,6 +209,24 @@ export function ProtocolFrame() {
         label: 'Open the network evidence map',
         keywords: 'network map topology graph inventory history',
         run: () => void navigate({ to: '/network/map' }),
+      },
+      {
+        id: 'downloader',
+        label: 'Open Downloader',
+        keywords: 'download transfer queue artifact aria2',
+        run: () => void navigate({ to: '/downloader' }),
+      },
+      {
+        id: 'security',
+        label: 'Open Security evidence',
+        keywords: 'domain certificate tls dns authorized checks',
+        run: () => void navigate({ to: '/security' }),
+      },
+      {
+        id: 'settings',
+        label: 'Open Settings',
+        keywords: 'appearance density keyboard browser local preferences',
+        run: () => void navigate({ to: '/settings' }),
       },
       {
         id: 'roadmap',
@@ -186,102 +265,104 @@ export function ProtocolFrame() {
     () => ({
       theme,
       setTheme,
+      interfacePreferences,
+      setInterfacePreferences,
       discoveries,
       openScan,
       openGRPCDiscovery,
       openHTTPDiscovery,
     }),
-    [discoveries, openGRPCDiscovery, openHTTPDiscovery, openScan, setTheme, theme]
+    [
+      discoveries,
+      interfacePreferences,
+      openGRPCDiscovery,
+      openHTTPDiscovery,
+      openScan,
+      setInterfacePreferences,
+      setTheme,
+      theme,
+    ]
   );
 
   return (
     <ProtocolShellContext.Provider value={contextValue}>
       <div className="pp-protocol-frame">
-        <nav className="pp-protocol-rail" aria-label="Protocol activity">
+        <aside className="pp-suite-rail">
           <Link
             to="/"
-            className="pp-protocol-mark"
-            aria-label="Open Protocol Peek dashboard"
+            className="pp-suite-mark"
+            aria-label="Open ProtoPeek overview"
             activeOptions={{ exact: true }}
           >
             <ProtoPeekMark />
           </Link>
-          <span className="pp-rail-label">Protocol</span>
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            activeProps={{ className: 'is-active' }}
-            aria-label="Open dashboard"
-          >
-            <Home aria-hidden="true" />
-            <span>Home</span>
-          </Link>
-          <Link
-            to="/grpc"
-            activeProps={{ className: 'is-active' }}
-            aria-label="Open the gRPC workbench"
-          >
-            <Server aria-hidden="true" />
-            <span>gRPC</span>
-          </Link>
-          <Link
-            to="/http"
-            activeProps={{ className: 'is-active' }}
-            aria-label="Open the HTTP workbench"
-          >
-            <i className="pp-protocol-glyph" aria-hidden="true">
-              H
-            </i>
-            <span>HTTP</span>
-          </Link>
-          <button type="button" className="pp-rail-scan" onClick={() => openScan()}>
-            <Radar aria-hidden="true" />
-            <span>Scan</span>
-          </button>
-          <span className="pp-rail-divider" aria-hidden="true" />
-          <Link
-            to="/network"
-            activeProps={{ className: 'is-active' }}
-            aria-label="Open the network workbench"
-          >
-            <Network aria-hidden="true" />
-            <span>Network</span>
-          </Link>
-          <Link
-            to="/roadmap"
-            activeProps={{ className: 'is-active' }}
-            aria-label="Open product roadmap"
-          >
-            <ListTodo aria-hidden="true" />
-            <span>Roadmap</span>
-          </Link>
-          <button
-            type="button"
-            className="pp-rail-help"
-            aria-label="Open ProtoPeek help"
-            aria-expanded={helpOpen}
-            onClick={() => setHelpOpen(true)}
-          >
-            <CircleHelp aria-hidden="true" />
-            <span>Help</span>
-          </button>
-        </nav>
+          <nav className="pp-suite-primary" aria-label="Primary">
+            {primaryNavigation.map((item) => (
+              <Link
+                key={item.id}
+                to={item.to}
+                className="pp-suite-nav-link"
+                activeOptions={item.exact ? { exact: true } : undefined}
+                activeProps={{ className: 'is-active' }}
+                aria-label={`Open ${item.label}`}
+              >
+                <item.icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="pp-suite-secondary">
+            <Link
+              to="/roadmap"
+              className="pp-suite-nav-link"
+              activeProps={{ className: 'is-active' }}
+              aria-label="Open Roadmap"
+            >
+              <ListTodo aria-hidden="true" />
+              <span>Roadmap</span>
+            </Link>
+            <button
+              type="button"
+              className="pp-suite-nav-link"
+              aria-label="Open ProtoPeek help"
+              aria-expanded={helpOpen}
+              onClick={() => setHelpOpen(true)}
+            >
+              <CircleHelp aria-hidden="true" />
+              <span>Help</span>
+            </button>
+          </div>
+        </aside>
 
-        <div className="pp-protocol-column">
-          <header className="pp-global-header">
+        <div className="pp-protocol-column pp-suite-column">
+          <header className="pp-global-header pp-suite-header">
+            <button
+              type="button"
+              className="pp-suite-mobile-menu"
+              aria-label="Open navigation menu"
+              aria-controls="protopeek-mobile-navigation"
+              aria-expanded={navigationOpen}
+              onClick={() => setNavigationOpen(true)}
+            >
+              <Menu aria-hidden="true" />
+            </button>
             <Link to="/" className="pp-global-brand">
               <span>ProtoPeek</span>
-              <small>local protocol console</small>
+              <small>local developer workbench</small>
             </Link>
-            <span className="pp-global-local">
-              <i aria-hidden="true" /> Local session
+            <span className="pp-suite-local-state">
+              <Monitor aria-hidden="true" /> Runs locally
             </span>
+            <button type="button" className="pp-suite-scan-action" onClick={() => openScan()}>
+              <Radar aria-hidden="true" /> <span>Inspect target</span>
+            </button>
             <button
               type="button"
               className="pp-global-command"
               aria-label="Open global command menu"
               onClick={() => setCommandOpen(true)}
             >
+              <Search aria-hidden="true" />
               <span>Jump to a protocol or command</span>
               <kbd>{modifier} K</kbd>
             </button>
@@ -294,10 +375,17 @@ export function ProtocolFrame() {
               {theme === 'light' ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
             </button>
           </header>
-          <main className="pp-protocol-surface">
+          <main className="pp-protocol-surface pp-suite-surface">
             <Outlet />
           </main>
         </div>
+
+        <MobileNavigationDrawer
+          open={navigationOpen}
+          onClose={() => setNavigationOpen(false)}
+          onInspect={() => openScan()}
+          onHelp={() => setHelpOpen(true)}
+        />
 
         {scanOpen ? (
           <Suspense
@@ -330,6 +418,137 @@ export function ProtocolFrame() {
         <HelpDrawer open={helpOpen} onClose={closeHelp} />
       </div>
     </ProtocolShellContext.Provider>
+  );
+}
+
+function MobileNavigationDrawer({
+  open,
+  onClose,
+  onInspect,
+  onHelp,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onInspect: () => void;
+  onHelp: () => void;
+}) {
+  const drawerRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const closeDrawer = useEffectEvent(onClose);
+
+  useEffect(() => {
+    if (!open) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    requestAnimationFrame(() => closeButtonRef.current?.focus());
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDrawer();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(
+        drawerRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      );
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      restoreFocusRef.current?.focus();
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  function closeThen(action: () => void) {
+    onClose();
+    action();
+  }
+
+  return (
+    <div className="pp-suite-mobile-layer">
+      <button
+        type="button"
+        className="pp-suite-mobile-backdrop"
+        aria-label="Close navigation menu"
+        onClick={onClose}
+      />
+      <aside
+        id="protopeek-mobile-navigation"
+        ref={drawerRef}
+        className="pp-suite-mobile-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="protopeek-mobile-navigation-title"
+      >
+        <header>
+          <div>
+            <ProtoPeekMark />
+            <span className="pp-suite-mobile-brand-copy">
+              <strong id="protopeek-mobile-navigation-title">ProtoPeek</strong>
+              <small>Local developer workbench</small>
+            </span>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            className="pp-suite-mobile-close"
+            aria-label="Close navigation menu"
+            onClick={onClose}
+          >
+            <X aria-hidden="true" />
+          </button>
+        </header>
+        <nav aria-label="Mobile primary">
+          {primaryNavigation.map((item) => (
+            <Link
+              key={item.id}
+              to={item.to}
+              className="pp-suite-mobile-link pp-suite-mobile-primary-link"
+              activeOptions={item.exact ? { exact: true } : undefined}
+              activeProps={{ className: 'is-active' }}
+              onClick={onClose}
+            >
+              <item.icon aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+        <div className="pp-suite-mobile-actions">
+          <button
+            type="button"
+            className="pp-suite-mobile-link"
+            onClick={() => closeThen(onInspect)}
+          >
+            <Radar aria-hidden="true" /> Inspect target
+          </button>
+          <Link to="/roadmap" className="pp-suite-mobile-link" onClick={onClose}>
+            <ListTodo aria-hidden="true" /> Roadmap
+          </Link>
+          <button type="button" className="pp-suite-mobile-link" onClick={() => closeThen(onHelp)}>
+            <CircleHelp aria-hidden="true" /> Help
+          </button>
+        </div>
+        <footer>
+          <Monitor aria-hidden="true" /> Local app · no account or cloud sync
+        </footer>
+      </aside>
+    </div>
   );
 }
 
@@ -426,8 +645,7 @@ function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
               Maps and immutable snapshots stay browser-local and export as JSON, GraphML, or CSV.
             </li>
             <li>
-              ProtoPeek never installs or executes Nmap; offline Nmap XML topology import remains
-              future work.
+              ProtoPeek imports selected Nmap XML offline; it never installs or executes Nmap.
             </li>
           </ul>
         </section>

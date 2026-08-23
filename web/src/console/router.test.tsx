@@ -64,6 +64,7 @@ describe('protocol routes', () => {
     render(<RouterProvider router={router} />);
 
     expect(await screen.findByText('Request workbench')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/protocols/http');
   });
 
   it('uses the dashboard at root and preserves lazy workbench, network, and roadmap routes', async () => {
@@ -91,7 +92,7 @@ describe('protocol routes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
     expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
-    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect target' }));
     expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
 
@@ -99,16 +100,19 @@ describe('protocol routes', () => {
       await router.navigate({ to: '/grpc' });
     });
     expect(await screen.findByRole('heading', { name: 'Open a gRPC target.' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/protocols/grpc');
 
     await act(async () => {
       await router.navigate({ to: '/http' });
     });
     expect(await screen.findByText('Request workbench')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/protocols/http');
 
     await act(async () => {
       await router.navigate({ to: '/routes' });
     });
     expect(await screen.findByRole('heading', { name: 'Next-hop route' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/network/route');
 
     await act(async () => {
       await router.navigate({ to: '/network' });
@@ -117,9 +121,7 @@ describe('protocol routes', () => {
       await screen.findByRole('heading', { name: 'See how this machine reaches a target.' })
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/network/path');
-    expect(screen.getByRole('link', { name: 'Open the network workbench' })).toHaveClass(
-      'is-active'
-    );
+    expect(screen.getByRole('link', { name: 'Open Network' })).toHaveClass('is-active');
 
     await act(async () => {
       await router.navigate({ to: '/network/map' });

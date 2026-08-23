@@ -11,10 +11,14 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > **Latest stable:** v0.4.0. The verified shell and PowerShell installers, and
 > `@latest`, resolve this release. Edge remains a separate opt-in channel.
 
+> **Current development source:** the unreleased unified shell has exactly six primary areas:
+> Overview, Protocols, Network, Downloader, Security, and Settings. Downloader and Security are
+> development features, not features of the published v0.4.0 packages.
+
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
-The screenshot is a real local Chrome capture of the embedded dashboard. It is the default when
-`pp` starts without a target and keeps every shipped protocol surface one action away.
+The screenshot is a real local Chrome capture of the v0.3.0 embedded dashboard. It is versioned
+here as a shipped-product capture, not presented as the unreleased unified interface.
 
 ## Install
 
@@ -71,9 +75,13 @@ pp https://api.example.test       # dashboard + probe of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 ```
 
-With no target, the dashboard opens at `/`. The rail keeps gRPC (`/grpc`), HTTP (`/http`), the
+In stable v0.4.0, the dashboard opens at `/`. Its rail keeps gRPC (`/grpc`), HTTP (`/http`), the
 network workbench (`/network/path`), compatibility next-hop evidence (`/routes`), and the in-app
-roadmap (`/roadmap`) one command away. A new gRPC target defaults to `localhost:50051`; each saved
+roadmap (`/roadmap`) one command away. In the current development source, the primary navigation is
+Overview, Protocols, Network, Downloader, Security, and Settings; legacy `/grpc`, `/http`,
+`/routes`, and `/downloads` links remain compatibility redirects, while `/downloader` is canonical.
+
+A new gRPC target defaults to `localhost:50051`; each saved
 target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a
 browser-folder snapshot, host proto paths, or host protoset paths), and cert paths. A new HTTP draft
 defaults to `http://localhost:8080/`. Exact `localhost`, `127.0.0.1`, and `[::1]` shorthand may omit
@@ -81,6 +89,18 @@ the scheme and is normalized to HTTP; every non-loopback host must state `http:/
 HTTP history shows its 12 newest secret-safe entries with total observed time, and JSON formatting
 is optional—invalid JSON remains sendable verbatim. Light is the first-run theme; dark mode and
 local histories are stored only in the browser profile.
+
+The current development source also provides one explicit one-shot transfer command:
+
+```sh
+pp download [--output NAME] [--sha256 64_HEX] URL
+```
+
+It accepts exactly one absolute HTTP(S) URL and uses an explicitly configured or system-installed
+`aria2c`; ProtoPeek does not bundle aria2. The command owns its local engine session, writes progress
+to stderr, prints only the completed path to stdout, and preserves partial data plus the aria2
+session when interrupted. It does not attach to an already-running ProtoPeek process. This command
+is unreleased and is not present in stable v0.4.0 packages.
 
 For a server without reflection, choose **Browser folder** and then **Choose folder**. ProtoPeek
 preserves relative imports and uploads only lowercase `.proto` files when Connect is pressed. The
@@ -216,6 +236,8 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; copy the current draft as bounded, credential-redacted cURL |
+| **Downloader · current source, unreleased** | Queue and verify HTTP(S) transfers through configured or system `aria2c`, or run one explicit `pp download`; aria2 is not bundled |
+| **Security evidence · current source, unreleased** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
 grpcurl handler callbacks and invoke return. Unary callbacks may cluster after transport completion;
@@ -292,6 +314,8 @@ cancellation, and its native inspector.
 | Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |
 | Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
+| Downloader | Current source · unreleased | Configured or system `aria2c`, visible local queue controls, optional SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
+| Security evidence | Current source · unreleased | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |

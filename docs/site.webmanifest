@@ -1,11 +1,12 @@
 {
-  "name": "ProtoPeek",
+  "name": "ProtoPeek — Local Systems Workbench",
   "short_name": "ProtoPeek",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4fbfa",
   "theme_color": "#0b6d6d",
-  "description": "Local-first protocol workbench with protocol-native gRPC and bounded HTTP request surfaces.",
+  "description": "Local systems workbench for protocol-native gRPC, HTTP, and bounded network evidence.",
+  "categories": ["developer", "utilities"],
   "icons": [
     {
       "src": "/favicon.svg",

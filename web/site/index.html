@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="ProtoPeek is a lightweight local protocol workbench with native gRPC and HTTP inspection, explicit gRPC Health, bounded discovery, and read-only network evidence."
+      content="ProtoPeek is a local systems workbench for native gRPC and HTTP, bounded network evidence, and an unreleased six-area development suite."
     />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
@@ -20,10 +20,10 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="ProtoPeek | Local gRPC and HTTP Workbench" />
+    <meta property="og:title" content="ProtoPeek | Local Systems Workbench" />
     <meta
       property="og:description"
-      content="A lightweight local-first workbench with protocol-native gRPC and HTTP inspection."
+      content="Follow the path from request to system with native protocol tools and bounded local evidence. Stable v0.4.0; unified suite in development."
     />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/" />
     <meta property="og:locale" content="en_US" />
@@ -32,54 +32,79 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek v0.3.0 local protocol workbench dashboard" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ProtoPeek | Local gRPC and HTTP Workbench" />
+    <meta name="twitter:title" content="ProtoPeek | Local Systems Workbench" />
     <meta
       name="twitter:description"
-      content="Inspect gRPC and bounded HTTP requests locally without flattening their native evidence."
+      content="Native gRPC and HTTP plus bounded local evidence. Stable v0.4.0; unified six-area suite in development."
     />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta name="twitter:image:alt" content="ProtoPeek v0.3.0 local protocol workbench dashboard" />
 
-    <title>ProtoPeek | Local gRPC and HTTP Workbench</title>
+    <title>ProtoPeek | Local Systems Workbench</title>
 
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "ProtoPeek",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": ["Linux", "macOS", "Windows"],
-        "softwareVersion": "0.4.0",
-        "isAccessibleForFree": true,
-        "url": "https://protopeek.shreyam1008.com.np/",
-        "downloadUrl": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0",
-        "releaseNotes": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0",
-        "description": "ProtoPeek is a lightweight local protocol workbench with native gRPC and HTTP, explicit gRPC Health, bounded discovery, next-hop evidence, and offline Nmap XML import.",
-        "screenshot": "https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png",
-        "featureList": [
-          "Protocol-native gRPC request and response inspection",
-          "Canonical gRPC Health Check and bounded Watch",
-          "Bounded HTTP and local target discovery",
-          "Browser proto-folder snapshots",
-          "Read-only kernel next-hop evidence",
-          "Offline Nmap XML import"
-        ],
-        "softwareHelp": "https://protopeek.shreyam1008.com.np/docs/",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "author": {
-          "@type": "Person",
-          "name": "Shreyam Adhikari",
-          "url": "https://shreyam1008.com.np/"
-        },
-        "codeRepository": "https://github.com/shreyam1008/ProtoPeek",
-        "license": "https://github.com/shreyam1008/ProtoPeek/blob/master/LICENSE"
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://protopeek.shreyam1008.com.np/#website",
+            "name": "ProtoPeek",
+            "url": "https://protopeek.shreyam1008.com.np/",
+            "description": "ProtoPeek is a local systems workbench. Stable v0.4.0 covers protocol-native gRPC, HTTP, and bounded network evidence; the unified six-area suite is current development source and remains unreleased.",
+            "dateModified": "2026-08-23",
+            "publisher": {
+              "@id": "https://shreyam1008.com.np/#person"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://protopeek.shreyam1008.com.np/#software",
+            "name": "ProtoPeek",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": ["Linux", "macOS", "Windows"],
+            "softwareVersion": "0.4.0",
+            "isAccessibleForFree": true,
+            "url": "https://protopeek.shreyam1008.com.np/",
+            "downloadUrl": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0",
+            "releaseNotes": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.4.0",
+            "description": "Stable ProtoPeek v0.4.0 is a local protocol and network workbench with native gRPC and HTTP, bounded discovery, route and Linux path evidence, logical topology, and offline Nmap XML import.",
+            "screenshot": [
+              "https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard-dark.png",
+              "https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png",
+              "https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard-mobile.png"
+            ],
+            "featureList": [
+              "Protocol-native gRPC request and response inspection",
+              "Canonical gRPC Health Check and bounded Watch",
+              "Bounded HTTP and local target discovery",
+              "Browser proto-folder snapshots",
+              "Read-only kernel route and Linux active path evidence",
+              "Authorized private-network inventory and logical topology",
+              "Offline Nmap XML import"
+            ],
+            "softwareHelp": "https://protopeek.shreyam1008.com.np/docs/",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "author": {
+              "@id": "https://shreyam1008.com.np/#person"
+            },
+            "codeRepository": "https://github.com/shreyam1008/ProtoPeek",
+            "license": "https://github.com/shreyam1008/ProtoPeek/blob/master/LICENSE"
+          },
+          {
+            "@type": "Person",
+            "@id": "https://shreyam1008.com.np/#person",
+            "name": "Shreyam Adhikari",
+            "url": "https://shreyam1008.com.np/"
+          }
+        ]
       }
     </script>
   </head>

@@ -3,6 +3,7 @@ import { createContext, useContext } from 'react';
 import type { ProtoPeekTheme } from '@/shared/theme';
 
 import type { ScanResult } from './api';
+import type { InterfacePreferences } from './interface-preferences';
 
 export type RecentDiscovery = ScanResult & { discoveredAt: string };
 
@@ -19,6 +20,8 @@ export const protocolShellEvents = {
 export type ProtocolShellValue = {
   theme: ProtoPeekTheme;
   setTheme: (theme: ProtoPeekTheme) => void;
+  interfacePreferences: InterfacePreferences;
+  setInterfacePreferences: (preferences: InterfacePreferences) => void;
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
   openGRPCDiscovery: (result: ScanResult) => void;

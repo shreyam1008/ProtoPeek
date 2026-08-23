@@ -5,6 +5,20 @@ version source of truth.
 
 ## Unreleased
 
+- Unified the development console around six primary areas—Overview, Protocols, Network,
+  Downloader, Security, and Settings—with canonical hash routes, compatibility redirects, a
+  responsive keyboard-accessible shell, and browser-local appearance preferences.
+- Added an explicit local Downloader backed only by a configured or system-installed `aria2c`.
+  The browser and one-shot `pp download` CLI use the same bounded transfer core, host configuration,
+  and resumable session format without attaching to each other's live process, deleting partial or
+  completed files, or claiming an unavailable computed digest.
+- Added consent-gated Security evidence: passive historical certificate-name candidates through
+  `crt.name`, plus a separate resolve-once, public-only, pinned, non-following, bodyless one-HEAD
+  website observation. Neither path probes returned candidates or emits a security score.
+- Reworked the public site, README, man pages, guides, screenshots, and bundle budgets to describe
+  stable v0.4.0 separately from these current-source additions. GoBarryGo import, retirement,
+  redirects, broader protocol/security plans, publication, and deployment remain future work.
+
 ## v0.4.0 — 2026-08-21
 
 - Added the dependency-free Network Workbench for bounded native path evidence, authorized private

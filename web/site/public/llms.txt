@@ -1,40 +1,40 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a lightweight local-first protocol and network workbench and independent open source project by Shreyam Adhikari. The current source keeps native gRPC and bounded HTTP request surfaces alongside separate DNS, read-only kernel-route, Linux-native consented UDP hop, authorized private-network selected-TCP, logical topology, and offline Nmap XML evidence. Darwin/Windows active-hop backends, broader range expansion, and live capture remain future or gated work.
+> ProtoPeek is a local systems workbench for seeing the path from request to system without flattening protocol-specific evidence.
 
 Primary site: https://protopeek.shreyam1008.com.np/
 Author: https://shreyam1008.com.np/
 Repository: https://github.com/shreyam1008/ProtoPeek
-Release status: v0.4.0 is the current stable release. The verified release resolver and owned Homebrew/Scoop channels publish its independently tested checksum-pinned archives.
 
-Summary:
-- Launch ProtoPeek with no target and define one or more saved gRPC endpoints from the UI.
-- Explore proto files, services, messages, enums, dependencies, and export raw `.proto` text.
-- Generate starter JSON payloads from reflected schemas.
-- Inspect metadata, trailers, status, callback-observed lifecycle timing, and explicit canonical Health; use bounded sequential repetition only as a local diagnostic.
-- Send explicit HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect choice, and native response evidence.
-- On Linux, authorize a fixed native UDP path plan and inspect pinned DNS, kernel-route, silent-hop, and per-responder source RTT evidence. A destination median uses only exact pinned-address replies, never the last responding router or per-link latency.
-- Preview and authorize one RFC 1918 IPv4 `/24`-or-smaller discovery. Exact `applicationProbePorts` are Quick `80,443,50051,8080`; gRPC `443,6565,7000,7443,9090,50051`; Web `80,443,3000,4000,5000,8000,8080,8443`; Expanded `80,443,3000,8000,8080,8443,9090,50051`. They may receive bounded gRPC reflection and non-following HTTP `HEAD /`; Expanded `22,53,445,631,1883,3306,3389,5432,6379,9100` are TCP-connect-only.
-- Discovery's 64 KiB aggregate verbose-detail budget retains every observed open-port record. `probeDurationMs` is full probe duration, not network latency.
-- Save immutable snapshots while preserving manual labels, tags, notes, pinned positions, groups, services, and relationships across later observations; unsaved edits are guarded until explicitly saved or discarded.
-- Use canonical `protopeek-network` JSON for lossless exchange, disclosed-loss GraphML for graph exchange, and CSV for flat inventory export.
-- Keep automatic history and default exports secret-safe while each adapter preserves its native request and response concepts.
-- Install with Homebrew (`brew install shreyam1008/tap/protopeek`), Scoop (`scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket` then `scoop install shreyam/protopeek`), or the checksum-verifying shell/PowerShell release resolvers.
+## Release truth
 
-Preferred docs:
-- https://protopeek.shreyam1008.com.np/
+- v0.4.0 is the current stable release.
+- Stable v0.4.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, and offline Nmap XML import.
+- The verified release resolvers and the owned Homebrew and Scoop channels install v0.4.0 from checksum-pinned release archives.
+- The unified six-area interface is current development source and remains unreleased. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
+
+## Current development source
+
+- Downloader uses an explicitly configured or system-installed `aria2c`; ProtoPeek does not bundle aria2.
+- `pp download [--output NAME] [--sha256 64_HEX] URL` performs one HTTP(S) transfer, owns its local engine session, writes progress to stderr, prints the completed path to stdout, and preserves partial data plus the aria2 session on interruption. It does not attach to an already-running ProtoPeek process.
+- Historical certificate-name lookup runs only after disclosing that the registrable domain is sent to `crt.name`. Returned names are historical candidates, not proof that a host is live or owned.
+- Website observation requires separate consent and sends exactly one credential-free, non-following `HEAD` request to a public-only target. ProtoPeek resolves and pins public addresses, verifies TLS for HTTPS, reads no body, and reports bounded DNS, TLS, HTTP, and timing evidence.
+- ProtoPeek emits no security score and makes no universal vulnerability verdict. Broader probes remain planned.
+
+## Stable install
+
+- Homebrew: `brew install shreyam1008/tap/protopeek`
+- Scoop: `scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket`, then `scoop install shreyam/protopeek`
+- Unix resolver: `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh`
+- PowerShell resolver: `irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex`
+
+## Documentation
+
 - https://protopeek.shreyam1008.com.np/docs/
 - https://protopeek.shreyam1008.com.np/learn-grpc/
-- https://protopeek.shreyam1008.com.np/feature-roadmap/
 - https://protopeek.shreyam1008.com.np/network-workbench/
-- https://protopeek.shreyam1008.com.np/competitive-landscape/
 - https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
 - https://protopeek.shreyam1008.com.np/transport-boundaries/
-- https://protopeek.shreyam1008.com.np/vscode-extension-spec/
-- https://github.com/shreyam1008/ProtoPeek
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/network-workbench.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/competitive-landscape.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md
+- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/website-analysis-security.md

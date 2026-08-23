@@ -5,11 +5,31 @@ pp \- short executable name for ProtoPeek
 .B pp
 .RI [ options ]
 .RI [ target ]
+.br
+.B pp download
+.RI [ --output " NAME" ]
+.RI [ --sha256 " 64_HEX" ]
+.I URL
 .SH DESCRIPTION
 .B pp
 is an identical executable entrypoint for
 .BR protopeek .
 Use the canonical name if another installed program already owns
 .BR pp .
+.SH DEVELOPMENT DOWNLOAD COMMAND
+The current development source, but not stable v0.4.0, adds
+.BR "pp download" .
+It accepts exactly one absolute HTTP(S) URL without user information, an
+optional safe output filename with no directory components, and an optional
+exact 64-hexadecimal-character SHA-256 digest. It uses a configured or system
+.BR aria2c ;
+aria2 is not bundled.
+.PP
+The one-shot command owns its local engine session instead of attaching to an
+already-running ProtoPeek process. It writes progress to standard error and the
+completed path to standard output. An interrupt returns status 130 and
+preserves partial data plus the aria2 session. See
+.BR protopeek (1)
+for the complete lifecycle and flag constraints.
 .SH SEE ALSO
 .BR protopeek (1)

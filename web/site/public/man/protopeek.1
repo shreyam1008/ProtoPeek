@@ -8,6 +8,11 @@ protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .B protopeek
 .RI [ options ]
 .I target
+.br
+.B protopeek download
+.RI [ --output " NAME" ]
+.RI [ --sha256 " 64_HEX" ]
+.I URL
 .SH DESCRIPTION
 ProtoPeek starts an unauthenticated local web workbench. With no target it opens
 the Protocol Peek dashboard. An exact host:port connects directly to that gRPC
@@ -100,6 +105,34 @@ Enable or disable automatic browser opening.
 Permit a non-loopback browser listener and accept non-loopback browser Hosts.
 The listener has no built-in user authentication; use only behind an explicit
 TLS, authentication, and rate-limit boundary.
+.SH DEVELOPMENT DOWNLOAD COMMAND
+The
+.B download
+subcommand is implemented in the current development source. It is unreleased
+and is not included in stable v0.4.0 archives or package-manager installs.
+.PP
+It accepts exactly one absolute HTTP(S) URL without user information and uses
+an explicitly configured or system-installed
+.BR aria2c .
+ProtoPeek does not bundle aria2. URL fragments are ignored.
+.TP
+.BI --output " NAME"
+Use one safe output filename, at most 255 characters, with no directory
+components.
+.TP
+.BI --sha256 " 64_HEX"
+Require an exact 64-hexadecimal-character SHA-256 digest. A completed transfer
+without verified matching checksum evidence fails.
+.PP
+The command uses the same host configuration and aria2 session files as the
+browser UI, but owns a separate local engine process and does not attach to an
+already-running ProtoPeek process. If another process owns the engine lock, the
+command refuses to start and explains how to retry.
+.PP
+Progress is written to standard error and only the completed output path is
+written to standard output. Interrupting the command returns status 130 and
+preserves partial data plus the aria2 session for later resumption. Shutdown is
+bounded to five seconds.
 .SH EXAMPLES
 .TP
 Open the Protocol Peek dashboard:
@@ -113,6 +146,9 @@ Connect to a plaintext local gRPC server:
 .TP
 Start without opening a browser:
 .B protopeek \-open-browser=false
+.TP
+Current development source only: download one file with checksum evidence:
+.B protopeek download --output artifact.bin --sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef https://example.test/artifact.bin
 .SH STATE
 Saved targets, requests, and workspace settings are stored in the local browser
 profile. Automatic history and default exports redact known credential fields,

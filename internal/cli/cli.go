@@ -367,6 +367,10 @@ func (cs compositeSource) AllExtensionsForType(typeName string) ([]*desc.FieldDe
 }
 
 func Run() {
+	if code, handled := dispatchSubcommand(os.Args[1:]); handled {
+		exit(code)
+		return
+	}
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		*openBrowser = true
 	}
@@ -577,6 +581,27 @@ func Run() {
 		Protosets:    append([]string(nil), protoset...),
 	}
 
+	processTransferService, err := loadConfiguredTransferService()
+	if err != nil {
+		fail(err, "Failed to load downloader host configuration")
+	}
+	var transferShutdownOnce sync.Once
+	shutdownTransfers := func() {
+		transferShutdownOnce.Do(func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), downloadCommandShutdownTime)
+			defer cancel()
+			if err := processTransferService.Shutdown(shutdownCtx); err != nil {
+				warn("downloader shutdown was not clean: %v", err)
+			}
+		})
+	}
+	defer shutdownTransfers()
+	previousExit := exit
+	exit = withExitCleanup(previousExit, shutdownTransfers)
+	defer func() {
+		exit = previousExit
+	}()
+
 	var handler http.Handler
 	if launcherMode {
 		manager := standalone.NewWorkspaceManager(standalone.WorkspaceManagerOptions{
@@ -620,6 +645,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
 		}
@@ -720,11 +746,9 @@ func Run() {
 			}
 		}
 		defer reset()
-		exit = func(code int) {
-			// since defers aren't run by os.Exit...
-			reset()
-			os.Exit(code)
-		}
+		// Since defers do not run after os.Exit, layer connection cleanup over
+		// the process-scoped downloader cleanup installed above.
+		exit = withExitCleanup(exit, reset)
 
 		methods, err := getMethods(descSource, configs)
 		if err != nil {
@@ -767,6 +791,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
 		}
@@ -862,6 +887,7 @@ func Run() {
 	select {
 	case err := <-serveErrors:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			shutdownTransfers()
 			fail(err, "Failed to serve ProtoPeek")
 		}
 	case <-shutdownContext.Done():
@@ -873,9 +899,11 @@ func Run() {
 			warn("ProtoPeek shutdown exceeded its grace period: %v", err)
 		}
 		if serveErr := <-serveErrors; serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+			shutdownTransfers()
 			fail(serveErr, "Failed to serve ProtoPeek")
 		}
 	}
+	shutdownTransfers()
 }
 
 func browserURL(bindAddress string, port int, path, appRoute string) string {
@@ -906,8 +934,13 @@ func printLaunchBanner(url, target string) {
 func usage() {
 	fmt.Fprintf(os.Stderr, `Usage:
 	%s [flags] [address]
+	%s download [flags] URL
 
 Starts the ProtoPeek web console.
+
+The download command performs one local HTTP(S) transfer through the configured
+or system aria2c binary. Run "%s download --help" for its bounded output-name
+and optional SHA-256 verification flags.
 
 If a host:port address is provided, ProtoPeek connects directly to that target
 and opens the console in single-target mode. A bare host or HTTP(S) authority
@@ -930,7 +963,7 @@ container-interface bind while retaining the loopback Host and Origin policy.
 external TLS, authentication, and rate-limit boundary.
 
 Available flags:
-`, os.Args[0])
+`, os.Args[0], os.Args[0], os.Args[0])
 	flags.PrintDefaults()
 }
 
@@ -983,6 +1016,13 @@ func fail(err error, msg string, args ...interface{}) {
 		// nil error means it was CLI usage issue
 		fmt.Fprintf(os.Stderr, "Try '%s -help' for more details.\n", os.Args[0])
 		exit(2)
+	}
+}
+
+func withExitCleanup(next func(int), cleanup func()) func(int) {
+	return func(code int) {
+		cleanup()
+		next(code)
 	}
 }
 
