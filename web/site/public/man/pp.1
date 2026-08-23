@@ -1,15 +1,64 @@
-.TH PP 1 "August 2026" "ProtoPeek 0.4.0" "User Commands"
+.TH PP 1 "August 2026" "ProtoPeek current source" "User Commands"
 .SH NAME
 pp \- short executable name for ProtoPeek
 .SH SYNOPSIS
 .B pp
 .RI [ options ]
 .RI [ target ]
+.br
+.B pp download
+.RI [ --output " NAME" ]
+.RI [ --sha256 " 64_HEX" ]
+.I URL
+.br
+.B pp migrate-gobarry
+.RI [ --apply ]
+.RI [ --preferences= bool ]
+.RI [ --session= bool ]
+.br
+.B pp migrate-gobarry
+.BI --rollback " RECEIPT_ID"
 .SH DESCRIPTION
 .B pp
 is an identical executable entrypoint for
 .BR protopeek .
 Use the canonical name if another installed program already owns
 .BR pp .
+.SH DEVELOPMENT DOWNLOAD COMMAND
+The current development source, but not stable v0.4.0, adds
+.BR "pp download" .
+It accepts exactly one absolute HTTP(S) URL without user information, an
+optional safe output filename with no directory components, and an optional
+exact 64-hexadecimal-character SHA-256 digest. It uses a configured or system
+.BR aria2c ;
+aria2 is not bundled.
+.PP
+The one-shot command owns its local engine session instead of attaching to an
+already-running ProtoPeek process. It writes progress to standard error and the
+completed path to standard output. An interrupt returns status 130 and
+preserves partial data plus the aria2 session. See
+.BR protopeek (1)
+for the complete lifecycle and flag constraints.
+.SH DEVELOPMENT GOBARRYGO MIGRATION COMMAND
+The current development source, but not stable v0.4.0, also adds
+.BR "pp migrate-gobarry" .
+With no mutation flag it only previews the bounded, known GoBarryGo local
+profile. Use
+.B --apply
+to copy compatible state,
+.B --preferences=false
+for a session-only import, or
+.B --session=false
+for a preferences-only import. Source files remain unchanged and imported
+session jobs remain paused.
+.PP
+Each successful import creates private state and a guarded receipt. Use
+.BI "pp migrate-gobarry --rollback " RECEIPT_ID
+only while current ProtoPeek transfer state still matches that receipt;
+otherwise rollback refuses to overwrite newer work. Stop both GoBarryGo and
+the ProtoPeek Downloader before the final preview/import, and stop the
+Downloader before rollback. See
+.BR protopeek (1)
+for the full safety contract.
 .SH SEE ALSO
 .BR protopeek (1)

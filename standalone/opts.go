@@ -257,6 +257,15 @@ func WithWorkspaceManager(manager *WorkspaceManager) HandlerOption {
 	})
 }
 
+// WithTransferService injects the one process-scoped downloader service used
+// by the browser API. The service is never started by constructing the handler;
+// only an explicit POST to the start endpoint may launch aria2c.
+func WithTransferService(service TransferService) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.transferService = service
+	})
+}
+
 // WithInitialScanTarget pre-fills and automatically probes one explicit target
 // in launcher mode. The scan endpoint still enforces its fixed candidate limit
 // and network policy.
@@ -297,6 +306,7 @@ type handlerOptions struct {
 	routeLookupHandler      http.Handler
 	pathCapabilitiesHandler http.Handler
 	pathTraceHandler        http.Handler
+	transferService         TransferService
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

@@ -72,11 +72,67 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 6 * kibibyte,
   },
   {
+    label: 'Downloader workspace JavaScript',
+    pattern: /^Downloader-.+\.js$/,
+    maxRawBytes: 24 * kibibyte,
+    maxGzipBytes: 8 * kibibyte,
+  },
+  {
+    label: 'Downloader workspace CSS',
+    pattern: /^Downloader-.+\.css$/,
+    maxRawBytes: 16 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'Downloader advanced-options CSS',
+    pattern: /^downloader-advanced-.+\.css$/,
+    maxRawBytes: 4 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'Security workspace JavaScript',
+    pattern: /^Security-.+\.js$/,
+    maxRawBytes: 36 * kibibyte,
+    maxGzipBytes: 10 * kibibyte,
+  },
+  {
+    label: 'Security workspace CSS',
+    pattern: /^Security-.+\.css$/,
+    maxRawBytes: 22 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'suite shell pages CSS',
+    pattern: /^suite-pages-.+\.css$/,
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'Settings workspace CSS',
+    pattern: /^Settings-.+\.css$/,
+    maxRawBytes: 8 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  // Downloader and Security are route-lazy: neither is transferred when the
+  // dashboard or a protocol workbench opens. Keep their own budgets tight,
+  // preserve the existing shared-entry ceiling above, and bound the installed
+  // suite separately so adding a module cannot hide in code splitting.
+  {
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    maxRawBytes: 680 * kibibyte,
-    maxGzipBytes: 212 * kibibyte,
+    maxRawBytes: 768 * kibibyte,
+    maxGzipBytes: 240 * kibibyte,
+  },
+  {
+    label: 'all console CSS',
+    pattern: /\.css$/,
+    mode: 'aggregate',
+    // The stable shared stylesheet remains independently capped above; the
+    // aggregate includes every route-lazy feature stylesheet and keeps a
+    // deliberately tight regression ceiling above the current measured suite.
+    maxRawBytes: 224 * kibibyte,
+    maxGzipBytes: 42 * kibibyte,
   },
 ];
 

@@ -3,12 +3,14 @@ import {
   Activity,
   ArrowRight,
   Cable,
+  Download,
   Globe2,
   LockKeyhole,
   Network,
   Radar,
-  Route,
   Server,
+  Settings,
+  ShieldCheck,
 } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 
@@ -67,9 +69,11 @@ export function Dashboard() {
     <div className="pp-dashboard">
       <header className="pp-dashboard-hero">
         <div>
-          <span className="pp-kicker">Protocol console · {version}</span>
+          <span className="pp-kicker">Local systems workbench · {version}</span>
           <h1>Protocol Peek</h1>
-          <p>Inspect the transport first, then open the protocol-native workbench.</p>
+          <p>
+            See the protocol, network path, transfer, and public-site evidence in one local tool.
+          </p>
         </div>
         <button type="button" className="pp-dashboard-scan" onClick={() => openScan()}>
           <Radar aria-hidden="true" />
@@ -108,7 +112,7 @@ export function Dashboard() {
             </span>
           </header>
           <div className="pp-protocol-cards">
-            <Link to="/grpc" className="pp-protocol-card">
+            <Link to="/protocols/grpc" className="pp-protocol-card">
               <Server aria-hidden="true" />
               <span>
                 <small>Stable</small>
@@ -120,7 +124,7 @@ export function Dashboard() {
               </p>
               <ArrowRight aria-hidden="true" />
             </Link>
-            <Link to="/http" className="pp-protocol-card">
+            <Link to="/protocols/http" className="pp-protocol-card">
               <Globe2 aria-hidden="true" />
               <span>
                 <small>Stable</small>
@@ -129,28 +133,47 @@ export function Dashboard() {
               <p>Safe local relay with TLS, redirect, timing, peer, header, and body evidence.</p>
               <ArrowRight aria-hidden="true" />
             </Link>
-            <Link to="/routes" className="pp-protocol-card">
-              <Route aria-hidden="true" />
-              <span>
-                <small>In this build</small>
-                <strong>Next hop</strong>
-              </span>
-              <p>
-                Read-only process-perspective source, interface, gateway, prefix, metric, and table
-                evidence.
-              </p>
-              <ArrowRight aria-hidden="true" />
-            </Link>
             <Link to="/network/path" className="pp-protocol-card">
               <Network aria-hidden="true" />
               <span>
-                <small>New · Linux path probes</small>
+                <small>Bounded evidence</small>
                 <strong>Network</strong>
               </span>
               <p>
-                DNS, kernel route, per-TTL source RTT, authorized local discovery, saved snapshots,
-                and a logical evidence map.
+                DNS, selected route, Linux hop observations, authorized local discovery, and maps.
               </p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/downloader" className="pp-protocol-card">
+              <Download aria-hidden="true" />
+              <span>
+                <small>Explicit external engine</small>
+                <strong>Downloader</strong>
+              </span>
+              <p>
+                Queue, pause, retry, cancel, disk reserve, and real optional SHA-256 verification.
+              </p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/security" className="pp-protocol-card">
+              <ShieldCheck aria-hidden="true" />
+              <span>
+                <small>Evidence, not a score</small>
+                <strong>Security</strong>
+              </span>
+              <p>
+                Historical domain names and one consented, public-only DNS, HTTP, and TLS
+                observation.
+              </p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/settings" className="pp-protocol-card">
+              <Settings aria-hidden="true" />
+              <span>
+                <small>Browser-local</small>
+                <strong>Settings</strong>
+              </span>
+              <p>Theme, density, and shortcut hints without pretending to change host policy.</p>
               <ArrowRight aria-hidden="true" />
             </Link>
           </div>

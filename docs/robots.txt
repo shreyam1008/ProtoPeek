@@ -1,3 +1,4 @@
+# Public product, documentation, and versioned screenshots are crawlable.
 User-agent: *
 Allow: /
 

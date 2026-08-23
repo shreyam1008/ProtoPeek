@@ -16,7 +16,7 @@
     "lint": "biome check web scripts/bundle-budget.ts package.json biome.json",
     "prepare": "husky",
     "test": "bun run typecheck && bun run lint && bun run test:ui",
-    "test:ui": "vitest run --config web/vitest.config.ts",
+    "test:ui": "vitest run --config web/vitest.config.ts --maxWorkers=2",
     "typecheck": "tsgo -p web/tsconfig.json --noEmit"
   },
   "dependencies": {

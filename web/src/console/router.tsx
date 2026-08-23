@@ -16,20 +16,40 @@ const dashboardRoute = createRoute({
   path: '/',
   component: Dashboard,
 });
+const protocolsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/protocols',
+  component: lazyRouteComponent(() => import('./Protocols'), 'Protocols'),
+});
 const grpcRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/grpc',
+  path: '/protocols/grpc',
   component: lazyRouteComponent(() => import('./App'), 'App'),
 });
 const httpRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/http',
+  path: '/protocols/http',
   component: lazyRouteComponent(() => import('./HTTPRoute'), 'HTTPRoute'),
+});
+const downloaderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/downloader',
+  component: lazyRouteComponent(() => import('./Downloader'), 'Downloader'),
 });
 const routesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/routes',
+  path: '/network/route',
   component: lazyRouteComponent(() => import('./RoutesWorkbench'), 'RoutesWorkbench'),
+});
+const securityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/security',
+  component: lazyRouteComponent(() => import('./Security'), 'Security'),
+});
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: lazyRouteComponent(() => import('./Settings'), 'Settings'),
 });
 const networkComponent = lazyRouteComponent(() => import('./NetworkWorkbench'), 'NetworkWorkbench');
 const networkRoute = createRoute({
@@ -66,6 +86,35 @@ const roadmapRoute = createRoute({
   component: lazyRouteComponent(() => import('./Roadmap'), 'Roadmap'),
 });
 
+const grpcCompatibilityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/grpc',
+  beforeLoad: () => {
+    throw redirect({ to: '/protocols/grpc' });
+  },
+});
+const httpCompatibilityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/http',
+  beforeLoad: () => {
+    throw redirect({ to: '/protocols/http' });
+  },
+});
+const routesCompatibilityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/routes',
+  beforeLoad: () => {
+    throw redirect({ to: '/network/route' });
+  },
+});
+const downloadsCompatibilityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/downloads',
+  beforeLoad: () => {
+    throw redirect({ to: '/downloader' });
+  },
+});
+
 const networkRouteTree = networkRoute.addChildren([
   networkIndexRoute,
   networkPathRoute,
@@ -76,11 +125,19 @@ const networkRouteTree = networkRoute.addChildren([
 
 const routeTree = rootRoute.addChildren([
   dashboardRoute,
+  protocolsRoute,
   grpcRoute,
   httpRoute,
+  downloaderRoute,
   routesRoute,
+  securityRoute,
+  settingsRoute,
   networkRouteTree,
   roadmapRoute,
+  grpcCompatibilityRoute,
+  httpCompatibilityRoute,
+  routesCompatibilityRoute,
+  downloadsCompatibilityRoute,
 ]);
 
 export function createProtoPeekRouter(history = createHashHistory()) {

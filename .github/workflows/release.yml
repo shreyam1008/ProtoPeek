@@ -35,6 +35,15 @@ jobs:
             echo "Release tag must point to a commit contained in origin/master." >&2
             exit 1
           }
+          release_version="${GITHUB_REF_NAME#v}"
+          for manual in web/site/public/man/protopeek.1 web/site/public/man/pp.1; do
+            manual_title="$(awk -F '"' 'NR == 1 { print $4 }' "$manual")"
+            if [[ "$manual_title" != "ProtoPeek $release_version" ]]; then
+              echo "$manual identifies itself as '$manual_title'; expected 'ProtoPeek $release_version' for $GITHUB_REF_NAME." >&2
+              echo "Promote the current-source manuals before creating the stable tag." >&2
+              exit 1
+            fi
+          done
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:

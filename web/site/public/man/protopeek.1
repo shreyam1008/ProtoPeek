@@ -1,4 +1,4 @@
-.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.4.0" "User Commands"
+.TH PROTOPEEK 1 "August 2026" "ProtoPeek current source" "User Commands"
 .SH NAME
 protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .SH SYNOPSIS
@@ -8,6 +8,19 @@ protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .B protopeek
 .RI [ options ]
 .I target
+.br
+.B protopeek download
+.RI [ --output " NAME" ]
+.RI [ --sha256 " 64_HEX" ]
+.I URL
+.br
+.B protopeek migrate-gobarry
+.RI [ --apply ]
+.RI [ --preferences= bool ]
+.RI [ --session= bool ]
+.br
+.B protopeek migrate-gobarry
+.BI --rollback " RECEIPT_ID"
 .SH DESCRIPTION
 ProtoPeek starts an unauthenticated local web workbench. With no target it opens
 the Protocol Peek dashboard. An exact host:port connects directly to that gRPC
@@ -100,6 +113,68 @@ Enable or disable automatic browser opening.
 Permit a non-loopback browser listener and accept non-loopback browser Hosts.
 The listener has no built-in user authentication; use only behind an explicit
 TLS, authentication, and rate-limit boundary.
+.SH DEVELOPMENT DOWNLOAD COMMAND
+The
+.B download
+subcommand is implemented in the current development source. It is unreleased
+and is not included in stable v0.4.0 archives or package-manager installs.
+.PP
+It accepts exactly one absolute HTTP(S) URL without user information and uses
+an explicitly configured or system-installed
+.BR aria2c .
+ProtoPeek does not bundle aria2. URL fragments are ignored.
+.TP
+.BI --output " NAME"
+Use one safe output filename, at most 255 characters, with no directory
+components.
+.TP
+.BI --sha256 " 64_HEX"
+Require an exact 64-hexadecimal-character SHA-256 digest. A completed transfer
+without verified matching checksum evidence fails.
+.PP
+The command uses the same host configuration and aria2 session files as the
+browser UI, but owns a separate local engine process and does not attach to an
+already-running ProtoPeek process. If another process owns the engine lock, the
+command refuses to start and explains how to retry.
+.PP
+Progress is written to standard error and only the completed output path is
+written to standard output. Interrupting the command returns status 130 and
+preserves partial data plus the aria2 session for later resumption. Shutdown is
+bounded to five seconds.
+.SH DEVELOPMENT GOBARRYGO MIGRATION COMMAND
+The
+.B migrate-gobarry
+subcommand is implemented in current development source and is not included in
+stable v0.4.0. With no mutation flag it performs an observational preview of
+the one known GoBarryGo local profile. It does not accept an arbitrary source
+path, start aria2, or write either product's state.
+.TP
+.B --apply
+Copy the selected compatible preferences and resumable aria2 session into
+ProtoPeek after displaying the preview. Source files are never deleted,
+renamed, uninstalled, or rewritten. Imported session jobs remain paused.
+.TP
+.BI --preferences= bool
+Include compatible GoBarryGo preferences. Defaults to true. Use
+.B --preferences=false
+for a session-only import.
+.TP
+.BI --session= bool
+Include the bounded resumable aria2 session. Defaults to true. Use
+.B --session=false
+for a preferences-only import.
+.TP
+.BI --rollback " RECEIPT_ID"
+Restore the exact ProtoPeek state recorded before one import. Rollback refuses
+if the current target configuration, session, or migration ledger no longer
+matches that receipt, so newer work is not overwritten.
+.PP
+Import and rollback require the ProtoPeek Downloader to be stopped. For the
+final preview and import, stop GoBarryGo as well so its source snapshot remains
+stable. Successful imports store private mode-0600 state, a source-hash ledger,
+and a guarded rollback receipt. Repeating an identical import is idempotent.
+Unsupported GoBarryGo behavior, including native completion/error
+notifications, is reported but not silently claimed as migrated.
 .SH EXAMPLES
 .TP
 Open the Protocol Peek dashboard:
@@ -113,6 +188,18 @@ Connect to a plaintext local gRPC server:
 .TP
 Start without opening a browser:
 .B protopeek \-open-browser=false
+.TP
+Current development source only: download one file with checksum evidence:
+.B protopeek download --output artifact.bin --sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef https://example.test/artifact.bin
+.TP
+Current development source only: preview the GoBarryGo bridge without writing:
+.B protopeek migrate-gobarry
+.TP
+Copy compatible preferences and session after reviewing the preview:
+.B protopeek migrate-gobarry --apply
+.TP
+Guardedly restore a recorded pre-import state:
+.B protopeek migrate-gobarry --rollback RECEIPT_ID
 .SH STATE
 Saved targets, requests, and workspace settings are stored in the local browser
 profile. Automatic history and default exports redact known credential fields,

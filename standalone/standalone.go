@@ -24,7 +24,10 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/shreyam1008/ProtoPeek"
+	"github.com/shreyam1008/ProtoPeek/internal/certnames"
 	appassets "github.com/shreyam1008/ProtoPeek/internal/resources/app"
+	"github.com/shreyam1008/ProtoPeek/internal/targetguard"
+	"github.com/shreyam1008/ProtoPeek/internal/webobserve"
 )
 
 func init() {
@@ -41,11 +44,16 @@ const csrfCookieName = "_protopeek_csrf_token"
 
 const csrfHeaderName = "x-protopeek-csrf-token"
 
-const maxWorkspaceConnectBodyBytes = 256 << 10
+const (
+	maxWorkspaceConnectBodyBytes             = 256 << 10
+	maxConcurrentDomainCandidateLookups      = 2
+	maxConcurrentWebsiteSecurityObservations = 2
+)
 
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
-	case "/grpc", "/http", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap":
+	case "/protocols", "/protocols/grpc", "/protocols/http", "/downloader", "/network/route", "/security", "/settings",
+		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap":
 		return true
 	default:
 		return false
@@ -139,6 +147,33 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	httpRelayAdmission := newAdmissionLimiter(maxConcurrentHTTPRelays)
 	routeLookupAdmission := newAdmissionLimiter(maxConcurrentRouteLookups)
 	pathTraceAdmission := newAdmissionLimiter(maxConcurrentPathTraces)
+	domainCandidatesAdmission := newAdmissionLimiter(maxConcurrentDomainCandidateLookups)
+	websiteObservationAdmission := newAdmissionLimiter(maxConcurrentWebsiteSecurityObservations)
+	domainCandidatesClient, err := certnames.NewClient(certnames.Options{})
+	if err != nil {
+		panic(err)
+	}
+	websiteObserver, err := webobserve.New(webobserve.Options{Policy: targetguard.PublicOnly})
+	if err != nil {
+		panic(err)
+	}
+	registerTransferHandlers(&mux, uiOpts.transferService)
+	domainCandidatesOperation := DomainCandidatesOperationHandler(domainCandidatesClient)
+	mux.HandleFunc("/api/domain/candidates", func(w http.ResponseWriter, r *http.Request) {
+		setDomainCandidatesHeaders(w)
+		if !validateAdmittedPOST(w, r) {
+			return
+		}
+		domainCandidatesAdmission.serveHTTP("certificate-name lookup", w, r, domainCandidatesOperation)
+	})
+	websiteObservationOperation := WebsiteObservationOperationHandler(websiteObserver)
+	mux.HandleFunc("/api/security/web", func(w http.ResponseWriter, r *http.Request) {
+		setWebsiteObservationHeaders(w)
+		if !validateAdmittedPOST(w, r) {
+			return
+		}
+		websiteObservationAdmission.serveHTTP("website observation", w, r, websiteObservationOperation)
+	})
 	mux.Handle("/api/health/check", healthHandlers.checkHandler(directHealthConnection(ch)))
 	mux.Handle("/api/health/watch", healthHandlers.watchHandler(directHealthConnection(ch)))
 	rpcInvokeHandler := http.StripPrefix("/invoke", grpcui.RPCInvokeHandlerWithOptions(ch, methods, invokeOpts))

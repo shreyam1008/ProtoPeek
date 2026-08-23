@@ -28,16 +28,105 @@ describe('release metadata', () => {
   it('aligns public discovery metadata and packaged manual headers', () => {
     const siteIndex = readRepositoryFile('web/site/index.html');
     const llms = readRepositoryFile('web/site/public/llms.txt');
+    const sitemap = readRepositoryFile('web/site/public/sitemap.xml');
+    const manifest = JSON.parse(readRepositoryFile('web/site/public/site.webmanifest')) as {
+      name: string;
+      description: string;
+    };
 
+    expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
     expect(siteIndex).toContain('"softwareVersion": "0.4.0"');
     expect(siteIndex).toContain('/releases/tag/v0.4.0');
+    expect(siteIndex).toContain(
+      'unified six-area suite is current development source and remains unreleased'
+    );
     expect(llms).toContain('v0.4.0 is the current stable release');
-    expect(llms).toContain('owned Homebrew/Scoop channels publish its independently tested');
-    expect(readRepositoryFile('web/site/public/man/protopeek.1')).toMatch(
-      /^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.4\.0"/
+    expect(llms).toContain(
+      'unified six-area interface is current development source and remains unreleased'
     );
-    expect(readRepositoryFile('web/site/public/man/pp.1')).toMatch(
-      /^\.TH PP 1 "August 2026" "ProtoPeek 0\.4\.0"/
+    expect(llms).toContain('ProtoPeek does not bundle aria2');
+    expect(llms).toContain(
+      'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
     );
+    expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
+    expect(sitemap).toContain('<lastmod>2026-08-23</lastmod>');
+    expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
+    expect(sitemap).not.toContain('/security/');
+    expect(manifest).toEqual(
+      expect.objectContaining({
+        name: 'ProtoPeek — Local Systems Workbench',
+        description: expect.stringContaining('bounded network evidence'),
+      })
+    );
+
+    const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
+    const ppMan = readRepositoryFile('web/site/public/man/pp.1');
+    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek current source"/);
+    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek current source"/);
+    expect(protopeekMan).toContain('.B protopeek download');
+    expect(protopeekMan).toContain('not included in stable v0.4.0');
+    expect(protopeekMan).toContain('does not attach to an\nalready-running ProtoPeek process');
+    expect(protopeekMan).toContain('.B protopeek migrate-gobarry');
+    expect(protopeekMan).toContain('observational preview');
+    expect(ppMan).toContain('.B pp download');
+    expect(ppMan).toContain('.B pp migrate-gobarry');
+    expect(ppMan).toContain('current development source, but not stable v0.4.0');
+  });
+
+  it('keeps consolidation and website-analysis guides split into current and planned work', () => {
+    const consolidation = readRepositoryFile('guides/gobarrygo-consolidation.md');
+    const security = readRepositoryFile('guides/website-analysis-security.md');
+
+    expect(consolidation).toContain(
+      'No public redirect, package promotion, release, or repository archive has'
+    );
+    expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');
+    expect(consolidation).toContain('`download --ui`, `downloads list`, job-action subcommands');
+    expect(consolidation).toContain('are ideas only. They\nare not implemented');
+    expect(consolidation).toContain('canonical browser route is `/downloader`');
+    expect(consolidation).toContain('## Implemented GoBarryGo state bridge');
+    expect(consolidation).toContain(
+      'pp migrate-gobarry                              # observational preview'
+    );
+    expect(consolidation).toContain('private mode-0600 state');
+    expect(consolidation).toContain(
+      'Rollback\nis allowed only while current ProtoPeek transfer state still matches'
+    );
+
+    expect(security).toContain('at most two concurrent client requests');
+    expect(security).toContain('does not return per-candidate observation dates');
+    expect(security).toContain('exactly one credential-free `HEAD` request');
+    expect(security).toContain('redirects are returned as bounded evidence but never followed');
+    expect(security).toContain('## Planned, not shipped');
+    expect(security).toContain('multi-request website plans');
+    expect(security).toMatch(/does\s+not emit a security score/);
+  });
+
+  it('labels real Downloader captures as current-source development evidence', () => {
+    const manifest = JSON.parse(readRepositoryFile('guides/screenshots.json')) as {
+      screenshots: Array<{
+        file: string;
+        capturedVersion: string;
+        releaseStatus?: string;
+        workflow: string;
+      }>;
+    };
+
+    expect(manifest.screenshots).toHaveLength(5);
+    const developmentCaptures = manifest.screenshots.filter(
+      (screenshot) => screenshot.releaseStatus === 'unreleased-development'
+    );
+    expect(developmentCaptures.map((screenshot) => screenshot.file)).toEqual([
+      '../web/site/public/assets/protopeek-downloader-development.jpg',
+      '../web/site/public/assets/protopeek-downloader-development-mobile.jpg',
+    ]);
+    expect(
+      developmentCaptures.every(
+        (screenshot) =>
+          screenshot.capturedVersion === 'current source after v0.4.0' &&
+          /Real Chrome capture/.test(screenshot.workflow) &&
+          /not a stable v0\.4\.0 feature/.test(screenshot.workflow)
+      )
+    ).toBe(true);
   });
 });

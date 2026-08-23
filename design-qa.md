@@ -87,3 +87,74 @@ interaction is hidden without a mobile equivalent.
 Prior connected gRPC capture result: passed. Multi-protocol and v0.3.0 dashboard visual results:
 passed. Physical macOS and Windows browser auto-open remain post-release smoke checks rather than
 unverified claims.
+
+## Unified-suite Downloader design QA — 2026-08-23
+
+### Selected direction and connected captures
+
+- Selected visual direction: `design/protopeek-downloader-selected.png` (1487 × 1058).
+- Final desktop capture: `web/site/public/assets/protopeek-downloader-development.jpg`
+  (1487 × 1058, real Chrome, dark theme, SHA-256 `608c4896c8e975e34ab593760aae585ddaa6e51c557f272dc4b539d2e9186aee`).
+- Final responsive capture: `web/site/public/assets/protopeek-downloader-development-mobile.jpg`
+  (390 × 844, real Chrome, dark theme, SHA-256 `306b5f9efc3863f8ed0581e92629ce969c0eeb9b5820949bc16e319464f1277a`).
+- Same-canvas comparison input: `/tmp/protopeek-downloader-comparison.png` places the
+  selected direction and final desktop capture side by side at the same dimensions.
+
+The selected direction established the compact dark shell, persistent six-area rail, single URL
+composer, queue-plus-inspector split, teal progress evidence, and slim local-status footer. The
+implementation retains that hierarchy while expanding the composer into one or up to 32 independent
+jobs, keeping advanced routing/integrity controls lazy, and removing concept-only Preview, History,
+Reveal, and completion workflows that the current backend cannot truthfully perform. Visible controls
+operate against the real local service instead of sample rows.
+
+### Real workflow exercised
+
+The final production-embedded app was opened in the user's real Chrome browser. ProtoPeek started a
+system-installed aria2c only after form submission, queued independent fixture jobs, enforced a
+supplied expected SHA-256, rendered completed queue rows, and selected one for destination and
+integrity inspection. A separate throttled real-aria2 pass reached the paused state through Pause
+all and invoked Resume all; that ad-hoc fixture then returned aria2 code 8 because its HTTP server did
+not implement Range requests, while backend and UI integration tests cover the resume transition.
+The browser showed no console warnings or errors.
+
+The responsive pass used an exact 390 × 844 content viewport. The mobile drawer opened as a modal,
+kept all six primary areas plus Roadmap and Help reachable, focused its close control, closed on
+Escape, and produced no horizontal overflow (`scrollWidth === clientWidth`). The temporary Chrome
+viewport override was reset after QA.
+
+The Security workspace was also exercised in real Chrome. A query-bearing URL was blocked before
+network contact with the exact removal guidance. A separately consented `https://example.com/`
+operation produced one 200 HTTP/2 HEAD observation with pinned public DNS answers, TLS 1.3 evidence,
+selected headers, bounded timing, no redirect follow, and no response body read. No console errors
+were recorded.
+
+### Defects found and corrected during comparison
+
+- Successful aria2 jobs returned error code `0`; the inspector incorrectly rendered that as a
+  failure. Success code zero is now normalized away and covered by a Go regression test.
+- Ordinary queued jobs displayed Resume even though the backend's unpause transition applies only
+  to paused jobs. Both row and inspector actions are now paused-only with UI regression coverage.
+- Pause, resume, and cancel partial-success persistence warnings were discarded. Every mutation now
+  normalizes and surfaces the bounded warning after refreshing real queue state.
+- The advanced-header helper originally implied values disappeared after queueing. It now states the
+  exact boundary: values are masked and cleared from the form, retained only in private local transfer
+  state when exact retry/resume requires them, and never returned by queue or API results.
+- A partially accepted batch cleared every submitted URL, making the rejected subset awkward to retry
+  without risking duplicate work. The composer now retains only failed source lines while clearing
+  header values from the form; queued jobs cannot be accidentally resubmitted from the remaining text.
+- A receipt from a preferences-only or session-only GoBarryGo import was valid in the backend but hidden
+  in Settings until every available source matched. Guarded rollback now remains visible for the latest
+  receipt after either a partial or complete import.
+- Batch, destination/header/User-Agent, and whole-queue controls initially lacked public truth copy
+  and individual CSS budgets. The README, changelog, landing generator, migration guide, LLMS file,
+  and executable bundle policy now describe and bound those shipped-source surfaces.
+- Terminal Ctrl-C could reach aria2 before ProtoPeek saved the session, producing a false dirty
+  shutdown warning. OS-specific child process-group isolation now makes the parent own graceful
+  save/shutdown; a real completed-download PTY pass exits cleanly.
+- The current-source site gallery now labels these captures as unreleased development evidence and
+  keeps the three stable v0.3.0 captures separately identified.
+
+No P0, P1, or P2 visual, interaction, truthfulness, or responsive defects remain in the inspected
+Downloader and Security journeys.
+
+final result: passed

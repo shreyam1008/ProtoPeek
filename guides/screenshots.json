@@ -25,6 +25,30 @@
       "capturedVersion": "v0.3.0",
       "capturedAt": "2026-08-20",
       "workflow": "Real local headless Chrome capture against the final embedded dashboard at 390 by 844 CSS pixels."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-downloader-development.jpg",
+      "alt": "ProtoPeek current development Downloader desktop with a staged independent two-job batch, advanced per-job options, completed local aria2 queue, and expected SHA-256 evidence",
+      "platform": "desktop-development",
+      "capturedVersion": "current source after v0.4.0",
+      "releaseStatus": "unreleased-development",
+      "capturedAt": "2026-08-23",
+      "width": 1487,
+      "height": 1058,
+      "sha256": "608c4896c8e975e34ab593760aae585ddaa6e51c557f272dc4b539d2e9186aee",
+      "workflow": "Real Chrome capture of the current unreleased source at a 1487 by 1058 responsive viewport. Two fixture URLs are staged as independent jobs, the advanced per-job controls are open, the real local system-aria2 queue contains completed fixture transfers, and the selected transfer reports expected SHA-256 enforcement. The JPEG was normalized to the documented viewport dimensions; this is development evidence, not a stable v0.4.0 feature."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-downloader-development-mobile.jpg",
+      "alt": "ProtoPeek current development Downloader queue at a 390 by 844 responsive viewport",
+      "platform": "mobile-development",
+      "capturedVersion": "current source after v0.4.0",
+      "releaseStatus": "unreleased-development",
+      "capturedAt": "2026-08-23",
+      "width": 390,
+      "height": 844,
+      "sha256": "306b5f9efc3863f8ed0581e92629ce969c0eeb9b5820949bc16e319464f1277a",
+      "workflow": "Real Chrome capture of the current unreleased source at a 390 by 844 responsive viewport with two fixture URLs staged as independent jobs and completed real local system-aria2 transfers visible in the queue. The JPEG was normalized to the documented viewport dimensions; this is development evidence, not a stable v0.4.0 feature."
     }
   ]
 }
