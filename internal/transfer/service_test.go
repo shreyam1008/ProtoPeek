@@ -78,16 +78,20 @@ func (engine *fakeEngine) record(call string) {
 }
 
 type fakeLauncher struct {
-	mu      sync.Mutex
-	calls   int
-	runtime *Runtime
-	err     error
+	mu         sync.Mutex
+	calls      int
+	runtime    *Runtime
+	err        error
+	lastConfig HostConfig
+	lastPaths  Paths
 }
 
-func (launcher *fakeLauncher) Start(context.Context, HostConfig, Paths) (*Runtime, error) {
+func (launcher *fakeLauncher) Start(_ context.Context, config HostConfig, paths Paths) (*Runtime, error) {
 	launcher.mu.Lock()
 	defer launcher.mu.Unlock()
 	launcher.calls++
+	launcher.lastConfig = config
+	launcher.lastPaths = paths
 	return launcher.runtime, launcher.err
 }
 
@@ -183,6 +187,11 @@ func testService(t *testing.T, engine Engine) (*Service, *fakeLauncher, *fakeLoc
 	service, err := NewServiceWithDependencies(config, paths, launcher, locker)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
+	}
+	// The service fixture models the normal persisted-config startup path. Tests
+	// that need the disk-absent/defaults contract construct their own paths.
+	if err := NewConfigStore(paths.ConfigFile).Save(config); err != nil {
+		t.Fatalf("save test config: %v", err)
 	}
 	return service, launcher, locker, control, paths
 }
@@ -581,8 +590,13 @@ func TestServiceRetryEnforcesQueueDiskAndReplacementAwareTrackedBounds(t *testin
 		}
 		service, _, _, _, _ := testService(t, engine)
 		service.mu.Lock()
+		service.config.MaxQueuedJobs = 4
 		service.config.MaxTrackedJobs = 4
+		config := service.config
 		service.mu.Unlock()
+		if err := NewConfigStore(service.paths.ConfigFile).Save(config); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := service.Start(context.Background()); err != nil {
 			t.Fatal(err)
 		}
@@ -604,8 +618,13 @@ func TestServiceRetryEnforcesQueueDiskAndReplacementAwareTrackedBounds(t *testin
 		}
 		service, _, _, _, _ := testService(t, engine)
 		service.mu.Lock()
+		service.config.MaxQueuedJobs = 4
 		service.config.MaxTrackedJobs = 4
+		config := service.config
 		service.mu.Unlock()
+		if err := NewConfigStore(service.paths.ConfigFile).Save(config); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := service.Start(context.Background()); err != nil {
 			t.Fatal(err)
 		}
@@ -625,7 +644,11 @@ func TestServiceRetryEnforcesQueueDiskAndReplacementAwareTrackedBounds(t *testin
 		service, _, _, _, _ := testService(t, engine)
 		service.mu.Lock()
 		service.config.MinimumFreeDiskBytes = maxMinimumFreeDiskBytes
+		config := service.config
 		service.mu.Unlock()
+		if err := NewConfigStore(service.paths.ConfigFile).Save(config); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := service.Start(context.Background()); err != nil {
 			t.Fatal(err)
 		}
@@ -833,7 +856,11 @@ func TestServiceSerializesAddsAcrossCapacityCheckAndAdmission(t *testing.T) {
 	service.mu.Lock()
 	service.config.MaxQueuedJobs = 1
 	service.config.MaxTrackedJobs = 4
+	config := service.config
 	service.mu.Unlock()
+	if err := NewConfigStore(service.paths.ConfigFile).Save(config); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := service.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}

@@ -2,6 +2,7 @@ package transfer
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +25,8 @@ const (
 	defaultMaxQueuedJobs      = 128
 	defaultMaxActiveJobs      = 4
 	defaultConnectionsPerHost = 8
+	maxConfigFileBytes        = 16 << 10
+	maxConfigPathLength       = 4 << 10
 )
 
 func DefaultHostConfig() HostConfig {
@@ -69,6 +72,9 @@ func ValidateHostConfig(config HostConfig) error {
 	}
 	if strings.TrimSpace(config.DownloadDirectory) == "" {
 		return errors.New("download directory is required")
+	}
+	if len(config.Aria2Path) > maxConfigPathLength || len(config.DownloadDirectory) > maxConfigPathLength {
+		return fmt.Errorf("configured paths must be at most %d bytes", maxConfigPathLength)
 	}
 	if !filepath.IsAbs(config.DownloadDirectory) {
 		return errors.New("download directory must be an absolute path")
@@ -117,6 +123,52 @@ func ValidateHostConfig(config HostConfig) error {
 	return nil
 }
 
+// ValidateHostConfigPatch checks field-local bounds before a request reaches
+// the service. Cross-field constraints are rechecked after the patch is
+// applied to the freshly reloaded disk config.
+func ValidateHostConfigPatch(patch HostConfigPatch) error {
+	if patch.DownloadDirectory != nil {
+		if len(*patch.DownloadDirectory) > maxConfigPathLength {
+			return fmt.Errorf("configured paths must be at most %d bytes", maxConfigPathLength)
+		}
+		if strings.TrimSpace(*patch.DownloadDirectory) == "" {
+			return errors.New("download directory is required")
+		}
+		if !filepath.IsAbs(*patch.DownloadDirectory) {
+			return errors.New("download directory must be an absolute path")
+		}
+	}
+	if patch.Aria2Path != nil && len(*patch.Aria2Path) > maxConfigPathLength {
+		return fmt.Errorf("configured paths must be at most %d bytes", maxConfigPathLength)
+	}
+	if patch.Aria2Path != nil && containsControl(*patch.Aria2Path) {
+		return errors.New("configured paths must not contain control characters")
+	}
+	if patch.DownloadDirectory != nil && containsControl(*patch.DownloadDirectory) {
+		return errors.New("configured paths must not contain control characters")
+	}
+	if patch.MaxActiveJobs != nil && (*patch.MaxActiveJobs < 1 || *patch.MaxActiveJobs > 16) {
+		return errors.New("max active jobs must be between 1 and 16")
+	}
+	if patch.MaxConnectionsPerHost != nil && (*patch.MaxConnectionsPerHost < 1 || *patch.MaxConnectionsPerHost > 16) {
+		return errors.New("max connections per host must be between 1 and 16")
+	}
+	if patch.MaxDownloadBytesPerSecond != nil && (*patch.MaxDownloadBytesPerSecond < 0 || *patch.MaxDownloadBytesPerSecond > maxBandwidthBytesPerSec) {
+		return fmt.Errorf("download bandwidth limit must be between 0 and %d bytes per second", maxBandwidthBytesPerSec)
+	}
+	if patch.MinimumFreeDiskBytes != nil && (*patch.MinimumFreeDiskBytes < 0 || *patch.MinimumFreeDiskBytes > maxMinimumFreeDiskBytes) {
+		return fmt.Errorf("minimum free disk reserve must be between 0 and %d bytes", maxMinimumFreeDiskBytes)
+	}
+	if patch.FileAllocation != nil {
+		switch *patch.FileAllocation {
+		case "none", "prealloc", "trunc", "falloc":
+		default:
+			return errors.New("file allocation must be none, prealloc, trunc, or falloc")
+		}
+	}
+	return nil
+}
+
 func ValidatePaths(paths Paths) error {
 	for label, path := range map[string]string{
 		"config file":       paths.ConfigFile,
@@ -136,12 +188,14 @@ func ValidatePaths(paths Paths) error {
 }
 
 type ConfigStore struct {
-	mu   sync.RWMutex
-	path string
+	mu       sync.RWMutex
+	path     string
+	readFile func(string) ([]byte, error)
+	syncDir  func(string) error
 }
 
 func NewConfigStore(path string) *ConfigStore {
-	return &ConfigStore{path: path}
+	return &ConfigStore{path: path, readFile: readConfigFile, syncDir: syncDirectory}
 }
 
 func (store *ConfigStore) Path() string {
@@ -153,16 +207,28 @@ func (store *ConfigStore) Path() string {
 // Load returns defaults without writing them when the host config is absent.
 // This keeps startup and read-only snapshots free of surprising disk writes.
 func (store *ConfigStore) Load() (config HostConfig, exists bool, err error) {
-	store.mu.RLock()
-	path := store.path
-	store.mu.RUnlock()
+	config, exists, _, err = store.LoadWithRevision()
+	return config, exists, err
+}
 
-	data, err := os.ReadFile(path)
+// LoadWithRevision returns the normalized config and its deterministic hash.
+// The revision is derived from the decoded full config, so formatting-only
+// rewrites do not create false optimistic-concurrency conflicts.
+func (store *ConfigStore) LoadWithRevision() (config HostConfig, exists bool, revision string, err error) {
+	store.mu.RLock()
+	path, readFile := store.path, store.readFile
+	store.mu.RUnlock()
+	if readFile == nil {
+		readFile = readConfigFile
+	}
+
+	data, err := readFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return DefaultHostConfig(), false, nil
+			config := DefaultHostConfig()
+			return config, false, HostConfigRevision(config), nil
 		}
-		return HostConfig{}, false, fmt.Errorf("read transfer config: %w", err)
+		return HostConfig{}, false, "", fmt.Errorf("read transfer config: %w", err)
 	}
 
 	// Version 1 has gained additive fields over time. Decode onto the current
@@ -170,18 +236,87 @@ func (store *ConfigStore) Load() (config HostConfig, exists bool, err error) {
 	// unknown fields and future schema versions still fail closed.
 	config = DefaultHostConfig()
 	config.Version = 0
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&config); err != nil {
-		return HostConfig{}, true, fmt.Errorf("decode transfer config: %w", err)
-	}
-	if err := ensureJSONEOF(decoder); err != nil {
-		return HostConfig{}, true, err
+	if err := decodeStrictJSON(data, &config); err != nil {
+		return HostConfig{}, true, "", fmt.Errorf("decode transfer config: %w", err)
 	}
 	if err := ValidateHostConfig(config); err != nil {
-		return HostConfig{}, true, fmt.Errorf("validate transfer config: %w", err)
+		return HostConfig{}, true, "", fmt.Errorf("validate transfer config: %w", err)
 	}
-	return config, true, nil
+	return config, true, HostConfigRevision(config), nil
+}
+
+// readConfigFile keeps the private host-settings file bounded and refuses
+// filesystem objects that are not the regular file written by ConfigStore.
+// Lstat deliberately rejects symlinks: this endpoint controls executable and
+// filesystem paths, so following a link would make its trust boundary depend
+// on an unrelated path owner.
+func readConfigFile(path string) ([]byte, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("transfer config must be a regular file")
+	}
+	if info.Size() > maxConfigFileBytes {
+		return nil, fmt.Errorf("transfer config exceeds %d-byte limit", maxConfigFileBytes)
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	openedInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !openedInfo.Mode().IsRegular() {
+		return nil, fmt.Errorf("transfer config must be a regular file")
+	}
+	if !os.SameFile(info, openedInfo) {
+		return nil, fmt.Errorf("transfer config changed while being opened")
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxConfigFileBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxConfigFileBytes {
+		return nil, fmt.Errorf("transfer config exceeds %d-byte limit", maxConfigFileBytes)
+	}
+	return data, nil
+}
+
+var ErrConfigCommitDurability = errors.New("transfer config was replaced but directory durability could not be confirmed")
+
+// ConfigCommitError reports a post-rename directory-sync failure. The target
+// file has already been replaced when this error is returned; callers must
+// apply the new config in memory and surface the durability uncertainty rather
+// than pretending that the old disk state remains authoritative.
+type ConfigCommitError struct {
+	err error
+}
+
+// NewConfigCommitError is used by boundary tests and adapters that need to
+// model the post-rename directory-sync uncertainty without recreating a file
+// operation. The rename has already committed when this error is returned.
+func NewConfigCommitError(cause error) *ConfigCommitError {
+	if cause == nil {
+		cause = errors.New("directory sync failed")
+	}
+	return &ConfigCommitError{err: cause}
+}
+
+func (err *ConfigCommitError) Error() string {
+	return fmt.Sprintf("%s: %v", ErrConfigCommitDurability, err.err)
+}
+
+func (err *ConfigCommitError) Unwrap() error {
+	return err.err
+}
+
+func (err *ConfigCommitError) Is(target error) bool {
+	return target == ErrConfigCommitDurability
 }
 
 func (store *ConfigStore) Save(config HostConfig) error {
@@ -191,15 +326,19 @@ func (store *ConfigStore) Save(config HostConfig) error {
 
 	store.mu.Lock()
 	defer store.mu.Unlock()
+	syncDir := store.syncDir
+	if syncDir == nil {
+		syncDir = syncDirectory
+	}
+
+	data, err := marshalHostConfig(config)
+	if err != nil {
+		return fmt.Errorf("encode transfer config: %w", err)
+	}
 
 	directory := filepath.Dir(store.path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create transfer config directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode transfer config: %w", err)
 	}
 
 	temporary, err := os.CreateTemp(directory, ".transfers-*.json")
@@ -218,7 +357,7 @@ func (store *ConfigStore) Save(config HostConfig) error {
 	if err := temporary.Chmod(0o600); err != nil {
 		return fmt.Errorf("protect temporary transfer config: %w", err)
 	}
-	if _, err := temporary.Write(append(data, '\n')); err != nil {
+	if _, err := temporary.Write(data); err != nil {
 		return fmt.Errorf("write temporary transfer config: %w", err)
 	}
 	if err := temporary.Sync(); err != nil {
@@ -231,7 +370,118 @@ func (store *ConfigStore) Save(config HostConfig) error {
 		return fmt.Errorf("replace transfer config: %w", err)
 	}
 	committed = true
+	if err := syncDir(directory); err != nil {
+		return NewConfigCommitError(fmt.Errorf("sync transfer config directory: %w", err))
+	}
 	return nil
+}
+
+func marshalHostConfig(config HostConfig) ([]byte, error) {
+	if err := ValidateHostConfig(config); err != nil {
+		return nil, err
+	}
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	data = append(data, '\n')
+	if len(data) > maxConfigFileBytes {
+		return nil, fmt.Errorf("serialized transfer config exceeds %d-byte limit", maxConfigFileBytes)
+	}
+	return data, nil
+}
+
+// HostConfigRevision is the deterministic optimistic-concurrency token for a
+// complete normalized host config. JSON struct-field order is stable here and
+// omitempty preserves the same meaning for an empty optional executable path.
+func HostConfigRevision(config HostConfig) string {
+	data, _ := json.Marshal(config)
+	digest := sha256.Sum256(data)
+	return fmt.Sprintf("%x", digest[:])
+}
+
+func decodeStrictJSON(data []byte, destination any) error {
+	if err := rejectDuplicateJSONKeys(data); err != nil {
+		return err
+	}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(destination); err != nil {
+		return err
+	}
+	return ensureJSONEOF(decoder)
+}
+
+// DecodeStrictJSON validates one JSON value, rejects duplicate object keys and
+// unknown fields, and refuses trailing values. Standalone HTTP handlers use the
+// same decoder as the private ConfigStore format so request and disk parsing
+// have identical fail-closed semantics.
+func DecodeStrictJSON(data []byte, destination any) error {
+	return decodeStrictJSON(data, destination)
+}
+
+func rejectDuplicateJSONKeys(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := walkJSONValue(decoder); err != nil {
+		return err
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("multiple JSON values are not allowed")
+		}
+		return err
+	}
+	return nil
+}
+
+func walkJSONValue(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delimiter, isDelimiter := token.(json.Delim)
+	if !isDelimiter {
+		return nil
+	}
+	switch delimiter {
+	case '{':
+		seen := make([]string, 0, 8)
+		for decoder.More() {
+			key, err := decoder.Token()
+			if err != nil {
+				return err
+			}
+			keyString, ok := key.(string)
+			if !ok {
+				return errors.New("JSON object key is not a string")
+			}
+			for _, previous := range seen {
+				// encoding/json matches struct fields case-insensitively. Treat
+				// aliases such as maxActiveJobs/MaxActiveJobs as duplicates too,
+				// so strict decoding never accepts two spellings for one field.
+				if strings.EqualFold(previous, keyString) {
+					return fmt.Errorf("duplicate JSON field %q", keyString)
+				}
+			}
+			seen = append(seen, keyString)
+			if err := walkJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		_, err = decoder.Token()
+		return err
+	case '[':
+		for decoder.More() {
+			if err := walkJSONValue(decoder); err != nil {
+				return err
+			}
+		}
+		_, err = decoder.Token()
+		return err
+	default:
+		return fmt.Errorf("unexpected JSON delimiter %q", delimiter)
+	}
 }
 
 func ensureJSONEOF(decoder *json.Decoder) error {

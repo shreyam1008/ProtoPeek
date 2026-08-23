@@ -5,6 +5,40 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { interfacePreferencesStorageKey } from './interface-preferences';
 import { createProtoPeekRouter } from './router';
 
+const hostSnapshot = {
+  observedAt: '2026-08-24T00:00:00Z',
+  configRevision: 'a'.repeat(64),
+  health: {
+    ready: false,
+    status: 'stopped',
+    message: 'Downloader is stopped.',
+    binaryPath: '/usr/bin/aria2c',
+    engineVersion: '',
+  },
+  config: {
+    version: 1,
+    aria2Path: '/usr/bin/aria2c',
+    downloadDirectory: '/home/user/Downloads',
+    maxActiveJobs: 4,
+    maxQueuedJobs: 128,
+    maxTrackedJobs: 512,
+    maxConnectionsPerHost: 8,
+    split: 8,
+    minSplitSizeBytes: 1 << 20,
+    maxDownloadBytesPerSecond: 0,
+    minimumFreeDiskBytes: 512 << 20,
+    continuePartialDownloads: true,
+    alwaysResume: true,
+    fileAllocation: 'prealloc',
+    autoRenameConflictingFiles: true,
+    allowOverwriteExistingFiles: false,
+    allowInsecureTls: false,
+    userAgent: 'ProtoPeek test',
+  },
+  metrics: {},
+  jobs: [],
+};
+
 afterEach(() => {
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-density');
@@ -48,7 +82,244 @@ describe('Settings', () => {
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
     expect(document.documentElement).toHaveAttribute('data-density', 'comfortable');
     expect(document.documentElement).toHaveAttribute('data-keyboard-hints', 'shown');
-    expect(screen.getByText(/CPU, memory, scan authorization, TLS verification/i)).toBeVisible();
+    expect(
+      screen.getByText(/CPU, memory, scan authorization, and protocol deadlines/i)
+    ).toBeVisible();
+  });
+
+  it('loads, edits, saves, and reloads host settings without browser persistence', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=host-token; path=/';
+    const savedConfig = {
+      ...hostSnapshot.config,
+      maxActiveJobs: 6,
+      maxDownloadBytesPerSecond: 2.5 * (1 << 20),
+    };
+    let snapshotReads = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        snapshotReads += 1;
+        return Response.json({
+          ...hostSnapshot,
+          config: snapshotReads > 1 ? savedConfig : hostSnapshot.config,
+          configRevision: snapshotReads > 1 ? 'b'.repeat(64) : hostSnapshot.configRevision,
+        });
+      }
+      if (path.endsWith('/config') && init?.method === 'POST') {
+        return Response.json({
+          ...savedConfig,
+          configRevision: 'b'.repeat(64),
+          warning: 'directory durability could not be confirmed',
+        });
+      }
+      return new Response('unexpected request', { status: 500 });
+    });
+    const storageSetItem = vi.spyOn(Storage.prototype, 'setItem');
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+
+    const activeJobs = await screen.findByRole('spinbutton', { name: /^Active jobs/ });
+    expect(activeJobs).toHaveValue(4);
+    expect(screen.getByRole('textbox', { name: /^aria2 executable\/path/ })).toHaveValue(
+      '/usr/bin/aria2c'
+    );
+
+    fireEvent.change(activeJobs, { target: { value: '6' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: /^Bandwidth cap · MiB\/s/ }), {
+      target: { value: '2.5' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
+
+    expect(
+      await screen.findByText(
+        'Host settings saved with a durability warning: directory durability could not be confirmed'
+      )
+    ).toBeVisible();
+    const configCall = fetchMock.mock.calls.find(([input]) =>
+      new URL(String(input)).pathname.endsWith('/config')
+    );
+    expect(new Headers(configCall?.[1]?.headers).get('x-protopeek-csrf-token')).toBe('host-token');
+    expect(new Headers(configCall?.[1]?.headers).get('content-type')).toBe('application/json');
+    expect(JSON.parse(String(configCall?.[1]?.body))).toEqual({
+      expectedRevision: hostSnapshot.configRevision,
+      maxActiveJobs: 6,
+      maxDownloadBytesPerSecond: 2.5 * (1 << 20),
+    });
+    expect(
+      storageSetItem.mock.calls.some(([key, value]) =>
+        `${String(key)} ${String(value)}`.includes('/home/user/Downloads')
+      )
+    ).toBe(false);
+    expect(Object.keys(window.localStorage)).not.toContain('transferHostConfig');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload host settings' }));
+    await waitFor(() => expect(snapshotReads).toBe(3));
+    expect(screen.getByRole('spinbutton', { name: /^Active jobs/ })).toHaveValue(6);
+  });
+
+  it('reports host save and reload errors while keeping runtime state truthful', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=host-token; path=/';
+    let snapshotReads = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        snapshotReads += 1;
+        if (snapshotReads > 1) return new Response('snapshot unavailable', { status: 503 });
+        return Response.json(hostSnapshot);
+      }
+      if (path.endsWith('/config') && init?.method === 'POST') {
+        return new Response('config write refused', { status: 423 });
+      }
+      return new Response('unexpected request', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('config write refused');
+    expect(screen.getAllByText('stopped')[0]).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload host settings' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('snapshot unavailable');
+    expect(screen.getByRole('button', { name: 'Save host settings' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('spinbutton', { name: /^Active jobs/ }), {
+      target: { value: '6' },
+    });
+    expect(screen.getByRole('button', { name: 'Save host settings' })).toBeDisabled();
+  });
+
+  it.each([
+    'running',
+    'starting',
+    'stopping',
+    'unavailable',
+    'locked',
+  ] as const)('disables host saves while the Downloader is %s', async (status) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        return Response.json({
+          ...hostSnapshot,
+          health: { ...hostSnapshot.health, status, message: `Downloader is ${status}.` },
+        });
+      }
+      return new Response('unexpected request', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
+
+    expect(screen.getByRole('button', { name: 'Save host settings' })).toBeDisabled();
+    expect(screen.getAllByText(status)[0]).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname.endsWith('/config'))
+    ).toBe(false);
+  });
+
+  it.each([
+    'failed',
+    'binary_missing',
+  ] as const)('keeps host saves available while the Downloader is definitively inactive: %s', async (status) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        return Response.json({
+          ...hostSnapshot,
+          health: { ...hostSnapshot.health, status, message: `Downloader is ${status}.` },
+        });
+      }
+      return new Response('unexpected request', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
+
+    expect(screen.getByRole('button', { name: 'Save host settings' })).toBeEnabled();
+    expect(screen.getAllByText(status)[0]).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname.endsWith('/config'))
+    ).toBe(false);
+  });
+
+  it.each([
+    1, 123456,
+  ])('does not round unchanged %d-byte host values through MiB inputs', async (bytes) => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=host-token; path=/';
+    const config = {
+      ...hostSnapshot.config,
+      maxDownloadBytesPerSecond: bytes,
+      minimumFreeDiskBytes: bytes,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        return Response.json({ ...hostSnapshot, config, configRevision: 'c'.repeat(64) });
+      }
+      if (path.endsWith('/config') && init?.method === 'POST') {
+        return Response.json({ ...config, configRevision: 'c'.repeat(64) });
+      }
+      return new Response('unexpected request', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('spinbutton', { name: /^Bandwidth cap · MiB\/s/ });
+    fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
+    expect(
+      await screen.findByText('Host settings saved and reloaded from the local transfer snapshot.')
+    ).toBeVisible();
+
+    const configCall = fetchMock.mock.calls.find(([input]) =>
+      new URL(String(input)).pathname.endsWith('/config')
+    );
+    expect(JSON.parse(String(configCall?.[1]?.body))).toEqual({
+      expectedRevision: 'c'.repeat(64),
+    });
+  });
+
+  it('distinguishes a saved config from a failed post-save snapshot reload', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=host-token; path=/';
+    const savedConfig = { ...hostSnapshot.config, maxActiveJobs: 5 };
+    let snapshotReads = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        snapshotReads += 1;
+        if (snapshotReads > 1) return new Response('snapshot unavailable', { status: 503 });
+        return Response.json(hostSnapshot);
+      }
+      if (path.endsWith('/config') && init?.method === 'POST') return Response.json(savedConfig);
+      return new Response('unexpected request', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    const activeJobs = await screen.findByRole('spinbutton', { name: /^Active jobs/ });
+    fireEvent.change(activeJobs, { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
+
+    expect(
+      await screen.findByText(
+        'Host settings were saved. Reload the snapshot to confirm current host state.'
+      )
+    ).toBeVisible();
+    expect(await screen.findByRole('alert')).toHaveTextContent('snapshot unavailable');
+    expect(screen.getByRole('spinbutton', { name: /^Active jobs/ })).toHaveValue(5);
   });
 
   it('inspects and imports GoBarryGo only after explicit user actions', async () => {
@@ -74,9 +345,14 @@ describe('Settings', () => {
       engineMustBeStopped: false,
     };
     let previewReads = 0;
+    let snapshotReads = 0;
     let rolledBack = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        snapshotReads += 1;
+        return Response.json(hostSnapshot);
+      }
       if (path.endsWith('/preview')) {
         previewReads += 1;
         return Response.json({
@@ -115,7 +391,13 @@ describe('Settings', () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
     await screen.findByRole('heading', { name: "Shape this browser's console." });
-    expect(fetchMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    expect(new URL(String(fetchMock.mock.calls[0]?.[0])).pathname).toMatch(
+      /\/api\/transfers\/snapshot$/
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname.endsWith('/preview'))
+    ).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
     expect(await screen.findByText('2 entries · 1.0 KiB')).toBeVisible();
@@ -127,6 +409,7 @@ describe('Settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Import into ProtoPeek' }));
 
     expect(await screen.findByText(/original files were left untouched/i)).toBeVisible();
+    expect(snapshotReads).toBe(2);
     expect(screen.getByRole('button', { name: 'Already imported' })).toBeDisabled();
     const importCall = fetchMock.mock.calls.find(([input]) =>
       new URL(String(input)).pathname.endsWith('/import')
@@ -143,6 +426,7 @@ describe('Settings', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Allow guarded rollback/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Roll back this import' }));
     expect(await screen.findByText(/restored from the migration receipt/i)).toBeVisible();
+    expect(snapshotReads).toBe(3);
     expect(screen.getByRole('button', { name: 'Import into ProtoPeek' })).toBeDisabled();
     const rollbackCall = fetchMock.mock.calls.find(([input]) =>
       new URL(String(input)).pathname.endsWith('/rollback')
@@ -158,6 +442,9 @@ describe('Settings', () => {
     document.cookie = '_protopeek_csrf_token=migration-token; path=/';
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input)).pathname;
+      if (path.endsWith('/snapshot')) {
+        return Response.json(hostSnapshot);
+      }
       if (path.endsWith('/rollback') && init?.method === 'POST') {
         return Response.json({
           rolledBack: true,
@@ -235,8 +522,10 @@ describe('Settings', () => {
     let previewReads = 0;
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        Response.json({
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/snapshot')) return Response.json(hostSnapshot);
+        return Response.json({
           preferencesFound: true,
           sessionFound: false,
           sessionBytes: 0,
@@ -246,8 +535,8 @@ describe('Settings', () => {
           warnings: [],
           alreadyImported: false,
           ...states[Math.min(previewReads++, states.length - 1)],
-        })
-      )
+        });
+      })
     );
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));

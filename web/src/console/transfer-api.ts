@@ -46,6 +46,29 @@ export type TransferHostConfig = {
   userAgent: string;
 };
 
+export type TransferHostConfigPatch = Partial<
+  Pick<
+    TransferHostConfig,
+    | 'aria2Path'
+    | 'downloadDirectory'
+    | 'maxActiveJobs'
+    | 'maxConnectionsPerHost'
+    | 'maxDownloadBytesPerSecond'
+    | 'minimumFreeDiskBytes'
+    | 'continuePartialDownloads'
+    | 'alwaysResume'
+    | 'fileAllocation'
+    | 'autoRenameConflictingFiles'
+    | 'allowOverwriteExistingFiles'
+    | 'allowInsecureTls'
+  >
+>;
+
+export type TransferHostConfigSaveResult = TransferHostConfig & {
+  configRevision: string;
+  warning: string;
+};
+
 export type TransferJob = {
   id: string;
   name: string;
@@ -92,6 +115,7 @@ export type TransferSnapshot = {
   observedAt: string;
   health: TransferHealth;
   config: TransferHostConfig;
+  configRevision: string;
   metrics: TransferMetrics;
   jobs: TransferJob[];
 };
@@ -334,6 +358,19 @@ function normalizeConfig(input: unknown): TransferHostConfig {
   };
 }
 
+export function normalizeTransferHostConfig(input: unknown) {
+  return normalizeConfig(input);
+}
+
+function normalizeHostConfigSaveResult(input: unknown): TransferHostConfigSaveResult {
+  const value = record(input);
+  return {
+    ...normalizeConfig(value),
+    configRevision: boundedString(value.configRevision, 64),
+    warning: boundedString(value.warning, 2 * 1024),
+  };
+}
+
 function normalizeJob(input: unknown): TransferJob | null {
   const value = record(input);
   const id = boundedString(value.id, 256);
@@ -516,6 +553,7 @@ export function normalizeTransferSnapshot(input: unknown): TransferSnapshot {
         : new Date(0).toISOString(),
     health: normalizeHealth(value.health),
     config: normalizeConfig(value.config),
+    configRevision: boundedString(value.configRevision, 64),
     metrics: normalizeMetrics(value.metrics),
     jobs,
   };
@@ -524,6 +562,16 @@ export function normalizeTransferSnapshot(input: unknown): TransferSnapshot {
 export async function fetchTransferSnapshot(signal?: AbortSignal) {
   return normalizeTransferSnapshot(
     await requestJSON('api/transfers/snapshot', { method: 'GET', signal })
+  );
+}
+
+export async function saveTransferHostConfig(
+  expectedRevision: string,
+  patch: TransferHostConfigPatch,
+  signal?: AbortSignal
+) {
+  return normalizeHostConfigSaveResult(
+    await mutateTransfer('api/transfers/config', { expectedRevision, ...patch }, signal)
   );
 }
 

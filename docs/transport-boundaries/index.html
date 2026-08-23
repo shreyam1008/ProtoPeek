@@ -109,6 +109,8 @@
 <p>the <code>/grpc</code> workbench. With no target the browser opens the Protocol Peek dashboard at <code>/</code>. A bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.</p>
 <ul><li>Every session runs locally, without an account, remote sync, or external database.</li><li>The native listener binds to loopback. A container may use <code>-allow-non-loopback-bind</code> only when</li></ul>
 <p>its outer host port is published on loopback; that mode retains loopback request Host and Origin checks. <code>-unsafe-allow-remote</code> is a separate, unauthenticated remote mode that requires an external TLS, authentication, and rate-limit boundary.</p>
+<ul><li>The Downloader host-settings mutation is a stricter direct-loopback exception: <code>POST /api/transfers/config</code></li></ul>
+<p>accepts no forwarded-header or Host-header proxy assertion, even when <code>-unsafe-allow-remote</code> is enabled. The server requires CSRF, rejects standard forwarding headers, and validates the direct transport peer from a well-formed <code>RemoteAddr</code> before reading the bounded JSON body; it then requires a stopped engine, the cooperative engine lock, and an expected config revision. Reverse-proxy use for this endpoint is unsupported; forwarded headers never grant trust.</p>
 <ul><li>Each transport keeps its native concepts visible. The UI must not flatten gRPC trailers,</li></ul>
 <p>Cap&#39;n Proto capabilities, or HTTP status and headers into a misleading common response object.</p>
 <ul><li>Reflection, temporary browser-folder snapshots, host proto paths, and host protoset paths remain</li></ul>

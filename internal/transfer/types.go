@@ -1,7 +1,10 @@
 package transfer
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -41,6 +44,143 @@ type HostConfig struct {
 	AllowOverwriteExistingFiles bool   `json:"allowOverwriteExistingFiles"`
 	AllowInsecureTLS            bool   `json:"allowInsecureTls"`
 	UserAgent                   string `json:"userAgent"`
+}
+
+// HostConfigPatch is the browser-owned allowlist for host/runtime settings.
+// Pointer fields preserve the distinction between an omitted field (keep the
+// current value) and an explicit zero/false/empty-string update. Fields that
+// are intentionally not exposed here remain preserved from the on-disk
+// configuration when a patch is applied.
+type HostConfigPatch struct {
+	Aria2Path                   *string `json:"aria2Path,omitempty"`
+	DownloadDirectory           *string `json:"downloadDirectory,omitempty"`
+	MaxActiveJobs               *int    `json:"maxActiveJobs,omitempty"`
+	MaxConnectionsPerHost       *int    `json:"maxConnectionsPerHost,omitempty"`
+	MaxDownloadBytesPerSecond   *int64  `json:"maxDownloadBytesPerSecond,omitempty"`
+	MinimumFreeDiskBytes        *int64  `json:"minimumFreeDiskBytes,omitempty"`
+	ContinuePartialDownloads    *bool   `json:"continuePartialDownloads,omitempty"`
+	AlwaysResume                *bool   `json:"alwaysResume,omitempty"`
+	FileAllocation              *string `json:"fileAllocation,omitempty"`
+	AutoRenameConflictingFiles  *bool   `json:"autoRenameConflictingFiles,omitempty"`
+	AllowOverwriteExistingFiles *bool   `json:"allowOverwriteExistingFiles,omitempty"`
+	AllowInsecureTLS            *bool   `json:"allowInsecureTls,omitempty"`
+}
+
+// HostConfigPatchRequest is deliberately flat so strict JSON decoding can
+// reject every field outside the expected revision and the allowlisted patch.
+type HostConfigPatchRequest struct {
+	ExpectedRevision string `json:"expectedRevision"`
+	HostConfigPatch
+}
+
+// UnmarshalJSON keeps the flat request shape while distinguishing an omitted
+// pointer field from an explicit null. Null is never a valid host-setting
+// mutation: omission preserves the hidden/current value, whereas null would
+// otherwise silently look like omission to encoding/json.
+func (request *HostConfigPatchRequest) UnmarshalJSON(data []byte) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if fields == nil {
+		return fmt.Errorf("host config request must be a JSON object")
+	}
+	*request = HostConfigPatchRequest{}
+	for name, raw := range fields {
+		if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+			return fmt.Errorf("json: host config field %q cannot be null", name)
+		}
+		var destination any
+		switch name {
+		case "expectedRevision":
+			destination = &request.ExpectedRevision
+		case "aria2Path":
+			destination = &request.Aria2Path
+		case "downloadDirectory":
+			destination = &request.DownloadDirectory
+		case "maxActiveJobs":
+			destination = &request.MaxActiveJobs
+		case "maxConnectionsPerHost":
+			destination = &request.MaxConnectionsPerHost
+		case "maxDownloadBytesPerSecond":
+			destination = &request.MaxDownloadBytesPerSecond
+		case "minimumFreeDiskBytes":
+			destination = &request.MinimumFreeDiskBytes
+		case "continuePartialDownloads":
+			destination = &request.ContinuePartialDownloads
+		case "alwaysResume":
+			destination = &request.AlwaysResume
+		case "fileAllocation":
+			destination = &request.FileAllocation
+		case "autoRenameConflictingFiles":
+			destination = &request.AutoRenameConflictingFiles
+		case "allowOverwriteExistingFiles":
+			destination = &request.AllowOverwriteExistingFiles
+		case "allowInsecureTls":
+			destination = &request.AllowInsecureTLS
+		default:
+			return fmt.Errorf("json: unknown field %q", name)
+		}
+		if err := json.Unmarshal(raw, destination); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (patch HostConfigPatch) Empty() bool {
+	return patch.Aria2Path == nil &&
+		patch.DownloadDirectory == nil &&
+		patch.MaxActiveJobs == nil &&
+		patch.MaxConnectionsPerHost == nil &&
+		patch.MaxDownloadBytesPerSecond == nil &&
+		patch.MinimumFreeDiskBytes == nil &&
+		patch.ContinuePartialDownloads == nil &&
+		patch.AlwaysResume == nil &&
+		patch.FileAllocation == nil &&
+		patch.AutoRenameConflictingFiles == nil &&
+		patch.AllowOverwriteExistingFiles == nil &&
+		patch.AllowInsecureTLS == nil
+}
+
+func (patch HostConfigPatch) Apply(config HostConfig) HostConfig {
+	if patch.Aria2Path != nil {
+		config.Aria2Path = *patch.Aria2Path
+	}
+	if patch.DownloadDirectory != nil {
+		config.DownloadDirectory = *patch.DownloadDirectory
+	}
+	if patch.MaxActiveJobs != nil {
+		config.MaxActiveJobs = *patch.MaxActiveJobs
+	}
+	if patch.MaxConnectionsPerHost != nil {
+		config.MaxConnectionsPerHost = *patch.MaxConnectionsPerHost
+	}
+	if patch.MaxDownloadBytesPerSecond != nil {
+		config.MaxDownloadBytesPerSecond = *patch.MaxDownloadBytesPerSecond
+	}
+	if patch.MinimumFreeDiskBytes != nil {
+		config.MinimumFreeDiskBytes = *patch.MinimumFreeDiskBytes
+	}
+	if patch.ContinuePartialDownloads != nil {
+		config.ContinuePartialDownloads = *patch.ContinuePartialDownloads
+	}
+	if patch.AlwaysResume != nil {
+		config.AlwaysResume = *patch.AlwaysResume
+	}
+	if patch.FileAllocation != nil {
+		config.FileAllocation = *patch.FileAllocation
+	}
+	if patch.AutoRenameConflictingFiles != nil {
+		config.AutoRenameConflictingFiles = *patch.AutoRenameConflictingFiles
+	}
+	if patch.AllowOverwriteExistingFiles != nil {
+		config.AllowOverwriteExistingFiles = *patch.AllowOverwriteExistingFiles
+	}
+	if patch.AllowInsecureTLS != nil {
+		config.AllowInsecureTLS = *patch.AllowInsecureTLS
+	}
+	return config
 }
 
 type Paths struct {
@@ -107,11 +247,12 @@ type Metrics struct {
 }
 
 type Snapshot struct {
-	ObservedAt time.Time  `json:"observedAt"`
-	Health     Health     `json:"health"`
-	Config     HostConfig `json:"config"`
-	Metrics    Metrics    `json:"metrics"`
-	Jobs       []Job      `json:"jobs"`
+	ObservedAt     time.Time  `json:"observedAt"`
+	Health         Health     `json:"health"`
+	Config         HostConfig `json:"config"`
+	ConfigRevision string     `json:"configRevision"`
+	Metrics        Metrics    `json:"metrics"`
+	Jobs           []Job      `json:"jobs"`
 }
 
 type AddRequest struct {
