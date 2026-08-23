@@ -1,7 +1,8 @@
 # Website analysis and security boundary
 
 Status: one passive historical-name lookup and one direct website observation ship in v0.5.0.
-Broader website plans, findings, exports, and selected-port
+Current source after v0.5.0 also derives a bounded, copyable evidence report from that retained
+response without making another request. Broader website plans, active findings, and selected-port
 handoffs remain planned.
 
 ProtoPeek helps a user understand a website from the perspective of the local ProtoPeek process.
@@ -55,6 +56,33 @@ The result is one source-perspective observation at one time. A missing header, 
 redirect, hostname, route, or timing value is not a universal vulnerability verdict. ProtoPeek does
 not emit a security score and does not infer a CVE from a `Server` header.
 
+### Current source after v0.5.0: local HEAD evidence report
+
+This source-only refinement is not part of the published v0.5.0 release. After one successful
+website observation, the Security page now runs a pure deterministic analyzer over the already
+retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect
+follow, body read, crawl, login attempt, or port connection.
+
+The report uses only `observed`, `not observed`, and `attention` labels for:
+
+- HTTPS, verified TLS-chain evidence, and certificate validity at the observation time;
+- `Strict-Transport-Security`, `Content-Security-Policy`, `X-Content-Type-Options`,
+  `Referrer-Policy`, and `Permissions-Policy` response-header evidence;
+- frame-embedding evidence from CSP `frame-ancestors` or `X-Frame-Options`;
+- retained `Server` disclosure without treating a product string as a vulnerability;
+- the requested HTTP/HTTPS scheme and any retained redirect location, without following it.
+
+The user can copy a versioned JSON report containing the normalized observation, fixed one-HEAD
+boundary, derived labels, and source-field references. Header names and duplicate values are
+canonicalized for deterministic output; the original selected evidence remains bounded by the
+observer and UI response limits. No score, grade, pass/fail state, CVE, or exploit claim is added.
+
+These labels describe only the retained response to one non-following `HEAD` request. `HEAD`
+evidence can differ from `GET` responses and application behavior. `Not observed` means absent from
+this retained response, not absent from every route, method, browser session, CDN path, or future
+response. `Attention` identifies evidence that needs human interpretation; it is not a vulnerability
+verdict.
+
 ### Shared destination guard
 
 Both current adapters use public-only pinned transports for their outbound website/provider
@@ -73,7 +101,7 @@ The current Security page labels these ideas as planned. None is a current API o
 - user-selected DNS record observation beyond the DNS evidence already required to pin one HEAD;
 - multi-request website plans, optional GET, HTTP-to-HTTPS upgrade checks, `security.txt`, cookies,
   HTML or form inspection, or any redirect-following plan;
-- pure `observed` / `not-observed` / `unknown` / `not-tested` findings and report export;
+- multi-page or multi-request findings, scheduled comparisons, and broader report formats;
 - public selected-port handoff or automatic fan-out across historical names;
 - ASN, GeoIP, ownership, provider, or physical-path enrichment;
 - authenticated crawling, browser automation, or scheduled monitoring.
@@ -110,7 +138,11 @@ Current tests must continue to prove explicit disclosure/consent, IDNA and publi
 normalization, special-range and mixed-answer rejection, resolve-once pinned dialing, proxy bypass,
 no redirect follow, no body read, verified TLS behavior, fixed request method, provider/target
 timeouts, body/name/header limits, cancellation, admission saturation, malformed provider results,
-cache bounds, and that candidate names are never contacted.
+cache bounds, and that candidate names are never contacted. Current-source UI tests additionally
+prove deterministic case-insensitive header analysis, duplicate-value handling, invalid certificate
+dates, HTTP without TLS, missing headers, absolute and relative redirect interpretation, fixed
+status vocabulary, clipboard failure handling, and that copying the JSON report causes no second
+target-observation request.
 
 Future features require their own tests for plan invalidation and for every additional request,
 redirect, body, port, credential, persistence, and export boundary before they can move out of the

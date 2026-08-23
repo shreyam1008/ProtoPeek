@@ -53,7 +53,7 @@ const roadmap = [
       ],
       [
         'Security evidence',
-        'One disclosed historical certificate-name lookup and one separately consented public-only HEAD observation with pinned DNS, TLS, HTTP, and timing evidence; no security score.',
+        'One disclosed historical certificate-name lookup and one separately consented public-only HEAD observation, plus a deterministic local observed/not observed/attention report from that retained response; no added target request or security score.',
       ],
       [
         'GoBarryGo bridge',

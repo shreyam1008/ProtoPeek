@@ -142,6 +142,16 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 - Artifact handoff, multi-step workflows, broader website plans, and additional protocols remain
   planned rather than implied by this release.
 
+### Available in current source after v0.5.0
+
+- A successful one-HEAD website observation now gains a deterministic local evidence report for
+  HTTPS/TLS certificate validity, selected response headers, frame-embedding controls, Server
+  disclosure, and retained redirect/HTTPS-upgrade evidence. The analyzer makes no additional
+  request to the observed target and uses only `observed`, `not observed`, and `attention` labels.
+- The copyable versioned JSON contains the retained observation, its fixed one-request boundary,
+  derived labels, and the explicit warning that `HEAD` evidence can differ from `GET` and
+  application behavior. This source refinement is not claimed as part of stable v0.5.0.
+
 ## Network workbench roadmap
 
 ### Now — shipped in v0.4.0

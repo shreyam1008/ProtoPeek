@@ -66,6 +66,7 @@ const websiteResult = {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  Reflect.deleteProperty(navigator, 'clipboard');
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
   document.cookie = '_protopeek_csrf_token=; Max-Age=0; path=/';
 });
@@ -202,5 +203,98 @@ describe('Security', () => {
     expect(screen.queryByText(/secure score/i)).not.toBeInTheDocument();
     expect(screen.getByText('Reported, never followed')).toBeVisible();
     expect(screen.getByText('Never read')).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'HEAD evidence report' }, { timeout: 5_000 })
+    ).toBeVisible();
+    expect(screen.getByRole('list', { name: 'HEAD response evidence checks' })).toBeVisible();
+    expect(
+      within(screen.getByRole('list', { name: 'HEAD response evidence checks' })).getAllByRole(
+        'listitem'
+      )
+    ).toHaveLength(9);
+    const tlsCheck = screen.getByText('HTTPS and TLS').closest('li');
+    const hstsCheck = screen.getByText('HSTS').closest('li');
+    const serverCheck = screen.getByText('Server disclosure').closest('li');
+    expect(tlsCheck).not.toBeNull();
+    expect(hstsCheck).not.toBeNull();
+    expect(serverCheck).not.toBeNull();
+    if (!tlsCheck || !hstsCheck || !serverCheck) {
+      throw new Error('Expected every evidence check to render as a list item.');
+    }
+    expect(within(tlsCheck).getByText('Observed')).toBeVisible();
+    expect(within(hstsCheck).getByText('Not observed')).toBeVisible();
+    expect(within(serverCheck).getByText('Observed')).toBeVisible();
+    expect(
+      screen.getByText(/HEAD evidence can differ from GET responses and application behavior/i)
+    ).toBeVisible();
+    expect(screen.getByText(/no vulnerability verdict or score is produced/i)).toBeVisible();
+  });
+
+  it('copies a versioned JSON report without making another network request', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=website-token; path=/';
+    const fetchMock = vi.fn(async () => Response.json(websiteResult));
+    const writeText = vi.fn(async (_value: string) => undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<Security />);
+
+    fireEvent.change(screen.getByLabelText('Public website URL'), {
+      target: { value: 'https://example.com/health' },
+    });
+    fireEvent.click(screen.getByLabelText(/Make one public HEAD request/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
+    await screen.findByRole('heading', { name: 'HEAD evidence report' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy JSON report' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    const copied = JSON.parse(String(writeText.mock.calls[0]?.[0]));
+    expect(copied).toMatchObject({
+      schema: 'protopeek.website-head-evidence',
+      version: 1,
+      boundary: {
+        method: 'HEAD',
+        requestsRepresented: 1,
+        additionalTargetRequestsMadeByAnalysis: false,
+        redirectsFollowed: false,
+        responseBodyRead: false,
+      },
+      observation: { url: 'https://example.com/health', method: 'HEAD' },
+    });
+    expect(copied.checks).toHaveLength(9);
+    expect(copied.checks.map((check: { status: string }) => check.status)).toEqual(
+      expect.arrayContaining(['observed', 'not observed'])
+    );
+    expect(await screen.findByText('JSON evidence report copied.')).toBeVisible();
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('reports clipboard failure without claiming that evidence was copied', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=website-token; path=/';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(websiteResult))
+    );
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(async () => Promise.reject(new Error('denied'))) },
+    });
+    render(<Security />);
+
+    fireEvent.change(screen.getByLabelText('Public website URL'), {
+      target: { value: 'https://example.com/health' },
+    });
+    fireEvent.click(screen.getByLabelText(/Make one public HEAD request/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
+    await screen.findByRole('heading', { name: 'HEAD evidence report' });
+    fireEvent.click(screen.getByRole('button', { name: 'Copy JSON report' }));
+
+    expect(await screen.findByText(/could not be copied.*Allow clipboard access/i)).toBeVisible();
+    expect(screen.queryByText('JSON evidence report copied.')).not.toBeInTheDocument();
   });
 });

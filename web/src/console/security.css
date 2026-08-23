@@ -664,6 +664,152 @@
   line-height: 1.4;
 }
 
+.pp-security-evidence-report {
+  border-bottom: 1px solid var(--pp-stroke);
+  background: color-mix(in srgb, var(--pp-surface-raised) 62%, var(--pp-surface));
+}
+
+.pp-security-report-loading {
+  min-height: 4rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 1rem 0.9rem;
+  color: var(--pp-text-muted);
+  font-size: 0.64rem;
+}
+
+.pp-security-evidence-report > header {
+  display: flex;
+  min-height: 4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.9rem;
+}
+
+.pp-security-evidence-report > header span,
+.pp-security-evidence-report > header h3 {
+  display: block;
+}
+
+.pp-security-evidence-report > header span {
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 720;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pp-security-evidence-report > header h3 {
+  margin-top: 0.18rem;
+  font-size: 0.78rem;
+}
+
+.pp-security-copy-report {
+  display: inline-flex;
+  min-height: 2.25rem;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--pp-stroke-strong);
+  border-radius: 0.35rem;
+  padding: 0.42rem 0.65rem;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  font-size: 0.62rem;
+  font-weight: 720;
+}
+
+.pp-security-copy-report:hover {
+  border-color: var(--pp-accent-signal);
+  background: var(--pp-surface-raised);
+}
+
+.pp-security-copy-report svg {
+  width: 0.82rem;
+}
+
+.pp-security-evidence-limit {
+  border-top: 1px solid var(--pp-stroke);
+  border-bottom: 1px solid var(--pp-stroke);
+  border-left: 2px solid var(--pp-warning-signal);
+  padding: 0.55rem 0.9rem 0.55rem 0.75rem;
+  color: var(--pp-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
+.pp-security-check-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pp-security-check-list li {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  gap: 0.3rem 0.5rem;
+  border-right: 1px solid var(--pp-stroke);
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.65rem 0.7rem;
+}
+
+.pp-security-check-list li:nth-child(3n) {
+  border-right: 0;
+}
+
+.pp-security-check-list li > span {
+  align-self: start;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 999px;
+  padding: 0.16rem 0.36rem;
+  color: var(--pp-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 750;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pp-security-check-list li.is-observed > span {
+  border-color: var(--pp-stroke-strong);
+  background: var(--pp-surface-sunken);
+  color: var(--pp-text);
+}
+
+.pp-security-check-list li.is-attention > span {
+  border-color: color-mix(in srgb, var(--pp-warning-signal) 45%, var(--pp-stroke));
+  background: color-mix(in srgb, var(--pp-warning-signal) 10%, var(--pp-surface));
+  color: var(--pp-warning-signal);
+}
+
+.pp-security-check-list li > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.66rem;
+}
+
+.pp-security-check-list li > p {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+  color: var(--pp-text-muted);
+  font-size: 0.58rem;
+  line-height: 1.48;
+}
+
+.pp-security-copy-state {
+  min-height: 2rem;
+  padding: 0.46rem 0.9rem;
+  color: var(--pp-text-faint);
+  font-size: 0.57rem;
+  line-height: 1.4;
+}
+
+.pp-security-copy-state.is-error {
+  color: var(--pp-danger-signal);
+}
+
 .pp-security-addresses {
   display: flex;
   flex-wrap: wrap;
@@ -899,6 +1045,18 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .pp-security-check-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pp-security-check-list li:nth-child(3n) {
+    border-right: 1px solid var(--pp-stroke);
+  }
+
+  .pp-security-check-list li:nth-child(even) {
+    border-right: 0;
+  }
+
   .pp-security-evidence-card:nth-child(3) {
     border-top: 1px solid var(--pp-stroke);
     border-left: 0;
@@ -965,6 +1123,7 @@
 
   .pp-security-query-row,
   .pp-security-evidence-grid,
+  .pp-security-check-list,
   .pp-security-observation-grid,
   .pp-security-planned-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -972,6 +1131,22 @@
 
   .pp-security-query-row button {
     width: 100%;
+  }
+
+  .pp-security-evidence-report > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pp-security-copy-report {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .pp-security-check-list li,
+  .pp-security-check-list li:nth-child(3n),
+  .pp-security-check-list li:nth-child(even) {
+    border-right: 0;
   }
 
   .pp-security-result-summary {
