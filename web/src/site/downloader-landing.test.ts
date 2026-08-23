@@ -78,7 +78,7 @@ describe('Downloader public landing page', () => {
         }),
         expect.objectContaining({
           name: 'Package-manager status',
-          value: expect.stringMatching(/Homebrew and Scoop remain at v0\.4\.0/i),
+          value: expect.stringMatching(/Homebrew and Scoop install v0\.5\.0/i),
         }),
       ])
     );
@@ -97,7 +97,7 @@ describe('Downloader public landing page', () => {
 
     expect(screenshots.map((image) => image.getAttribute('src'))).toEqual(releaseScreenshotFiles);
     expect(renderedText).toMatch(/Stable ProtoPeek v0\.5\.0/i);
-    expect(renderedText).toMatch(/Homebrew and Scoop remain at v0\.4\.0/i);
+    expect(renderedText).toMatch(/Homebrew and Scoop install v0\.5\.0/i);
     expect(renderedText).toMatch(/system-installed or explicitly configured aria2c/i);
     expect(renderedText).toMatch(/up to 32 independent jobs/i);
     expect(renderedText).toMatch(/pause or resume one job or the whole queue/i);

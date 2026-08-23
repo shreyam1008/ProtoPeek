@@ -73,7 +73,7 @@ describe('public site', () => {
     const release = screen.getByRole('region', {
       name: 'What ships in v0.5.0.',
     });
-    expect(within(release).getByText(/Homebrew and Scoop remain at v0\.4\.0/i)).toBeVisible();
+    expect(within(release).getByText(/Homebrew and Scoop install v0\.5\.0/i)).toBeVisible();
     expect(within(release).getByText(/configured or system-installed/i)).toBeVisible();
     expect(within(release).getByText(/does not bundle aria2/i)).toBeVisible();
     expect(
@@ -84,17 +84,19 @@ describe('public site', () => {
     expect(within(release).getByText(/no security score/i)).toBeVisible();
   });
 
-  it('keeps the v0.5.0 resolvers separate from still-v0.4.0 package channels', () => {
+  it('presents v0.5.0 across the verified resolver and package channels', () => {
     render(<App />);
 
     const install = screen.getByRole('region', {
-      name: 'Install v0.5.0 or choose a package channel.',
+      name: 'Install v0.5.0 from a verified channel.',
     });
     expect(screen.getByRole('button', { name: 'Copy Homebrew command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy Scoop command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy Unix command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy PowerShell command' })).toBeInTheDocument();
-    expect(within(install).getByText(/Homebrew and Scoop remain at v0\.4\.0/i)).toBeVisible();
+    expect(
+      within(install).getByText(/Homebrew tap, and Scoop bucket install v0\.5\.0/i)
+    ).toBeVisible();
     expect(within(install).getAllByText(/v0\.5\.0 resolver/i)).toHaveLength(2);
   });
 

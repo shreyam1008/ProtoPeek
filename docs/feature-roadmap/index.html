@@ -156,11 +156,11 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <p>public-only, non-following, bodyless <code>HEAD</code> observation with pinned DNS/TLS/HTTP evidence and no security score.</p>
 <ul><li>Settings ships the read-first GoBarryGo bridge: observational preview, bounded copy-only import,</li></ul>
 <p>paused imported jobs, private receipts, idempotence, and guarded rollback. GoBarryGo files, releases, repository history, and public origin remain independent.</p>
+<ul><li>The owned Homebrew and Scoop channels install checksum-pinned v0.5.0 archives and declare aria2</li></ul>
+<p>as an external package dependency. ProtoPeek itself still does not bundle aria2.</p>
 <h3 id="still-gated-after-v0-5-0">Still gated after v0.5.0</h3>
-<ul><li>Homebrew and Scoop remain at v0.4.0 until their separate manifests declare and verify the</li></ul>
-<p>external aria2 dependency against immutable v0.5.0 archives.</p>
-<ul><li>The ProtoPeek <code>/downloader/</code> deployment and indexing, GoBarryGo retirement page and redirect, and</li></ul>
-<p>any repository archival remain separate public-state gates.</p>
+<ul><li>Search indexing evidence, the GoBarryGo retirement page and redirect, and any repository archival</li></ul>
+<p>remain separate public-state gates.</p>
 <ul><li>Artifact handoff, multi-step workflows, broader website plans, and additional protocols remain</li></ul>
 <p>planned rather than implied by this release.</p>
 <h2 id="network-workbench-roadmap">Network workbench roadmap</h2>
@@ -219,12 +219,12 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <ul><li>Health uses the live request metadata with the same precedence and binary decoding as Invoke, but</li></ul>
 <p>never echoes, stores, or exports those request values. Observed times belong to the ProtoPeek handler/relay and one selected backend connection; they are not packet, server-emission, dependency, replica-set, or fleet-health evidence.</p>
 <h3 id="distribution-owned-package-channels-available">Distribution — owned package channels (available)</h3>
-<ul><li>The verified release resolvers and <code>@v0.5.0</code> install the v0.5.0 release archive once the stable</li></ul>
-<p>tag is published; Downloader still requires a separate system or configured <code>aria2c</code>.</p>
-<ul><li>The owned Homebrew tap currently installs the checked v0.4.0 archives as <code>protopeek</code> and <code>pp</code> on macOS</li></ul>
-<p>and Linux, with both manpages.</p>
-<ul><li>The owned Scoop bucket currently installs the checked v0.4.0 Windows archives with both command shims and</li></ul>
-<p>a checksum-backed autoupdate contract.</p>
+<ul><li>The verified release resolvers and <code>@v0.5.0</code> install the published v0.5.0 release archives;</li></ul>
+<p>Downloader still uses a separate system or configured <code>aria2c</code>.</p>
+<ul><li>The owned Homebrew tap installs the checked v0.5.0 archives as <code>protopeek</code> and <code>pp</code> on macOS and</li></ul>
+<p>Linux, with both manpages, and declares aria2 as an external dependency.</p>
+<ul><li>The owned Scoop bucket installs the checked v0.5.0 Windows archives with both command shims, an</li></ul>
+<p>external aria2 dependency, and a checksum-backed autoupdate contract.</p>
 <ul><li>WinGet is next only after these owned paths and the PowerShell installer accumulate initial user</li></ul>
 <p>feedback. Community submission remains an explicit owner action.</p>
 <h3 id="next-daily-workflow-gaps">Next — daily workflow gaps</h3>

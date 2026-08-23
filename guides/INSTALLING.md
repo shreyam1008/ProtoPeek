@@ -18,10 +18,9 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest still pin the public v0.4.0 archives by SHA-256. They do not yet declare
-the external `aria2c` dependency or provide the v0.5.0 Downloader. Keep those channels at v0.4.0
-until their separate dependency-aware manifest pull requests and install checks pass. Update with
-`brew upgrade protopeek` or `scoop update protopeek`; uninstall with
+The formula and manifest pin the public v0.5.0 archives by SHA-256 and declare aria2 as an external
+package dependency. They provide the v0.5.0 Downloader without bundling aria2 into ProtoPeek.
+Update with `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
 
 ## Install through the release resolver

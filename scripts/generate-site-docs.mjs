@@ -128,7 +128,7 @@ async function writeDownloaderPage() {
       {
         '@type': 'PropertyValue',
         name: 'Package-manager status',
-        value: 'Homebrew and Scoop remain at v0.4.0 until their aria2-aware manifests pass',
+        value: 'Homebrew and Scoop install v0.5.0 with aria2 declared as an external dependency',
       },
     ],
     softwareHelp: `${siteRoot}/docs/`,
@@ -217,7 +217,7 @@ async function writeDownloaderPage() {
                 </div>
                 <div>
                   <dt>Package channels</dt>
-                  <dd>Homebrew and Scoop remain at v0.4.0 until separate promotion</dd>
+                  <dd>Homebrew and Scoop install v0.5.0</dd>
                 </div>
                 <div>
                   <dt>Transfer engine</dt>
@@ -292,8 +292,8 @@ async function writeDownloaderPage() {
               <p>
                 Downloader resolves an explicitly configured aria2c binary or the system aria2c on
                 PATH. That keeps the MIT ProtoPeek distribution separate from aria2 and makes the
-                process boundary inspectable. Homebrew and Scoop still install v0.4.0 until their
-                separate dependency-aware manifests pass, so those package channels do not provide Downloader yet.
+                process boundary inspectable. Homebrew and Scoop install v0.5.0 and declare aria2 as
+                an external package dependency, so Downloader is available without bundling the engine.
               </p>
             </div>
             <div class="pp-download-requirement-links">

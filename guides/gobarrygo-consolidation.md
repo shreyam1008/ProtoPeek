@@ -1,16 +1,16 @@
 # GoBarryGo consolidation
 
-Status: the transfer, migration, and crawlable documentation slices ship in ProtoPeek v0.5.0;
-Homebrew/Scoop promotion, public deployment/indexing, the GoBarryGo redirect, and repository
+Status: the transfer, migration, crawlable documentation, public deployment, and owned-package
+slices ship in ProtoPeek v0.5.0; Search indexing evidence, the GoBarryGo redirect, and repository
 retirement remain separately gated.
 
 ProtoPeek v0.5.0 contains a local transfer service, the canonical
 `/downloader` UI, explicit `download` and `migrate-gobarry` CLI subcommands, and a read-first
-GoBarryGo state bridge with guarded rollback. The release source also contains a crawlable
-`/downloader/` landing page, but deployment and indexing require separate live verification.
-GoBarryGo remains an independent live product and repository. No public redirect, package
-promotion, or repository archive has happened. This document separates the shipped v0.5.0
-capability from the still-gated public cutover.
+GoBarryGo state bridge with guarded rollback. The crawlable `/downloader/` landing page is live, and
+the owned Homebrew and Scoop channels install v0.5.0 with aria2 declared as an external dependency.
+GoBarryGo remains an independent live product and repository. No public redirect or repository
+archive has happened. This document separates the shipped v0.5.0 capability from the still-gated
+public cutover.
 
 ## Product boundary
 
@@ -160,17 +160,16 @@ GoBarryGo identifiers.
 ## Proposed reversible public migration
 
 Nothing in this section changes public routing or repository state by itself. ProtoPeek v0.5.0
-satisfies the released-build prerequisite, but the public migration can happen only after the
-remaining deployment, package, and indexing gates pass:
+satisfies the release, deployment, owned-package, and compatibility-page prerequisites, but the
+permanent redirect can happen only after the homepage and `/downloader/` indexing gate passes:
 
-1. Deploy the generated `/downloader/` page with the two manifest-backed v0.5.0 captures, then
-   verify its direct HTML, canonical, structured data, assets,
-   sitemap entry, and mobile rendering on the public origin.
-2. Verify the v0.5.0 archives and release-resolver installs, then promote Homebrew and Scoop only
-   after their dependency-aware manifests pass independent install and update checks. The package
-   channels remain at v0.4.0 until then.
-3. Replace the GoBarryGo site with a clear “GoBarryGo has merged into ProtoPeek” page that still
-   links to standalone v0.0.9, checksums, source, and migration help.
+1. **Complete:** the generated `/downloader/` page is deployed with its two manifest-backed v0.5.0
+   captures and verified direct HTML, canonical, structured data, assets, and sitemap entry.
+2. **Complete:** the v0.5.0 archives and release resolvers are published; Homebrew and Scoop install
+   them after dependency-aware default-branch checks passed.
+3. **Complete:** the GoBarryGo site is a compatibility page that links to standalone v0.0.9,
+   checksums, source, and migration help. GoBarryGo PR `#3` merged as `144c725c`; Pages deployment
+   `32665465437` passed. The permanent redirect remains disabled.
 4. Only after the released packages and public page pass installation and Search Console checks,
    enable the approved permanent `301` from the old GoBarryGo origin to the verified ProtoPeek
    `/downloader/` page. Preserve query strings and reject redirect loops.
@@ -197,12 +196,11 @@ Shipped in v0.5.0:
 Still planned and separately gated:
 
 1. Cross-area Artifact handoff and bounded workflows.
-2. Homebrew/Scoop promotion with a proved external `aria2c` dependency.
-3. Public deployment and indexing of `/downloader/`, followed by an approved GoBarryGo retirement
+2. Search indexing evidence for `/downloader/`, followed by an approved GoBarryGo retirement
    page and permanent redirect after the support gate.
-4. Native desktop notifications and open/reveal integration, if a later native-shell decision can
+3. Native desktop notifications and open/reveal integration, if a later native-shell decision can
    justify them without weakening the browser-core boundary.
-5. Any repository archive, only after at least two stable ProtoPeek releases or the documented
+4. Any repository archive, only after at least two stable ProtoPeek releases or the documented
    support window. Tags, releases, binaries, screenshots, checksums, and history remain preserved.
 
 Completion requires source tests, process failure/recovery tests, config migration tests, browser

@@ -9,7 +9,7 @@ describe('release metadata', () => {
   it('keeps the stable release and independently promoted package versions explicit', () => {
     const product = JSON.parse(readRepositoryFile('product.json')) as {
       latestRelease: { version: string; status: string; url: string };
-      distributions: Array<{ channel: string; version?: string }>;
+      distributions: Array<{ channel: string; version?: string; verifiedAt?: string }>;
     };
     const packageVersions = Object.fromEntries(
       product.distributions.map((channel) => [channel.channel, channel.version])
@@ -21,8 +21,14 @@ describe('release metadata', () => {
       url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0',
     });
     expect(packageVersions['GitHub Releases']).toBe('0.5.0');
-    expect(packageVersions['Homebrew Tap']).toBe('0.4.0');
-    expect(packageVersions['Scoop Bucket']).toBe('0.4.0');
+    expect(packageVersions['Homebrew Tap']).toBe('0.5.0');
+    expect(packageVersions['Scoop Bucket']).toBe('0.5.0');
+    expect(
+      product.distributions.find((channel) => channel.channel === 'Homebrew Tap')?.verifiedAt
+    ).toBe('2026-08-24');
+    expect(
+      product.distributions.find((channel) => channel.channel === 'Scoop Bucket')?.verifiedAt
+    ).toBe('2026-08-24');
   });
 
   it('aligns public discovery metadata and packaged manual headers', () => {
@@ -41,7 +47,7 @@ describe('release metadata', () => {
       'six areas: Overview, Protocols, Network, Downloader, Security, and Settings'
     );
     expect(llms).toContain('v0.5.0 is the current stable release');
-    expect(llms).toContain('Homebrew and Scoop channels remain at v0.4.0');
+    expect(llms).toContain('Homebrew and Scoop channels install v0.5.0');
     expect(llms).toContain('ProtoPeek does not bundle aria2');
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
@@ -63,7 +69,7 @@ describe('release metadata', () => {
     expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek 0\.5\.0"/);
     expect(protopeekMan).toContain('.B protopeek download');
     expect(protopeekMan).toContain('subcommand ships in ProtoPeek v0.5.0');
-    expect(protopeekMan).toContain('Homebrew and Scoop remain at v0.4.0');
+    expect(protopeekMan).toContain('Homebrew and Scoop install v0.5.0');
     expect(protopeekMan).toContain('does not attach to an\nalready-running ProtoPeek process');
     expect(protopeekMan).toContain('.B protopeek migrate-gobarry');
     expect(protopeekMan).toContain('observational preview');
@@ -76,9 +82,10 @@ describe('release metadata', () => {
     const consolidation = readRepositoryFile('guides/gobarrygo-consolidation.md');
     const security = readRepositoryFile('guides/website-analysis-security.md');
 
-    expect(consolidation).toContain(
-      'No public redirect, package\npromotion, or repository archive has'
-    );
+    expect(consolidation).toContain('No public redirect or repository\narchive has happened');
+    expect(consolidation).toContain('Homebrew and Scoop channels install v0.5.0');
+    expect(consolidation).toContain('GoBarryGo PR `#3` merged as `144c725c`');
+    expect(consolidation).toContain('The permanent redirect remains disabled');
     expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');
     expect(consolidation).toContain('`download --ui`, `downloads list`, job-action subcommands');
     expect(consolidation).toContain('are ideas only. They\nare not implemented');

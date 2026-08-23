@@ -2,10 +2,10 @@
 
 Canonical URL: `https://protopeek.shreyam1008.com.np/`
 
-Current public state: **Live over HTTPS; v0.4.0 was the last externally verified content on 21 August 2026**
+Current public state: **Live over HTTPS; v0.5.0 was externally verified on 24 August 2026**
 
-v0.5.0 promotion state: **Release source prepared; stable tag, draft assets, publication, Pages
-deployment, and live custom-domain checks remain pending**
+v0.5.0 promotion state: **Stable release, Pages deployment, Homebrew tap, and Scoop bucket are
+published and verified; Search Console evidence remains separate**
 
 ## Verification after a website deployment
 
@@ -25,7 +25,7 @@ deployment, and live custom-domain checks remain pending**
 Search Console is an owner-account operation and is not inferred from a successful Pages deploy.
 After a release, Shreyam should verify the custom-domain property, submit
 `https://protopeek.shreyam1008.com.np/sitemap.xml`, and request indexing for the homepage and
-feature-roadmap page. Record the submission date and any coverage error in the distribution log;
+Downloader page. Record the submission date and any coverage error in the distribution log;
 do not describe indexing as complete until Search Console reports the custom URLs as discovered or
 indexed. Recheck search impressions after two weeks, while treating ordinary crawl delay as external
 state rather than changing working canonical/redirect metadata without evidence.
