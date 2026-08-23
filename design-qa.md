@@ -151,8 +151,8 @@ were recorded.
 - Terminal Ctrl-C could reach aria2 before ProtoPeek saved the session, producing a false dirty
   shutdown warning. OS-specific child process-group isolation now makes the parent own graceful
   save/shutdown; a real completed-download PTY pass exits cleanly.
-- The current-source site gallery now labels these captures as unreleased development evidence and
-  keeps the three stable v0.3.0 captures separately identified.
+- The v0.5.0 site gallery now labels these captures as release-source evidence and keeps the three
+  stable v0.3.0 captures separately identified.
 
 No P0, P1, or P2 visual, interaction, truthfulness, or responsive defects remain in the inspected
 Downloader and Security journeys.

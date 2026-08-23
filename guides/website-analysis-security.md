@@ -1,7 +1,7 @@
 # Website analysis and security boundary
 
-Status: one passive historical-name lookup and one direct website observation are implemented in
-the current development source. Broader website plans, findings, exports, and selected-port
+Status: one passive historical-name lookup and one direct website observation ship in v0.5.0.
+Broader website plans, findings, exports, and selected-port
 handoffs remain planned.
 
 ProtoPeek helps a user understand a website from the perspective of the local ProtoPeek process.

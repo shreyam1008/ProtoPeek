@@ -141,8 +141,13 @@ describe('protocol routes', () => {
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
     expect(screen.getByText('Owned package channels')).toBeInTheDocument();
     expect(
-      screen.getByText(/checksum-pinned v0\.4\.0 archives with both protopeek and pp/)
+      screen.getByText(/remain checksum-pinned to v0\.4\.0 until separate v0\.5\.0 manifests/)
     ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Downloader', level: 3 })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Security evidence', level: 3 })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'GoBarryGo bridge', level: 3 })).toBeInTheDocument();
     expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
     expect(screen.getByText('Network Path · Linux')).toBeInTheDocument();

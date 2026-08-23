@@ -24,7 +24,7 @@ describe('Downloader public landing page', () => {
       'https://protopeek.shreyam1008.com.np/downloader/'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
-      'ProtoPeek Downloader is an unreleased local transfer workbench in current source, using system or configured aria2c with queue controls and SHA-256 evidence.'
+      'ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).not.toBe(
       homepage.querySelector('meta[name="description"]')?.getAttribute('content')
@@ -39,7 +39,7 @@ describe('Downloader public landing page', () => {
     ).toBe(true);
   });
 
-  it('contains one parseable JSON-LD block with the unreleased product boundary', () => {
+  it('contains one parseable JSON-LD block with the v0.5.0 product boundary', () => {
     const downloader = parseHtml('docs/downloader/index.html');
     const structuredDataBlocks = Array.from(
       downloader.querySelectorAll<HTMLScriptElement>('script[type="application/ld+json"]')
@@ -74,11 +74,11 @@ describe('Downloader public landing page', () => {
       expect.arrayContaining([
         expect.objectContaining({
           name: 'Release status',
-          value: expect.stringMatching(/unreleased development feature/i),
+          value: expect.stringMatching(/shipped in ProtoPeek v0\.5\.0/i),
         }),
         expect.objectContaining({
-          name: 'Stable ProtoPeek release',
-          value: expect.stringMatching(/v0\.4\.0; Downloader is not included/i),
+          name: 'Package-manager status',
+          value: expect.stringMatching(/Homebrew and Scoop remain at v0\.4\.0/i),
         }),
       ])
     );
@@ -91,15 +91,13 @@ describe('Downloader public landing page', () => {
     const screenshotManifest = JSON.parse(readRepositoryFile('guides/screenshots.json')) as {
       screenshots: Array<{ file: string; releaseStatus?: string }>;
     };
-    const developmentScreenshotFiles = screenshotManifest.screenshots
-      .filter((entry) => entry.releaseStatus === 'unreleased-development')
+    const releaseScreenshotFiles = screenshotManifest.screenshots
+      .filter((entry) => entry.releaseStatus === 'released-v0.5.0')
       .map((entry) => entry.file.replace('../web/site/public', ''));
 
-    expect(screenshots.map((image) => image.getAttribute('src'))).toEqual(
-      developmentScreenshotFiles
-    );
-    expect(renderedText).toMatch(/current development source, unreleased/i);
-    expect(renderedText).toMatch(/v0\.4\.0 does not include Downloader/i);
+    expect(screenshots.map((image) => image.getAttribute('src'))).toEqual(releaseScreenshotFiles);
+    expect(renderedText).toMatch(/Stable ProtoPeek v0\.5\.0/i);
+    expect(renderedText).toMatch(/Homebrew and Scoop remain at v0\.4\.0/i);
     expect(renderedText).toMatch(/system-installed or explicitly configured aria2c/i);
     expect(renderedText).toMatch(/up to 32 independent jobs/i);
     expect(renderedText).toMatch(/pause or resume one job or the whole queue/i);

@@ -19,9 +19,9 @@ describe('public site', () => {
       'aria-expanded',
       'true'
     );
-    expect(within(mobileNavigation).getByRole('link', { name: 'Development build' })).toBeVisible();
+    expect(within(mobileNavigation).getByRole('link', { name: 'v0.5.0' })).toBeVisible();
 
-    fireEvent.click(within(mobileNavigation).getByRole('link', { name: 'Development build' }));
+    fireEvent.click(within(mobileNavigation).getByRole('link', { name: 'v0.5.0' }));
     expect(mobileNavigation).toHaveAttribute('hidden');
 
     fireEvent.click(screen.getByRole('button', { name: 'Open site navigation' }));
@@ -30,7 +30,7 @@ describe('public site', () => {
     expect(mobileNavigation).toHaveAttribute('hidden');
   });
 
-  it('presents exactly the six unified development areas', () => {
+  it('presents exactly the six unified v0.5.0 areas', () => {
     render(<App />);
 
     const suite = screen.getByRole('region', { name: 'Six areas. One explicit local shell.' });
@@ -39,9 +39,7 @@ describe('public site', () => {
         .getAllByRole('heading', { level: 3 })
         .map((heading) => heading.textContent)
     ).toEqual(['Overview', 'Protocols', 'Network', 'Downloader', 'Security', 'Settings']);
-    expect(
-      within(suite).getByText(/current development source, not the published v0\.4\.0/i)
-    ).toBeVisible();
+    expect(within(suite).getByText(/information architecture ships in v0\.5\.0/i)).toBeVisible();
   });
 
   it('uses only repository-verified, version-labelled real screenshots', () => {
@@ -64,48 +62,40 @@ describe('public site', () => {
     expect(
       captions.every((caption) => /Real (?:local )?(?:headless )?Chrome capture/i.test(caption))
     ).toBe(true);
-    expect(captions.filter((caption) => /current unreleased source/i.test(caption))).toHaveLength(
-      2
-    );
-    expect(
-      captions
-        .filter((caption) => /current unreleased source/i.test(caption))
-        .every((caption) => /not stable v0\.4\.0/i.test(caption))
-    ).toBe(true);
+    expect(captions.filter((caption) => /promoted into v0\.5\.0/i.test(caption))).toHaveLength(2);
     expect(captions.filter((caption) => /v0\.3\.0/.test(caption))).toHaveLength(3);
-    expect(
-      within(gallery).getByText(/Downloader pair shows current unreleased source/i)
-    ).toBeVisible();
+    expect(within(gallery).getByText(/Downloader pair is v0\.5\.0 release-source/i)).toBeVisible();
   });
 
-  it('separates development-only Downloader and Security behavior from stable v0.4.0', () => {
+  it('presents the bounded Downloader and Security surfaces shipped in v0.5.0', () => {
     render(<App />);
 
-    const development = screen.getByRole('region', {
-      name: 'What is available in the current source build.',
+    const release = screen.getByRole('region', {
+      name: 'What ships in v0.5.0.',
     });
-    expect(within(development).getByText(/not part of stable v0\.4\.0/i)).toBeVisible();
-    expect(within(development).getByText(/configured or system-installed/i)).toBeVisible();
-    expect(within(development).getByText(/does not bundle aria2/i)).toBeVisible();
+    expect(within(release).getByText(/Homebrew and Scoop remain at v0\.4\.0/i)).toBeVisible();
+    expect(within(release).getByText(/configured or system-installed/i)).toBeVisible();
+    expect(within(release).getByText(/does not bundle aria2/i)).toBeVisible();
     expect(
-      within(development).getByText('pp download [--output NAME] [--sha256 64_HEX] URL')
+      within(release).getByText('pp download [--output NAME] [--sha256 64_HEX] URL')
     ).toBeVisible();
-    expect(development).toHaveTextContent(/sent to crt\.name/i);
-    expect(within(development).getByText(/exactly one credential-free/i)).toBeVisible();
-    expect(within(development).getByText(/no security score/i)).toBeVisible();
+    expect(release).toHaveTextContent(/sent to crt\.name/i);
+    expect(within(release).getByText(/exactly one credential-free/i)).toBeVisible();
+    expect(within(release).getByText(/no security score/i)).toBeVisible();
   });
 
-  it('keeps stable package channels and version separate from current source', () => {
+  it('keeps the v0.5.0 resolvers separate from still-v0.4.0 package channels', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Install stable v0.4.0.' })).toBeVisible();
+    const install = screen.getByRole('region', {
+      name: 'Install v0.5.0 or choose a package channel.',
+    });
     expect(screen.getByRole('button', { name: 'Copy Homebrew command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy Scoop command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy Unix command' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy PowerShell command' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/unified development additions.*require the current source/i)
-    ).toBeVisible();
+    expect(within(install).getByText(/Homebrew and Scoop remain at v0\.4\.0/i)).toBeVisible();
+    expect(within(install).getAllByText(/v0\.5\.0 resolver/i)).toHaveLength(2);
   });
 
   it('reports copy success only after the clipboard write resolves', async () => {

@@ -48,8 +48,20 @@ const roadmap = [
         'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
       ],
       [
+        'Downloader',
+        'One to 32 independent HTTP(S) jobs through configured or system aria2c, with bounded per-job options, queue controls, private retry state, checksum evidence, and one-shot CLI transfer.',
+      ],
+      [
+        'Security evidence',
+        'One disclosed historical certificate-name lookup and one separately consented public-only HEAD observation with pinned DNS, TLS, HTTP, and timing evidence; no security score.',
+      ],
+      [
+        'GoBarryGo bridge',
+        'Read-first preview, bounded copy-only preference/session import, paused imported jobs, private receipts, and guarded rollback without changing GoBarryGo source files.',
+      ],
+      [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows now install the same checksum-pinned v0.4.0 archives with both protopeek and pp; WinGet remains gated on initial package feedback.',
+        'Homebrew on macOS/Linux and Scoop on Windows remain checksum-pinned to v0.4.0 until separate v0.5.0 manifests declare and verify the external aria2 dependency; both still provide protopeek and pp.',
       ],
     ],
   },

@@ -1,6 +1,6 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.4.0 is the current stable release. The default resolver installs it from immutable GitHub release
+> v0.5.0 is the current stable release. The default resolver installs it from immutable GitHub release
 > assets and never falls back to edge.
 
 ## Install through an owned package channel
@@ -18,7 +18,9 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest pin the public v0.4.0 archives by SHA-256. Update with
+The formula and manifest still pin the public v0.4.0 archives by SHA-256. They do not yet declare
+the external `aria2c` dependency or provide the v0.5.0 Downloader. Keep those channels at v0.4.0
+until their separate dependency-aware manifest pull requests and install checks pass. Update with
 `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
 
@@ -33,6 +35,10 @@ The installer verifies the selected archive against the matching
 command unless an unrelated `pp` already occupies the install directory; that
 file is never overwritten. Older verified archives that contain only
 `protopeek` are supported by deriving the alias from that verified binary.
+
+The v0.5.0 archive does not bundle aria2. Install `aria2c` separately or configure its executable
+path before using Downloader or `pp download`; every other v0.5.0 workbench area remains usable
+without starting the transfer engine.
 
 Windows PowerShell installs per user and updates the user PATH without requiring
 administrator access:
@@ -54,11 +60,11 @@ Get-Content .\install.ps1
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.4.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.5.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.4.0'
+$env:PROTOPEEK_VERSION = 'v0.5.0'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 

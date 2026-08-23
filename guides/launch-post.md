@@ -43,8 +43,9 @@ Historical note:
 
 Notes:
 
-- v0.4.0 is the prepared stable release; owned package updates follow after its immutable checksums
-  are promoted and independently verified.
+- v0.5.0 release source is prepared, but the stable tag, draft assets, publication, and Pages checks
+  must finish before this draft is public. Homebrew and Scoop remain at v0.4.0 until their separate
+  aria2-aware manifests are promoted and independently verified.
   Keep this draft private until initial user feedback confirms the three-minute
   install-to-request path and Shreyam personally approves the final text.
 - After release, adapt the technical detail and limitations to each community;

@@ -24,7 +24,11 @@ transport events, and the final evidence stay close together.
 - A promise that every protocol belongs in the default binary. Future adapters should be opt-in when
   they add meaningful binary, dependency, or security cost.
 
-## Current workbench: gRPC + HTTP + bounded network evidence
+## Current workbench: six shipped areas in v0.5.0
+
+ProtoPeek v0.5.0 organizes the local workbench into exactly Overview, Protocols, Network,
+Downloader, Security, and Settings. The shell is shared, but each operation keeps its own evidence,
+consent, persistence, and dependency boundary.
 
 The gRPC adapter remains the quality bar for protocol-native depth:
 
@@ -90,6 +94,9 @@ console shell: target -> operation -> request -> response evidence
         +-- local network      authorized private /24-or-smaller | selected TCP profiles
         +-- topology notebook  logical evidence | immutable snapshots | local exchange
         +-- Nmap import        offline XML hints | explicit ProtoPeek verification
+        +-- Downloader         external aria2c | local queue | retry/checksum evidence
+        +-- Security           disclosed provider lookup | one consented public HEAD
+        +-- Settings           browser preferences | explicit GoBarryGo bridge
         +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
 ```
@@ -107,6 +114,33 @@ The shared boundary stays deliberately small:
 Do not erase protocol differences to make the types look uniform. The shell can count messages and
 show timing consistently, but the inspector must say “gRPC trailers”, “Cap'n Proto capability”, or
 “HTTP response headers” when that is what the user is looking at.
+
+## v0.5.0 workbench release
+
+### Shipped in v0.5.0
+
+- The six-area shell keeps Overview, Protocols, Network, Downloader, Security, and Settings on
+  canonical routes with compatibility redirects for earlier links.
+- Downloader queues one or up to 32 independent HTTP(S) jobs through an explicitly configured or
+  system-installed `aria2c`, with deterministic partial success, per-job and whole-queue controls,
+  private retry state, and single-job output/SHA-256 evidence. ProtoPeek does not bundle aria2.
+- `pp download` exposes the same bounded transfer core for one terminal-owned job without attaching
+  to an already-running browser process.
+- Security ships one disclosed historical certificate-name lookup and one separately consented,
+  public-only, non-following, bodyless `HEAD` observation with pinned DNS/TLS/HTTP evidence and no
+  security score.
+- Settings ships the read-first GoBarryGo bridge: observational preview, bounded copy-only import,
+  paused imported jobs, private receipts, idempotence, and guarded rollback. GoBarryGo files,
+  releases, repository history, and public origin remain independent.
+
+### Still gated after v0.5.0
+
+- Homebrew and Scoop remain at v0.4.0 until their separate manifests declare and verify the
+  external aria2 dependency against immutable v0.5.0 archives.
+- The ProtoPeek `/downloader/` deployment and indexing, GoBarryGo retirement page and redirect, and
+  any repository archival remain separate public-state gates.
+- Artifact handoff, multi-step workflows, broader website plans, and additional protocols remain
+  planned rather than implied by this release.
 
 ## Network workbench roadmap
 
@@ -245,6 +279,8 @@ gRPC result.
 
 ### Distribution — owned package channels (available)
 
+- The verified release resolvers and `@v0.5.0` install the v0.5.0 release archive once the stable
+  tag is published; Downloader still requires a separate system or configured `aria2c`.
 - The owned Homebrew tap currently installs the checked v0.4.0 archives as `protopeek` and `pp` on macOS
   and Linux, with both manpages.
 - The owned Scoop bucket currently installs the checked v0.4.0 Windows archives with both command shims and

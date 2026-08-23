@@ -10,7 +10,7 @@ const siteRoot = 'https://protopeek.shreyam1008.com.np';
 const repoRootURL = 'https://github.com/shreyam1008/ProtoPeek';
 const downloaderCanonicalURL = `${siteRoot}/downloader/`;
 const downloaderDescription =
-  'ProtoPeek Downloader is an unreleased local transfer workbench in current source, using system or configured aria2c with queue controls and SHA-256 evidence.';
+  'ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.';
 
 const publishedPages = [
   {
@@ -107,7 +107,7 @@ async function writeDownloaderPage() {
     operatingSystem: ['Linux', 'macOS', 'Windows'],
     isAccessibleForFree: true,
     softwareRequirements:
-      'ProtoPeek current source after stable v0.4.0, plus a system-installed or explicitly configured aria2c.',
+      'ProtoPeek v0.5.0 plus a system-installed or explicitly configured aria2c for Downloader.',
     screenshot: [
       `${siteRoot}/assets/protopeek-downloader-development.jpg`,
       `${siteRoot}/assets/protopeek-downloader-development-mobile.jpg`,
@@ -123,12 +123,12 @@ async function writeDownloaderPage() {
       {
         '@type': 'PropertyValue',
         name: 'Release status',
-        value: 'Current source after v0.4.0; unreleased development feature',
+        value: 'Shipped in ProtoPeek v0.5.0',
       },
       {
         '@type': 'PropertyValue',
-        name: 'Stable ProtoPeek release',
-        value: 'v0.4.0; Downloader is not included',
+        name: 'Package-manager status',
+        value: 'Homebrew and Scoop remain at v0.4.0 until their aria2-aware manifests pass',
       },
     ],
     softwareHelp: `${siteRoot}/docs/`,
@@ -173,12 +173,12 @@ async function writeDownloaderPage() {
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1487" />
     <meta property="og:image:height" content="1058" />
-    <meta property="og:image:alt" content="ProtoPeek current development Downloader with completed local aria2 transfers and expected SHA-256 evidence" />
+    <meta property="og:image:alt" content="ProtoPeek v0.5.0 Downloader with completed local aria2 transfers and expected SHA-256 evidence" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ProtoPeek Downloader | Local aria2c Transfer Workbench" />
     <meta name="twitter:description" content="${escapeAttr(downloaderDescription)}" />
     <meta name="twitter:image" content="${siteRoot}/assets/protopeek-downloader-development.jpg" />
-    <meta name="twitter:image:alt" content="ProtoPeek current development Downloader with completed local aria2 transfers and expected SHA-256 evidence" />
+    <meta name="twitter:image:alt" content="ProtoPeek v0.5.0 Downloader with completed local aria2 transfers and expected SHA-256 evidence" />
     <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
@@ -201,23 +201,23 @@ async function writeDownloaderPage() {
             <div class="pp-download-hero-copy">
               <h1 id="downloader-title">Download locally. Keep every decision visible.</h1>
               <p>
-                ProtoPeek Downloader gives current-source users one explicit local queue for
+                ProtoPeek v0.5.0 gives users one explicit local queue for
                 HTTP(S) transfers: queue one or up to 32 independent jobs, see partial success,
                 pause or resume one job or the whole queue, retry, cancel, choose the destination,
                 and enforce a single-job expected SHA-256 without sending transfer details to a hosted service.
               </p>
               <div class="pp-download-actions">
-                <a class="pp-download-action-primary" href="${repoRootURL}" rel="noreferrer" target="_blank">Open current source</a>
+                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Open v0.5.0 release</a>
                 <a class="pp-download-action-secondary" href="${siteBase}/docs/">Read installation boundaries</a>
               </div>
               <dl class="pp-download-truth">
                 <div>
                   <dt>Available now</dt>
-                  <dd>Current development source, unreleased</dd>
+                  <dd>Stable ProtoPeek v0.5.0</dd>
                 </div>
                 <div>
-                  <dt>Stable release</dt>
-                  <dd>v0.4.0 does not include Downloader</dd>
+                  <dt>Package channels</dt>
+                  <dd>Homebrew and Scoop remain at v0.4.0 until separate promotion</dd>
                 </div>
                 <div>
                   <dt>Transfer engine</dt>
@@ -229,14 +229,14 @@ async function writeDownloaderPage() {
             <figure class="pp-download-media pp-download-media-hero">
               <img
                 src="${siteBase}/assets/protopeek-downloader-development.jpg"
-                alt="ProtoPeek current development Downloader desktop with completed local aria2 transfers and expected SHA-256 evidence"
+                alt="ProtoPeek v0.5.0 Downloader desktop with completed local aria2 transfers and expected SHA-256 evidence"
                 width="1487"
                 height="1058"
                 decoding="async"
               />
               <figcaption>
-                Real Chrome capture of current source after v0.4.0. The two local fixture transfers
-                completed through system aria2c; the selected item shows expected SHA-256 enforcement.
+                Real Chrome capture of the feature source promoted into v0.5.0. The two local fixture
+                transfers completed through system aria2c; the selected item shows expected SHA-256 enforcement.
               </figcaption>
             </figure>
           </section>
@@ -257,7 +257,7 @@ async function writeDownloaderPage() {
             <figure class="pp-download-media pp-download-media-mobile">
               <img
                 src="${siteBase}/assets/protopeek-downloader-development-mobile.jpg"
-                alt="ProtoPeek current development Downloader queue at a 390 by 844 responsive viewport"
+                alt="ProtoPeek v0.5.0 Downloader queue at a 390 by 844 responsive viewport"
                 width="390"
                 height="844"
                 loading="lazy"
@@ -269,7 +269,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-cli">
               <h2 id="cli-title">The same boundary in one command.</h2>
               <p>
-                The current source also exposes a one-shot command for scripts and terminals. It
+                v0.5.0 also exposes a one-shot command for scripts and terminals. It
                 owns its local engine session, writes progress to stderr, prints the completed path
                 to stdout, and preserves partial data plus the aria2 session if interrupted.
               </p>
@@ -292,25 +292,26 @@ async function writeDownloaderPage() {
               <p>
                 Downloader resolves an explicitly configured aria2c binary or the system aria2c on
                 PATH. That keeps the MIT ProtoPeek distribution separate from aria2 and makes the
-                process boundary inspectable. Stable package channels still install v0.4.0, so use
-                current source for Downloader until a later tagged release publishes it.
+                process boundary inspectable. Homebrew and Scoop still install v0.4.0 until their
+                separate dependency-aware manifests pass, so those package channels do not provide Downloader yet.
               </p>
             </div>
             <div class="pp-download-requirement-links">
               <a href="${siteBase}/docs/">Published documentation</a>
-              <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Current-source setup</a>
-              <a href="${repoRootURL}/releases/tag/v0.4.0" rel="noreferrer" target="_blank">Stable v0.4.0 release</a>
+              <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Release setup</a>
+              <a href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Stable v0.5.0 release</a>
             </div>
           </section>
 
           <section class="pp-download-migration" aria-labelledby="migration-title">
             <h2 id="migration-title">GoBarryGo migration stays reversible.</h2>
             <p>
-              ProtoPeek current source has an explicit bridge for GoBarryGo's one known local profile.
+              ProtoPeek v0.5.0 has an explicit bridge for GoBarryGo's one known local profile.
               Preview is read-only; import accepts only bounded regular files and allowlisted aria2
               session options, keeps GoBarryGo files unchanged, and pauses imported jobs. Private
               receipts make rollback possible only while ProtoPeek state still matches. The public
-              redirect and package retirement are not complete, and stable v0.4.0 does not replace it.
+              redirect and package retirement are not complete; repository retirement is also
+              incomplete, and GoBarryGo v0.0.9 plus its public history remain independently available.
             </p>
             <a href="${repoRootURL}/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the consolidation and migration record</a>
           </section>
