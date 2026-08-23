@@ -931,16 +931,20 @@ func printLaunchBanner(url, target string) {
 	fmt.Printf("ProtoPeek available at %s (target: %s)\n", url, targetLabel)
 }
 
-func usage() {
-	fmt.Fprintf(os.Stderr, `Usage:
+const rootUsageFormat = `Usage:
 	%s [flags] [address]
 	%s download [flags] URL
+	%s migrate-gobarry [flags]
 
 Starts the ProtoPeek web console.
 
 The download command performs one local HTTP(S) transfer through the configured
 or system aria2c binary. Run "%s download --help" for its bounded output-name
 and optional SHA-256 verification flags.
+
+The migrate-gobarry command previews, explicitly copies, or safely rolls back
+bounded state from the one known local GoBarryGo profile. Run
+"%s migrate-gobarry --help" for its preservation and acknowledgement flags.
 
 If a host:port address is provided, ProtoPeek connects directly to that target
 and opens the console in single-target mode. A bare host or HTTP(S) authority
@@ -963,7 +967,14 @@ container-interface bind while retaining the loopback Host and Origin policy.
 external TLS, authentication, and rate-limit boundary.
 
 Available flags:
-`, os.Args[0], os.Args[0], os.Args[0])
+`
+
+func rootUsageText(executable string) string {
+	return fmt.Sprintf(rootUsageFormat, executable, executable, executable, executable, executable)
+}
+
+func usage() {
+	fmt.Fprint(os.Stderr, rootUsageText(os.Args[0]))
 	flags.PrintDefaults()
 }
 

@@ -20,6 +20,7 @@ var (
 	ErrQueueFull              = errors.New("transfer queue limit reached")
 	ErrInsufficientDisk       = errors.New("download directory is below the configured free-space reserve")
 	ErrQueueStateNotPersisted = errors.New("queued transfer state could not be fully persisted")
+	ErrRetryMetadataMissing   = errors.New("exact retry metadata is unavailable; queue a new job with its required options")
 )
 
 type Service struct {
@@ -33,12 +34,13 @@ type Service struct {
 	locker   Locker
 	now      func() time.Time
 
-	starting  bool
-	stopping  bool
-	runtime   *Runtime
-	lease     Lock
-	health    Health
-	checksums map[string]string
+	starting      bool
+	stopping      bool
+	runtime       *Runtime
+	lease         Lock
+	health        Health
+	checksums     map[string]string
+	retryRequests map[string]AddRequest
 }
 
 func NewService(config HostConfig, paths Paths) (*Service, error) {
@@ -68,7 +70,8 @@ func NewServiceWithDependencies(config HostConfig, paths Paths, launcher Launche
 			Status:  "stopped",
 			Message: "Downloader is stopped. Start it when you need it.",
 		},
-		checksums: make(map[string]string),
+		checksums:     make(map[string]string),
+		retryRequests: make(map[string]AddRequest),
 	}, nil
 }
 
@@ -90,9 +93,13 @@ func (service *Service) Configure(config HostConfig) error {
 	return nil
 }
 
-// Snapshot is observational: it never creates directories, acquires the
-// process lock, resolves aria2c, or starts a subprocess.
+// Snapshot never launches or reconfigures aria2c. While the engine is running,
+// it also reconciles private retry metadata so credentials are not retained
+// after a transfer completes successfully.
 func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
+	service.queueMu.Lock()
+	defer service.queueMu.Unlock()
+
 	service.mu.RLock()
 	runtime := service.runtime
 	config := service.config
@@ -117,8 +124,15 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 		return snapshot, err
 	}
 	snapshot.Jobs = engineSnapshot.Jobs
-	service.mu.RLock()
+	service.mu.Lock()
+	retryRequestsBefore := cloneRetryRequests(service.retryRequests)
+	retryStateChanged := service.reconcileStateLocked(engineSnapshot)
 	for index := range snapshot.Jobs {
+		_, retryAvailable := service.retryRequests[snapshot.Jobs[index].ID]
+		snapshot.Jobs[index].RetryAvailable = retryAvailable
+		if !retryAvailable && (snapshot.Jobs[index].Status == JobFailed || snapshot.Jobs[index].Status == JobCancelled) {
+			snapshot.Jobs[index].RetryReason = "Exact retry options are unavailable. Queue a new job and re-enter any required headers."
+		}
 		expected, known := service.checksums[snapshot.Jobs[index].ID]
 		if !known {
 			continue
@@ -141,8 +155,17 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 			}
 		}
 	}
-	service.mu.RUnlock()
+	retryRequests := cloneRetryRequests(service.retryRequests)
+	service.mu.Unlock()
 	snapshot.Metrics = engineSnapshot.Metrics
+	if retryStateChanged {
+		if err := saveRetryState(filepath.Join(service.paths.StateDirectory, "retry.json"), retryRequests, config.MaxTrackedJobs); err != nil {
+			service.mu.Lock()
+			service.retryRequests = retryRequestsBefore
+			service.mu.Unlock()
+			return snapshot, fmt.Errorf("remove completed transfer retry metadata: %w", err)
+		}
+	}
 	return snapshot, nil
 }
 
@@ -193,6 +216,11 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		_ = lease.Release()
 		return fail("failed", "Saved checksum evidence could not be loaded safely.", err)
 	}
+	restoredRetryRequests, err := loadRetryState(filepath.Join(paths.StateDirectory, "retry.json"), config.MaxTrackedJobs)
+	if err != nil {
+		_ = lease.Release()
+		return fail("failed", "Saved retry metadata could not be loaded safely.", err)
+	}
 
 	runtime, err := service.launcher.Start(ctx, config, paths)
 	if err != nil {
@@ -228,6 +256,7 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 	service.lease = lease
 	service.health = health
 	service.checksums = restoredChecksums
+	service.retryRequests = restoredRetryRequests
 	service.mu.Unlock()
 
 	go service.monitor(runtime)
@@ -256,7 +285,11 @@ func (service *Service) Add(ctx context.Context, request AddRequest) (AddResult,
 		return AddResult{}, ErrQueueFull
 	}
 
-	free, err := availableDiskBytes(config.DownloadDirectory)
+	downloadDirectory := config.DownloadDirectory
+	if request.DestinationDirectory != "" {
+		downloadDirectory = request.DestinationDirectory
+	}
+	free, err := availableDiskBytes(downloadDirectory)
 	if err != nil {
 		return AddResult{}, fmt.Errorf("inspect free disk space: %w", err)
 	}
@@ -275,11 +308,16 @@ func (service *Service) Add(ctx context.Context, request AddRequest) (AddResult,
 		return AddResult{}, errors.New("transfer engine returned an invalid job id")
 	}
 	service.mu.Lock()
-	service.reconcileChecksumsLocked(engineSnapshot.Jobs)
+	service.reconcileStateLocked(engineSnapshot)
 	service.checksums[id] = request.SHA256
+	service.retryRequests[id] = cloneAddRequest(request)
 	checksums := cloneChecksums(service.checksums)
+	retryRequests := cloneRetryRequests(service.retryRequests)
 	service.mu.Unlock()
-	stateErr := saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs)
+	stateErr := errors.Join(
+		saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs),
+		saveRetryState(filepath.Join(service.paths.StateDirectory, "retry.json"), retryRequests, config.MaxTrackedJobs),
+	)
 	warning := ""
 	if queueErr != nil || stateErr != nil {
 		warning = PersistenceWarningMessage
@@ -338,17 +376,26 @@ func (service *Service) Retry(ctx context.Context, id string) (AddResult, error)
 	if pendingCount >= config.MaxQueuedJobs || trackedAfterReplacement >= config.MaxTrackedJobs {
 		return AddResult{}, ErrQueueFull
 	}
-	free, err := availableDiskBytes(config.DownloadDirectory)
+	service.mu.RLock()
+	retryRequest, retryAvailable := service.retryRequests[id]
+	service.mu.RUnlock()
+	if !retryAvailable {
+		return AddResult{}, ErrRetryMetadataMissing
+	}
+	retryRequest = cloneAddRequest(retryRequest)
+	downloadDirectory := config.DownloadDirectory
+	if retryRequest.DestinationDirectory != "" {
+		downloadDirectory = retryRequest.DestinationDirectory
+	}
+	free, err := availableDiskBytes(downloadDirectory)
 	if err != nil {
 		return AddResult{}, fmt.Errorf("inspect free disk space before retry: %w", err)
 	}
 	if free < uint64(config.MinimumFreeDiskBytes) {
 		return AddResult{}, ErrInsufficientDisk
 	}
-	service.mu.RLock()
-	expected, known := service.checksums[id]
-	service.mu.RUnlock()
-	newID, queueErr := runtime.Engine.Retry(ctx, id, config, expected)
+	expected := retryRequest.SHA256
+	newID, queueErr := runtime.Engine.Retry(ctx, id, retryRequest, config)
 	if newID == "" || (queueErr != nil && !errors.Is(queueErr, ErrQueueStateNotPersisted)) {
 		if queueErr == nil {
 			queueErr = errors.New("transfer engine returned an empty retry job id")
@@ -359,19 +406,20 @@ func (service *Service) Retry(ctx context.Context, id string) (AddResult, error)
 		return AddResult{}, errors.New("transfer engine returned an invalid retry job id")
 	}
 	service.mu.Lock()
-	if known {
-		delete(service.checksums, id)
-		service.checksums[newID] = expected
-	}
+	delete(service.checksums, id)
+	service.checksums[newID] = expected
+	delete(service.retryRequests, id)
+	service.retryRequests[newID] = cloneAddRequest(retryRequest)
 	checksums := cloneChecksums(service.checksums)
+	retryRequests := cloneRetryRequests(service.retryRequests)
 	service.mu.Unlock()
-	stateErr := saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs)
-	verification := "unknown"
-	if known {
-		verification = "not_requested"
-		if expected != "" {
-			verification = "pending"
-		}
+	stateErr := errors.Join(
+		saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs),
+		saveRetryState(filepath.Join(service.paths.StateDirectory, "retry.json"), retryRequests, config.MaxTrackedJobs),
+	)
+	verification := "not_requested"
+	if expected != "" {
+		verification = "pending"
 	}
 	warning := ""
 	if queueErr != nil || stateErr != nil {
@@ -400,9 +448,14 @@ func (service *Service) Cancel(ctx context.Context, id string) error {
 	}
 	service.mu.Lock()
 	delete(service.checksums, id)
+	delete(service.retryRequests, id)
 	checksums := cloneChecksums(service.checksums)
+	retryRequests := cloneRetryRequests(service.retryRequests)
 	service.mu.Unlock()
-	stateErr := saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs)
+	stateErr := errors.Join(
+		saveVerificationState(service.paths.VerificationFile, checksums, config.MaxTrackedJobs),
+		saveRetryState(filepath.Join(service.paths.StateDirectory, "retry.json"), retryRequests, config.MaxTrackedJobs),
+	)
 	if engineErr != nil || stateErr != nil {
 		return fmt.Errorf("%w: cancel state was not fully persisted", ErrQueueStateNotPersisted)
 	}
@@ -426,8 +479,10 @@ func (service *Service) Shutdown(ctx context.Context) error {
 	}
 	service.stopping = true
 	service.health = Health{Status: "stopping", Message: "Saving the transfer session and stopping aria2c."}
+	config := service.config
 	service.mu.Unlock()
 
+	cleanupErr := service.pruneCompletedRetryState(ctx, runtime, config)
 	err := runtime.Stop(ctx)
 	select {
 	case <-runtime.Done:
@@ -436,19 +491,73 @@ func (service *Service) Shutdown(ctx context.Context) error {
 		// Runtime.Stop may return because the caller cancelled while its bounded
 		// cleanup continues. Keep the process lock until monitor observes exit.
 	}
-	return err
+	return errors.Join(cleanupErr, err)
 }
 
-func (service *Service) reconcileChecksumsLocked(jobs []Job) {
-	seen := make(map[string]struct{}, len(jobs))
-	for _, job := range jobs {
-		seen[job.ID] = struct{}{}
+func (service *Service) pruneCompletedRetryState(ctx context.Context, runtime *Runtime, config HostConfig) error {
+	snapshot, err := runtime.Engine.Snapshot(ctx, config.MaxTrackedJobs)
+	if err != nil {
+		return fmt.Errorf("inspect completed transfers before shutdown: %w", err)
 	}
+	service.mu.Lock()
+	before := cloneRetryRequests(service.retryRequests)
+	changed := service.pruneCompletedRetryRequestsLocked(snapshot.Jobs)
+	after := cloneRetryRequests(service.retryRequests)
+	service.mu.Unlock()
+	if !changed {
+		return nil
+	}
+	if err := saveRetryState(filepath.Join(service.paths.StateDirectory, "retry.json"), after, config.MaxTrackedJobs); err != nil {
+		service.mu.Lock()
+		service.retryRequests = before
+		service.mu.Unlock()
+		return fmt.Errorf("remove completed transfer retry metadata before shutdown: %w", err)
+	}
+	return nil
+}
+
+func (service *Service) reconcileStateLocked(snapshot EngineSnapshot) bool {
+	seen := make(map[string]struct{}, len(snapshot.Jobs))
+	completed := make(map[string]struct{}, len(snapshot.Jobs))
+	for _, job := range snapshot.Jobs {
+		seen[job.ID] = struct{}{}
+		if job.Status == JobCompleted {
+			completed[job.ID] = struct{}{}
+		}
+	}
+	exhaustive := snapshot.Metrics.TotalCount <= len(snapshot.Jobs)
 	for id := range service.checksums {
-		if _, exists := seen[id]; !exists {
+		if _, exists := seen[id]; !exists && exhaustive {
 			delete(service.checksums, id)
 		}
 	}
+	retryStateChanged := false
+	for id := range service.retryRequests {
+		_, exists := seen[id]
+		_, completedSuccessfully := completed[id]
+		if (!exists && exhaustive) || completedSuccessfully {
+			delete(service.retryRequests, id)
+			retryStateChanged = true
+		}
+	}
+	return retryStateChanged
+}
+
+func (service *Service) pruneCompletedRetryRequestsLocked(jobs []Job) bool {
+	completed := make(map[string]struct{}, len(jobs))
+	for _, job := range jobs {
+		if job.Status == JobCompleted {
+			completed[job.ID] = struct{}{}
+		}
+	}
+	changed := false
+	for id := range service.retryRequests {
+		if _, completedSuccessfully := completed[id]; completedSuccessfully {
+			delete(service.retryRequests, id)
+			changed = true
+		}
+	}
+	return changed
 }
 
 func cloneChecksums(checksums map[string]string) map[string]string {
@@ -555,8 +664,73 @@ func validateAddRequest(request AddRequest) (AddRequest, error) {
 			return AddRequest{}, errors.New("sha256 must contain exactly 64 hexadecimal characters")
 		}
 	}
+
+	request.DestinationDirectory = strings.TrimSpace(request.DestinationDirectory)
+	if request.DestinationDirectory != "" {
+		if len(request.DestinationDirectory) > maxDestinationLength || !filepath.IsAbs(request.DestinationDirectory) || containsControl(request.DestinationDirectory) {
+			return AddRequest{}, errors.New("destination directory must be a bounded absolute path without control characters")
+		}
+		request.DestinationDirectory = filepath.Clean(request.DestinationDirectory)
+	}
+
+	request.UserAgent = strings.TrimSpace(request.UserAgent)
+	if len(request.UserAgent) > maxUserAgentLength || containsControl(request.UserAgent) {
+		return AddRequest{}, fmt.Errorf("per-job user agent must be at most %d characters without control characters", maxUserAgentLength)
+	}
+
+	if len(request.Headers) > maxRequestHeaders {
+		return AddRequest{}, fmt.Errorf("at most %d per-job request headers are allowed", maxRequestHeaders)
+	}
+	headerBytes := 0
+	seenHeaders := make(map[string]struct{}, len(request.Headers))
+	normalizedHeaders := make([]RequestHeader, 0, len(request.Headers))
+	for _, header := range request.Headers {
+		name := strings.TrimSpace(header.Name)
+		value := strings.TrimSpace(header.Value)
+		lowerName := strings.ToLower(name)
+		if name == "" || len(name) > maxHeaderNameLength || !validHeaderName(name) {
+			return AddRequest{}, errors.New("request header names must use bounded HTTP token characters")
+		}
+		if len(value) > maxHeaderValueLength || containsControl(value) {
+			return AddRequest{}, errors.New("request header values must be bounded and must not contain control characters")
+		}
+		if _, exists := seenHeaders[lowerName]; exists {
+			return AddRequest{}, errors.New("request header names must be unique")
+		}
+		if forbiddenPerJobHeader(lowerName) {
+			return AddRequest{}, errors.New("that request header is controlled by ProtoPeek or aria2c")
+		}
+		headerBytes += len(name) + len(value)
+		if headerBytes > maxHeaderBytes {
+			return AddRequest{}, fmt.Errorf("per-job request headers must total at most %d bytes", maxHeaderBytes)
+		}
+		seenHeaders[lowerName] = struct{}{}
+		normalizedHeaders = append(normalizedHeaders, RequestHeader{Name: name, Value: value})
+	}
+	request.Headers = normalizedHeaders
 	request.Sources = sources
 	return request, nil
+}
+
+func validHeaderName(value string) bool {
+	for _, character := range value {
+		if !((character >= 'a' && character <= 'z') ||
+			(character >= 'A' && character <= 'Z') ||
+			(character >= '0' && character <= '9') ||
+			strings.ContainsRune("!#$%&'*+-.^_`|~", character)) {
+			return false
+		}
+	}
+	return value != ""
+}
+
+func forbiddenPerJobHeader(name string) bool {
+	switch name {
+	case "connection", "content-length", "host", "proxy-connection", "transfer-encoding", "user-agent":
+		return true
+	default:
+		return false
+	}
 }
 
 func validJobID(id string) bool {

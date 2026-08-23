@@ -119,12 +119,11 @@
   text-transform: uppercase;
 }
 
-.pp-download-composer input {
+.pp-download-composer input,
+.pp-download-composer textarea {
   min-width: 0;
-  height: 2.75rem;
   border: 1px solid var(--pp-stroke-strong);
   border-radius: 0.4rem;
-  padding: 0 0.85rem;
   background: var(--pp-surface);
   color: var(--pp-text);
   font-family: var(--font-mono);
@@ -132,7 +131,21 @@
   outline: none;
 }
 
-.pp-download-composer input:focus {
+.pp-download-composer input {
+  height: 2.75rem;
+  padding: 0 0.85rem;
+}
+
+.pp-download-composer textarea {
+  min-height: 3.85rem;
+  max-height: 9rem;
+  resize: vertical;
+  padding: 0.65rem 0.85rem;
+  line-height: 1.55;
+}
+
+.pp-download-composer input:focus,
+.pp-download-composer textarea:focus {
   border-color: var(--pp-accent-signal);
   box-shadow: 0 0 0 2px var(--pp-accent-soft);
 }
@@ -167,30 +180,34 @@
 }
 
 .pp-download-options summary {
+  display: flex;
   width: fit-content;
+  align-items: center;
+  gap: 0.45rem;
   cursor: pointer;
   color: var(--pp-text-muted);
   font-family: var(--font-mono);
+}
+
+.pp-download-options summary span {
+  color: var(--pp-text-faint);
+  font-size: 0.54rem;
 }
 
 .pp-download-options[open] summary {
   color: var(--pp-accent-signal);
 }
 
-.pp-download-options > div {
-  display: grid;
-  grid-template-columns: auto minmax(12rem, 1fr) auto minmax(18rem, 1.35fr);
-  gap: 0.45rem 0.65rem;
-  align-items: center;
-  margin-top: 0.65rem;
+.pp-batch-hint {
+  grid-column: 1;
+  color: var(--pp-text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
 }
 
-.pp-download-options label {
-  grid-column: auto;
-}
-
-.pp-download-options input {
-  height: 2.25rem;
+.pp-batch-hint strong {
+  color: var(--pp-accent-signal);
+  font-weight: 750;
 }
 
 .pp-downloader-error,
@@ -274,7 +291,44 @@
   font-weight: 750;
 }
 
-.pp-transfer-queue > header > span {
+.pp-transfer-queue-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.pp-transfer-queue-tools button {
+  display: inline-flex;
+  height: 1.8rem;
+  align-items: center;
+  gap: 0.28rem;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.3rem;
+  padding: 0 0.48rem;
+  background: var(--pp-surface-raised);
+  color: var(--pp-text-muted);
+  font-size: 0.56rem;
+  font-weight: 650;
+}
+
+.pp-transfer-queue-tools button:hover:not(:disabled) {
+  border-color: var(--pp-accent-signal);
+  color: var(--pp-accent-signal);
+}
+
+.pp-transfer-queue-tools button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.pp-transfer-queue-tools button svg {
+  width: 0.72rem;
+}
+
+.pp-transfer-queue-tools > span {
+  margin-left: 0.25rem;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
   font-size: 0.58rem;
@@ -812,10 +866,6 @@
     flex-wrap: wrap;
     padding-block: 0.55rem;
   }
-
-  .pp-download-options > div {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 620px) {
@@ -841,8 +891,16 @@
     min-height: 2.65rem;
   }
 
-  .pp-download-options > div {
-    grid-template-columns: 1fr;
+  .pp-batch-hint {
+    grid-column: 1;
+  }
+
+  .pp-transfer-queue > header {
+    align-items: flex-start;
+  }
+
+  .pp-transfer-queue-tools {
+    max-width: 12rem;
   }
 
   .pp-downloader-workspace {

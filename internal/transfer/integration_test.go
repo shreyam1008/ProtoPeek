@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -46,6 +47,15 @@ func TestSystemAria2Integration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pausedURL := server.URL + "/resume.bin?token=paused-resume-secret"
+	pausedHeader := "Authorization: Bearer paused-resume-header"
+	pausedSession := pausedURL + "\n dir=" + downloads + "\n out=resume.bin\n pause=true\n header=" + pausedHeader + "\n"
+	if err := os.MkdirAll(filepath.Dir(paths.SessionFile), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(paths.SessionFile, []byte(pausedSession), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := service.Start(context.Background()); err != nil {
 		t.Fatalf("start system aria2c: %v", err)
 	}
@@ -62,6 +72,10 @@ func TestSystemAria2Integration(t *testing.T) {
 		Sources:    []string{server.URL + "/fixture.bin?private=discard-from-snapshot"},
 		OutputName: "fixture.bin",
 		SHA256:     hex.EncodeToString(digest[:]),
+		Headers: []RequestHeader{{
+			Name:  "Authorization",
+			Value: "Bearer completed-session-secret",
+		}},
 	})
 	if err != nil {
 		t.Fatalf("add local fixture: %v", err)
@@ -90,6 +104,17 @@ func TestSystemAria2Integration(t *testing.T) {
 				}
 				if string(got) != string(payload) {
 					t.Fatalf("downloaded payload = %q", got)
+				}
+				session, err := os.ReadFile(paths.SessionFile)
+				if err != nil {
+					t.Fatal(err)
+				}
+				saved := string(session)
+				if strings.Contains(saved, "discard-from-snapshot") || strings.Contains(saved, "completed-session-secret") {
+					t.Fatalf("completed signed URL/header remained in saved aria2 session: %q", saved)
+				}
+				if !strings.Contains(saved, "paused-resume-secret") || !strings.Contains(saved, "paused-resume-header") || !strings.Contains(saved, "pause=true") {
+					t.Fatalf("paused resume data was not preserved in saved aria2 session: %q", saved)
 				}
 				return
 			}

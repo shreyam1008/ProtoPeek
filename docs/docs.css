@@ -465,6 +465,293 @@ pre {
   font-weight: 700;
 }
 
+.pp-download-main {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--pp-border);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--pp-shadow);
+  backdrop-filter: blur(20px);
+}
+
+.pp-download-hero {
+  display: grid;
+  gap: 36px;
+  align-items: center;
+  padding: clamp(28px, 5vw, 64px);
+  grid-template-columns: minmax(0, 0.88fr) minmax(420px, 1.12fr);
+}
+
+.pp-download-hero-copy h1,
+.pp-download-section-heading h2,
+.pp-download-cli h2,
+.pp-download-requirements h2,
+.pp-download-migration h2 {
+  margin: 0;
+  letter-spacing: -0.055em;
+}
+
+.pp-download-hero-copy h1 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 6vw, 5.4rem);
+  line-height: 0.94;
+}
+
+.pp-download-hero-copy > p,
+.pp-download-section-heading p,
+.pp-download-cli > p,
+.pp-download-requirements p,
+.pp-download-migration p {
+  margin: 20px 0 0;
+  color: var(--pp-muted);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.pp-download-actions,
+.pp-download-link-list,
+.pp-download-requirement-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pp-download-actions {
+  margin-top: 26px;
+}
+
+.pp-download-action-primary,
+.pp-download-action-secondary,
+.pp-download-link-list a,
+.pp-download-requirement-links a,
+.pp-download-migration > a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  border: 1px solid var(--pp-border);
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.pp-download-action-primary {
+  border-color: var(--pp-brand);
+  background: var(--pp-brand);
+  color: white;
+}
+
+.pp-download-action-primary:hover {
+  border-color: var(--pp-brand-strong);
+  background: var(--pp-brand-strong);
+  color: white;
+}
+
+.pp-download-action-secondary,
+.pp-download-link-list a,
+.pp-download-requirement-links a,
+.pp-download-migration > a {
+  background: white;
+}
+
+.pp-download-truth {
+  display: grid;
+  gap: 0;
+  margin: 28px 0 0;
+  border-top: 1px solid var(--pp-border);
+}
+
+.pp-download-truth > div {
+  display: grid;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pp-border);
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+}
+
+.pp-download-truth dt {
+  color: var(--pp-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pp-download-truth dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.pp-download-media {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  border: 1px solid #25343d;
+  border-radius: 20px;
+  background: #071017;
+  box-shadow: 0 24px 64px rgba(7, 16, 23, 0.24);
+}
+
+.pp-download-media img {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.pp-download-media figcaption {
+  padding: 13px 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a7b7c0;
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
+.pp-download-section,
+.pp-download-split,
+.pp-download-migration {
+  border-top: 1px solid var(--pp-border);
+  padding: clamp(28px, 5vw, 56px);
+}
+
+.pp-download-section-heading {
+  display: grid;
+  gap: 24px;
+  align-items: end;
+  grid-template-columns: minmax(0, 0.95fr) minmax(20rem, 1.05fr);
+}
+
+.pp-download-section-heading h2,
+.pp-download-cli h2,
+.pp-download-requirements h2,
+.pp-download-migration h2 {
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.04;
+}
+
+.pp-download-section-heading p {
+  margin: 0;
+}
+
+.pp-download-steps {
+  display: grid;
+  gap: 0;
+  margin: 32px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--pp-border);
+  list-style: none;
+  counter-reset: downloader-step;
+}
+
+.pp-download-steps li {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--pp-border);
+  counter-increment: downloader-step;
+  grid-template-columns: 2.5rem minmax(12rem, 0.65fr) minmax(0, 1fr);
+}
+
+.pp-download-steps li::before {
+  color: var(--pp-brand);
+  content: counter(downloader-step, decimal-leading-zero);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pp-download-steps strong {
+  font-size: 1rem;
+}
+
+.pp-download-steps span {
+  color: var(--pp-muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.pp-download-split {
+  display: grid;
+  gap: clamp(32px, 6vw, 72px);
+  align-items: center;
+  grid-template-columns: minmax(260px, 0.62fr) minmax(0, 1.38fr);
+}
+
+.pp-download-hero-copy,
+.pp-download-cli,
+.pp-download-requirements > div {
+  min-width: 0;
+}
+
+.pp-download-media-mobile {
+  width: min(100%, 390px);
+  justify-self: center;
+}
+
+.pp-download-cli pre {
+  overflow: auto;
+  margin: 26px 0 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: #081719;
+  color: #86ddd4;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.pp-download-cli .pp-download-note {
+  margin-top: 14px;
+  font-size: 0.86rem;
+}
+
+.pp-download-link-list {
+  margin-top: 22px;
+}
+
+.pp-download-requirements {
+  display: grid;
+  gap: 32px;
+  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.55fr);
+}
+
+.pp-download-requirement-links {
+  display: grid;
+}
+
+.pp-download-migration {
+  background: rgba(13, 139, 132, 0.055);
+}
+
+.pp-download-migration p {
+  max-width: 76ch;
+}
+
+.pp-download-migration > a {
+  margin-top: 22px;
+}
+
+.pp-download-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 8px 0;
+  color: var(--pp-muted);
+  font-size: 0.82rem;
+}
+
+.pp-download-footer p {
+  margin: 0;
+}
+
 @keyframes pp-float {
   0%,
   100% {
@@ -510,7 +797,8 @@ pre {
 @media (max-width: 1080px) {
   .pp-doc-hero-grid,
   .pp-doc-main,
-  .pp-doc-grid-cards {
+  .pp-doc-grid-cards,
+  .pp-download-hero {
     grid-template-columns: 1fr;
   }
 
@@ -539,6 +827,57 @@ pre {
 
   .pp-doc-hero-copy h1 {
     font-size: 2.2rem;
+  }
+
+  .pp-download-main {
+    border-radius: 22px;
+  }
+
+  .pp-download-hero,
+  .pp-download-section,
+  .pp-download-split,
+  .pp-download-migration {
+    padding: 22px 18px;
+  }
+
+  .pp-download-hero-copy h1 {
+    font-size: 2.7rem;
+  }
+
+  .pp-download-actions {
+    display: grid;
+  }
+
+  .pp-download-actions a {
+    width: 100%;
+  }
+
+  .pp-download-section-heading,
+  .pp-download-split,
+  .pp-download-requirements {
+    grid-template-columns: 1fr;
+  }
+
+  .pp-download-steps li {
+    gap: 6px 12px;
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+  }
+
+  .pp-download-steps span {
+    grid-column: 2;
+  }
+
+  .pp-download-truth > div {
+    gap: 4px;
+    grid-template-columns: 1fr;
+  }
+
+  .pp-download-footer {
+    flex-direction: column;
+  }
+
+  .pp-download-media-mobile {
+    width: 100%;
   }
 }
 

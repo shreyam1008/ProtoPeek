@@ -45,9 +45,12 @@ describe('release metadata', () => {
       'unified six-area interface is current development source and remains unreleased'
     );
     expect(llms).toContain('ProtoPeek does not bundle aria2');
+    expect(llms).toContain(
+      'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
+    );
     expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
     expect(sitemap).toContain('<lastmod>2026-08-23</lastmod>');
-    expect(sitemap).not.toContain('/downloader/');
+    expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
     expect(sitemap).not.toContain('/security/');
     expect(manifest).toEqual(
       expect.objectContaining({
@@ -58,12 +61,15 @@ describe('release metadata', () => {
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');
-    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.4\.0"/);
-    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek 0\.4\.0"/);
+    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek current source"/);
+    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek current source"/);
     expect(protopeekMan).toContain('.B protopeek download');
     expect(protopeekMan).toContain('not included in stable v0.4.0');
     expect(protopeekMan).toContain('does not attach to an\nalready-running ProtoPeek process');
+    expect(protopeekMan).toContain('.B protopeek migrate-gobarry');
+    expect(protopeekMan).toContain('observational preview');
     expect(ppMan).toContain('.B pp download');
+    expect(ppMan).toContain('.B pp migrate-gobarry');
     expect(ppMan).toContain('current development source, but not stable v0.4.0');
   });
 
@@ -71,12 +77,21 @@ describe('release metadata', () => {
     const consolidation = readRepositoryFile('guides/gobarrygo-consolidation.md');
     const security = readRepositoryFile('guides/website-analysis-security.md');
 
-    expect(consolidation).toContain('No retirement, live state migration, public redirect');
+    expect(consolidation).toContain(
+      'No public redirect, package promotion, release, or repository archive has'
+    );
     expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');
     expect(consolidation).toContain('`download --ui`, `downloads list`, job-action subcommands');
     expect(consolidation).toContain('are ideas only. They\nare not implemented');
     expect(consolidation).toContain('canonical browser route is `/downloader`');
-    expect(consolidation).toContain('No importer exists today');
+    expect(consolidation).toContain('## Implemented GoBarryGo state bridge');
+    expect(consolidation).toContain(
+      'pp migrate-gobarry                              # observational preview'
+    );
+    expect(consolidation).toContain('private mode-0600 state');
+    expect(consolidation).toContain(
+      'Rollback\nis allowed only while current ProtoPeek transfer state still matches'
+    );
 
     expect(security).toContain('at most two concurrent client requests');
     expect(security).toContain('does not return per-candidate observation dates');

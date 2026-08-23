@@ -1,12 +1,16 @@
 # GoBarryGo consolidation
 
-Status: transfer slice implemented in current source; consolidation and public migration remain
-planned and approval-gated.
+Status: transfer, migration, and crawlable documentation slices are implemented in current source;
+the stable release, package promotion, public redirect, and repository retirement remain gated.
 
 ProtoPeek's current development source now contains a local transfer service, the canonical
-`/downloader` UI, and one explicit `download` CLI command. GoBarryGo remains an independent product
-and repository. No retirement, live state migration, public redirect, package change, or repository
-archive has happened. This document separates that current build from possible later consolidation.
+`/downloader` UI, explicit `download` and `migrate-gobarry` CLI subcommands, and a read-first
+GoBarryGo state bridge with guarded rollback. The generated public site also contains a crawlable `/downloader/` landing page,
+but it is not live until this source is merged and deployed. GoBarryGo remains an independent live
+product and repository. No public redirect, package promotion, release, or repository archive has
+happened. This document separates implemented local capability from the still-gated public cutover.
+Current-source man pages identify themselves as development source; a versioned title must be stamped
+only during the gated v0.5 release promotion.
 
 ## Product boundary
 
@@ -16,9 +20,13 @@ ProtoPeek is one local systems workbench with six primary areas:
 2. **Protocols** — protocol-native gRPC and HTTP workbenches, with later adapters remaining
    protocol-specific.
 3. **Network** — route, path, authorized local discovery, topology, and saved evidence.
-4. **Downloader** — current transfer and verification; artifact handoff and workflows are planned.
+4. **Downloader** — one or up to 32 independent HTTP(S) jobs per request, with deterministic 207
+   partial-success results, per-job destination, bounded request headers and User-Agent, job and
+   whole-queue pause/resume, retry/cancel, checksum evidence, and queue state; artifact handoff and
+   workflows remain planned.
 5. **Security** — observational DNS, TLS, and HTTP evidence plus separately authorized probes.
-6. **Settings** — current browser-local appearance/preferences; host controls are not exposed here.
+6. **Settings** — browser-local appearance/preferences plus an explicit GoBarryGo migration
+   preview, import, receipt, and guarded rollback; arbitrary host paths are never accepted.
 
 The first planned cross-area workflow is deliberately narrow:
 
@@ -53,10 +61,11 @@ The implemented host configuration file owns values that affect the process or f
 - TLS and overwrite safety policy;
 - configuration schema version.
 
-The current Settings route owns browser-local theme, density, and keyboard-hint presentation only.
-It does not edit the host config or claim to enforce CPU, memory, network, or filesystem controls.
-Credentials, signed URLs, authorization headers, private request bodies, and filesystem authority
-never belong in browser persistence.
+The current Settings route owns browser-local theme, density, keyboard-hint presentation, and the
+explicit GoBarryGo migration flow. The migration flow can copy a bounded allowlist of compatible
+values into host configuration, but it does not expose an arbitrary path picker or claim to enforce
+CPU/RAM percentages. Credentials, signed URLs, authorization headers, private request bodies, and
+filesystem authority never belong in browser persistence.
 
 ## Transfer engine and licensing
 
@@ -76,7 +85,8 @@ same transfer session concurrently.
 ## Current CLI contract
 
 Existing `pp [flags] [target]` and `protopeek [flags] [target]` behavior remains compatible. The
-current development source parses exactly one new subcommand before the legacy target form:
+current development source recognizes two explicit subcommands before the legacy target form:
+`download` and `migrate-gobarry`. The bounded one-shot download contract is:
 
 ```text
 pp download [--output NAME] [--sha256 64_HEX] URL
@@ -96,12 +106,43 @@ and disk-reserve bounds can be enforced immediately. A cross-platform CPU/RAM pe
 enforced limit until an OS-specific backend (for example Linux cgroups or Windows Job Objects)
 actually proves it.
 
-## Planned GoBarryGo state migration
+## Implemented GoBarryGo state bridge
 
-No importer exists today. If approved later, migration would read GoBarryGo preferences and aria2
-session only after an explicit preview and user action. It must be idempotent, preserve the original
-files, report ignored/unsupported values, and never uninstall GoBarryGo. Existing releases continue
-to work independently.
+The current development source implements an explicit, local-only bridge:
+
+```text
+pp migrate-gobarry                              # observational preview; no writes
+pp migrate-gobarry --apply                      # copy compatible preferences and session
+pp migrate-gobarry --preferences=false --apply  # session only
+pp migrate-gobarry --session=false --apply      # preferences only
+pp migrate-gobarry --rollback RECEIPT_ID        # guarded restore
+```
+
+The Settings route exposes the same preview/import/rollback service. It performs no scan on mount;
+the user must ask it to inspect the one known GoBarryGo profile. The bridge accepts only bounded,
+regular, non-symlink source files with strict preferences JSON and an allowlisted aria2 session. It
+never accepts an arbitrary host path, starts aria2, deletes a download, or changes GoBarryGo files.
+Preferences are capped at 1 MiB. A session is capped at 16 MiB, 4,096 entries, and 64 KiB per line;
+every session option must be on the explicit allowlist before any target file is written.
+
+Compatible settings include the validated aria2 executable, download directory, concurrency and
+connection bounds, split/minimum-split values, continue/always-resume behavior, file allocation,
+auto-rename behavior, and a non-GoBarry-branded user agent. Notification preferences are reported
+as preserved-but-unsupported because the browser-core product does not claim native desktop
+notifications. Imported session jobs are paused before they enter ProtoPeek, duplicate source
+blocks are not re-added, and sensitive URL/header values are never echoed in migration results.
+
+The live Downloader has a separate truth boundary: exact retry/resume can require a signed source
+URL or request header. The form clears those values after queueing and snapshots/API results never
+return them, but the local transfer engine and mode-0600 retry/session state retain what is required
+to resume exactly. This is host-local persistence, not browser persistence or a hosted service.
+
+Imports are idempotent. Each successful mutation creates private mode-0600 state, a source-hash
+ledger, and a receipt containing the exact before/after target hashes and private backups. Rollback
+is allowed only while current ProtoPeek transfer state still matches the receipt; otherwise it
+refuses rather than overwriting newer work. Stop both GoBarryGo and the ProtoPeek Downloader before
+previewing a final source snapshot or applying/rolling back a receipt. Existing GoBarryGo releases
+continue to work independently.
 
 If a later consolidation is approved, its preservation gate must cover:
 
@@ -121,13 +162,18 @@ GoBarryGo identifiers.
 Nothing in this section is live or approved. A public migration could happen only after Downloader
 parity and a released ProtoPeek build exist:
 
-1. Publish a real ProtoPeek Downloader page using captures from the implemented app. The local app
-   route is `/downloader`; no public `/downloads/` product page exists today.
-2. Publish install, state-import, compatibility, and rollback documentation.
+1. Merge and deploy the generated `/downloader/` page with the two manifest-backed captures already
+   present in current source, then verify its direct HTML, canonical, structured data, assets,
+   sitemap entry, and mobile rendering on the public origin.
+2. Publish the current install, state-import, compatibility, and rollback documentation with the
+   first stable ProtoPeek release that contains Downloader. Before tagging, promote both public
+   man-page titles from `ProtoPeek current source` to the exact release version; the release workflow
+   rejects a tag whose manual title does not match it.
 3. Replace the GoBarryGo site with a clear “GoBarryGo has merged into ProtoPeek” page that still
    links to standalone v0.0.9, checksums, source, and migration help.
-4. Only after approval, choose and verify a permanent public destination; do not assume the local
-   SPA route is a deployed marketing URL.
+4. Only after the released packages and public page pass installation and Search Console checks,
+   enable the approved permanent `301` from the old GoBarryGo origin to the verified ProtoPeek
+   `/downloader/` page. Preserve query strings and reject redirect loops.
 5. Keep the legacy GitHub Pages URL as a human-readable compatibility page.
 6. Verify HTTPS, certificate, status, canonical, redirect loops, assets, robots, sitemap, major old
    paths, and Search Console evidence.
@@ -141,15 +187,23 @@ or a documented support window. Releases, tags, binaries, and user data are neve
 Current development source:
 
 1. Transfer service, host config, exclusive ownership, recovery, and tests.
-2. Loopback API with explicit start/add/job mutations, plus CSRF/admission/cancellation boundaries.
+2. Loopback API with explicit start/add/batch/job/global-queue mutations, plus
+   CSRF/admission/cancellation boundaries.
 3. Canonical `/downloader` UI and one-shot `download` CLI with man-page documentation.
+4. Read-first, copy-only GoBarryGo preference/session import with idempotence, receipts, and guarded
+   rollback in both CLI and Settings.
+5. Generated crawlable `/downloader/` page backed by real desktop/mobile captures and sitemap links.
 
 Still planned and separately gated:
 
 1. Cross-area Artifact handoff and bounded workflows.
-2. Explicit GoBarryGo state importer and parity fixtures.
-3. Public documentation backed by a real capture of the implemented Downloader.
-4. Any retirement page, redirect, package migration, release, or repository archive.
+2. Stable ProtoPeek release/package promotion with proved external `aria2c` dependency.
+3. Public deployment and indexing of `/downloader/`, followed by an approved GoBarryGo retirement
+   page and permanent redirect after the support gate.
+4. Native desktop notifications and open/reveal integration, if a later native-shell decision can
+   justify them without weakening the browser-core boundary.
+5. Any repository archive, only after at least two stable ProtoPeek releases or the documented
+   support window. Tags, releases, binaries, screenshots, checksums, and history remain preserved.
 
 Completion requires source tests, process failure/recovery tests, config migration tests, browser
 interaction evidence, cross-platform compile checks, package/install verification, and an exact

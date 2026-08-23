@@ -1,4 +1,4 @@
-.TH PP 1 "August 2026" "ProtoPeek 0.4.0" "User Commands"
+.TH PP 1 "August 2026" "ProtoPeek current source" "User Commands"
 .SH NAME
 pp \- short executable name for ProtoPeek
 .SH SYNOPSIS
@@ -10,6 +10,14 @@ pp \- short executable name for ProtoPeek
 .RI [ --output " NAME" ]
 .RI [ --sha256 " 64_HEX" ]
 .I URL
+.br
+.B pp migrate-gobarry
+.RI [ --apply ]
+.RI [ --preferences= bool ]
+.RI [ --session= bool ]
+.br
+.B pp migrate-gobarry
+.BI --rollback " RECEIPT_ID"
 .SH DESCRIPTION
 .B pp
 is an identical executable entrypoint for
@@ -31,5 +39,26 @@ completed path to standard output. An interrupt returns status 130 and
 preserves partial data plus the aria2 session. See
 .BR protopeek (1)
 for the complete lifecycle and flag constraints.
+.SH DEVELOPMENT GOBARRYGO MIGRATION COMMAND
+The current development source, but not stable v0.4.0, also adds
+.BR "pp migrate-gobarry" .
+With no mutation flag it only previews the bounded, known GoBarryGo local
+profile. Use
+.B --apply
+to copy compatible state,
+.B --preferences=false
+for a session-only import, or
+.B --session=false
+for a preferences-only import. Source files remain unchanged and imported
+session jobs remain paused.
+.PP
+Each successful import creates private state and a guarded receipt. Use
+.BI "pp migrate-gobarry --rollback " RECEIPT_ID
+only while current ProtoPeek transfer state still matches that receipt;
+otherwise rollback refuses to overwrite newer work. Stop both GoBarryGo and
+the ProtoPeek Downloader before the final preview/import, and stop the
+Downloader before rollback. See
+.BR protopeek (1)
+for the full safety contract.
 .SH SEE ALSO
 .BR protopeek (1)

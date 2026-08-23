@@ -15,7 +15,9 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 ## Current development source
 
+- Downloader product page: https://protopeek.shreyam1008.com.np/downloader/
 - Downloader uses an explicitly configured or system-installed `aria2c`; ProtoPeek does not bundle aria2.
+- The browser queues 1–32 independent jobs with honest partial-success results, bounded destination/headers/User-Agent, per-job and whole-queue controls, and single-job-only output/SHA-256 evidence. Exact retry values are private host state and are never returned in queue/API results.
 - `pp download [--output NAME] [--sha256 64_HEX] URL` performs one HTTP(S) transfer, owns its local engine session, writes progress to stderr, prints the completed path to stdout, and preserves partial data plus the aria2 session on interruption. It does not attach to an already-running ProtoPeek process.
 - Historical certificate-name lookup runs only after disclosing that the registrable domain is sent to `crt.name`. Returned names are historical candidates, not proof that a host is live or owned.
 - Website observation requires separate consent and sends exactly one credential-free, non-following `HEAD` request to a public-only target. ProtoPeek resolves and pins public addresses, verifies TLS for HTTPS, reads no body, and reports bounded DNS, TLS, HTTP, and timing evidence.

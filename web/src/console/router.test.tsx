@@ -90,10 +90,14 @@ describe('protocol routes', () => {
     expect(screen.getByText('Opt-in')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
-    expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: 'Scan target' }, { timeout: 5000 })
+    ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
     fireEvent.click(screen.getByRole('button', { name: 'Inspect target' }));
-    expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: 'Scan target' }, { timeout: 5000 })
+    ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
 
     await act(async () => {

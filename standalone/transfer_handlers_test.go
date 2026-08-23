@@ -3,6 +3,7 @@ package standalone
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -22,12 +23,44 @@ type fakeTransferService struct {
 	startErr    error
 	addResult   transfer.AddResult
 	addErr      error
+	batchResult transfer.BatchAddResult
+	batchErr    error
 	retryResult transfer.AddResult
 	actionErr   error
 
-	calls   []string
-	lastAdd transfer.AddRequest
-	lastID  string
+	calls     []string
+	lastAdd   transfer.AddRequest
+	lastBatch transfer.BatchAddRequest
+	lastID    string
+}
+
+type fakeGoBarryMigrationService struct {
+	*fakeTransferService
+	preview        transfer.GoBarryMigrationPreview
+	previewErr     error
+	importResult   transfer.GoBarryImportResult
+	importErr      error
+	lastImport     transfer.GoBarryImportRequest
+	rollbackResult transfer.GoBarryRollbackResult
+	rollbackErr    error
+	lastRollback   transfer.GoBarryRollbackRequest
+}
+
+func (service *fakeGoBarryMigrationService) PreviewGoBarry(context.Context) (transfer.GoBarryMigrationPreview, error) {
+	service.record("gobarry-preview")
+	return service.preview, service.previewErr
+}
+
+func (service *fakeGoBarryMigrationService) ImportGoBarry(_ context.Context, request transfer.GoBarryImportRequest) (transfer.GoBarryImportResult, error) {
+	service.record("gobarry-import")
+	service.lastImport = request
+	return service.importResult, service.importErr
+}
+
+func (service *fakeGoBarryMigrationService) RollbackGoBarry(_ context.Context, request transfer.GoBarryRollbackRequest) (transfer.GoBarryRollbackResult, error) {
+	service.record("gobarry-rollback")
+	service.lastRollback = request
+	return service.rollbackResult, service.rollbackErr
 }
 
 func (service *fakeTransferService) record(call string) {
@@ -50,6 +83,22 @@ func (service *fakeTransferService) Add(_ context.Context, request transfer.AddR
 	service.record("add")
 	service.lastAdd = request
 	return service.addResult, service.addErr
+}
+
+func (service *fakeTransferService) AddBatch(_ context.Context, request transfer.BatchAddRequest) (transfer.BatchAddResult, error) {
+	service.record("batch")
+	service.lastBatch = request
+	return service.batchResult, service.batchErr
+}
+
+func (service *fakeTransferService) PauseAll(context.Context) error {
+	service.record("pause-all")
+	return service.actionErr
+}
+
+func (service *fakeTransferService) ResumeAll(context.Context) error {
+	service.record("resume-all")
+	return service.actionErr
 }
 
 func (service *fakeTransferService) Pause(_ context.Context, id string) error {
@@ -170,6 +219,70 @@ func TestTransferStartAndActions(t *testing.T) {
 	}
 }
 
+func TestTransferBatchReportsPartialSuccessWithoutReflectingCredentials(t *testing.T) {
+	t.Parallel()
+	service := &fakeTransferService{batchResult: transfer.BatchAddResult{
+		RequestedCount: 2,
+		QueuedCount:    1,
+		FailedCount:    1,
+		Results: []transfer.BatchAddItemResult{
+			{Index: 0, Queued: true, ID: "aabbccdd"},
+			{Index: 1, FailureCode: transfer.BatchFailureQueueFull},
+		},
+	}}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	secret := "Bearer private-credential"
+	body := `{"jobs":[{"sources":["https://example.com/one?token=private"],"headers":[{"name":"Authorization","value":"` + secret + `"}]},{"sources":["https://example.com/two"]}]}`
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/batch", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusMultiStatus || !strings.Contains(response.Body.String(), `"queuedCount":1`) {
+		t.Fatalf("response = %d %q", response.Code, response.Body.String())
+	}
+	if strings.Contains(response.Body.String(), secret) || strings.Contains(response.Body.String(), "example.com") {
+		t.Fatalf("batch response leaked request data: %q", response.Body.String())
+	}
+	if len(service.lastBatch.Jobs) != 2 || service.lastBatch.Jobs[0].Headers[0].Value != secret {
+		t.Fatalf("decoded batch = %#v", service.lastBatch)
+	}
+}
+
+func TestTransferGlobalControlsUseExplicitRealServiceMethods(t *testing.T) {
+	t.Parallel()
+	service := &fakeTransferService{}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	for _, path := range []string{"/api/transfers/pause-all", "/api/transfers/resume-all"} {
+		request := httptest.NewRequest(http.MethodPost, path, nil)
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		request.AddCookie(cookie)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusNoContent {
+			t.Fatalf("%s response = %d %q", path, response.Code, response.Body.String())
+		}
+	}
+	if got := strings.Join(service.calls, ","); got != "pause-all,resume-all" {
+		t.Fatalf("global calls = %q", got)
+	}
+
+	service.calls = nil
+	service.actionErr = transfer.ErrQueueStateNotPersisted
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/pause-all", nil)
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "persistenceWarning") {
+		t.Fatalf("partial pause-all = %d %q", response.Code, response.Body.String())
+	}
+}
+
 func TestTransferJSONBoundsAndUnknownFields(t *testing.T) {
 	t.Parallel()
 	service := &fakeTransferService{}
@@ -210,6 +323,7 @@ func TestTransferErrorStatusMapping(t *testing.T) {
 		{name: "binary", err: transfer.ErrAria2NotFound, want: http.StatusServiceUnavailable},
 		{name: "invalid add", err: transfer.ErrInvalidAddRequest, want: http.StatusBadRequest},
 		{name: "not running", err: transfer.ErrEngineNotRunning, want: http.StatusConflict},
+		{name: "retry metadata", err: transfer.ErrRetryMetadataMissing, want: http.StatusConflict},
 		{name: "disk", err: transfer.ErrInsufficientDisk, want: http.StatusInsufficientStorage},
 		{name: "deadline", err: context.DeadlineExceeded, want: http.StatusGatewayTimeout},
 	} {
@@ -288,6 +402,165 @@ func TestTransferErrorsNeverEchoSourceURLOrProviderText(t *testing.T) {
 	}
 	if strings.Contains(response.Body.String(), "example.com") || strings.Contains(response.Body.String(), "private-secret") {
 		t.Fatalf("public error leaked provider detail: %q", response.Body.String())
+	}
+}
+
+func TestGoBarryMigrationPreviewAndExplicitImport(t *testing.T) {
+	t.Parallel()
+	service := &fakeGoBarryMigrationService{
+		fakeTransferService: &fakeTransferService{},
+		preview: transfer.GoBarryMigrationPreview{
+			Available:        true,
+			PreferencesFound: true,
+			SessionFound:     true,
+			SessionEntries:   2,
+			CanImport:        true,
+		},
+		importResult: transfer.GoBarryImportResult{
+			Imported:            true,
+			PreferencesImported: true,
+			SessionImported:     true,
+			SourcePreserved:     true,
+		},
+	}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+
+	wrongMethod := httptest.NewRecorder()
+	handler.ServeHTTP(wrongMethod, httptest.NewRequest(http.MethodGet, "/api/transfers/migrations/gobarry/preview", nil))
+	if wrongMethod.Code != http.StatusMethodNotAllowed || wrongMethod.Header().Get("Allow") != http.MethodPost {
+		t.Fatalf("GET preview = %d Allow=%q", wrongMethod.Code, wrongMethod.Header().Get("Allow"))
+	}
+	previewResponse := httptest.NewRecorder()
+	previewRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/preview", nil)
+	previewRequest.Header.Set(csrfHeaderName, cookie.Value)
+	previewRequest.AddCookie(cookie)
+	handler.ServeHTTP(previewResponse, previewRequest)
+	if previewResponse.Code != http.StatusOK || !strings.Contains(previewResponse.Body.String(), `"sessionEntries":2`) {
+		t.Fatalf("preview = %d %q", previewResponse.Code, previewResponse.Body.String())
+	}
+
+	nonEmptyPreview := httptest.NewRecorder()
+	nonEmptyRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/preview", strings.NewReader(`{}`))
+	nonEmptyRequest.Header.Set(csrfHeaderName, cookie.Value)
+	nonEmptyRequest.AddCookie(cookie)
+	handler.ServeHTTP(nonEmptyPreview, nonEmptyRequest)
+	if nonEmptyPreview.Code != http.StatusBadRequest {
+		t.Fatalf("non-empty preview = %d %q", nonEmptyPreview.Code, nonEmptyPreview.Body.String())
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", strings.NewReader(`{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"sourcePreserved":true`) {
+		t.Fatalf("import = %d %q", response.Code, response.Body.String())
+	}
+	if !service.lastImport.ImportPreferences || !service.lastImport.ImportSession || !service.lastImport.AcknowledgeSourcePreserved {
+		t.Fatalf("request = %#v", service.lastImport)
+	}
+}
+
+func TestGoBarryMigrationPreviewAndImportRequireCSRFFirstAndMapSafeErrors(t *testing.T) {
+	t.Parallel()
+	service := &fakeGoBarryMigrationService{fakeTransferService: &fakeTransferService{}}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	previewBody := &failOnReadBody{}
+	previewRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/preview", previewBody)
+	previewResponse := httptest.NewRecorder()
+	handler.ServeHTTP(previewResponse, previewRequest)
+	if previewResponse.Code != http.StatusUnauthorized || previewBody.read || len(service.calls) != 0 {
+		t.Fatalf("unauthorized preview = %d read=%v calls=%v", previewResponse.Code, previewBody.read, service.calls)
+	}
+
+	body := &failOnReadBody{}
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", body)
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusUnauthorized || body.read || len(service.calls) != 0 {
+		t.Fatalf("unauthorized import = %d read=%v calls=%v", response.Code, body.read, service.calls)
+	}
+
+	service.previewErr = fmt.Errorf("wrapped: %w", transfer.ErrGoBarryUnsafeState)
+	cookie := handlerCSRFCookie(t, handler)
+	unsafeRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/preview", nil)
+	unsafeRequest.Header.Set(csrfHeaderName, cookie.Value)
+	unsafeRequest.AddCookie(cookie)
+	unsafeResponse := httptest.NewRecorder()
+	handler.ServeHTTP(unsafeResponse, unsafeRequest)
+	if unsafeResponse.Code != http.StatusUnprocessableEntity || strings.Contains(unsafeResponse.Body.String(), "wrapped") {
+		t.Fatalf("unsafe preview = %d %q", unsafeResponse.Code, unsafeResponse.Body.String())
+	}
+}
+
+func TestGoBarryMigrationRollbackUsesReceiptAndPreservesConflict(t *testing.T) {
+	t.Parallel()
+	service := &fakeGoBarryMigrationService{
+		fakeTransferService: &fakeTransferService{},
+		rollbackResult: transfer.GoBarryRollbackResult{
+			RolledBack:      true,
+			ReceiptID:       "20260823T120000.000000000Z-aabbccddeeff",
+			SourcePreserved: true,
+		},
+	}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	body := `{"receiptId":"20260823T120000.000000000Z-aabbccddeeff","acknowledgeCurrentStateCheck":true}`
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/rollback", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"rolledBack":true`) {
+		t.Fatalf("rollback = %d %q", response.Code, response.Body.String())
+	}
+	if service.lastRollback.ReceiptID == "" || !service.lastRollback.AcknowledgeCurrentStateCheck {
+		t.Fatalf("rollback request = %#v", service.lastRollback)
+	}
+
+	service.rollbackErr = transfer.ErrGoBarryRollbackConflict
+	conflictRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/rollback", strings.NewReader(body))
+	conflictRequest.Header.Set("Content-Type", "application/json")
+	conflictRequest.Header.Set(csrfHeaderName, cookie.Value)
+	conflictRequest.AddCookie(cookie)
+	conflict := httptest.NewRecorder()
+	handler.ServeHTTP(conflict, conflictRequest)
+	if conflict.Code != http.StatusConflict || strings.Contains(conflict.Body.String(), "ErrGoBarry") {
+		t.Fatalf("conflict = %d %q", conflict.Code, conflict.Body.String())
+	}
+
+	service.rollbackErr = transfer.ErrGoBarryImportActive
+	activeRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/rollback", strings.NewReader(body))
+	activeRequest.Header.Set("Content-Type", "application/json")
+	activeRequest.Header.Set(csrfHeaderName, cookie.Value)
+	activeRequest.AddCookie(cookie)
+	active := httptest.NewRecorder()
+	handler.ServeHTTP(active, activeRequest)
+	if active.Code != http.StatusConflict || !strings.Contains(active.Body.String(), "before rolling back") || strings.Contains(active.Body.String(), "before importing") {
+		t.Fatalf("active rollback = %d %q", active.Code, active.Body.String())
+	}
+
+	service.rollbackErr = errors.New("state was restored but marker save failed")
+	indeterminateRequest := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/rollback", strings.NewReader(body))
+	indeterminateRequest.Header.Set("Content-Type", "application/json")
+	indeterminateRequest.Header.Set(csrfHeaderName, cookie.Value)
+	indeterminateRequest.AddCookie(cookie)
+	indeterminate := httptest.NewRecorder()
+	handler.ServeHTTP(indeterminate, indeterminateRequest)
+	if indeterminate.Code != http.StatusInternalServerError {
+		t.Fatalf("indeterminate rollback = %d %q", indeterminate.Code, indeterminate.Body.String())
+	}
+	for _, want := range []string{"may already have been restored", "Retry the same receipt", "retained recovery journal"} {
+		if !strings.Contains(indeterminate.Body.String(), want) {
+			t.Fatalf("indeterminate rollback = %d %q; want %q", indeterminate.Code, indeterminate.Body.String(), want)
+		}
+	}
+	if strings.Contains(indeterminate.Body.String(), "marker save failed") {
+		t.Fatalf("indeterminate rollback exposed provider error: %q", indeterminate.Body.String())
 	}
 }
 

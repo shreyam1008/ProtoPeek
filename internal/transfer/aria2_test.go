@@ -218,6 +218,77 @@ func TestAria2SnapshotUsesGlobalCountsBeyondTheBoundedJobList(t *testing.T) {
 	}
 }
 
+func TestAria2SnapshotRetriesCompletedSessionScrubAfterTransientFailure(t *testing.T) {
+	t.Parallel()
+	rpc := &fakeAriaRPC{
+		active:  []aria2Status{{GID: "active001", Status: "active"}},
+		waiting: []aria2Status{{GID: "paused01", Status: "paused"}},
+		stopped: []aria2Status{{GID: "complete1", Status: "complete"}, {GID: "failed001", Status: "error"}},
+		global:  aria2GlobalStat{NumActive: "1", NumWaiting: "1", NumStopped: "2"},
+		saveErr: errors.New("temporary session disk failure"),
+	}
+	engine := &aria2Engine{rpc: rpc, sessionRewritePending: true}
+	if _, err := engine.Snapshot(context.Background(), 8); !errors.Is(err, ErrQueueStateNotPersisted) {
+		t.Fatalf("first scrub error = %v", err)
+	}
+	if !engine.sessionRewritePending {
+		t.Fatal("failed completed-session scrub was not retained for retry")
+	}
+	rpc.saveErr = nil
+	snapshot, err := engine.Snapshot(context.Background(), 8)
+	if err != nil {
+		t.Fatalf("retry completed-session scrub: %v", err)
+	}
+	if engine.sessionRewritePending {
+		t.Fatal("successful completed-session scrub remained dirty")
+	}
+	if len(snapshot.Jobs) != 4 || snapshot.Jobs[0].Status != JobDownloading || snapshot.Jobs[1].Status != JobPaused || snapshot.Jobs[2].Status != JobCompleted || snapshot.Jobs[3].Status != JobFailed {
+		t.Fatalf("scrub changed resumable or completed snapshot jobs: %#v", snapshot.Jobs)
+	}
+	if removals := countAria2Method(rpc.methods, "removeResult"); removals != 0 {
+		t.Fatalf("session scrub removed live completion/failure results needed by UI or retry: methods=%#v", rpc.methods)
+	}
+	if saves := countAria2Method(rpc.methods, "save"); saves != 2 {
+		t.Fatalf("save calls after retry = %d, want 2; methods=%#v", saves, rpc.methods)
+	}
+	if _, err := engine.Snapshot(context.Background(), 8); err != nil {
+		t.Fatalf("stable completed-session snapshot: %v", err)
+	}
+	if saves := countAria2Method(rpc.methods, "save"); saves != 2 {
+		t.Fatalf("already scrubbed completion caused another save: methods=%#v", rpc.methods)
+	}
+}
+
+func TestAria2SnapshotFindsCompletionWhenActiveJobsFillDisplayBound(t *testing.T) {
+	t.Parallel()
+	rpc := &fakeAriaRPC{
+		active:  []aria2Status{{GID: "active001", Status: "active"}},
+		stopped: []aria2Status{{GID: "complete1", Status: "complete"}},
+		global:  aria2GlobalStat{NumActive: "1", NumStopped: "1"},
+	}
+	engine := &aria2Engine{rpc: rpc}
+	snapshot, err := engine.Snapshot(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Jobs) != 1 || snapshot.Jobs[0].ID != "active001" {
+		t.Fatalf("display bound changed: %#v", snapshot.Jobs)
+	}
+	if saves := countAria2Method(rpc.methods, "save"); saves != 1 {
+		t.Fatalf("hidden completion was not scrubbed: methods=%#v", rpc.methods)
+	}
+}
+
+func countAria2Method(methods []string, expected string) int {
+	count := 0
+	for _, method := range methods {
+		if method == expected {
+			count++
+		}
+	}
+	return count
+}
+
 func TestAria2CancelNeverDeletesOutputFile(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), "partial.iso")
@@ -260,7 +331,13 @@ func TestAria2RetryReappliesExpectedChecksum(t *testing.T) {
 	}
 	config := DefaultHostConfig()
 	config.DownloadDirectory = t.TempDir()
-	newID, err := (&aria2Engine{rpc: rpc}).Retry(context.Background(), "aabbccdd", config, checksum)
+	newID, err := (&aria2Engine{rpc: rpc}).Retry(context.Background(), "aabbccdd", AddRequest{
+		Sources:              []string{"https://example.com/archive.zip"},
+		SHA256:               checksum,
+		DestinationDirectory: "/tmp/custom-retry",
+		UserAgent:            "RetryClient/1",
+		Headers:              []RequestHeader{{Name: "Authorization", Value: "Bearer private"}},
+	}, config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,6 +346,13 @@ func TestAria2RetryReappliesExpectedChecksum(t *testing.T) {
 	}
 	if rpc.lastOpts["checksum"] != "sha-256="+checksum {
 		t.Fatalf("retry options = %#v", rpc.lastOpts)
+	}
+	if rpc.lastOpts["dir"] != "/tmp/custom-retry" || rpc.lastOpts["user-agent"] != "RetryClient/1" {
+		t.Fatalf("retry routing options = %#v", rpc.lastOpts)
+	}
+	headers, ok := rpc.lastOpts["header"].([]string)
+	if !ok || len(headers) != 1 || headers[0] != "Authorization: Bearer private" {
+		t.Fatalf("retry headers = %#v", rpc.lastOpts["header"])
 	}
 }
 
@@ -300,7 +384,9 @@ func TestAria2AddAndRetryReturnQueuedIDWithPersistenceError(t *testing.T) {
 		addID:           "eeff0011",
 		removeResultErr: errors.New("old result busy"),
 	}
-	retryID, retryErr := (&aria2Engine{rpc: retryRPC}).Retry(context.Background(), "aabbccdd", config, "")
+	retryID, retryErr := (&aria2Engine{rpc: retryRPC}).Retry(context.Background(), "aabbccdd", AddRequest{
+		Sources: []string{"https://example.com/artifact.bin"},
+	}, config)
 	if retryID != "eeff0011" || !errors.Is(retryErr, ErrQueueStateNotPersisted) {
 		t.Fatalf("retry id=%q err=%v", retryID, retryErr)
 	}
@@ -439,6 +525,9 @@ func TestAria2LauncherUsesPrivateSecretFileNotCommandLine(t *testing.T) {
 		if strings.Contains(argument, "secret-value") {
 			t.Fatalf("RPC secret leaked into process arguments: %q", argument)
 		}
+	}
+	if got := strings.Join(arguments, "\n"); !strings.Contains(got, "--force-save=false") || strings.Contains(got, "--force-save=true") {
+		t.Fatalf("launcher did not exclude completed/removed jobs from saved sessions: %s", got)
 	}
 	if _, err := os.Stat(secretPath); !os.IsNotExist(err) {
 		t.Fatalf("private startup config was not removed: %v", err)

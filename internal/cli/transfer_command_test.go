@@ -98,6 +98,21 @@ func TestDownloadCommandHelpDoesNotLoadService(t *testing.T) {
 	}
 }
 
+func TestRootUsageListsEveryDevelopmentSubcommand(t *testing.T) {
+	t.Parallel()
+	output := rootUsageText("pp")
+	for _, expected := range []string{
+		"pp download [flags] URL",
+		"pp migrate-gobarry [flags]",
+		`pp download --help`,
+		`pp migrate-gobarry --help`,
+	} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("root usage omitted %q: %q", expected, output)
+		}
+	}
+}
+
 func TestDownloadCommandRejectsUnsafeInputsBeforeLoadingService(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

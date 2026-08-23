@@ -14,7 +14,9 @@ import (
 
 const (
 	maxTransferAddBodyBytes    = 144 << 10
+	maxTransferBatchBodyBytes  = 1 << 20
 	maxTransferActionBodyBytes = 1 << 10
+	maxTransferImportBodyBytes = 2 << 10
 	maxConcurrentTransferOps   = 2
 )
 
@@ -30,6 +32,21 @@ type TransferService interface {
 	Retry(context.Context, string) (transfer.AddResult, error)
 	Cancel(context.Context, string) error
 	Shutdown(context.Context) error
+}
+
+type goBarryMigrationService interface {
+	PreviewGoBarry(context.Context) (transfer.GoBarryMigrationPreview, error)
+	ImportGoBarry(context.Context, transfer.GoBarryImportRequest) (transfer.GoBarryImportResult, error)
+	RollbackGoBarry(context.Context, transfer.GoBarryRollbackRequest) (transfer.GoBarryRollbackResult, error)
+}
+
+type transferBatchService interface {
+	AddBatch(context.Context, transfer.BatchAddRequest) (transfer.BatchAddResult, error)
+}
+
+type transferGlobalControlService interface {
+	PauseAll(context.Context) error
+	ResumeAll(context.Context) error
 }
 
 func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
@@ -77,6 +94,89 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 		writeTransferJSON(writer, http.StatusCreated, result)
 	})
 
+	if batch, ok := service.(transferBatchService); ok {
+		registerTransferPOST(mux, admission, "/api/transfers/batch", "transfer batch add", func(writer http.ResponseWriter, request *http.Request) {
+			var input transfer.BatchAddRequest
+			if !decodeStrictTransferJSON(writer, request, maxTransferBatchBodyBytes, &input) {
+				return
+			}
+			result, err := batch.AddBatch(request.Context(), input)
+			if err != nil {
+				writeTransferError(writer, err, http.StatusBadRequest)
+				return
+			}
+			status := http.StatusCreated
+			if result.FailedCount > 0 {
+				status = http.StatusMultiStatus
+			}
+			writeTransferJSON(writer, status, result)
+		})
+	}
+
+	if controls, ok := service.(transferGlobalControlService); ok {
+		for _, action := range []struct {
+			name string
+			call func(context.Context) error
+		}{
+			{name: "pause-all", call: controls.PauseAll},
+			{name: "resume-all", call: controls.ResumeAll},
+		} {
+			action := action
+			registerTransferPOST(mux, admission, "/api/transfers/"+action.name, "transfer "+action.name, func(writer http.ResponseWriter, request *http.Request) {
+				if !requireEmptyTransferBody(writer, request) {
+					return
+				}
+				if err := action.call(request.Context()); err != nil {
+					if errors.Is(err, transfer.ErrQueueStateNotPersisted) {
+						writeTransferJSON(writer, http.StatusOK, transfer.MutationResult{PersistenceWarning: transfer.PersistenceWarningMessage})
+						return
+					}
+					writeTransferError(writer, err, http.StatusConflict)
+					return
+				}
+				writer.WriteHeader(http.StatusNoContent)
+			})
+		}
+	}
+
+	if migration, ok := service.(goBarryMigrationService); ok {
+		registerTransferPOST(mux, admission, "/api/transfers/migrations/gobarry/preview", "GoBarryGo state preview", func(writer http.ResponseWriter, request *http.Request) {
+			if !requireEmptyTransferBody(writer, request) {
+				return
+			}
+			preview, err := migration.PreviewGoBarry(request.Context())
+			if err != nil {
+				writeGoBarryMigrationError(writer, err, false)
+				return
+			}
+			writeTransferJSON(writer, http.StatusOK, preview)
+		})
+		registerTransferPOST(mux, admission, "/api/transfers/migrations/gobarry/import", "GoBarryGo state import", func(writer http.ResponseWriter, request *http.Request) {
+			var input transfer.GoBarryImportRequest
+			if !decodeStrictTransferJSON(writer, request, maxTransferImportBodyBytes, &input) {
+				return
+			}
+			result, err := migration.ImportGoBarry(request.Context(), input)
+			if err != nil {
+				writeGoBarryMigrationError(writer, err, false)
+				return
+			}
+			writeTransferJSON(writer, http.StatusOK, result)
+		})
+		registerTransferPOST(mux, admission, "/api/transfers/migrations/gobarry/rollback", "GoBarryGo state rollback", func(writer http.ResponseWriter, request *http.Request) {
+			var input transfer.GoBarryRollbackRequest
+			if !decodeStrictTransferJSON(writer, request, maxTransferImportBodyBytes, &input) {
+				return
+			}
+			result, err := migration.RollbackGoBarry(request.Context(), input)
+			if err != nil {
+				writeGoBarryMigrationError(writer, err, true)
+				return
+			}
+			writeTransferJSON(writer, http.StatusOK, result)
+		})
+	}
+
 	for _, action := range []struct {
 		name string
 		call func(context.Context, string) (any, error)
@@ -115,6 +215,42 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 			writeTransferJSON(writer, http.StatusOK, result)
 		})
 	}
+}
+
+func writeGoBarryMigrationError(writer http.ResponseWriter, err error, rollingBack bool) {
+	status := http.StatusInternalServerError
+	message := "GoBarryGo state could not be inspected or imported safely"
+	if rollingBack {
+		message = "Rollback did not finish cleanly. ProtoPeek state may already have been restored. Retry the same receipt so any retained recovery journal can finish safely"
+	}
+	switch {
+	case errors.Is(err, context.Canceled):
+		status = 499
+		message = "GoBarryGo state operation cancelled"
+	case errors.Is(err, context.DeadlineExceeded):
+		status = http.StatusGatewayTimeout
+		message = "GoBarryGo state operation timed out"
+	case errors.Is(err, transfer.ErrGoBarryNotFound):
+		status = http.StatusNotFound
+		message = "No GoBarryGo preferences or resumable session were found"
+	case errors.Is(err, transfer.ErrGoBarryUnsafeState):
+		status = http.StatusUnprocessableEntity
+		message = "GoBarryGo state failed the bounded migration safety checks"
+	case errors.Is(err, transfer.ErrGoBarryImportActive):
+		status = http.StatusConflict
+		if rollingBack {
+			message = "Stop the Downloader before rolling back GoBarryGo state"
+		} else {
+			message = "Stop the Downloader before importing GoBarryGo state"
+		}
+	case errors.Is(err, transfer.ErrGoBarryRollbackConflict):
+		status = http.StatusConflict
+		message = "ProtoPeek transfer state changed after this migration; rollback was refused and current files were preserved"
+	case strings.Contains(err.Error(), "confirm that GoBarryGo source files will be preserved") || strings.Contains(err.Error(), "confirm that rollback must refuse changed ProtoPeek state") || strings.Contains(err.Error(), "select preferences, session, or both") || strings.Contains(err.Error(), "were not found") || strings.Contains(err.Error(), "receipt id"):
+		status = http.StatusBadRequest
+		message = err.Error()
+	}
+	http.Error(writer, message, status)
 }
 
 func registerTransferPOST(mux *http.ServeMux, admission *admissionLimiter, route, operation string, handler http.HandlerFunc) {
@@ -198,12 +334,15 @@ func writeTransferError(writer http.ResponseWriter, err error, fallbackStatus in
 	case errors.Is(err, transfer.ErrAria2NotFound):
 		status = http.StatusServiceUnavailable
 		message = "aria2c was not found; install it or configure its executable path"
-	case errors.Is(err, transfer.ErrInvalidAddRequest):
+	case errors.Is(err, transfer.ErrInvalidAddRequest), errors.Is(err, transfer.ErrInvalidBatchRequest):
 		status = http.StatusBadRequest
 		message = "Invalid transfer request"
 	case errors.Is(err, transfer.ErrEngineNotRunning), errors.Is(err, transfer.ErrAlreadyStarting), errors.Is(err, transfer.ErrQueueFull):
 		status = http.StatusConflict
 		message = "The downloader cannot perform that operation in its current state"
+	case errors.Is(err, transfer.ErrRetryMetadataMissing):
+		status = http.StatusConflict
+		message = "Exact retry options are unavailable; queue a new job and re-enter any required headers"
 	case errors.Is(err, transfer.ErrQueueStateNotPersisted):
 		status = http.StatusConflict
 		message = "The transfer action may have changed state; refresh before retrying"

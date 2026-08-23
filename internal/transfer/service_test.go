@@ -13,20 +13,20 @@ import (
 )
 
 type fakeEngine struct {
-	mu           sync.Mutex
-	snapshot     EngineSnapshot
-	snapshotErr  error
-	addID        string
-	addErr       error
-	retryID      string
-	retryErr     error
-	pauseErr     error
-	resumeErr    error
-	cancelErr    error
-	lastRetrySHA string
-	lastAdd      AddRequest
-	lastConfig   HostConfig
-	calls        []string
+	mu               sync.Mutex
+	snapshot         EngineSnapshot
+	snapshotErr      error
+	addID            string
+	addErr           error
+	retryID          string
+	retryErr         error
+	pauseErr         error
+	resumeErr        error
+	cancelErr        error
+	lastRetryRequest AddRequest
+	lastAdd          AddRequest
+	lastConfig       HostConfig
+	calls            []string
 }
 
 func (engine *fakeEngine) Snapshot(context.Context, int) (EngineSnapshot, error) {
@@ -55,11 +55,11 @@ func (engine *fakeEngine) Resume(context.Context, string) error {
 	return engine.resumeErr
 }
 
-func (engine *fakeEngine) Retry(_ context.Context, _ string, _ HostConfig, expectedSHA256 string) (string, error) {
+func (engine *fakeEngine) Retry(_ context.Context, _ string, request AddRequest, _ HostConfig) (string, error) {
 	engine.mu.Lock()
 	defer engine.mu.Unlock()
 	engine.calls = append(engine.calls, "retry")
-	engine.lastRetrySHA = expectedSHA256
+	engine.lastRetryRequest = cloneAddRequest(request)
 	return engine.retryID, engine.retryErr
 }
 
@@ -267,8 +267,8 @@ func TestServiceExplicitLifecycleAndChecksumEvidence(t *testing.T) {
 	if err != nil || retry.ID != "eeff0011" || retry.ExpectedSHA256 != checksum {
 		t.Fatalf("retry = %#v, err=%v", retry, err)
 	}
-	if engine.lastRetrySHA != checksum {
-		t.Fatalf("retry checksum = %q", engine.lastRetrySHA)
+	if engine.lastRetryRequest.SHA256 != checksum {
+		t.Fatalf("retry request = %#v", engine.lastRetryRequest)
 	}
 	service.mu.RLock()
 	_, oldChecksumStillTracked := service.checksums["aabbccdd"]
@@ -291,6 +291,7 @@ func TestServiceExplicitLifecycleAndChecksumEvidence(t *testing.T) {
 func TestServiceTreatsCompletedChecksumJobAsVerifiedWithoutInventingDigest(t *testing.T) {
 	t.Parallel()
 	checksum := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	secretHeader := "Bearer completed-job-secret"
 	engine := &fakeEngine{
 		addID: "aabbccdd",
 		snapshot: EngineSnapshot{Jobs: []Job{{
@@ -299,23 +300,123 @@ func TestServiceTreatsCompletedChecksumJobAsVerifiedWithoutInventingDigest(t *te
 			Verification: "unknown",
 		}}},
 	}
-	service, _, _, _, _ := testService(t, engine)
+	service, _, _, _, paths := testService(t, engine)
 	if _, err := service.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Add(context.Background(), AddRequest{
-		Sources: []string{"https://example.com/a"},
+		Sources: []string{"https://example.com/a?token=completed-private"},
 		SHA256:  checksum,
+		Headers: []RequestHeader{{Name: "Authorization", Value: secretHeader}},
 	}); err != nil {
 		t.Fatal(err)
+	}
+	before, err := loadRetryState(filepath.Join(paths.StateDirectory, "retry.json"), service.config.MaxTrackedJobs)
+	if err != nil || len(before) != 1 {
+		t.Fatalf("retry state before completion cleanup = %#v, err=%v", before, err)
 	}
 	snapshot, err := service.Snapshot(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	job := snapshot.Jobs[0]
-	if job.Verification != "verified" || job.ExpectedSHA256 != checksum || job.ActualSHA256 != "" {
+	if job.Verification != "verified" || job.ExpectedSHA256 != checksum || job.ActualSHA256 != "" || job.RetryAvailable {
 		t.Fatalf("verification evidence = %#v", job)
+	}
+	service.mu.RLock()
+	_, retainedInMemory := service.retryRequests["aabbccdd"]
+	service.mu.RUnlock()
+	if retainedInMemory {
+		t.Fatal("completed job retained private retry metadata in memory")
+	}
+	after, err := loadRetryState(filepath.Join(paths.StateDirectory, "retry.json"), service.config.MaxTrackedJobs)
+	if err != nil || len(after) != 0 {
+		t.Fatalf("retry state after completion cleanup = %#v, err=%v", after, err)
+	}
+	encoded, err := os.ReadFile(filepath.Join(paths.StateDirectory, "retry.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), secretHeader) || strings.Contains(string(encoded), "completed-private") {
+		t.Fatal("completed job credentials remained in persisted retry metadata")
+	}
+}
+
+func TestSnapshotRetriesCompletedRetryCleanupAfterTransientPersistenceFailure(t *testing.T) {
+	t.Parallel()
+	engine := &fakeEngine{
+		addID: "aabbccdd",
+		snapshot: EngineSnapshot{Jobs: []Job{{
+			ID:     "aabbccdd",
+			Status: JobCompleted,
+		}}},
+	}
+	service, _, _, _, paths := testService(t, engine)
+	if _, err := service.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Add(context.Background(), AddRequest{
+		Sources: []string{"https://example.com/private?token=retry-cleanup"},
+		Headers: []RequestHeader{{Name: "Authorization", Value: "Bearer retry-cleanup-secret"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	retryPath := filepath.Join(paths.StateDirectory, "retry.json")
+	if err := os.Remove(retryPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(retryPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Snapshot(context.Background()); err == nil {
+		t.Fatal("completed retry cleanup unexpectedly persisted through a directory target")
+	}
+	service.mu.RLock()
+	_, retainedForRetry := service.retryRequests["aabbccdd"]
+	service.mu.RUnlock()
+	if !retainedForRetry {
+		t.Fatal("failed cleanup did not retain in-memory metadata for a later retry")
+	}
+	if err := os.Remove(retryPath); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Snapshot(context.Background()); err != nil {
+		t.Fatalf("retry completed metadata cleanup: %v", err)
+	}
+	service.mu.RLock()
+	_, retainedAfterSuccess := service.retryRequests["aabbccdd"]
+	service.mu.RUnlock()
+	if retainedAfterSuccess {
+		t.Fatal("successful retry cleanup retained in-memory metadata")
+	}
+	persisted, err := loadRetryState(retryPath, service.config.MaxTrackedJobs)
+	if err != nil || len(persisted) != 0 {
+		t.Fatalf("persisted retry state after retry cleanup = %#v, err=%v", persisted, err)
+	}
+}
+
+func TestShutdownPrunesCompletedPrivateRetryMetadataBeforeStopping(t *testing.T) {
+	t.Parallel()
+	engine := &fakeEngine{addID: "aabbccdd"}
+	service, _, _, _, paths := testService(t, engine)
+	if _, err := service.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Add(context.Background(), AddRequest{
+		Sources: []string{"https://example.com/private?token=shutdown-cleanup"},
+		Headers: []RequestHeader{{Name: "Authorization", Value: "Bearer shutdown-cleanup-secret"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	engine.mu.Lock()
+	engine.snapshot = EngineSnapshot{Jobs: []Job{{ID: "aabbccdd", Status: JobCompleted}}}
+	engine.mu.Unlock()
+	if err := service.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	persisted, err := loadRetryState(filepath.Join(paths.StateDirectory, "retry.json"), service.config.MaxTrackedJobs)
+	if err != nil || len(persisted) != 0 {
+		t.Fatalf("retry state after shutdown cleanup = %#v, err=%v", persisted, err)
 	}
 }
 
@@ -485,6 +586,9 @@ func TestServiceRetryEnforcesQueueDiskAndReplacementAwareTrackedBounds(t *testin
 		if _, err := service.Start(context.Background()); err != nil {
 			t.Fatal(err)
 		}
+		service.mu.Lock()
+		service.retryRequests["aabbccdd"] = AddRequest{Sources: []string{"https://example.com/retry"}}
+		service.mu.Unlock()
 		if _, err := service.Retry(context.Background(), "aabbccdd"); err != nil {
 			t.Fatalf("replacement retry error = %v", err)
 		}
@@ -525,6 +629,9 @@ func TestServiceRetryEnforcesQueueDiskAndReplacementAwareTrackedBounds(t *testin
 		if _, err := service.Start(context.Background()); err != nil {
 			t.Fatal(err)
 		}
+		service.mu.Lock()
+		service.retryRequests["aabbccdd"] = AddRequest{Sources: []string{"https://example.com/retry"}}
+		service.mu.Unlock()
 		if _, err := service.Retry(context.Background(), "aabbccdd"); !errors.Is(err, ErrInsufficientDisk) {
 			t.Fatalf("retry error = %v", err)
 		}
@@ -598,6 +705,11 @@ func TestServiceRestoresChecksumEvidenceAndReappliesItOnRetry(t *testing.T) {
 		LockFile:         filepath.Join(root, "state", "engine.lock"),
 	}
 	checksum := strings.Repeat("ab", expectedSHA256Bytes)
+	customDirectory := filepath.Join(root, "custom-downloads")
+	if err := os.MkdirAll(customDirectory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	secretHeader := "Bearer retry-private-value"
 
 	firstEngine := &fakeEngine{addID: "aabbccdd"}
 	firstService, _, _ := newServiceForPaths(t, config, paths, firstEngine)
@@ -605,8 +717,11 @@ func TestServiceRestoresChecksumEvidenceAndReappliesItOnRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := firstService.Add(context.Background(), AddRequest{
-		Sources: []string{"https://example.com/artifact.bin"},
-		SHA256:  checksum,
+		Sources:              []string{"https://example.com/artifact.bin?signature=private"},
+		SHA256:               checksum,
+		DestinationDirectory: customDirectory,
+		UserAgent:            "ProtoPeek retry test",
+		Headers:              []RequestHeader{{Name: "Authorization", Value: secretHeader}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -630,15 +745,21 @@ func TestServiceRestoresChecksumEvidenceAndReappliesItOnRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snapshot.Jobs) != 1 || snapshot.Jobs[0].ExpectedSHA256 != checksum || snapshot.Jobs[0].Verification != "pending" {
+	if len(snapshot.Jobs) != 1 || snapshot.Jobs[0].ExpectedSHA256 != checksum || snapshot.Jobs[0].Verification != "pending" || !snapshot.Jobs[0].RetryAvailable {
 		t.Fatalf("restored snapshot = %#v", snapshot.Jobs)
+	}
+	if encoded := fmt.Sprintf("%#v", snapshot); strings.Contains(encoded, secretHeader) || strings.Contains(encoded, "signature=private") {
+		t.Fatalf("snapshot exposed private retry metadata: %s", encoded)
 	}
 	retry, err := secondService.Retry(context.Background(), "aabbccdd")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if retry.ID != "eeff0011" || retry.ExpectedSHA256 != checksum || secondEngine.lastRetrySHA != checksum {
-		t.Fatalf("retry=%#v engine checksum=%q", retry, secondEngine.lastRetrySHA)
+	if retry.ID != "eeff0011" || retry.ExpectedSHA256 != checksum || secondEngine.lastRetryRequest.SHA256 != checksum {
+		t.Fatalf("retry=%#v engine request=%#v", retry, secondEngine.lastRetryRequest)
+	}
+	if secondEngine.lastRetryRequest.DestinationDirectory != customDirectory || secondEngine.lastRetryRequest.UserAgent != "ProtoPeek retry test" || len(secondEngine.lastRetryRequest.Headers) != 1 || secondEngine.lastRetryRequest.Headers[0].Value != secretHeader {
+		t.Fatalf("retry did not preserve private per-job options: %#v", secondEngine.lastRetryRequest)
 	}
 	loaded, err := loadVerificationState(paths.VerificationFile, config.MaxTrackedJobs)
 	if err != nil {
@@ -649,6 +770,31 @@ func TestServiceRestoresChecksumEvidenceAndReappliesItOnRetry(t *testing.T) {
 	}
 	if err := secondService.Shutdown(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestServiceDisablesRetryWhenExactPrivateMetadataIsUnavailable(t *testing.T) {
+	t.Parallel()
+	engine := &fakeEngine{
+		retryID: "eeff0011",
+		snapshot: EngineSnapshot{Jobs: []Job{{
+			ID:     "aabbccdd",
+			Status: JobFailed,
+		}}},
+	}
+	service, _, _, _, _ := testService(t, engine)
+	if _, err := service.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := service.Snapshot(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Jobs) != 1 || snapshot.Jobs[0].RetryAvailable || snapshot.Jobs[0].RetryReason == "" {
+		t.Fatalf("retry evidence = %#v", snapshot.Jobs)
+	}
+	if _, err := service.Retry(context.Background(), "aabbccdd"); !errors.Is(err, ErrRetryMetadataMissing) {
+		t.Fatalf("retry error = %v", err)
 	}
 }
 
@@ -785,7 +931,7 @@ func (engine *blockingBoundEngine) Add(context.Context, AddRequest, HostConfig) 
 
 func (*blockingBoundEngine) Pause(context.Context, string) error  { return nil }
 func (*blockingBoundEngine) Resume(context.Context, string) error { return nil }
-func (*blockingBoundEngine) Retry(context.Context, string, HostConfig, string) (string, error) {
+func (*blockingBoundEngine) Retry(context.Context, string, AddRequest, HostConfig) (string, error) {
 	return "eeff0011", nil
 }
 func (*blockingBoundEngine) Cancel(context.Context, string) error { return nil }

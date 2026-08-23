@@ -11,8 +11,13 @@ const (
 	// discarding fields from a newer file.
 	HostConfigVersion = 1
 
-	maxSourcesPerAdd = 16
-	maxSourceLength  = 8 * 1024
+	maxSourcesPerAdd     = 16
+	maxSourceLength      = 8 * 1024
+	maxRequestHeaders    = 16
+	maxHeaderNameLength  = 128
+	maxHeaderValueLength = 4 * 1024
+	maxHeaderBytes       = 16 * 1024
+	maxDestinationLength = 4 * 1024
 
 	PersistenceWarningMessage = "The transfer action succeeded, but its resumable local state could not be fully saved. Refresh to confirm current state and keep ProtoPeek running until active work finishes."
 )
@@ -30,6 +35,8 @@ type HostConfig struct {
 	MaxDownloadBytesPerSecond   int64  `json:"maxDownloadBytesPerSecond"`
 	MinimumFreeDiskBytes        int64  `json:"minimumFreeDiskBytes"`
 	ContinuePartialDownloads    bool   `json:"continuePartialDownloads"`
+	AlwaysResume                bool   `json:"alwaysResume"`
+	FileAllocation              string `json:"fileAllocation"`
 	AutoRenameConflictingFiles  bool   `json:"autoRenameConflictingFiles"`
 	AllowOverwriteExistingFiles bool   `json:"allowOverwriteExistingFiles"`
 	AllowInsecureTLS            bool   `json:"allowInsecureTls"`
@@ -84,6 +91,8 @@ type Job struct {
 	VerifiedBytes   int64     `json:"verifiedBytes,omitempty"`
 	Verification    string    `json:"verificationStatus"`
 	VerifyMessage   string    `json:"verificationMessage,omitempty"`
+	RetryAvailable  bool      `json:"retryAvailable"`
+	RetryReason     string    `json:"retryUnavailableReason,omitempty"`
 }
 
 type Metrics struct {
@@ -107,9 +116,20 @@ type Snapshot struct {
 
 type AddRequest struct {
 	// Sources are mirrors for one logical download, not separate queue items.
-	Sources    []string `json:"sources"`
-	OutputName string   `json:"outputName,omitempty"`
-	SHA256     string   `json:"sha256,omitempty"`
+	Sources              []string        `json:"sources"`
+	OutputName           string          `json:"outputName,omitempty"`
+	SHA256               string          `json:"sha256,omitempty"`
+	DestinationDirectory string          `json:"destinationDirectory,omitempty"`
+	Headers              []RequestHeader `json:"headers,omitempty"`
+	UserAgent            string          `json:"userAgent,omitempty"`
+}
+
+// RequestHeader is a bounded per-job HTTP request header. Header values are
+// deliberately write-only: transfer snapshots and mutation results never
+// return them to the browser or CLI.
+type RequestHeader struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 type AddResult struct {
@@ -140,7 +160,7 @@ type Engine interface {
 	Add(ctx context.Context, request AddRequest, config HostConfig) (string, error)
 	Pause(ctx context.Context, id string) error
 	Resume(ctx context.Context, id string) error
-	Retry(ctx context.Context, id string, config HostConfig, expectedSHA256 string) (string, error)
+	Retry(ctx context.Context, id string, request AddRequest, config HostConfig) (string, error)
 	Cancel(ctx context.Context, id string) error
 	SaveSession(ctx context.Context) error
 	Shutdown(ctx context.Context) error

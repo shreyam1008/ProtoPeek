@@ -90,7 +90,18 @@ HTTP history shows its 12 newest secret-safe entries with total observed time, a
 is optional—invalid JSON remains sendable verbatim. Light is the first-run theme; dark mode and
 local histories are stored only in the browser profile.
 
-The current development source also provides one explicit one-shot transfer command:
+The current development source adds a local Downloader surface plus one explicit one-shot transfer
+command. The browser queues one URL or up to 32 independent jobs, reports partial batch success
+without retrying jobs that already started, supports per-job destination, bounded request headers
+and User-Agent, and exposes job and whole-queue pause/resume controls. Output naming and expected
+SHA-256 remain single-job options so evidence cannot be applied to the wrong artifact.
+
+Exact retry/resume requires the source URL and any supplied headers. The form clears those values
+after queueing and queue/API results never return them, but ProtoPeek and aria2c retain the required
+values in private local host state (mode 0600 where supported). Do not use credentials on a machine
+whose local account or transfer-state directory you do not trust.
+
+The CLI contract remains deliberately smaller:
 
 ```sh
 pp download [--output NAME] [--sha256 64_HEX] URL
@@ -101,6 +112,22 @@ It accepts exactly one absolute HTTP(S) URL and uses an explicitly configured or
 to stderr, prints only the completed path to stdout, and preserves partial data plus the aria2
 session when interrupted. It does not attach to an already-running ProtoPeek process. This command
 is unreleased and is not present in stable v0.4.0 packages.
+
+The same development source includes a read-first, non-destructive GoBarryGo state bridge:
+
+```sh
+pp migrate-gobarry                                      # preview only; no writes
+pp migrate-gobarry --apply                              # copy compatible state
+pp migrate-gobarry --rollback RECEIPT_ID                # guarded restore
+```
+
+The preview reads only GoBarryGo's known local profile after the command or Settings action is
+explicitly invoked. Import keeps the original preferences, session, executable cache, and downloaded
+files untouched; compatible HTTP(S) session jobs enter ProtoPeek paused, unsafe options are rejected,
+and a mode-0600 receipt records source hashes, exact before/after target hashes, and private backups.
+Proposed setting conversions remain preview-only. Rollback proceeds only when the current ProtoPeek
+config/session still match that receipt, otherwise it refuses and preserves the newer state.
+This migration bridge is also unreleased and does not retire the standalone GoBarryGo v0.0.9 release.
 
 For a server without reflection, choose **Browser folder** and then **Choose folder**. ProtoPeek
 preserves relative imports and uploads only lowercase `.proto` files when Connect is pressed. The
@@ -236,7 +263,7 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; copy the current draft as bounded, credential-redacted cURL |
-| **Downloader · current source, unreleased** | Queue and verify HTTP(S) transfers through configured or system `aria2c`, or run one explicit `pp download`; aria2 is not bundled |
+| **Downloader · current source, unreleased** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · current source, unreleased** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
@@ -314,7 +341,7 @@ cancellation, and its native inspector.
 | Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |
 | Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
-| Downloader | Current source · unreleased | Configured or system `aria2c`, visible local queue controls, optional SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
+| Downloader | Current source · unreleased | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
 | Security evidence | Current source · unreleased | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |

@@ -344,11 +344,12 @@ The canonical `bun run build` measures every emitted console JavaScript/CSS asse
 are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; lazy HTTP workspace
 54 KiB / 16 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 140 KiB / 27 KiB; network shell 64 KiB /
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
-24 KiB / 8 KiB JavaScript and 16 KiB / 4 KiB CSS; Security 36 KiB / 10 KiB JavaScript and 22 KiB /
-5 KiB CSS; suite shell pages CSS 12 KiB / 3 KiB; all JavaScript 768 KiB / 240 KiB; and all CSS
-224 KiB / 42 KiB. Single-chunk rules fail on a missing or duplicate match, and aggregate rules keep
-growth visible across lazy boundaries. These are regression ceilings for the current unified suite,
-not target payload sizes; individual route budgets preserve the lighter v0.3 architecture.
+24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
+36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; suite shell pages CSS 12 KiB / 3 KiB; Settings CSS
+8 KiB / 2 KiB; all JavaScript 768 KiB / 240 KiB; and all CSS 224 KiB / 42 KiB. Single-chunk rules
+fail on a missing or duplicate match, and aggregate rules keep growth visible across lazy boundaries.
+These are regression ceilings for the current unified suite, not target payload sizes; individual
+route budgets preserve the lighter v0.3 architecture.
 
 ## Research trail
 

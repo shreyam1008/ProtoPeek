@@ -71,6 +71,35 @@ func TestConfigStoreRoundTripAndPermissions(t *testing.T) {
 	}
 }
 
+func TestConfigStoreDefaultsFieldsAddedWithinVersionOne(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	path := filepath.Join(directory, "transfers.json")
+	store := NewConfigStore(path)
+	config := DefaultHostConfig()
+	config.DownloadDirectory = directory
+	if err := store.Save(config); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := strings.ReplaceAll(string(data), "  \"alwaysResume\": true,\n", "")
+	legacy = strings.ReplaceAll(legacy, "  \"fileAllocation\": \"prealloc\",\n", "")
+	if err := os.WriteFile(path, []byte(legacy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, exists, err := store.Load()
+	if err != nil {
+		t.Fatalf("load earlier v1 config: %v", err)
+	}
+	if !exists || !loaded.AlwaysResume || loaded.FileAllocation != "prealloc" {
+		t.Fatalf("additive defaults = %#v, exists=%v", loaded, exists)
+	}
+}
+
 func TestConfigStoreRejectsFutureAndUnknownFields(t *testing.T) {
 	t.Parallel()
 	directory := t.TempDir()
@@ -78,6 +107,12 @@ func TestConfigStoreRejectsFutureAndUnknownFields(t *testing.T) {
 	base := DefaultHostConfig()
 	base.DownloadDirectory = directory
 	store := NewConfigStore(path)
+	if err := os.WriteFile(path, []byte(`{"downloadDirectory":"/tmp"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := store.Load(); err == nil || !strings.Contains(err.Error(), "unsupported transfer config version 0") {
+		t.Fatalf("missing version error = %v", err)
+	}
 
 	if err := os.WriteFile(path, []byte(`{"version":99}`), 0o600); err != nil {
 		t.Fatal(err)

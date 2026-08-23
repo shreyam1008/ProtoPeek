@@ -11,7 +11,9 @@ import (
 )
 
 type aria2Engine struct {
-	rpc aria2RPC
+	rpc                   aria2RPC
+	sessionRewritePending bool
+	scrubbedCompleted     map[string]struct{}
 }
 
 func (engine *aria2Engine) Snapshot(ctx context.Context, maxTracked int) (EngineSnapshot, error) {
@@ -39,15 +41,19 @@ func (engine *aria2Engine) Snapshot(ctx context.Context, maxTracked int) (Engine
 		remaining -= len(waiting)
 	}
 
-	stopped := []aria2Status{}
-	if remaining > 0 {
-		stopped, err = engine.rpc.TellStopped(ctx, 0, remaining)
-		if err != nil {
-			return EngineSnapshot{}, err
-		}
-		if len(stopped) > remaining {
-			stopped = stopped[:remaining]
-		}
+	// Fetch the complete bounded result set independently of the display slice.
+	// Active/waiting jobs can otherwise consume maxTracked and hide a newly
+	// completed result whose signed URL or headers must be scrubbed from disk.
+	stoppedResults, err := engine.rpc.TellStopped(ctx, 0, maxTracked)
+	if err != nil {
+		return EngineSnapshot{}, err
+	}
+	if len(stoppedResults) > maxTracked {
+		stoppedResults = stoppedResults[:maxTracked]
+	}
+	stopped := stoppedResults
+	if len(stopped) > remaining {
+		stopped = stopped[:remaining]
 	}
 
 	global, err := engine.rpc.GetGlobalStat(ctx)
@@ -73,17 +79,39 @@ func (engine *aria2Engine) Snapshot(ctx context.Context, maxTracked int) (Engine
 	metrics.ActiveCount = max(metrics.ActiveCount, globalActive)
 	metrics.TotalCount = max(metrics.TotalCount, globalActive+globalPending+globalStopped)
 	pendingCount := max(metrics.QueuedCount+metrics.PausedCount, globalPending)
+	if err := engine.rewriteSessionAfterCompletions(ctx, stoppedResults); err != nil {
+		return EngineSnapshot{}, err
+	}
 	return EngineSnapshot{Jobs: jobs, PendingCount: pendingCount, Metrics: metrics}, nil
 }
 
+func (engine *aria2Engine) rewriteSessionAfterCompletions(ctx context.Context, stopped []aria2Status) error {
+	completed := make(map[string]struct{})
+	needsRewrite := engine.sessionRewritePending
+	for _, status := range stopped {
+		if status.Status != "complete" {
+			continue
+		}
+		completed[status.GID] = struct{}{}
+		if _, scrubbed := engine.scrubbedCompleted[status.GID]; !scrubbed {
+			needsRewrite = true
+		}
+	}
+	if needsRewrite {
+		// Keep this dirty until SaveSession succeeds. A transient disk/RPC failure
+		// must be retried by the next Snapshot or pre-shutdown reconciliation.
+		engine.sessionRewritePending = true
+		if err := engine.rpc.SaveSession(ctx); err != nil {
+			return fmt.Errorf("%w: scrub completed transfers from aria2 session: %v", ErrQueueStateNotPersisted, err)
+		}
+		engine.sessionRewritePending = false
+	}
+	engine.scrubbedCompleted = completed
+	return nil
+}
+
 func (engine *aria2Engine) Add(ctx context.Context, request AddRequest, config HostConfig) (string, error) {
-	options := optionsFor(config)
-	if request.OutputName != "" {
-		options["out"] = request.OutputName
-	}
-	if request.SHA256 != "" {
-		options["checksum"] = "sha-256=" + request.SHA256
-	}
+	options := optionsForRequest(config, request)
 	id, err := engine.rpc.AddURI(ctx, request.Sources, options)
 	if err != nil {
 		return "", err
@@ -114,7 +142,11 @@ func (engine *aria2Engine) Resume(ctx context.Context, id string) error {
 	return nil
 }
 
-func (engine *aria2Engine) Retry(ctx context.Context, id string, config HostConfig, expectedSHA256 string) (string, error) {
+func (engine *aria2Engine) Retry(ctx context.Context, id string, request AddRequest, config HostConfig) (string, error) {
+	request, err := validateAddRequest(request)
+	if err != nil {
+		return "", errors.New("saved retry metadata is invalid")
+	}
 	status, err := engine.rpc.TellStatus(ctx, id)
 	if err != nil {
 		return "", err
@@ -122,18 +154,14 @@ func (engine *aria2Engine) Retry(ctx context.Context, id string, config HostConf
 	if status.Status != "error" && status.Status != "removed" {
 		return "", fmt.Errorf("transfer %s is %s; only failed or cancelled transfers can be retried", id, status.Status)
 	}
-	sources := collectSources(status)
-	if len(sources) == 0 {
-		return "", fmt.Errorf("transfer %s has no retryable source URL", id)
+	options := optionsForRequest(config, request)
+	if request.OutputName == "" {
+		output := firstOutputPath(status)
+		if output != "" {
+			options["out"] = filepath.Base(output)
+		}
 	}
-	options := optionsFor(config)
-	if expectedSHA256 != "" {
-		options["checksum"] = "sha-256=" + expectedSHA256
-	}
-	if output := firstOutputPath(status); output != "" {
-		options["out"] = filepath.Base(output)
-	}
-	newID, err := engine.rpc.AddURI(ctx, sources, options)
+	newID, err := engine.rpc.AddURI(ctx, request.Sources, options)
 	if err != nil {
 		return "", err
 	}
@@ -187,12 +215,37 @@ func optionsFor(config HostConfig) map[string]any {
 		"split":                     strconv.Itoa(config.Split),
 		"min-split-size":            strconv.FormatInt(config.MinSplitSizeBytes, 10),
 		"continue":                  boolString(config.ContinuePartialDownloads),
-		"always-resume":             boolString(config.ContinuePartialDownloads),
+		"always-resume":             boolString(config.AlwaysResume),
+		"file-allocation":           config.FileAllocation,
 		"auto-file-renaming":        boolString(config.AutoRenameConflictingFiles),
 		"allow-overwrite":           boolString(config.AllowOverwriteExistingFiles),
 		"check-certificate":         boolString(!config.AllowInsecureTLS),
 		"user-agent":                config.UserAgent,
 	}
+}
+
+func optionsForRequest(config HostConfig, request AddRequest) map[string]any {
+	options := optionsFor(config)
+	if request.DestinationDirectory != "" {
+		options["dir"] = request.DestinationDirectory
+	}
+	if request.OutputName != "" {
+		options["out"] = request.OutputName
+	}
+	if request.SHA256 != "" {
+		options["checksum"] = "sha-256=" + request.SHA256
+	}
+	if request.UserAgent != "" {
+		options["user-agent"] = request.UserAgent
+	}
+	if len(request.Headers) > 0 {
+		headers := make([]string, 0, len(request.Headers))
+		for _, header := range request.Headers {
+			headers = append(headers, header.Name+": "+header.Value)
+		}
+		options["header"] = headers
+	}
+	return options
 }
 
 func mapAria2Status(status aria2Status) Job {

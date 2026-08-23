@@ -11,13 +11,21 @@ version source of truth.
 - Added an explicit local Downloader backed only by a configured or system-installed `aria2c`.
   The browser and one-shot `pp download` CLI use the same bounded transfer core, host configuration,
   and resumable session format without attaching to each other's live process, deleting partial or
-  completed files, or claiming an unavailable computed digest.
+  completed files, or claiming an unavailable computed digest. The browser accepts 1–32 independent
+  jobs with honest partial-success results, bounded per-job destination/headers/User-Agent, job and
+  whole-queue controls, and single-job-only naming/SHA-256 evidence. Exact retry metadata stays in
+  private local host state and is never returned in queue/API results.
+- Added an explicit GoBarryGo bridge in Settings and `pp migrate-gobarry`: observational preview by
+  default, bounded copy-only preference/session import, paused imported jobs, idempotence, private
+  receipts, and rollback that refuses to overwrite changed ProtoPeek state. GoBarryGo source files,
+  releases, checksums, screenshots, and repository history remain independent and preserved.
 - Added consent-gated Security evidence: passive historical certificate-name candidates through
   `crt.name`, plus a separate resolve-once, public-only, pinned, non-following, bodyless one-HEAD
   website observation. Neither path probes returned candidates or emits a security score.
 - Reworked the public site, README, man pages, guides, screenshots, and bundle budgets to describe
-  stable v0.4.0 separately from these current-source additions. GoBarryGo import, retirement,
-  redirects, broader protocol/security plans, publication, and deployment remain future work.
+  stable v0.4.0 separately from these current-source additions. Current source includes a crawlable
+  `/downloader/` page backed by real captures; GoBarryGo retirement, redirects, broader
+  protocol/security plans, stable publication, and deployment remain future gated work.
 
 ## v0.4.0 — 2026-08-21
 

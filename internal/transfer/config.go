@@ -38,6 +38,8 @@ func DefaultHostConfig() HostConfig {
 		MinSplitSizeBytes:           defaultMinSplitSize,
 		MinimumFreeDiskBytes:        defaultMinimumFreeDisk,
 		ContinuePartialDownloads:    true,
+		AlwaysResume:                true,
+		FileAllocation:              "prealloc",
 		AutoRenameConflictingFiles:  true,
 		AllowOverwriteExistingFiles: false,
 		AllowInsecureTLS:            false,
@@ -101,6 +103,11 @@ func ValidateHostConfig(config HostConfig) error {
 	if config.MinimumFreeDiskBytes < 0 || config.MinimumFreeDiskBytes > maxMinimumFreeDiskBytes {
 		return fmt.Errorf("minimum free disk reserve must be between 0 and %d bytes", maxMinimumFreeDiskBytes)
 	}
+	switch config.FileAllocation {
+	case "none", "prealloc", "trunc", "falloc":
+	default:
+		return errors.New("file allocation must be none, prealloc, trunc, or falloc")
+	}
 	if config.AllowOverwriteExistingFiles && config.AutoRenameConflictingFiles {
 		return errors.New("overwrite and auto-rename cannot both be enabled")
 	}
@@ -158,6 +165,11 @@ func (store *ConfigStore) Load() (config HostConfig, exists bool, err error) {
 		return HostConfig{}, false, fmt.Errorf("read transfer config: %w", err)
 	}
 
+	// Version 1 has gained additive fields over time. Decode onto the current
+	// defaults so a config written by an earlier v1 build keeps working while
+	// unknown fields and future schema versions still fail closed.
+	config = DefaultHostConfig()
+	config.Version = 0
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&config); err != nil {

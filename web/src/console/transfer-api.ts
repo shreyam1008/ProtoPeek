@@ -38,6 +38,8 @@ export type TransferHostConfig = {
   maxDownloadBytesPerSecond: number;
   minimumFreeDiskBytes: number;
   continuePartialDownloads: boolean;
+  alwaysResume: boolean;
+  fileAllocation: string;
   autoRenameConflictingFiles: boolean;
   allowOverwriteExistingFiles: boolean;
   allowInsecureTls: boolean;
@@ -71,6 +73,8 @@ export type TransferJob = {
     | 'mismatch'
     | 'unavailable';
   verificationMessage: string;
+  retryAvailable: boolean;
+  retryUnavailableReason: string;
 };
 
 export type TransferMetrics = {
@@ -97,6 +101,88 @@ export type TransferMutationResult = {
   persistenceWarning: string;
 };
 
+export type TransferRequestHeader = {
+  name: string;
+  value: string;
+};
+
+export type TransferBatchJob = {
+  source: string;
+  outputName?: string;
+  sha256?: string;
+  destinationDirectory?: string;
+  headers?: TransferRequestHeader[];
+  userAgent?: string;
+};
+
+export type TransferBatchFailureCode =
+  | 'invalid_request'
+  | 'engine_stopped'
+  | 'queue_full'
+  | 'insufficient_disk'
+  | 'cancelled'
+  | 'engine_rejected';
+
+export type TransferBatchItemResult = {
+  index: number;
+  queued: boolean;
+  id: string;
+  failureCode: TransferBatchFailureCode | '';
+  persistenceWarning: string;
+};
+
+export type TransferBatchResult = {
+  requestedCount: number;
+  queuedCount: number;
+  failedCount: number;
+  results: TransferBatchItemResult[];
+  persistenceWarning: string;
+};
+
+export type GoBarrySettingChange = {
+  key: string;
+  before: string;
+  after: string;
+  note: string;
+};
+
+export type GoBarryMigrationPreview = {
+  available: boolean;
+  preferencesFound: boolean;
+  sessionFound: boolean;
+  sessionBytes: number;
+  sessionEntries: number;
+  settingChanges: GoBarrySettingChange[];
+  preservedButUnsupported: string[];
+  warnings: string[];
+  targetConfigExists: boolean;
+  targetSessionExists: boolean;
+  alreadyImported: boolean;
+  canImport: boolean;
+  engineMustBeStopped: boolean;
+  lastReceiptId: string;
+};
+
+export type GoBarryImportResult = {
+  imported: boolean;
+  preferencesImported: boolean;
+  sessionImported: boolean;
+  sessionEntriesAdded: number;
+  sourcePreserved: boolean;
+  alreadyImported: boolean;
+  importedAt: string;
+  message: string;
+  receiptId: string;
+};
+
+export type GoBarryRollbackResult = {
+  rolledBack: boolean;
+  receiptId: string;
+  sourcePreserved: boolean;
+  rolledBackAt: string;
+  message: string;
+};
+
 const healthStatuses = new Set<TransferHealthStatus>([
   'stopped',
   'starting',
@@ -116,6 +202,15 @@ const jobStatuses = new Set<TransferJobStatus>([
   'failed',
   'cancelled',
   'unknown',
+]);
+
+const batchFailureCodes = new Set<TransferBatchFailureCode>([
+  'invalid_request',
+  'engine_stopped',
+  'queue_full',
+  'insufficient_disk',
+  'cancelled',
+  'engine_rejected',
 ]);
 
 function urlFor(path: string) {
@@ -230,6 +325,8 @@ function normalizeConfig(input: unknown): TransferHostConfig {
     maxDownloadBytesPerSecond: boundedInteger(value.maxDownloadBytesPerSecond),
     minimumFreeDiskBytes: boundedInteger(value.minimumFreeDiskBytes),
     continuePartialDownloads: boundedBoolean(value.continuePartialDownloads),
+    alwaysResume: boundedBoolean(value.alwaysResume),
+    fileAllocation: boundedString(value.fileAllocation, 32),
     autoRenameConflictingFiles: boundedBoolean(value.autoRenameConflictingFiles),
     allowOverwriteExistingFiles: boundedBoolean(value.allowOverwriteExistingFiles),
     allowInsecureTls: boundedBoolean(value.allowInsecureTls),
@@ -271,6 +368,8 @@ function normalizeJob(input: unknown): TransferJob | null {
         ? verification
         : 'not_requested',
     verificationMessage: boundedString(value.verificationMessage, 2 * 1024),
+    retryAvailable: boundedBoolean(value.retryAvailable),
+    retryUnavailableReason: boundedString(value.retryUnavailableReason, 2 * 1024),
   };
 }
 
@@ -297,6 +396,111 @@ function normalizeMutationResult(input: unknown, requireID = true): TransferMuta
   return {
     id,
     persistenceWarning: boundedString(value.persistenceWarning, 2 * 1024),
+  };
+}
+
+export function normalizeTransferBatchResult(input: unknown): TransferBatchResult {
+  const value = record(input);
+  const rawResults = Array.isArray(value.results) ? value.results.slice(0, 32) : [];
+  const results = rawResults.map((item, fallbackIndex) => {
+    const candidate = record(item);
+    const queued = boundedBoolean(candidate.queued);
+    const id = boundedString(candidate.id, 64);
+    if (queued && !/^[0-9a-fA-F]{1,64}$/.test(id)) {
+      throw new Error('ProtoPeek returned an invalid batch transfer result.');
+    }
+    const rawFailureCode = boundedString(candidate.failureCode, 64) as TransferBatchFailureCode;
+    return {
+      index: Number.isSafeInteger(candidate.index)
+        ? Math.min(Math.max(candidate.index as number, 0), 31)
+        : fallbackIndex,
+      queued,
+      id: queued ? id : '',
+      failureCode:
+        !queued && batchFailureCodes.has(rawFailureCode) ? rawFailureCode : ('' as const),
+      persistenceWarning: queued ? boundedString(candidate.persistenceWarning, 2 * 1024) : '',
+    } satisfies TransferBatchItemResult;
+  });
+  const queuedCount = results.filter((result) => result.queued).length;
+  const failedCount = results.length - queuedCount;
+  return {
+    requestedCount: Math.max(boundedInteger(value.requestedCount, 32), results.length),
+    queuedCount,
+    failedCount,
+    results,
+    persistenceWarning: boundedString(value.persistenceWarning, 2 * 1024),
+  };
+}
+
+function boundedStringArray(input: unknown, maximumItems = 64, maximumLength = 2 * 1024) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, maximumItems)
+    .map((item) => boundedString(item, maximumLength))
+    .filter(Boolean);
+}
+
+export function normalizeGoBarryMigrationPreview(input: unknown): GoBarryMigrationPreview {
+  const value = record(input);
+  const changes = Array.isArray(value.settingChanges)
+    ? value.settingChanges.slice(0, 64).flatMap((item) => {
+        const change = record(item);
+        const key = boundedString(change.key, 128);
+        if (!key) return [];
+        return [
+          {
+            key,
+            before: boundedString(change.before, 4 * 1024),
+            after: boundedString(change.after, 4 * 1024),
+            note: boundedString(change.note, 2 * 1024),
+          },
+        ];
+      })
+    : [];
+  return {
+    available: boundedBoolean(value.available),
+    preferencesFound: boundedBoolean(value.preferencesFound),
+    sessionFound: boundedBoolean(value.sessionFound),
+    sessionBytes: boundedInteger(value.sessionBytes, 16 << 20),
+    sessionEntries: boundedInteger(value.sessionEntries, 4096),
+    settingChanges: changes,
+    preservedButUnsupported: boundedStringArray(value.preservedButUnsupported),
+    warnings: boundedStringArray(value.warnings),
+    targetConfigExists: boundedBoolean(value.targetConfigExists),
+    targetSessionExists: boundedBoolean(value.targetSessionExists),
+    alreadyImported: boundedBoolean(value.alreadyImported),
+    canImport: boundedBoolean(value.canImport),
+    engineMustBeStopped: boundedBoolean(value.engineMustBeStopped),
+    lastReceiptId: boundedString(value.lastReceiptId, 96),
+  };
+}
+
+export function normalizeGoBarryImportResult(input: unknown): GoBarryImportResult {
+  const value = record(input);
+  const rawImportedAt = boundedString(value.importedAt, 128);
+  return {
+    imported: boundedBoolean(value.imported),
+    preferencesImported: boundedBoolean(value.preferencesImported),
+    sessionImported: boundedBoolean(value.sessionImported),
+    sessionEntriesAdded: boundedInteger(value.sessionEntriesAdded, 4096),
+    sourcePreserved: boundedBoolean(value.sourcePreserved),
+    alreadyImported: boundedBoolean(value.alreadyImported),
+    importedAt: rawImportedAt && Number.isFinite(Date.parse(rawImportedAt)) ? rawImportedAt : '',
+    message: boundedString(value.message, 2 * 1024),
+    receiptId: boundedString(value.receiptId, 96),
+  };
+}
+
+export function normalizeGoBarryRollbackResult(input: unknown): GoBarryRollbackResult {
+  const value = record(input);
+  const rawRolledBackAt = boundedString(value.rolledBackAt, 128);
+  return {
+    rolledBack: boundedBoolean(value.rolledBack),
+    receiptId: boundedString(value.receiptId, 96),
+    sourcePreserved: boundedBoolean(value.sourcePreserved),
+    rolledBackAt:
+      rawRolledBackAt && Number.isFinite(Date.parse(rawRolledBackAt)) ? rawRolledBackAt : '',
+    message: boundedString(value.message, 2 * 1024),
   };
 }
 
@@ -348,6 +552,23 @@ export async function addTransfer(
   return normalizeMutationResult(await mutateTransfer('api/transfers/add', payload, signal));
 }
 
+export async function addTransferBatch(jobs: TransferBatchJob[], signal?: AbortSignal) {
+  if (jobs.length === 0 || jobs.length > 32) {
+    throw new Error('A batch must contain between 1 and 32 independent downloads.');
+  }
+  const payload = {
+    jobs: jobs.map((job) => ({
+      sources: [job.source],
+      ...(job.outputName ? { outputName: job.outputName } : {}),
+      ...(job.sha256 ? { sha256: job.sha256 } : {}),
+      ...(job.destinationDirectory ? { destinationDirectory: job.destinationDirectory } : {}),
+      ...(job.headers?.length ? { headers: job.headers.slice(0, 16) } : {}),
+      ...(job.userAgent ? { userAgent: job.userAgent } : {}),
+    })),
+  };
+  return normalizeTransferBatchResult(await mutateTransfer('api/transfers/batch', payload, signal));
+}
+
 export async function mutateTransferJob(
   action: 'pause' | 'resume' | 'retry' | 'cancel',
   id: string,
@@ -355,4 +576,46 @@ export async function mutateTransferJob(
 ) {
   const input = await mutateTransfer(`api/transfers/${action}`, { id }, signal);
   return normalizeMutationResult(input, action === 'retry');
+}
+
+export async function mutateTransferQueue(
+  action: 'pause-all' | 'resume-all',
+  signal?: AbortSignal
+) {
+  return normalizeMutationResult(
+    await mutateTransfer(`api/transfers/${action}`, undefined, signal),
+    false
+  );
+}
+
+export async function previewGoBarryMigration(signal?: AbortSignal) {
+  return normalizeGoBarryMigrationPreview(
+    await mutateTransfer('api/transfers/migrations/gobarry/preview', undefined, signal)
+  );
+}
+
+export async function importGoBarryState(
+  options: { importPreferences: boolean; importSession: boolean },
+  signal?: AbortSignal
+) {
+  return normalizeGoBarryImportResult(
+    await mutateTransfer(
+      'api/transfers/migrations/gobarry/import',
+      {
+        ...options,
+        acknowledgeSourcePreserved: true,
+      },
+      signal
+    )
+  );
+}
+
+export async function rollbackGoBarryState(receiptId: string, signal?: AbortSignal) {
+  return normalizeGoBarryRollbackResult(
+    await mutateTransfer(
+      'api/transfers/migrations/gobarry/rollback',
+      { receiptId, acknowledgeCurrentStateCheck: true },
+      signal
+    )
+  );
 }

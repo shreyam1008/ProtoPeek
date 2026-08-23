@@ -8,19 +8,26 @@ import {
   LoaderCircle,
   Pause,
   Play,
+  Plus,
   RefreshCw,
   RotateCcw,
+  ShieldCheck,
+  Trash2,
   X,
 } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  addTransfer,
+  addTransferBatch,
   fetchTransferSnapshot,
   mutateTransferJob,
+  mutateTransferQueue,
   startTransferEngine,
+  type TransferBatchFailureCode,
+  type TransferBatchResult,
   type TransferJob,
   type TransferJobStatus,
+  type TransferRequestHeader,
   type TransferSnapshot,
 } from './transfer-api';
 import './downloader.css';
@@ -28,6 +35,11 @@ import './downloader.css';
 type QueueFilter = 'all' | 'active' | 'completed' | 'failed';
 
 const activeStatuses = new Set<TransferJobStatus>(['queued', 'downloading', 'paused']);
+const maxBatchJobs = 32;
+
+type HeaderDraft = TransferRequestHeader & { id: number };
+
+let nextHeaderID = 1;
 
 export function Downloader() {
   const [snapshot, setSnapshot] = useState<TransferSnapshot | null>(null);
@@ -35,6 +47,10 @@ export function Downloader() {
   const [source, setSource] = useState('');
   const [outputName, setOutputName] = useState('');
   const [sha256, setSha256] = useState('');
+  const [destinationDirectory, setDestinationDirectory] = useState('');
+  const [jobUserAgent, setJobUserAgent] = useState('');
+  const [headers, setHeaders] = useState<HeaderDraft[]>([]);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [filter, setFilter] = useState<QueueFilter>('all');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -78,6 +94,10 @@ export function Downloader() {
     return () => window.clearInterval(interval);
   }, [busy, refresh, snapshot?.health.ready]);
 
+  useEffect(() => {
+    if (advancedOpen) void import('./downloader-advanced.css');
+  }, [advancedOpen]);
+
   const selected = snapshot?.jobs.find((job) => job.id === selectedID) ?? null;
   const filteredJobs = useMemo(() => {
     const jobs = snapshot?.jobs ?? [];
@@ -97,25 +117,71 @@ export function Downloader() {
     };
   }, [snapshot?.jobs]);
 
+  const batchSources = useMemo(() => parseBatchSources(source), [source]);
+  const batchCount = batchSources.length;
+
+  function addHeader() {
+    setHeaders((current) =>
+      current.length >= 16 ? current : [...current, { id: nextHeaderID++, name: '', value: '' }]
+    );
+  }
+
+  function updateHeader(id: number, field: 'name' | 'value', value: string) {
+    setHeaders((current) =>
+      current.map((header) => (header.id === id ? { ...header, [field]: value } : header))
+    );
+  }
+
+  function removeHeader(id: number) {
+    setHeaders((current) => current.filter((header) => header.id !== id));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmed = source.trim();
-    if (!trimmed || busy) return;
+    if (batchCount === 0 || busy) return;
+    if (batchCount > maxBatchJobs) {
+      setError(`Queue at most ${maxBatchJobs} independent URLs in one batch.`);
+      return;
+    }
+    if (headers.some((header) => !header.name.trim() || !header.value.trim())) {
+      setError('Complete or remove every request header row before queueing.');
+      return;
+    }
     setBusy('add');
     setError('');
     setWarning('');
     try {
       if (!snapshot?.health.ready) await startTransferEngine();
-      const result = await addTransfer(trimmed, {
-        outputName: outputName.trim(),
-        sha256: sha256.trim(),
-      });
-      setSource('');
-      setOutputName('');
-      setSha256('');
+      const singleJob = batchCount === 1;
+      const result = await addTransferBatch(
+        batchSources.map((jobSource) => ({
+          source: jobSource,
+          outputName: singleJob ? outputName.trim() : undefined,
+          sha256: singleJob ? sha256.trim() : undefined,
+          destinationDirectory: destinationDirectory.trim(),
+          userAgent: jobUserAgent.trim(),
+          headers: headers.map(({ name, value }) => ({ name: name.trim(), value })),
+        }))
+      );
+      if (result.queuedCount > 0) {
+        const failedSources = result.results
+          .filter((item) => !item.queued)
+          .map((item) => batchSources[item.index])
+          .filter((item): item is string => Boolean(item));
+        setSource(failedSources.join('\n'));
+        setOutputName('');
+        setSha256('');
+        setHeaders([]);
+      }
       await refresh();
-      setSelectedID(result.id);
-      setWarning(result.persistenceWarning);
+      const firstQueued = result.results.find((item) => item.queued)?.id;
+      if (firstQueued) setSelectedID(firstQueued);
+      const summary = batchResultMessage(result);
+      if (result.queuedCount === 0) {
+        setError(summary);
+      } else {
+        setWarning([summary, result.persistenceWarning].filter(Boolean).join(' '));
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The download could not be started.');
     } finally {
@@ -144,6 +210,29 @@ export function Downloader() {
     }
   }
 
+  async function runQueueAction(action: 'pause-all' | 'resume-all') {
+    if (busy) return;
+    setBusy(action);
+    setError('');
+    setWarning('');
+    try {
+      const result = await mutateTransferQueue(action);
+      await refresh();
+      setWarning(result.persistenceWarning);
+    } catch (cause) {
+      await refresh();
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : action === 'pause-all'
+            ? 'The queue could not be paused.'
+            : 'The queue could not be resumed.'
+      );
+    } finally {
+      setBusy('');
+    }
+  }
+
   return (
     <div className="pp-downloader">
       <header className="pp-downloader-heading">
@@ -151,61 +240,197 @@ export function Downloader() {
           <span className="pp-kicker">Download · verify · inspect</span>
           <h1>Downloader</h1>
           <p>
-            Paste a URL, run a bounded local transfer, and inspect its download and checksum
-            evidence.
+            Queue one URL or a bounded batch of independent jobs, then inspect real local transfer
+            and checksum evidence.
           </p>
         </div>
         <EngineState snapshot={snapshot} loading={loading} onRefresh={() => void refresh()} />
       </header>
 
       <form className="pp-download-composer" onSubmit={submit}>
-        <label htmlFor="download-source">URL</label>
-        <input
+        <label htmlFor="download-source">URLs · one independent job per line</label>
+        <textarea
           id="download-source"
-          type="url"
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
-          maxLength={8 * 1024}
-          placeholder="https://example.com/artifact.tar.gz"
+          maxLength={maxBatchJobs * (8 * 1024 + 1)}
+          rows={2}
+          aria-describedby="download-batch-hint"
+          placeholder={'https://example.com/artifact.tar.gz\nhttps://example.com/checksums.txt'}
           value={source}
           onChange={(event) => setSource(event.target.value)}
         />
-        <button type="submit" disabled={!source.trim() || Boolean(busy)}>
+        <button
+          type="submit"
+          disabled={batchCount === 0 || batchCount > maxBatchJobs || Boolean(busy)}
+        >
           {busy === 'add' ? (
             <LoaderCircle className="is-spinning" aria-hidden="true" />
           ) : (
             <ArrowDownToLine aria-hidden="true" />
           )}
-          {snapshot?.health.ready ? 'Start download' : 'Start Downloader'}
+          {snapshot?.health.ready
+            ? batchCount > 1
+              ? `Queue ${batchCount} downloads`
+              : 'Start download'
+            : batchCount > 1
+              ? `Start Downloader + ${batchCount} jobs`
+              : 'Start Downloader'}
         </button>
-        <details className="pp-download-options">
-          <summary>Optional file name and SHA-256 verification</summary>
-          <div>
-            <label htmlFor="download-output-name">Output file name</label>
-            <input
-              id="download-output-name"
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={255}
-              placeholder="artifact.tar.gz"
-              value={outputName}
-              onChange={(event) => setOutputName(event.target.value)}
-            />
-            <label htmlFor="download-sha256">Expected SHA-256</label>
-            <input
-              id="download-sha256"
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={64}
-              pattern="[0-9a-fA-F]{64}"
-              placeholder="64 hexadecimal characters"
-              value={sha256}
-              onChange={(event) => setSha256(event.target.value)}
-            />
-          </div>
+        <span id="download-batch-hint" className="pp-batch-hint">
+          <strong>{batchCount}</strong>/{maxBatchJobs} jobs · each line is queued separately, never
+          treated as a mirror.
+        </span>
+        <details
+          className="pp-download-options"
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+        >
+          <summary>
+            Advanced per-job options <span>loaded when opened</span>
+          </summary>
+          {advancedOpen ? (
+            <div className="pp-download-advanced-grid">
+              <section>
+                <div className="pp-advanced-heading">
+                  <div>
+                    <strong>File integrity</strong>
+                    <small>Available for a single URL.</small>
+                  </div>
+                  <ShieldCheck aria-hidden="true" />
+                </div>
+                {batchCount > 1 ? (
+                  <p className="pp-advanced-note" role="status">
+                    File name and checksum are disabled for batches because every line is an
+                    independent artifact.
+                  </p>
+                ) : null}
+                <label htmlFor="download-output-name">Output file name</label>
+                <input
+                  id="download-output-name"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={255}
+                  disabled={batchCount > 1}
+                  placeholder="artifact.tar.gz"
+                  value={outputName}
+                  onChange={(event) => setOutputName(event.target.value)}
+                />
+                <label htmlFor="download-sha256">Expected SHA-256</label>
+                <input
+                  id="download-sha256"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={64}
+                  pattern="[0-9a-fA-F]{64}"
+                  disabled={batchCount > 1}
+                  placeholder="64 hexadecimal characters"
+                  value={sha256}
+                  onChange={(event) => setSha256(event.target.value)}
+                />
+              </section>
+
+              <section>
+                <div className="pp-advanced-heading">
+                  <div>
+                    <strong>Job routing</strong>
+                    <small>Applied independently to every line in this batch.</small>
+                  </div>
+                </div>
+                <label htmlFor="download-destination">Absolute destination directory</label>
+                <input
+                  id="download-destination"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={4 * 1024}
+                  placeholder={snapshot?.config.downloadDirectory || '/absolute/path/to/downloads'}
+                  value={destinationDirectory}
+                  onChange={(event) => setDestinationDirectory(event.target.value)}
+                />
+                <label htmlFor="download-user-agent">User-Agent override</label>
+                <input
+                  id="download-user-agent"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  maxLength={256}
+                  placeholder={snapshot?.config.userAgent || 'ProtoPeek'}
+                  value={jobUserAgent}
+                  onChange={(event) => setJobUserAgent(event.target.value)}
+                />
+              </section>
+
+              <section className="pp-advanced-headers">
+                <div className="pp-advanced-heading">
+                  <div>
+                    <strong>Request headers</strong>
+                    <small>
+                      Values are masked and cleared from this form after queueing. Exact retry and
+                      resume state stays only in private local transfer storage and is never
+                      returned by queue or API results.
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className="pp-header-add"
+                    disabled={headers.length >= 16}
+                    onClick={addHeader}
+                  >
+                    <Plus aria-hidden="true" /> Add header
+                  </button>
+                </div>
+                {headers.length === 0 ? (
+                  <p className="pp-advanced-note">
+                    No per-job headers. ProtoPeek will not invent any.
+                  </p>
+                ) : (
+                  <div className="pp-header-list">
+                    {headers.map((header, index) => (
+                      <div className="pp-header-row" key={header.id}>
+                        <label htmlFor={`download-header-name-${header.id}`}>
+                          Header {index + 1} name
+                        </label>
+                        <input
+                          id={`download-header-name-${header.id}`}
+                          type="text"
+                          autoComplete="off"
+                          spellCheck={false}
+                          maxLength={128}
+                          placeholder="Authorization"
+                          value={header.name}
+                          onChange={(event) => updateHeader(header.id, 'name', event.target.value)}
+                        />
+                        <label htmlFor={`download-header-value-${header.id}`}>
+                          Header {index + 1} value
+                        </label>
+                        <input
+                          id={`download-header-value-${header.id}`}
+                          type="password"
+                          autoComplete="new-password"
+                          spellCheck={false}
+                          maxLength={4 * 1024}
+                          placeholder="Masked value"
+                          value={header.value}
+                          onChange={(event) => updateHeader(header.id, 'value', event.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="pp-header-remove"
+                          onClick={() => removeHeader(header.id)}
+                          aria-label={`Remove header ${index + 1}`}
+                        >
+                          <Trash2 aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          ) : null}
         </details>
       </form>
 
@@ -236,9 +461,41 @@ export function Downloader() {
               <span className="pp-kicker">Queue</span>
               <h2 id="transfer-queue-title">Transfers</h2>
             </div>
-            <span>
-              {counts.all}/{snapshot?.config.maxTrackedJobs || '—'} tracked
-            </span>
+            <div className="pp-transfer-queue-tools">
+              <button
+                type="button"
+                disabled={
+                  !snapshot?.health.ready ||
+                  Boolean(busy) ||
+                  (snapshot.metrics.activeCount === 0 && snapshot.metrics.queuedCount === 0)
+                }
+                onClick={() => void runQueueAction('pause-all')}
+              >
+                {busy === 'pause-all' ? (
+                  <LoaderCircle className="is-spinning" aria-hidden="true" />
+                ) : (
+                  <Pause aria-hidden="true" />
+                )}
+                Pause all
+              </button>
+              <button
+                type="button"
+                disabled={
+                  !snapshot?.health.ready || Boolean(busy) || snapshot.metrics.pausedCount === 0
+                }
+                onClick={() => void runQueueAction('resume-all')}
+              >
+                {busy === 'resume-all' ? (
+                  <LoaderCircle className="is-spinning" aria-hidden="true" />
+                ) : (
+                  <Play aria-hidden="true" />
+                )}
+                Resume all
+              </button>
+              <span>
+                {counts.all}/{snapshot?.config.maxTrackedJobs || '—'} tracked
+              </span>
+            </div>
           </header>
           <nav className="pp-transfer-filters" aria-label="Filter transfers">
             {(['all', 'active', 'completed', 'failed'] as const).map((value) => (
@@ -379,7 +636,13 @@ function TransferRow({
           </button>
         ) : null}
         {!busy && job.status === 'failed' ? (
-          <button type="button" onClick={() => onAction('retry')} aria-label={`Retry ${job.name}`}>
+          <button
+            type="button"
+            disabled={!job.retryAvailable}
+            title={job.retryAvailable ? undefined : job.retryUnavailableReason}
+            onClick={() => onAction('retry')}
+            aria-label={`Retry ${job.name}`}
+          >
             <RotateCcw aria-hidden="true" />
           </button>
         ) : null}
@@ -531,7 +794,12 @@ function TransferInspector({
             </button>
           ) : null}
           {job.status === 'failed' ? (
-            <button type="button" disabled={jobBusy} onClick={() => void onAction('retry', job.id)}>
+            <button
+              type="button"
+              disabled={jobBusy || !job.retryAvailable}
+              title={job.retryAvailable ? undefined : job.retryUnavailableReason}
+              onClick={() => void onAction('retry', job.id)}
+            >
               <RotateCcw aria-hidden="true" /> Retry
             </button>
           ) : null}
@@ -546,6 +814,12 @@ function TransferInspector({
             </button>
           ) : null}
         </div>
+        {job.status === 'failed' && !job.retryAvailable ? (
+          <small className="pp-copy-status" role="status">
+            {job.retryUnavailableReason ||
+              'Exact retry options are unavailable. Queue a new job and re-enter any required headers.'}
+          </small>
+        ) : null}
       </section>
     </aside>
   );
@@ -566,9 +840,9 @@ function QueueNotice({ kind }: { kind: 'loading' | 'empty' | 'stopped' }) {
       </strong>
       <p>
         {kind === 'empty'
-          ? 'Paste an HTTP(S) URL above to add the first item.'
+          ? 'Paste one or more HTTP(S) URLs above; every line becomes its own queue item.'
           : kind === 'stopped'
-            ? 'Paste a URL and ProtoPeek will explicitly start the configured external aria2c engine.'
+            ? 'Queue URLs and ProtoPeek will explicitly start the configured external aria2c engine.'
             : 'Nothing is contacted while this state is loading.'}
       </p>
     </div>
@@ -590,20 +864,52 @@ function filterLabel(value: QueueFilter) {
   return 'Failed';
 }
 
+export function parseBatchSources(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function batchResultMessage(result: TransferBatchResult) {
+  if (result.failedCount === 0) return '';
+  const counts = new Map<TransferBatchFailureCode | '', number>();
+  for (const item of result.results) {
+    if (item.queued) continue;
+    counts.set(item.failureCode, (counts.get(item.failureCode) ?? 0) + 1);
+  }
+  const reasons = Array.from(counts.entries())
+    .map(([code, count]) => `${batchFailureLabel(code)} (${count})`)
+    .join(', ');
+  if (result.queuedCount === 0) {
+    return `No downloads were queued. ${reasons || 'The local engine rejected the batch.'}`;
+  }
+  return `Queued ${result.queuedCount} of ${result.requestedCount} independent downloads. ${result.failedCount} not queued: ${reasons || 'engine rejected'}.`;
+}
+
+function batchFailureLabel(code: TransferBatchFailureCode | '') {
+  if (code === 'invalid_request') return 'invalid job options';
+  if (code === 'engine_stopped') return 'engine stopped';
+  if (code === 'queue_full') return 'queue capacity reached';
+  if (code === 'insufficient_disk') return 'free-space reserve reached';
+  if (code === 'cancelled') return 'request cancelled';
+  return 'aria2c rejected the job';
+}
+
 export function safeSourceLabel(source: string) {
   if (!source) return 'Source hidden until the engine reports it.';
   try {
     const url = new URL(source);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return 'Source hidden because the engine returned an unsupported URL.';
+    }
     url.username = '';
     url.password = '';
-    for (const key of Array.from(url.searchParams.keys())) {
-      if (/token|key|secret|signature|credential|password|auth/i.test(key)) {
-        url.searchParams.set(key, '[redacted]');
-      }
-    }
+    url.search = '';
+    url.hash = '';
     return url.toString();
   } catch {
-    return source.slice(0, 8 * 1024);
+    return 'Source hidden because the engine returned an invalid URL.';
   }
 }
 

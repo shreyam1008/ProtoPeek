@@ -84,6 +84,12 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 4 * kibibyte,
   },
   {
+    label: 'Downloader advanced-options CSS',
+    pattern: /^downloader-advanced-.+\.css$/,
+    maxRawBytes: 4 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
     label: 'Security workspace JavaScript',
     pattern: /^Security-.+\.js$/,
     maxRawBytes: 36 * kibibyte,
@@ -101,6 +107,12 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxRawBytes: 12 * kibibyte,
     maxGzipBytes: 3 * kibibyte,
   },
+  {
+    label: 'Settings workspace CSS',
+    pattern: /^Settings-.+\.css$/,
+    maxRawBytes: 8 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
   // Downloader and Security are route-lazy: neither is transferred when the
   // dashboard or a protocol workbench opens. Keep their own budgets tight,
   // preserve the existing shared-entry ceiling above, and bound the installed
@@ -117,8 +129,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     pattern: /\.css$/,
     mode: 'aggregate',
     // The stable shared stylesheet remains independently capped above; the
-    // aggregate adds four route-lazy feature stylesheets and keeps less than
-    // 8% raw headroom over the current measured 212,454-byte suite.
+    // aggregate includes every route-lazy feature stylesheet and keeps a
+    // deliberately tight regression ceiling above the current measured suite.
     maxRawBytes: 224 * kibibyte,
     maxGzipBytes: 42 * kibibyte,
   },

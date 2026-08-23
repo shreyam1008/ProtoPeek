@@ -111,7 +111,7 @@ func (launcher *Aria2Launcher) Start(ctx context.Context, config HostConfig, pat
 
 	stopper := newRuntimeStopper(process, rpc)
 	return &Runtime{
-		Engine:        &aria2Engine{rpc: rpc},
+		Engine:        &aria2Engine{rpc: rpc, sessionRewritePending: true},
 		BinaryPath:    binary,
 		EngineVersion: version,
 		Done:          process.Done(),
@@ -250,7 +250,8 @@ func buildAria2Arguments(config HostConfig, paths Paths, port int, secretFile st
 		"--min-split-size=" + strconv.FormatInt(config.MinSplitSizeBytes, 10),
 		"--max-overall-download-limit=" + strconv.FormatInt(config.MaxDownloadBytesPerSecond, 10),
 		"--continue=" + boolString(config.ContinuePartialDownloads),
-		"--always-resume=" + boolString(config.ContinuePartialDownloads),
+		"--always-resume=" + boolString(config.AlwaysResume),
+		"--file-allocation=" + config.FileAllocation,
 		"--auto-file-renaming=" + boolString(config.AutoRenameConflictingFiles),
 		"--allow-overwrite=" + boolString(config.AllowOverwriteExistingFiles),
 		"--check-certificate=" + boolString(!config.AllowInsecureTLS),
@@ -261,7 +262,10 @@ func buildAria2Arguments(config HostConfig, paths Paths, port int, secretFile st
 		"--input-file=" + paths.SessionFile,
 		"--save-session=" + paths.SessionFile,
 		"--save-session-interval=30",
-		"--force-save=true",
+		// Default save semantics retain error/unfinished downloads for resume and
+		// exact retry, while excluding completed/removed entries that may contain
+		// signed URLs or Authorization headers.
+		"--force-save=false",
 	}
 	return arguments
 }

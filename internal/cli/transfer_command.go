@@ -37,7 +37,13 @@ type downloadCommandService interface {
 type downloadServiceFactory func() (downloadCommandService, error)
 
 func dispatchSubcommand(arguments []string) (int, bool) {
-	if len(arguments) == 0 || arguments[0] != "download" {
+	if len(arguments) == 0 {
+		return 0, false
+	}
+	if arguments[0] == "migrate-gobarry" {
+		return runGoBarryMigrationCommand(arguments[1:], os.Stdout, os.Stderr, newConfiguredGoBarryMigrationService), true
+	}
+	if arguments[0] != "download" {
 		return 0, false
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -16,6 +16,7 @@ import { useRef, useState } from 'react';
 
 const siteNavigation = [
   { href: '#product', label: 'Product' },
+  { href: '/downloader/', label: 'Downloader' },
   { href: '#screenshots', label: 'Screenshots' },
   { href: '#development', label: 'Development build' },
   { href: '#install', label: 'Install' },
@@ -384,6 +385,13 @@ function DevelopmentBuild() {
               interrupted. It does not attach to an already-running browser process.
             </p>
           </div>
+          <a
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-pp-brand hover:underline"
+            href="/downloader/"
+          >
+            Open the Downloader product page
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
         </article>
 
         <article className="min-w-0 border-l-2 border-pp-brand pl-5">
