@@ -5,6 +5,11 @@ version source of truth.
 
 ## Unreleased
 
+- Added the route-lazy This PC workspace for process-perspective identity and interfaces, explicit
+  bounded Linux listener/connection ownership and one-shot interface load, separately consented
+  public IPv4/IPv6 plus provider-reported BGP origin, and a small opt-in Cloudflare connection-
+  quality plan. Nothing external or process-intensive runs on mount, and no result is labelled an
+  Internet-open port, verified ISP, per-process traffic, packet loss, or line-rate maximum.
 - Bound GoBarryGo import approval to one opaque revision of the reviewed source, target, and mapped
   host configuration; changed bytes or executable resolution now require a fresh preview, and
   duplicate or case-aliased preference fields fail closed instead of using last-value-wins.

@@ -6,6 +6,7 @@ import {
   Download,
   Globe2,
   LockKeyhole,
+  Monitor,
   Network,
   Radar,
   Server,
@@ -141,6 +142,18 @@ export function Dashboard() {
               </span>
               <p>
                 DNS, selected route, Linux hop observations, authorized local discovery, and maps.
+              </p>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+            <Link to="/this-pc" className="pp-protocol-card">
+              <Monitor aria-hidden="true" />
+              <span>
+                <small>On demand</small>
+                <strong>This PC</strong>
+              </span>
+              <p>
+                Local machine and interface evidence, consented socket views, public identity, and a
+                bounded browser-path benchmark.
               </p>
               <ArrowRight aria-hidden="true" />
             </Link>

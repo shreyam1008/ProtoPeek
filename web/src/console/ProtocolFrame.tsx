@@ -62,6 +62,7 @@ const primaryNavigation = [
   { id: 'overview', label: 'Overview', to: '/', icon: Home, exact: true },
   { id: 'protocols', label: 'Protocols', to: '/protocols', icon: Server, exact: false },
   { id: 'network', label: 'Network', to: '/network', icon: Network, exact: false },
+  { id: 'this-pc', label: 'This PC', to: '/this-pc', icon: Monitor, exact: false },
   { id: 'downloader', label: 'Downloader', to: '/downloader', icon: Download, exact: false },
   { id: 'security', label: 'Security', to: '/security', icon: ShieldCheck, exact: false },
   { id: 'settings', label: 'Settings', to: '/settings', icon: SettingsIcon, exact: false },
@@ -209,6 +210,12 @@ export function ProtocolFrame() {
         label: 'Open the network evidence map',
         keywords: 'network map topology graph inventory history',
         run: () => void navigate({ to: '/network/map' }),
+      },
+      {
+        id: 'this-pc',
+        label: 'Open This PC',
+        keywords: 'machine device interfaces listeners connections traffic benchmark public ip',
+        run: () => void navigate({ to: '/this-pc' }),
       },
       {
         id: 'downloader',

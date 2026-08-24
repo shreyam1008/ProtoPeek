@@ -39,6 +39,8 @@ COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-cert
 COPY --from=go-builder /etc/passwd /etc/passwd
 COPY --from=go-builder /out/protopeek /bin/protopeek
 COPY --from=go-builder /out/protopeek /bin/pp
+COPY LICENSE /licenses/protopeek/LICENSE
+COPY THIRD_PARTY_NOTICES.md /licenses/protopeek/THIRD_PARTY_NOTICES.md
 USER protopeek
 EXPOSE 8080
 

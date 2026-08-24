@@ -20,6 +20,7 @@
     "typecheck": "tsgo -p web/tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@cloudflare/speedtest": "1.12.1",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.31",
     "lucide-react": "^1.7.0",

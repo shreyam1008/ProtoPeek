@@ -43,6 +43,16 @@ const publishedPages = [
     highlights: ['Source RTT', 'Authorized /24 discovery', 'Logical topology'],
   },
   {
+    slug: 'this-pc',
+    title: 'This PC evidence',
+    section: 'Guide',
+    description:
+      'The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace.',
+    sourcePath: 'guides/this-pc.md',
+    sourceURL: `${repoRootURL}/blob/master/guides/this-pc.md`,
+    highlights: ['Local listeners', 'Public IPv4 and IPv6', 'Bounded connection quality'],
+  },
+  {
     slug: 'competitive-landscape',
     title: 'Competitive workflow decisions',
     section: 'Product research',

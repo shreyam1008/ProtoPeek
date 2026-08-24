@@ -17,6 +17,10 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > Protocols, Network, Downloader, Security, and Settings. The owned Homebrew and Scoop channels
 > install v0.5.0 and declare aria2 as an external package dependency.
 
+> **Current source after v0.5.0:** a seventh, route-lazy **This PC** workspace adds local machine,
+> interface, listener, connection, public-address, BGP-origin, and bounded Cloudflare
+> connection-quality evidence. It is not part of the published v0.5.0 packages.
+
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
 The screenshot is a real local Chrome capture of the v0.3.0 embedded dashboard. It remains
@@ -81,6 +85,13 @@ pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
 In stable v0.5.0, the dashboard opens at `/` with exactly six primary areas: Overview, Protocols,
 Network, Downloader, Security, and Settings. Legacy `/grpc`, `/http`,
 `/routes`, and `/downloads` links remain compatibility redirects, while `/downloader` is canonical.
+
+Current source adds `/this-pc` as a seventh primary area. Its first render is local-only: it reads
+capabilities, hostname/OS/architecture, and bounded interface evidence from the running ProtoPeek
+process. Local socket/process inspection, public IPv4/IPv6 and BGP-origin lookup, interface-load
+sampling, and a small Cloudflare quality run each remain separate user-triggered operations. A
+local listener is never presented as an Internet-open port, interface counters are never presented
+as per-process traffic, and provider throughput is never presented as the ISP line maximum.
 
 A new gRPC target defaults to `localhost:50051`; each saved
 target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a
@@ -267,6 +278,7 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; copy the current draft as bounded, credential-redacted cURL |
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
+| **This PC · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux socket/process evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; no ambient monitor or Internet-open-port claim |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
 grpcurl handler callbacks and invoke return. Unary callbacks may cluster after transport completion;
@@ -345,6 +357,7 @@ cancellation, and its native inspector.
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
 | Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
+| This PC | Current source after v0.5.0 | Device-centred identity/interfaces, Linux local socket/process evidence and one-shot interface load, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; no background work, privilege, or public-port verdict |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
@@ -356,6 +369,7 @@ operations never start on page load and remain distinct from the passive kernel-
 offline Nmap XML import. Wider range expansion and live capture remain gated.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
+[This PC evidence and connection-quality boundary](guides/this-pc.md),
 [route, path, discovery, and Nmap evidence boundary](guides/route-and-nmap-evidence.md),
 [protocol roadmap](guides/feature-roadmap.md),
 [competitive workflow decisions](guides/competitive-landscape.md),

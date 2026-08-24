@@ -601,6 +601,7 @@ func Run() {
 	defer func() {
 		exit = previousExit
 	}()
+	processThisPCService := localThisPCService(*unsafeAllowRemote)
 
 	var handler http.Handler
 	if launcherMode {
@@ -646,6 +647,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		if processThisPCService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
+		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
 		}
@@ -792,6 +796,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		if processThisPCService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
+		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
 		}
