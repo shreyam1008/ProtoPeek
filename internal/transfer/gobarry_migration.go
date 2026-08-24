@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -36,6 +37,8 @@ var (
 	ErrGoBarryUnsafeState      = errors.New("GoBarryGo state is not safe to import")
 	ErrGoBarryImportActive     = errors.New("stop the transfer engine before importing GoBarryGo state")
 	ErrGoBarryRollbackConflict = errors.New("ProtoPeek transfer state changed after this migration receipt")
+	ErrGoBarryPreviewRevision  = errors.New("valid GoBarryGo migration preview revision is required")
+	ErrGoBarryPreviewConflict  = errors.New("GoBarryGo or ProtoPeek transfer state changed after preview")
 	errGoBarryReceiptNotFound  = errors.New("GoBarryGo migration receipt was not found")
 )
 
@@ -72,12 +75,14 @@ type GoBarryMigrationPreview struct {
 	CanImport               bool                   `json:"canImport"`
 	EngineMustBeStopped     bool                   `json:"engineMustBeStopped"`
 	LastReceiptID           string                 `json:"lastReceiptId,omitempty"`
+	PreviewRevision         string                 `json:"previewRevision"`
 }
 
 type GoBarryImportRequest struct {
-	ImportPreferences          bool `json:"importPreferences"`
-	ImportSession              bool `json:"importSession"`
-	AcknowledgeSourcePreserved bool `json:"acknowledgeSourcePreserved"`
+	ImportPreferences          bool   `json:"importPreferences"`
+	ImportSession              bool   `json:"importSession"`
+	AcknowledgeSourcePreserved bool   `json:"acknowledgeSourcePreserved"`
+	ExpectedRevision           string `json:"expectedRevision"`
 }
 
 type GoBarryImportResult struct {
@@ -175,6 +180,39 @@ type goBarrySource struct {
 	sessionEntries    int
 }
 
+const goBarryPreviewRevisionDomain = "protopeek-gobarry-preview-v1"
+
+type goBarryTargetFiles struct {
+	config        []byte
+	configExists  bool
+	session       []byte
+	sessionExists bool
+	ledger        []byte
+	ledgerExists  bool
+}
+
+type goBarryTargetState struct {
+	files  goBarryTargetFiles
+	config HostConfig
+	ledger goBarryImportLedger
+}
+
+type goBarryPreviewFileIdentity struct {
+	Exists bool   `json:"exists"`
+	SHA256 string `json:"sha256,omitempty"`
+}
+
+type goBarryPreviewRevisionInput struct {
+	Domain               string                     `json:"domain"`
+	Version              int                        `json:"version"`
+	Preferences          goBarryPreviewFileIdentity `json:"preferences"`
+	Session              goBarryPreviewFileIdentity `json:"session"`
+	TargetConfig         goBarryPreviewFileIdentity `json:"targetConfig"`
+	TargetSession        goBarryPreviewFileIdentity `json:"targetSession"`
+	TargetLedger         goBarryPreviewFileIdentity `json:"targetLedger"`
+	ProposedConfigSHA256 string                     `json:"proposedConfigSha256"`
+}
+
 func DefaultGoBarryPaths() (GoBarryPaths, error) {
 	root, err := os.UserConfigDir()
 	if err != nil {
@@ -201,8 +239,11 @@ func (service *Service) previewGoBarry(ctx context.Context, sourcePaths GoBarryP
 	if err := ctx.Err(); err != nil {
 		return GoBarryMigrationPreview{}, err
 	}
+	service.operationMu.Lock()
+	defer service.operationMu.Unlock()
+	service.queueMu.Lock()
+	defer service.queueMu.Unlock()
 	service.mu.RLock()
-	current := service.config
 	running := service.starting || service.runtime != nil
 	targetPaths := service.paths
 	service.mu.RUnlock()
@@ -211,10 +252,22 @@ func (service *Service) previewGoBarry(ctx context.Context, sourcePaths GoBarryP
 	if err != nil {
 		return GoBarryMigrationPreview{}, err
 	}
-	preview, err := buildGoBarryPreview(source, current, targetPaths, running)
+	if !source.preferencesFound && !source.sessionFound {
+		return GoBarryMigrationPreview{}, ErrGoBarryNotFound
+	}
+	targetFiles, err := readGoBarryTargetFiles(targetPaths)
 	if err != nil {
 		return GoBarryMigrationPreview{}, err
 	}
+	target, err := decodeGoBarryTargetState(targetFiles)
+	if err != nil {
+		return GoBarryMigrationPreview{}, err
+	}
+	preview, err := buildGoBarryPreview(source, target, running)
+	if err != nil {
+		return GoBarryMigrationPreview{}, err
+	}
+	preview.PreviewRevision = goBarryPreviewRevision(source, target.files, preview.ProposedConfig)
 	return preview, nil
 }
 
@@ -365,6 +418,9 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	if !request.ImportPreferences && !request.ImportSession {
 		return GoBarryImportResult{}, errors.New("select preferences, session, or both to import")
 	}
+	if err := ValidateGoBarryPreviewRevision(request.ExpectedRevision); err != nil {
+		return GoBarryImportResult{}, err
+	}
 	if err := ctx.Err(); err != nil {
 		return GoBarryImportResult{}, err
 	}
@@ -391,24 +447,7 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 		return GoBarryImportResult{}, err
 	}
 	ledgerPath := goBarryLedgerPath(targetPaths)
-	originalConfig, configExisted, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryConfigSize)
-	if err != nil {
-		return GoBarryImportResult{}, err
-	}
-	originalSession, sessionExisted, err := readOptionalTarget(targetPaths.SessionFile, maxGoBarrySessionSize)
-	if err != nil {
-		return GoBarryImportResult{}, err
-	}
-	originalLedger, ledgerFileExisted, err := readOptionalTarget(ledgerPath, maxGoBarryPreferencesSize)
-	if err != nil {
-		return GoBarryImportResult{}, err
-	}
-	current, err := decodeGoBarryTargetConfig(originalConfig, configExisted)
-	if err != nil {
-		return GoBarryImportResult{}, err
-	}
-	service.setConfig(current, HostConfigRevision(current))
-	ledger, ledgerExists, err := decodeGoBarryLedger(originalLedger, ledgerFileExisted)
+	targetFiles, err := readGoBarryTargetFiles(targetPaths)
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
@@ -417,10 +456,28 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
-	preview, err := buildGoBarryPreview(source, current, targetPaths, false)
+	target, err := decodeGoBarryTargetState(targetFiles)
 	if err != nil {
 		return GoBarryImportResult{}, err
 	}
+	current := target.config
+	ledger := target.ledger
+	ledgerExists := target.files.ledgerExists
+	originalConfig := target.files.config
+	configExisted := target.files.configExists
+	originalSession := target.files.session
+	sessionExisted := target.files.sessionExists
+	originalLedger := target.files.ledger
+	ledgerFileExisted := target.files.ledgerExists
+	preview, err := buildGoBarryPreview(source, target, false)
+	if err != nil {
+		return GoBarryImportResult{}, err
+	}
+	previewRevision := goBarryPreviewRevision(source, targetFiles, preview.ProposedConfig)
+	if err := compareGoBarryPreviewRevision(request.ExpectedRevision, previewRevision); err != nil {
+		return GoBarryImportResult{}, err
+	}
+	service.setConfig(current, HostConfigRevision(current))
 	if request.ImportPreferences && !source.preferencesFound {
 		return GoBarryImportResult{}, errors.New("GoBarryGo preferences were not found")
 	}
@@ -570,7 +627,106 @@ func (service *Service) importGoBarry(ctx context.Context, sourcePaths GoBarryPa
 	return result, nil
 }
 
-func buildGoBarryPreview(source goBarrySource, current HostConfig, targetPaths Paths, running bool) (GoBarryMigrationPreview, error) {
+func readGoBarryTargetFiles(targetPaths Paths) (goBarryTargetFiles, error) {
+	config, configExists, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryConfigSize)
+	if err != nil {
+		return goBarryTargetFiles{}, err
+	}
+	session, sessionExists, err := readOptionalTarget(targetPaths.SessionFile, maxGoBarrySessionSize)
+	if err != nil {
+		return goBarryTargetFiles{}, err
+	}
+	ledger, ledgerExists, err := readOptionalTarget(goBarryLedgerPath(targetPaths), maxGoBarryPreferencesSize)
+	if err != nil {
+		return goBarryTargetFiles{}, err
+	}
+	return goBarryTargetFiles{
+		config:        config,
+		configExists:  configExists,
+		session:       session,
+		sessionExists: sessionExists,
+		ledger:        ledger,
+		ledgerExists:  ledgerExists,
+	}, nil
+}
+
+func decodeGoBarryTargetState(files goBarryTargetFiles) (goBarryTargetState, error) {
+	config, err := decodeGoBarryTargetConfig(files.config, files.configExists)
+	if err != nil {
+		return goBarryTargetState{}, err
+	}
+	ledger, ledgerExists, err := decodeGoBarryLedger(files.ledger, files.ledgerExists)
+	if err != nil {
+		return goBarryTargetState{}, err
+	}
+	if ledgerExists != files.ledgerExists {
+		return goBarryTargetState{}, errors.New("migration target ledger existence changed while it was read")
+	}
+	return goBarryTargetState{files: files, config: config, ledger: ledger}, nil
+}
+
+// goBarryPreviewRevision is deliberately derived only from existence bits,
+// SHA-256 file identities, and the canonical proposed-config identity. The
+// opaque token therefore carries no source paths, filesystem contents,
+// credentials, or other migration state.
+func goBarryPreviewRevision(source goBarrySource, target goBarryTargetFiles, proposedConfig HostConfig) string {
+	input := goBarryPreviewRevisionInput{
+		Domain:  goBarryPreviewRevisionDomain,
+		Version: goBarryMigrationVersion,
+		Preferences: goBarryPreviewFileIdentity{
+			Exists: source.preferencesFound,
+			SHA256: source.preferencesDigest,
+		},
+		Session: goBarryPreviewFileIdentity{
+			Exists: source.sessionFound,
+			SHA256: source.sessionDigest,
+		},
+		TargetConfig: goBarryPreviewFileIdentity{
+			Exists: target.configExists,
+			SHA256: digestIfPresent(target.config, target.configExists),
+		},
+		TargetSession: goBarryPreviewFileIdentity{
+			Exists: target.sessionExists,
+			SHA256: digestIfPresent(target.session, target.sessionExists),
+		},
+		TargetLedger: goBarryPreviewFileIdentity{
+			Exists: target.ledgerExists,
+			SHA256: digestIfPresent(target.ledger, target.ledgerExists),
+		},
+		ProposedConfigSHA256: HostConfigRevision(proposedConfig),
+	}
+	data, _ := json.Marshal(input)
+	return digestHex(data)
+}
+
+func digestIfPresent(data []byte, exists bool) string {
+	if !exists {
+		return ""
+	}
+	return digestHex(data)
+}
+
+// ValidateGoBarryPreviewRevision keeps malformed or missing approval tokens
+// outside the migration lock and filesystem boundary. Generated revisions are
+// canonical lowercase SHA-256 values and clients must carry them unchanged.
+func ValidateGoBarryPreviewRevision(revision string) error {
+	if len(revision) != sha256.Size*2 || revision != strings.ToLower(revision) {
+		return ErrGoBarryPreviewRevision
+	}
+	if _, err := hex.DecodeString(revision); err != nil {
+		return ErrGoBarryPreviewRevision
+	}
+	return nil
+}
+
+func compareGoBarryPreviewRevision(expected, actual string) error {
+	if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
+		return ErrGoBarryPreviewConflict
+	}
+	return nil
+}
+
+func buildGoBarryPreview(source goBarrySource, target goBarryTargetState, running bool) (GoBarryMigrationPreview, error) {
 	if !source.preferencesFound && !source.sessionFound {
 		return GoBarryMigrationPreview{}, ErrGoBarryNotFound
 	}
@@ -582,30 +738,26 @@ func buildGoBarryPreview(source goBarrySource, current HostConfig, targetPaths P
 		SessionSHA256:           source.sessionDigest,
 		SessionBytes:            int64(len(source.sessionBytes)),
 		SessionEntries:          source.sessionEntries,
-		ProposedConfig:          current,
+		ProposedConfig:          target.config,
 		SettingChanges:          []GoBarrySettingChange{},
 		PreservedButUnsupported: []string{},
 		Warnings:                []string{},
 		EngineMustBeStopped:     running,
 		CanImport:               !running,
 	}
-	preview.TargetConfigExists = regularTargetExists(targetPaths.ConfigFile)
-	preview.TargetSessionExists = regularTargetExists(targetPaths.SessionFile)
+	preview.TargetConfigExists = target.files.configExists
+	preview.TargetSessionExists = target.files.sessionExists
 	if source.preferencesFound {
-		preview.ProposedConfig, preview.SettingChanges, preview.PreservedButUnsupported, preview.Warnings = mapGoBarryPreferences(current, source.preferences)
+		preview.ProposedConfig, preview.SettingChanges, preview.PreservedButUnsupported, preview.Warnings = mapGoBarryPreferences(target.config, source.preferences)
 		if err := ValidateHostConfig(preview.ProposedConfig); err != nil {
 			return GoBarryMigrationPreview{}, fmt.Errorf("validate mapped GoBarryGo preferences: %w", err)
 		}
 	}
-	ledger, exists, err := loadGoBarryLedger(goBarryLedgerPath(targetPaths))
-	if err != nil {
-		return GoBarryMigrationPreview{}, err
-	}
-	if exists {
-		preferencesMatch := !source.preferencesFound || (ledger.PreferencesImported && ledger.PreferencesSHA256 == source.preferencesDigest)
-		sessionMatch := !source.sessionFound || (ledger.SessionImported && ledger.SessionSHA256 == source.sessionDigest)
+	if target.files.ledgerExists {
+		preferencesMatch := !source.preferencesFound || (target.ledger.PreferencesImported && target.ledger.PreferencesSHA256 == source.preferencesDigest)
+		sessionMatch := !source.sessionFound || (target.ledger.SessionImported && target.ledger.SessionSHA256 == source.sessionDigest)
 		preview.AlreadyImported = preferencesMatch && sessionMatch
-		preview.LastReceiptID = ledger.LastReceiptID
+		preview.LastReceiptID = target.ledger.LastReceiptID
 	}
 	return preview, nil
 }
@@ -731,13 +883,8 @@ func readGoBarrySource(paths GoBarryPaths) (goBarrySource, error) {
 		if err := validateGoBarryPreferenceFields(preferences); err != nil {
 			return source, fmt.Errorf("%w: %v", ErrGoBarryUnsafeState, err)
 		}
-		decoder := json.NewDecoder(bytes.NewReader(preferences))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&source.preferences); err != nil {
+		if err := decodeStrictJSON(preferences, &source.preferences); err != nil {
 			return source, fmt.Errorf("%w: decode GoBarryGo preferences: %v", ErrGoBarryUnsafeState, err)
-		}
-		if err := ensureJSONEOF(decoder); err != nil {
-			return source, fmt.Errorf("%w: %v", ErrGoBarryUnsafeState, err)
 		}
 		source.preferencesFound = true
 		source.preferencesBytes = preferences
@@ -1615,11 +1762,6 @@ func goBarrySourceUnchanged(paths GoBarryPaths, source goBarrySource) (bool, err
 		return false, err
 	}
 	return current.preferencesFound == source.preferencesFound && current.sessionFound == source.sessionFound && current.preferencesDigest == source.preferencesDigest && current.sessionDigest == source.sessionDigest, nil
-}
-
-func regularTargetExists(path string) bool {
-	info, err := os.Lstat(path)
-	return err == nil && info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0
 }
 
 func digestHex(data []byte) string {

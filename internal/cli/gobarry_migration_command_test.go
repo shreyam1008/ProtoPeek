@@ -75,11 +75,38 @@ func TestGoBarryMigrationCommandApplyIsExplicitAndPreserving(t *testing.T) {
 	if code != 0 || service.importCalls != 1 {
 		t.Fatalf("code=%d import=%d stderr=%q", code, service.importCalls, stderr.String())
 	}
-	if !service.lastRequest.ImportPreferences || !service.lastRequest.ImportSession || !service.lastRequest.AcknowledgeSourcePreserved {
+	if !service.lastRequest.ImportPreferences || !service.lastRequest.ImportSession || !service.lastRequest.AcknowledgeSourcePreserved || service.lastRequest.ExpectedRevision != service.preview.PreviewRevision {
 		t.Fatalf("request=%#v", service.lastRequest)
 	}
 	if !strings.Contains(stdout.String(), "source files were left untouched") {
 		t.Fatalf("stdout=%q", stdout.String())
+	}
+}
+
+func TestGoBarryMigrationCommandCarriesOnePreviewRevisionForSubsetImports(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		arguments   []string
+		preferences bool
+		session     bool
+	}{
+		{name: "preferences only", arguments: []string{"--apply", "--session=false"}, preferences: true},
+		{name: "session only", arguments: []string{"--apply", "--preferences=false"}, session: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			service := &fakeGoBarryCommandService{preview: migrationCommandPreview(), result: transfer.GoBarryImportResult{Imported: true, SourcePreserved: true}}
+			var stdout bytes.Buffer
+			var stderr bytes.Buffer
+			code := runGoBarryMigrationCommand(test.arguments, &stdout, &stderr, func() (goBarryMigrationCommandService, error) {
+				return service, nil
+			})
+			if code != 0 || service.importCalls != 1 {
+				t.Fatalf("code=%d import=%d stderr=%q", code, service.importCalls, stderr.String())
+			}
+			if service.lastRequest.ImportPreferences != test.preferences || service.lastRequest.ImportSession != test.session || service.lastRequest.ExpectedRevision != service.preview.PreviewRevision {
+				t.Fatalf("request=%#v", service.lastRequest)
+			}
+		})
 	}
 }
 
@@ -96,6 +123,7 @@ func TestGoBarryMigrationCommandRejectsMissingUnsafeAndActiveState(t *testing.T)
 		{name: "missing", previewErr: transfer.ErrGoBarryNotFound, want: "No GoBarryGo", wantCode: 1},
 		{name: "unsafe", previewErr: transfer.ErrGoBarryUnsafeState, want: "safety checks", wantCode: 1},
 		{name: "active", arguments: []string{"--apply"}, preview: migrationCommandPreview(), importErr: transfer.ErrGoBarryImportActive, want: "Stop the ProtoPeek Downloader", wantCode: 1},
+		{name: "preview changed", arguments: []string{"--apply"}, preview: migrationCommandPreview(), importErr: transfer.ErrGoBarryPreviewConflict, want: "run the command again", wantCode: 1},
 		{name: "nothing selected", arguments: []string{"--preferences=false", "--session=false"}, want: "Select at least one", wantCode: 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -182,6 +210,7 @@ func migrationCommandPreview() transfer.GoBarryMigrationPreview {
 		SessionBytes:     1024,
 		SessionEntries:   2,
 		CanImport:        true,
+		PreviewRevision:  strings.Repeat("a", 64),
 		SettingChanges: []transfer.GoBarrySettingChange{{
 			Key: "downloadDirectory", Before: "/old", After: "/new", Note: "Preserved.",
 		}},

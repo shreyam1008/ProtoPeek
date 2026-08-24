@@ -141,8 +141,11 @@ Imports are idempotent. Each successful mutation creates private mode-0600 state
 ledger, and a receipt containing the exact before/after target hashes and private backups. Rollback
 is allowed only while current ProtoPeek transfer state still matches the receipt; otherwise it
 refuses rather than overwriting newer work. Stop both GoBarryGo and the ProtoPeek Downloader before
-previewing a final source snapshot or applying/rolling back a receipt. Existing GoBarryGo releases
-continue to work independently.
+previewing a final source snapshot or applying/rolling back a receipt. Apply also carries one opaque
+preview revision over both GoBarryGo source files, ProtoPeek's target config/session/ledger, and the
+mapped host configuration. If any file bytes or the mapped executable outcome change after review,
+import refuses and requires a fresh preview before it writes. Existing GoBarryGo releases continue
+to work independently.
 
 If a later consolidation is approved, its preservation gate must cover:
 

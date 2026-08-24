@@ -206,14 +206,35 @@ export function Settings() {
     setMigrationBusy(true);
     setMigrationError('');
     try {
-      const result = await importGoBarryState({ importPreferences, importSession });
-      setNotice(result.message || 'GoBarryGo state imported into ProtoPeek.');
-      const refreshed = await previewGoBarryMigration();
-      setMigrationPreview(refreshed);
+      const result = await importGoBarryState({
+        importPreferences,
+        importSession,
+        expectedRevision: migrationPreview.previewRevision,
+      });
+      const successMessage = result.message || 'GoBarryGo state imported into ProtoPeek.';
+      setNotice(successMessage);
+      setMigrationPreview(null);
       setPreservationAccepted(false);
       setRollbackAccepted(false);
-      await refreshHostSettings().catch(() => undefined);
+      try {
+        const refreshed = await previewGoBarryMigration();
+        setMigrationPreview(refreshed);
+      } catch {
+        setMigrationError(
+          'Import succeeded, but current migration state could not be reloaded. Check again before another migration action.'
+        );
+      }
+      try {
+        await refreshHostSettings();
+      } catch {
+        setNotice(
+          `${successMessage} The host snapshot could not be reloaded; reload it before changing host settings.`
+        );
+      }
     } catch (cause) {
+      setMigrationPreview(null);
+      setPreservationAccepted(false);
+      setRollbackAccepted(false);
       setMigrationError(
         cause instanceof Error ? cause.message : 'GoBarryGo state could not be imported.'
       );
@@ -230,12 +251,31 @@ export function Settings() {
     setMigrationError('');
     try {
       const result = await rollbackGoBarryState(migrationPreview.lastReceiptId);
-      setNotice(result.message || 'ProtoPeek transfer state restored from the migration receipt.');
-      const refreshed = await previewGoBarryMigration();
-      setMigrationPreview(refreshed);
+      const successMessage =
+        result.message || 'ProtoPeek transfer state restored from the migration receipt.';
+      setNotice(successMessage);
+      setMigrationPreview(null);
+      setPreservationAccepted(false);
       setRollbackAccepted(false);
-      await refreshHostSettings().catch(() => undefined);
+      try {
+        const refreshed = await previewGoBarryMigration();
+        setMigrationPreview(refreshed);
+      } catch {
+        setMigrationError(
+          'Rollback succeeded, but current migration state could not be reloaded. Check again before another migration action.'
+        );
+      }
+      try {
+        await refreshHostSettings();
+      } catch {
+        setNotice(
+          `${successMessage} The host snapshot could not be reloaded; reload it before changing host settings.`
+        );
+      }
     } catch (cause) {
+      setMigrationPreview(null);
+      setPreservationAccepted(false);
+      setRollbackAccepted(false);
       setMigrationError(
         cause instanceof Error ? cause.message : 'The GoBarryGo migration could not be rolled back.'
       );
@@ -958,6 +998,7 @@ function GoBarryMigrationPanel({
             busy ||
             preview.alreadyImported ||
             !preview.canImport ||
+            !preview.previewRevision ||
             !preservationAccepted ||
             nothingSelected
           }

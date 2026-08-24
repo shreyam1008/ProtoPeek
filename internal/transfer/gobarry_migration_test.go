@@ -1,12 +1,15 @@
 package transfer
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -95,11 +98,11 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 	if _, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{ImportPreferences: true, ImportSession: true}); err == nil {
 		t.Fatal("import without preservation acknowledgement succeeded")
 	}
-	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	result, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportPreferences:          true,
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("import: %v", err)
 	}
@@ -127,11 +130,11 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 		t.Fatalf("new imported jobs must be paused without mutating existing jobs: %q", merged)
 	}
 
-	second, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	second, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportPreferences:          true,
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("repeat import: %v", err)
 	}
@@ -194,6 +197,311 @@ func TestGoBarryImportIsExplicitPreservingAndIdempotent(t *testing.T) {
 	}
 }
 
+func TestGoBarryImportRequiresMatchingPreviewRevisionWithoutWriting(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*testing.T, GoBarryPaths, Paths)
+	}{
+		{
+			name: "source preferences",
+			mutate: func(t *testing.T, sourcePaths GoBarryPaths, _ Paths) {
+				writeMigrationFixture(t, sourcePaths.PreferencesFile, goBarryPreviewPreferencesFixture(filepath.Dir(sourcePaths.PreferencesFile), "Changed/1"))
+			},
+		},
+		{
+			name: "source session",
+			mutate: func(t *testing.T, sourcePaths GoBarryPaths, _ Paths) {
+				writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/changed-source.zip\n")
+			},
+		},
+		{
+			name: "target config",
+			mutate: func(t *testing.T, _ GoBarryPaths, targetPaths Paths) {
+				config := DefaultHostConfig()
+				config.MaxActiveJobs++
+				if err := NewConfigStore(targetPaths.ConfigFile).Save(config); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "target session",
+			mutate: func(t *testing.T, _ GoBarryPaths, targetPaths Paths) {
+				writeMigrationFixture(t, targetPaths.SessionFile, "https://example.com/changed-target.zip\n")
+			},
+		},
+		{
+			name: "target ledger",
+			mutate: func(t *testing.T, _ GoBarryPaths, targetPaths Paths) {
+				ledger, err := json.Marshal(goBarryImportLedger{Version: goBarryMigrationVersion, SessionEntriesAdded: 1})
+				if err != nil {
+					t.Fatal(err)
+				}
+				writeMigrationFixture(t, goBarryLedgerPath(targetPaths), string(append(ledger, '\n')))
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			sourcePaths, targetPaths, service := newGoBarryPreviewFixture(t)
+			preview, err := service.previewGoBarry(context.Background(), sourcePaths)
+			if err != nil {
+				t.Fatalf("preview: %v", err)
+			}
+			test.mutate(t, sourcePaths, targetPaths)
+			beforePreferences := append([]byte(nil), mustReadMigrationFile(t, sourcePaths.PreferencesFile)...)
+			beforeSession := append([]byte(nil), mustReadMigrationFile(t, sourcePaths.SessionFile)...)
+			beforeConfig, configExists, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryConfigSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeTargetSession, sessionExists, err := readOptionalTarget(targetPaths.SessionFile, maxGoBarrySessionSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeLedger, ledgerExists, err := readOptionalTarget(goBarryLedgerPath(targetPaths), maxGoBarryPreferencesSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+				ImportPreferences:          true,
+				ImportSession:              true,
+				AcknowledgeSourcePreserved: true,
+				ExpectedRevision:           preview.PreviewRevision,
+			})
+			if !errors.Is(err, ErrGoBarryPreviewConflict) {
+				t.Fatalf("stale preview error = %v", err)
+			}
+			if got := mustReadMigrationFile(t, sourcePaths.PreferencesFile); !bytes.Equal(got, beforePreferences) {
+				t.Fatal("stale preview changed source preferences")
+			}
+			if got := mustReadMigrationFile(t, sourcePaths.SessionFile); !bytes.Equal(got, beforeSession) {
+				t.Fatal("stale preview changed source session")
+			}
+			afterConfig, afterConfigExists, err := readOptionalTarget(targetPaths.ConfigFile, maxGoBarryConfigSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			afterTargetSession, afterSessionExists, err := readOptionalTarget(targetPaths.SessionFile, maxGoBarrySessionSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			afterLedger, afterLedgerExists, err := readOptionalTarget(goBarryLedgerPath(targetPaths), maxGoBarryPreferencesSize)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if configExists != afterConfigExists || !bytes.Equal(beforeConfig, afterConfig) || sessionExists != afterSessionExists || !bytes.Equal(beforeTargetSession, afterTargetSession) || ledgerExists != afterLedgerExists || !bytes.Equal(beforeLedger, afterLedger) {
+				t.Fatal("stale preview changed target files")
+			}
+			if _, err := os.Stat(goBarryPendingPath(targetPaths)); !os.IsNotExist(err) {
+				t.Fatalf("stale preview created pending state: %v", err)
+			}
+			if entries, err := os.ReadDir(filepath.Join(targetPaths.StateDirectory, "migrations")); err == nil && len(entries) != 0 {
+				t.Fatalf("stale preview created receipt state: %v", entries)
+			}
+		})
+	}
+}
+
+func TestGoBarryPreviewRevisionIsContentDeterministic(t *testing.T) {
+	sourcePaths, _, service := newGoBarryPreviewFixture(t)
+	first, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preferences := mustReadMigrationFile(t, sourcePaths.PreferencesFile)
+	if err := os.Chmod(sourcePaths.PreferencesFile, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(sourcePaths.PreferencesFile, time.Now().Add(-time.Hour), time.Now().Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(sourcePaths.PreferencesFile, preferences, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.PreviewRevision != second.PreviewRevision {
+		t.Fatalf("metadata-only change altered revision: %q != %q", first.PreviewRevision, second.PreviewRevision)
+	}
+}
+
+func TestGoBarryPreviewRevisionBindsMappedExecutableState(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows executable admission is not represented by Unix mode bits")
+	}
+	root := t.TempDir()
+	executable := filepath.Join(root, "aria2c")
+	writeMigrationFixture(t, executable, "#!/bin/sh\nexit 0\n")
+	if err := os.Chmod(executable, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	sourcePaths := GoBarryPaths{
+		PreferencesFile: filepath.Join(root, "gobarrygo", "preferences.json"),
+		SessionFile:     filepath.Join(root, "gobarrygo", "session.aria2"),
+	}
+	targetPaths := migrationTestPaths(filepath.Join(root, "protopeek"))
+	preferences := strings.Replace(
+		goBarryPreviewPreferencesFixture(filepath.Join(root, "downloads"), "Preview/1"),
+		`"aria2Binary": ""`,
+		fmt.Sprintf(`"aria2Binary": %q`, executable),
+		1,
+	)
+	writeMigrationFixture(t, sourcePaths.PreferencesFile, preferences)
+	writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/source.zip\n")
+	service := newMigrationTestService(t, targetPaths)
+
+	preview, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.ProposedConfig.Aria2Path != executable {
+		t.Fatalf("preview aria2 path = %q, want %q", preview.ProposedConfig.Aria2Path, executable)
+	}
+	if err := os.Chmod(executable, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+		ImportPreferences:          true,
+		AcknowledgeSourcePreserved: true,
+		ExpectedRevision:           preview.PreviewRevision,
+	})
+	if !errors.Is(err, ErrGoBarryPreviewConflict) {
+		t.Fatalf("mapped executable state change error = %v", err)
+	}
+	assertGoBarryImportCreatedNoState(t, targetPaths)
+	if _, err := os.Stat(targetPaths.ConfigFile); !os.IsNotExist(err) {
+		t.Fatalf("stale mapped executable preview wrote config: %v", err)
+	}
+}
+
+func TestGoBarryPreviewReportsNoSourceBeforeReadingCorruptTarget(t *testing.T) {
+	root := t.TempDir()
+	sourcePaths := GoBarryPaths{
+		PreferencesFile: filepath.Join(root, "absent", "preferences.json"),
+		SessionFile:     filepath.Join(root, "absent", "session.aria2"),
+	}
+	targetPaths := migrationTestPaths(filepath.Join(root, "protopeek"))
+	writeMigrationFixture(t, targetPaths.ConfigFile, "{not-json")
+	service := newMigrationTestService(t, targetPaths)
+
+	_, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if !errors.Is(err, ErrGoBarryNotFound) {
+		t.Fatalf("no-source preview error = %v", err)
+	}
+}
+
+func TestGoBarryPreviewUsesDiskTargetAndMatchingRevisionImports(t *testing.T) {
+	sourcePaths, targetPaths, service := newGoBarryPreviewFixture(t)
+	diskConfig := DefaultHostConfig()
+	diskConfig.MaxQueuedJobs = 7
+	if err := NewConfigStore(targetPaths.ConfigFile).Save(diskConfig); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if err != nil {
+		t.Fatalf("preview: %v", err)
+	}
+	if preview.ProposedConfig.MaxQueuedJobs != diskConfig.MaxQueuedJobs || len(preview.PreviewRevision) != sha256.Size*2 {
+		t.Fatalf("preview target config/revision = %#v %q", preview.ProposedConfig, preview.PreviewRevision)
+	}
+	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+		ImportPreferences:          true,
+		ImportSession:              true,
+		AcknowledgeSourcePreserved: true,
+		ExpectedRevision:           preview.PreviewRevision,
+	})
+	if err != nil || !result.Imported {
+		t.Fatalf("matching import = %#v err=%v", result, err)
+	}
+}
+
+func TestGoBarryPreviewRevisionSupportsSubsetImports(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		preferences bool
+		session     bool
+	}{
+		{name: "preferences only", preferences: true},
+		{name: "session only", session: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			sourcePaths, _, service := newGoBarryPreviewFixture(t)
+			preview, err := service.previewGoBarry(context.Background(), sourcePaths)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+				ImportPreferences:          test.preferences,
+				ImportSession:              test.session,
+				AcknowledgeSourcePreserved: true,
+				ExpectedRevision:           preview.PreviewRevision,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.PreferencesImported != test.preferences || result.SessionImported != test.session {
+				t.Fatalf("subset result = %#v", result)
+			}
+		})
+	}
+}
+
+func TestGoBarryImportRejectsMissingOrMalformedPreviewRevision(t *testing.T) {
+	for _, revision := range []string{"", "not-a-sha256", strings.Repeat("A", 64)} {
+		t.Run(fmt.Sprintf("revision-%d", len(revision)), func(t *testing.T) {
+			sourcePaths, targetPaths, service := newGoBarryPreviewFixture(t)
+			if _, err := service.previewGoBarry(context.Background(), sourcePaths); err != nil {
+				t.Fatal(err)
+			}
+			_, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+				ImportPreferences:          true,
+				ImportSession:              true,
+				AcknowledgeSourcePreserved: true,
+				ExpectedRevision:           revision,
+			})
+			if !errors.Is(err, ErrGoBarryPreviewRevision) {
+				t.Fatalf("preview revision %q error = %v", revision, err)
+			}
+			assertGoBarryImportCreatedNoState(t, targetPaths)
+		})
+	}
+}
+
+func newGoBarryPreviewFixture(t *testing.T) (GoBarryPaths, Paths, *Service) {
+	t.Helper()
+	root := t.TempDir()
+	sourcePaths := GoBarryPaths{
+		PreferencesFile: filepath.Join(root, "gobarrygo", "preferences.json"),
+		SessionFile:     filepath.Join(root, "gobarrygo", "session.aria2"),
+	}
+	targetPaths := migrationTestPaths(filepath.Join(root, "protopeek"))
+	writeMigrationFixture(t, sourcePaths.PreferencesFile, goBarryPreviewPreferencesFixture(filepath.Join(root, "downloads"), "Preview/1"))
+	writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/source.zip\n out=source.zip\n")
+	return sourcePaths, targetPaths, newMigrationTestService(t, targetPaths)
+}
+
+func goBarryPreviewPreferencesFixture(downloadDirectory, userAgent string) string {
+	return fmt.Sprintf(`{
+  "aria2Binary": "",
+  "downloadDirectory": %q,
+  "maxConcurrentDownloads": 4,
+  "split": 2,
+  "maxConnectionsPerServer": 2,
+  "minSplitSize": "1M",
+  "fileAllocation": "none",
+  "continueDownloads": true,
+  "alwaysResume": true,
+  "autoRename": true,
+  "userAgent": %q,
+  "notifyOnCompletion": false,
+  "notifyOnError": false
+}`, downloadDirectory, userAgent)
+}
+
 func TestGoBarryRollbackRefusesChangedTargetState(t *testing.T) {
 	root := t.TempDir()
 	sourcePaths := GoBarryPaths{
@@ -210,11 +518,11 @@ func TestGoBarryRollbackRefusesChangedTargetState(t *testing.T) {
 }`)
 	writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/file.zip\n out=file.zip\n")
 	service := newMigrationTestService(t, targetPaths)
-	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	result, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportPreferences:          true,
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("import: %v", err)
 	}
@@ -258,6 +566,7 @@ func TestGoBarryImportRejectsUnsafeOrActiveState(t *testing.T) {
 	_, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
 		ImportPreferences:          true,
 		AcknowledgeSourcePreserved: true,
+		ExpectedRevision:           strings.Repeat("a", 64),
 	})
 	if !errors.Is(err, ErrGoBarryImportActive) {
 		t.Fatalf("active import error = %v", err)
@@ -281,10 +590,10 @@ func TestGoBarryMigrationUsesEngineFileLockForImportAndRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	_, err = service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if !errors.Is(err, ErrGoBarryImportActive) || !errors.Is(err, ErrLockHeld) {
 		t.Fatalf("locked import error = %v", err)
 	}
@@ -295,10 +604,10 @@ func TestGoBarryMigrationUsesEngineFileLockForImportAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	result, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("unlocked import: %v", err)
 	}
@@ -365,10 +674,10 @@ func TestGoBarrySessionMergeEnforcesEffectiveAndHardEntryLimits(t *testing.T) {
 	if err := NewConfigStore(targetPaths.ConfigFile).Save(config); err != nil {
 		t.Fatal(err)
 	}
-	_, err = service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	_, err = service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err == nil || !strings.Contains(err.Error(), "configured limit is 2") {
 		t.Fatalf("configured session bound error = %v", err)
 	}
@@ -402,10 +711,10 @@ func TestGoBarrySessionMergeRefusesOversizedCombinedTargetAtomically(t *testing.
 	if err := NewConfigStore(targetPaths.ConfigFile).Save(config); err != nil {
 		t.Fatal(err)
 	}
-	_, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	_, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err == nil || !strings.Contains(err.Error(), "exceeds") {
 		t.Fatalf("combined byte bound error = %v", err)
 	}
@@ -434,10 +743,10 @@ func TestGoBarryImportReloadsCanonicalDiskConfigUnderMigrationLock(t *testing.T)
 	originalTarget := migrationSessionFixture("existing", 2, 0)
 	writeMigrationFixture(t, targetPaths.SessionFile, originalTarget)
 	writeMigrationFixture(t, sourcePaths.SessionFile, migrationSessionFixture("new", 1, 0))
-	_, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	_, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err == nil || !strings.Contains(err.Error(), "configured limit is 2") {
 		t.Fatalf("canonical disk config bound error = %v", err)
 	}
@@ -473,10 +782,10 @@ func TestGoBarryImportUsesDefaultsAfterExternalConfigDeletion(t *testing.T) {
 		t.Fatalf("external config deletion: %v", err)
 	}
 	writeMigrationFixture(t, sourcePaths.SessionFile, "https://example.com/from-gobarry.zip\n out=from-gobarry.zip\n")
-	result, err := service.importGoBarry(context.Background(), sourcePaths, GoBarryImportRequest{
+	result, err := service.importGoBarry(context.Background(), sourcePaths, goBarryImportRequestWithPreview(t, service, sourcePaths, GoBarryImportRequest{
 		ImportSession:              true,
 		AcknowledgeSourcePreserved: true,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("import after external deletion: %v", err)
 	}
@@ -718,6 +1027,51 @@ func TestGoBarrySourceBoundsAndStrictSchema(t *testing.T) {
 	}
 }
 
+func TestGoBarrySourceRejectsDuplicatePreferenceFields(t *testing.T) {
+	root := t.TempDir()
+	sourcePaths := GoBarryPaths{
+		PreferencesFile: filepath.Join(root, "preferences.json"),
+		SessionFile:     filepath.Join(root, "session.aria2"),
+	}
+	valid := fmt.Sprintf(`{
+  "aria2Binary": "",
+  "downloadDirectory": %q,
+  "maxConcurrentDownloads": 4,
+  "split": 2,
+  "maxConnectionsPerServer": 2,
+  "minSplitSize": "1M",
+  "fileAllocation": "none",
+  "continueDownloads": true,
+  "alwaysResume": true,
+  "autoRename": true,
+  "userAgent": "ProtoPeek test",
+  "notifyOnCompletion": false,
+  "notifyOnError": false
+}`, filepath.Join(root, "downloads"))
+
+	writeMigrationFixture(t, sourcePaths.PreferencesFile, valid)
+	if source, err := readGoBarrySource(sourcePaths); err != nil || !source.preferencesFound {
+		t.Fatalf("valid source = %#v, err=%v", source, err)
+	}
+
+	tests := []struct {
+		name  string
+		field string
+	}{
+		{name: "exact", field: "maxConcurrentDownloads"},
+		{name: "case-fold", field: "MaxConcurrentDownloads"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			duplicate := strings.Replace(valid, `  "maxConcurrentDownloads": 4,`, fmt.Sprintf("  %q: 4,\n  %q: 5,", "maxConcurrentDownloads", test.field), 1)
+			writeMigrationFixture(t, sourcePaths.PreferencesFile, duplicate)
+			if _, err := readGoBarrySource(sourcePaths); !errors.Is(err, ErrGoBarryUnsafeState) {
+				t.Fatalf("duplicate preference field error = %v", err)
+			}
+		})
+	}
+}
+
 func TestGoBarryMigrationRejectsSourceAndTargetSymlinks(t *testing.T) {
 	root := t.TempDir()
 	realSource := filepath.Join(root, "real-preferences.json")
@@ -761,6 +1115,19 @@ func newMigrationTestService(t *testing.T, paths Paths) *Service {
 		t.Fatalf("new service: %v", err)
 	}
 	return service
+}
+
+func goBarryImportRequestWithPreview(t *testing.T, service *Service, sourcePaths GoBarryPaths, request GoBarryImportRequest) GoBarryImportRequest {
+	t.Helper()
+	preview, err := service.previewGoBarry(context.Background(), sourcePaths)
+	if err != nil {
+		t.Fatalf("preview before import: %v", err)
+	}
+	if preview.PreviewRevision == "" {
+		t.Fatal("preview did not include a revision")
+	}
+	request.ExpectedRevision = preview.PreviewRevision
+	return request
 }
 
 func migrationTestPaths(root string) Paths {

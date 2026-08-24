@@ -206,6 +206,10 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 			if !decodeStrictTransferJSON(writer, request, maxTransferImportBodyBytes, &input) {
 				return
 			}
+			if err := transfer.ValidateGoBarryPreviewRevision(input.ExpectedRevision); err != nil {
+				writeGoBarryMigrationError(writer, err, false)
+				return
+			}
 			result, err := migration.ImportGoBarry(request.Context(), input)
 			if err != nil {
 				writeGoBarryMigrationError(writer, err, false)
@@ -293,6 +297,12 @@ func writeGoBarryMigrationError(writer http.ResponseWriter, err error, rollingBa
 		} else {
 			message = "Stop the Downloader before importing GoBarryGo state"
 		}
+	case errors.Is(err, transfer.ErrGoBarryPreviewRevision):
+		status = http.StatusBadRequest
+		message = "A valid GoBarryGo migration preview revision is required"
+	case errors.Is(err, transfer.ErrGoBarryPreviewConflict):
+		status = http.StatusConflict
+		message = "GoBarryGo or ProtoPeek transfer state changed after this preview; check again before importing"
 	case errors.Is(err, transfer.ErrGoBarryRollbackConflict):
 		status = http.StatusConflict
 		message = "ProtoPeek transfer state changed after this migration; rollback was refused and current files were preserved"

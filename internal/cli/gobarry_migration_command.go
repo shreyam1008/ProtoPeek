@@ -114,10 +114,13 @@ Flags:
 		ImportPreferences:          *preferences,
 		ImportSession:              *session,
 		AcknowledgeSourcePreserved: true,
+		ExpectedRevision:           preview.PreviewRevision,
 	})
 	if err != nil {
 		if errors.Is(err, transfer.ErrGoBarryImportActive) {
 			fmt.Fprintln(stderr, "Stop the ProtoPeek Downloader before importing GoBarryGo state.")
+		} else if errors.Is(err, transfer.ErrGoBarryPreviewConflict) {
+			fmt.Fprintln(stderr, "GoBarryGo or ProtoPeek transfer state changed after the preview. Import was refused; run the command again to review the current state.")
 		} else {
 			fmt.Fprintln(stderr, "GoBarryGo state could not be imported safely; source files were left untouched.")
 		}

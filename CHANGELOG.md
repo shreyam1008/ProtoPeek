@@ -5,6 +5,9 @@ version source of truth.
 
 ## Unreleased
 
+- Bound GoBarryGo import approval to one opaque revision of the reviewed source, target, and mapped
+  host configuration; changed bytes or executable resolution now require a fresh preview, and
+  duplicate or case-aliased preference fields fail closed instead of using last-value-wins.
 - Promoted the owned Homebrew tap and Scoop bucket to v0.5.0 after their dependency-aware
   definitions and default-branch install checks passed. Both channels keep aria2 external to the
   MIT ProtoPeek archives while making Downloader available through the package-manager install.

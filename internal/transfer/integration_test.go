@@ -47,6 +47,9 @@ func TestSystemAria2Integration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := NewConfigStore(paths.ConfigFile).Save(config); err != nil {
+		t.Fatalf("save integration config: %v", err)
+	}
 	pausedURL := server.URL + "/resume.bin?token=paused-resume-secret"
 	pausedHeader := "Authorization: Bearer paused-resume-header"
 	pausedSession := pausedURL + "\n dir=" + downloads + "\n out=resume.bin\n pause=true\n header=" + pausedHeader + "\n"
