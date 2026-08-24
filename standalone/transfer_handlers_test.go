@@ -620,6 +620,7 @@ func TestGoBarryMigrationPreviewAndExplicitImport(t *testing.T) {
 			SessionFound:     true,
 			SessionEntries:   2,
 			CanImport:        true,
+			PreviewRevision:  strings.Repeat("a", 64),
 		},
 		importResult: transfer.GoBarryImportResult{
 			Imported:            true,
@@ -654,7 +655,7 @@ func TestGoBarryMigrationPreviewAndExplicitImport(t *testing.T) {
 		t.Fatalf("non-empty preview = %d %q", nonEmptyPreview.Code, nonEmptyPreview.Body.String())
 	}
 
-	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", strings.NewReader(`{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", strings.NewReader(`{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":"`+strings.Repeat("a", 64)+`"}`))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set(csrfHeaderName, cookie.Value)
 	request.AddCookie(cookie)
@@ -663,8 +664,59 @@ func TestGoBarryMigrationPreviewAndExplicitImport(t *testing.T) {
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"sourcePreserved":true`) {
 		t.Fatalf("import = %d %q", response.Code, response.Body.String())
 	}
-	if !service.lastImport.ImportPreferences || !service.lastImport.ImportSession || !service.lastImport.AcknowledgeSourcePreserved {
+	if !service.lastImport.ImportPreferences || !service.lastImport.ImportSession || !service.lastImport.AcknowledgeSourcePreserved || service.lastImport.ExpectedRevision != strings.Repeat("a", 64) {
 		t.Fatalf("request = %#v", service.lastImport)
+	}
+}
+
+func TestGoBarryMigrationImportMapsPreviewConflictToRefresh(t *testing.T) {
+	t.Parallel()
+	service := &fakeGoBarryMigrationService{
+		fakeTransferService: &fakeTransferService{},
+		importErr:           transfer.ErrGoBarryPreviewConflict,
+	}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", strings.NewReader(`{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":"`+strings.Repeat("a", 64)+`"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	request.AddCookie(cookie)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "check again") {
+		t.Fatalf("preview conflict = %d %q", response.Code, response.Body.String())
+	}
+	if !strings.Contains(strings.Join(service.calls, ","), "gobarry-import") {
+		t.Fatalf("service call = %#v", service.calls)
+	}
+}
+
+func TestGoBarryMigrationImportRejectsInvalidPreviewRevisionBeforeService(t *testing.T) {
+	tests := map[string]string{
+		"missing":   `{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true}`,
+		"null":      `{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":null}`,
+		"short":     `{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":"abc"}`,
+		"uppercase": `{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":"` + strings.Repeat("A", 64) + `"}`,
+		"non-hex":   `{"importPreferences":true,"importSession":true,"acknowledgeSourcePreserved":true,"expectedRevision":"` + strings.Repeat("z", 64) + `"}`,
+	}
+	for name, body := range tests {
+		t.Run(name, func(t *testing.T) {
+			service := &fakeGoBarryMigrationService{fakeTransferService: &fakeTransferService{}}
+			handler := Handler(nil, "", nil, nil, WithTransferService(service))
+			cookie := handlerCSRFCookie(t, handler)
+			request := httptest.NewRequest(http.MethodPost, "/api/transfers/migrations/gobarry/import", strings.NewReader(body))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set(csrfHeaderName, cookie.Value)
+			request.AddCookie(cookie)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, request)
+			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), "valid GoBarryGo migration preview revision") {
+				t.Fatalf("invalid revision = %d %q", response.Code, response.Body.String())
+			}
+			if strings.Contains(strings.Join(service.calls, ","), "gobarry-import") {
+				t.Fatalf("invalid revision reached service: %#v", service.calls)
+			}
+		})
 	}
 }
 

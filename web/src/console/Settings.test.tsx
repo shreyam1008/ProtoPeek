@@ -343,6 +343,7 @@ describe('Settings', () => {
       warnings: [],
       canImport: true,
       engineMustBeStopped: false,
+      previewRevision: 'a'.repeat(64),
     };
     let previewReads = 0;
     let snapshotReads = 0;
@@ -421,6 +422,7 @@ describe('Settings', () => {
       importPreferences: true,
       importSession: true,
       acknowledgeSourcePreserved: true,
+      expectedRevision: 'a'.repeat(64),
     });
 
     fireEvent.click(screen.getByRole('checkbox', { name: /Allow guarded rollback/i }));
@@ -468,6 +470,7 @@ describe('Settings', () => {
           engineMustBeStopped: false,
           alreadyImported: false,
           lastReceiptId: '20260823T120000.000000000Z-aabbccddeeff',
+          previewRevision: 'b'.repeat(64),
         });
       }
       return new Response('unexpected request', { status: 500 });
@@ -497,6 +500,199 @@ describe('Settings', () => {
       receiptId: '20260823T120000.000000000Z-aabbccddeeff',
       acknowledgeCurrentStateCheck: true,
     });
+  });
+
+  it('commits a successful import before independently reloading migration and host state', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=migration-token; path=/';
+    let previewReads = 0;
+    let snapshotReads = 0;
+    let importCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/snapshot')) {
+          snapshotReads += 1;
+          return Response.json(hostSnapshot);
+        }
+        if (path.endsWith('/preview')) {
+          previewReads += 1;
+          if (previewReads > 1) return new Response('preview reload unavailable', { status: 502 });
+          return Response.json({
+            available: true,
+            preferencesFound: true,
+            sessionFound: false,
+            sessionBytes: 0,
+            sessionEntries: 0,
+            settingChanges: [],
+            preservedButUnsupported: [],
+            warnings: [],
+            canImport: true,
+            engineMustBeStopped: false,
+            alreadyImported: false,
+            previewRevision: 'f'.repeat(64),
+          });
+        }
+        if (path.endsWith('/import') && init?.method === 'POST') {
+          importCalls += 1;
+          return Response.json({
+            imported: true,
+            preferencesImported: true,
+            sessionImported: false,
+            sourcePreserved: true,
+            message: 'GoBarryGo preferences imported into ProtoPeek.',
+          });
+        }
+        return new Response('unexpected request', { status: 500 });
+      })
+    );
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
+    await screen.findByText('Ready for explicit import');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Keep GoBarryGo untouched/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import into ProtoPeek' }));
+
+    expect(await screen.findByText('GoBarryGo preferences imported into ProtoPeek.')).toBeVisible();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Import succeeded, but current migration state could not be reloaded/i
+    );
+    expect(screen.getByRole('button', { name: /Check for GoBarryGo/i })).toBeVisible();
+    expect(
+      screen.queryByRole('checkbox', { name: /Keep GoBarryGo untouched/i })
+    ).not.toBeInTheDocument();
+    expect(importCalls).toBe(1);
+    expect(snapshotReads).toBe(2);
+  });
+
+  it('commits a successful rollback before independently reloading migration and host state', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=migration-token; path=/';
+    let previewReads = 0;
+    let snapshotReads = 0;
+    let rollbackCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/snapshot')) {
+          snapshotReads += 1;
+          return Response.json(hostSnapshot);
+        }
+        if (path.endsWith('/preview')) {
+          previewReads += 1;
+          if (previewReads > 1) return new Response('preview reload unavailable', { status: 502 });
+          return Response.json({
+            available: true,
+            preferencesFound: true,
+            sessionFound: false,
+            sessionBytes: 0,
+            sessionEntries: 0,
+            settingChanges: [],
+            preservedButUnsupported: [],
+            warnings: [],
+            canImport: true,
+            engineMustBeStopped: false,
+            alreadyImported: true,
+            lastReceiptId: '20260823T120000.000000000Z-aabbccddeeff',
+            previewRevision: '9'.repeat(64),
+          });
+        }
+        if (path.endsWith('/rollback') && init?.method === 'POST') {
+          rollbackCalls += 1;
+          return Response.json({
+            rolledBack: true,
+            receiptId: '20260823T120000.000000000Z-aabbccddeeff',
+            sourcePreserved: true,
+            rolledBackAt: '2026-08-23T12:10:00Z',
+            message: 'ProtoPeek transfer state restored from the migration receipt.',
+          });
+        }
+        return new Response('unexpected request', { status: 500 });
+      })
+    );
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
+    const rollbackApproval = await screen.findByRole('checkbox', {
+      name: /Allow guarded rollback/i,
+    });
+    fireEvent.click(rollbackApproval);
+    fireEvent.click(screen.getByRole('button', { name: 'Roll back this import' }));
+
+    expect(
+      await screen.findByText('ProtoPeek transfer state restored from the migration receipt.')
+    ).toBeVisible();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Rollback succeeded, but current migration state could not be reloaded/i
+    );
+    expect(screen.getByRole('button', { name: /Check for GoBarryGo/i })).toBeVisible();
+    expect(
+      screen.queryByRole('checkbox', { name: /Allow guarded rollback/i })
+    ).not.toBeInTheDocument();
+    expect(rollbackCalls).toBe(1);
+    expect(snapshotReads).toBe(2);
+  });
+
+  it('requires a fresh preview after an import revision conflict', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
+    document.cookie = '_protopeek_csrf_token=migration-token; path=/';
+    let importCalls = 0;
+    let previewCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/snapshot')) return Response.json(hostSnapshot);
+        if (path.endsWith('/preview')) {
+          previewCalls += 1;
+          return Response.json({
+            available: true,
+            preferencesFound: true,
+            sessionFound: false,
+            sessionBytes: 0,
+            sessionEntries: 0,
+            settingChanges: [],
+            preservedButUnsupported: [],
+            warnings: [],
+            canImport: true,
+            engineMustBeStopped: false,
+            alreadyImported: false,
+            previewRevision: (previewCalls === 1 ? 'd' : 'e').repeat(64),
+          });
+        }
+        if (path.endsWith('/import') && init?.method === 'POST') {
+          importCalls += 1;
+          return new Response(
+            'GoBarryGo or ProtoPeek transfer state changed after this preview; check again before importing',
+            { status: 409 }
+          );
+        }
+        return new Response('unexpected request', { status: 500 });
+      })
+    );
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
+    await screen.findByText('Ready for explicit import');
+    fireEvent.click(screen.getByRole('checkbox', { name: /Keep GoBarryGo untouched/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Import into ProtoPeek' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/state changed after this preview/i);
+    expect(importCalls).toBe(1);
+    expect(
+      screen.queryByRole('checkbox', { name: /Keep GoBarryGo untouched/i })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
+    expect(await screen.findByText('Ready for explicit import')).toBeVisible();
+    expect(importCalls).toBe(1);
   });
 
   it('labels unavailable and blocked GoBarryGo targets truthfully', async () => {
@@ -534,6 +730,7 @@ describe('Settings', () => {
           preservedButUnsupported: [],
           warnings: [],
           alreadyImported: false,
+          previewRevision: 'c'.repeat(64),
           ...states[Math.min(previewReads++, states.length - 1)],
         });
       })

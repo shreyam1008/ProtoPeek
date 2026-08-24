@@ -364,6 +364,9 @@ func TestDownloadCommandSystemAria2Integration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := transfer.NewConfigStore(paths.ConfigFile).Save(config); err != nil {
+		t.Fatalf("save integration config: %v", err)
+	}
 	digest := sha256.Sum256(payload)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

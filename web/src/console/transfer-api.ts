@@ -185,6 +185,7 @@ export type GoBarryMigrationPreview = {
   canImport: boolean;
   engineMustBeStopped: boolean;
   lastReceiptId: string;
+  previewRevision: string;
 };
 
 export type GoBarryImportResult = {
@@ -479,6 +480,10 @@ function boundedStringArray(input: unknown, maximumItems = 64, maximumLength = 2
 
 export function normalizeGoBarryMigrationPreview(input: unknown): GoBarryMigrationPreview {
   const value = record(input);
+  const previewRevision = typeof value.previewRevision === 'string' ? value.previewRevision : '';
+  if (!/^[0-9a-f]{64}$/.test(previewRevision)) {
+    throw new Error('ProtoPeek did not return a valid GoBarryGo migration preview revision.');
+  }
   const changes = Array.isArray(value.settingChanges)
     ? value.settingChanges.slice(0, 64).flatMap((item) => {
         const change = record(item);
@@ -509,6 +514,7 @@ export function normalizeGoBarryMigrationPreview(input: unknown): GoBarryMigrati
     canImport: boundedBoolean(value.canImport),
     engineMustBeStopped: boundedBoolean(value.engineMustBeStopped),
     lastReceiptId: boundedString(value.lastReceiptId, 96),
+    previewRevision,
   };
 }
 
@@ -643,7 +649,7 @@ export async function previewGoBarryMigration(signal?: AbortSignal) {
 }
 
 export async function importGoBarryState(
-  options: { importPreferences: boolean; importSession: boolean },
+  options: { importPreferences: boolean; importSession: boolean; expectedRevision: string },
   signal?: AbortSignal
 ) {
   return normalizeGoBarryImportResult(

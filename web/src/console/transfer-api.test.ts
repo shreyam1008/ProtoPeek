@@ -277,6 +277,7 @@ describe('transfer API', () => {
       ],
       warnings: Array.from({ length: 100 }, (_, index) => `warning-${index}`),
       lastReceiptId: 'r'.repeat(200),
+      previewRevision: 'a'.repeat(64),
     });
     expect(normalized.sessionBytes).toBe(16 << 20);
     expect(normalized.sessionEntries).toBe(4096);
@@ -284,11 +285,27 @@ describe('transfer API', () => {
     expect(normalized.settingChanges[0]?.before).toHaveLength(4 * 1024);
     expect(normalized.warnings).toHaveLength(64);
     expect(normalized.lastReceiptId).toHaveLength(96);
+    expect(normalized.previewRevision).toBe('a'.repeat(64));
+    expect(() => normalizeGoBarryMigrationPreview({ available: true })).toThrow(
+      /valid GoBarryGo migration preview revision/i
+    );
+    expect(() =>
+      normalizeGoBarryMigrationPreview({ available: true, previewRevision: 'A'.repeat(64) })
+    ).toThrow(/valid GoBarryGo migration preview revision/i);
+    expect(() =>
+      normalizeGoBarryMigrationPreview({
+        available: true,
+        previewRevision: `${'a'.repeat(64)}x`,
+      })
+    ).toThrow(/valid GoBarryGo migration preview revision/i);
+    expect(() =>
+      normalizeGoBarryMigrationPreview({ available: true, previewRevision: 'z'.repeat(64) })
+    ).toThrow(/valid GoBarryGo migration preview revision/i);
 
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
     document.cookie = '_protopeek_csrf_token=migration-token; path=/';
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-      Response.json({ available: true })
+      Response.json({ available: true, previewRevision: 'b'.repeat(64) })
     );
     vi.stubGlobal('fetch', fetchMock);
     await previewGoBarryMigration();
@@ -306,7 +323,11 @@ describe('transfer API', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await importGoBarryState({ importPreferences: true, importSession: false });
+    await importGoBarryState({
+      importPreferences: true,
+      importSession: false,
+      expectedRevision: 'a'.repeat(64),
+    });
     await rollbackGoBarryState('20260823T120000.000000000Z-aabbccddeeff');
 
     const [importCall, rollbackCall] = fetchMock.mock.calls;
@@ -314,6 +335,7 @@ describe('transfer API', () => {
       importPreferences: true,
       importSession: false,
       acknowledgeSourcePreserved: true,
+      expectedRevision: 'a'.repeat(64),
     });
     expect(JSON.parse(String(rollbackCall?.[1]?.body))).toEqual({
       receiptId: '20260823T120000.000000000Z-aabbccddeeff',
