@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HTTP &amp; REST Workbench: Local Requests and Timing | ProtoPeek</title>
+    <meta name="description" content="Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/http-workbench/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="HTTP &amp; REST Workbench: Local Requests and Timing | ProtoPeek" />
+    <meta property="og:description" content="Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/http-workbench/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HTTP &amp; REST Workbench: Local Requests and Timing | ProtoPeek" />
+    <meta name="twitter:description" content="Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HTTP workbench","description":"Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export.","url":"https://protopeek.shreyam1008.com.np/http-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/http-workbench/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"HTTP workbench","item":"https://protopeek.shreyam1008.com.np/http-workbench/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">HTTP workbench</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">HTTP workbench</h1>
+              <p>What did this HTTP service actually return?</p>
+
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Explicit request</li><li>TLS and redirects</li><li>Timing and response evidence</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-http">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What did this HTTP service actually return?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-http-workbench-title visual-http-workbench-description">
+        <title id="visual-http-workbench-title">HTTP workbench evidence path</title>
+        <desc id="visual-http-workbench-description">Request to TLS to Response</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Request</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">TLS</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Response</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Start</span>
+              <h2>Write one explicit request</h2>
+              <p>Choose the method, URL, query, headers, auth, body, timeout, and redirect policy.</p>
+            </article>
+
+            <article>
+              <span>02 · Send</span>
+              <h2>Use the local Go relay</h2>
+              <p>ProtoPeek validates a bounded request and keeps TLS verification on by default.</p>
+            </article>
+
+            <article>
+              <span>03 · Read</span>
+              <h2>Separate response evidence</h2>
+              <p>See status, protocol, peer, headers, body, redirects, truncation, and timing phases.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>ProtoPeek sends one bounded HTTP or REST request through the local Go process and keeps request choices, transport evidence, and the response together. The workbench ships in stable v0.5.0.</p>
+<h2 id="build-one-explicit-request">Build one explicit request</h2>
+<p>Choose the method and an absolute <code>http://</code> or <code>https://</code> URL. Add duplicate query parameters, headers, live auth, a raw body, timeout, and redirect policy only when the request needs them.</p>
+<p>The live editor can hold credentials for the request you intend to send. Automatic history strips URL user information, redacts credential-like query values, keeps only a small non-sensitive header allowlist, and never persists the request body.</p>
+<h2 id="keep-transport-choices-visible">Keep transport choices visible</h2>
+<p>TLS verification is on by default. Redirect following is off by default. If redirects are enabled, ProtoPeek retains the bounded redirect chain and refuses unsafe policy changes such as an HTTPS downgrade.</p>
+<p>The local relay applies explicit limits to URLs, headers, bodies, timeouts, redirects, response size, and concurrent HTTP work. Cancellation ends the local operation instead of leaving a hidden request running in the browser.</p>
+<h2 id="read-the-response-as-http">Read the response as HTTP</h2>
+<p>The response inspector keeps HTTP vocabulary intact:</p>
+<ul><li>status code and status text;</li><li>negotiated HTTP protocol and remote address;</li><li>response headers;</li><li>text or base64 body with byte count and truncation state;</li><li>redirect hops;</li><li>verified TLS summary when HTTPS applies; and</li><li>DNS, connect, TLS, first-byte, and total timing phases when observed.</li></ul>
+<p>One phase can be absent when the transport reused a connection or did not expose that boundary. ProtoPeek reports the available evidence instead of manufacturing a complete waterfall.</p>
+<h2 id="reuse-without-hiding-secrets">Reuse without hiding secrets</h2>
+<p>Recent HTTP calls remain local to this browser and preserve a small response summary. Replaying a history entry starts from a clean request state and leaves redacted values blank for deliberate re-entry.</p>
+<p>Copy as cURL validates the same prepared request as Send. It preserves the method, duplicate query values, non-sensitive headers, timeout, and body while omitting auth and credential-like headers. Redirect-enabled drafts are refused because a portable command cannot reproduce ProtoPeek’s complete redirect policy.</p>
+<p>The copied command runs in your shell. Its DNS, proxy, trust roots, network namespace, cURL version, and implicit headers can differ from the ProtoPeek relay.</p>
+<h2 id="deliberate-limits">Deliberate limits</h2>
+<p>ProtoPeek does not currently provide cURL import, OpenAPI discovery, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.</p>
+<h2 id="go-deeper">Go deeper</h2>
+<ul><li><a href="/network-workbench/">See how network path evidence stays separate</a>.</li><li><a href="/transport-boundaries/">Read the transport and workspace boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.5.0</a>.</li></ul>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#build-one-explicit-request">Build one explicit request</a><a class="level-2" href="#keep-transport-choices-visible">Keep transport choices visible</a><a class="level-2" href="#read-the-response-as-http">Read the response as HTTP</a><a class="level-2" href="#reuse-without-hiding-secrets">Reuse without hiding secrets</a><a class="level-2" href="#deliberate-limits">Deliberate limits</a><a class="level-2" href="#go-deeper">Go deeper</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/http-workbench.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/http-workbench.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>The bounded HTTP and REST request workbench ships in stable v0.5.0.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/grpc-workbench/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>gRPC workbench</strong>
+      </a>
+      <a href="/learn-grpc/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Learn gRPC</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

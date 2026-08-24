@@ -4,7 +4,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4fbfa",
-  "theme_color": "#0b6d6d",
+  "theme_color": "#0b5cff",
   "description": "Six-area local systems workbench for protocol-native gRPC and HTTP, bounded network and security evidence, and local downloads.",
   "categories": ["developer", "utilities"],
   "icons": [

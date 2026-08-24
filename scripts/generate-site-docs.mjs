@@ -5,94 +5,18 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const docsRoot = path.join(repoRoot, 'docs');
+const publicRoot = path.join(repoRoot, 'web', 'site', 'public');
 const siteBase = '';
 const siteRoot = 'https://protopeek.shreyam1008.com.np';
 const repoRootURL = 'https://github.com/shreyam1008/ProtoPeek';
-const downloaderCanonicalURL = `${siteRoot}/downloader/`;
-const downloaderDescription =
-  'ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.';
+const registryPath = path.join(repoRoot, 'web', 'src', 'site', 'public-pages.json');
+const registry = JSON.parse(await fs.readFile(registryPath, 'utf8'));
+const publicPages = registry.pages;
+const publishedPages = publicPages.filter((page) => page.generator === 'markdown');
+const hubPages = publicPages.filter((page) => page.group && page.kind !== 'root');
+const downloaderPage = requirePage('downloader');
 
-const publishedPages = [
-  {
-    slug: 'learn-grpc',
-    title: 'Learn gRPC',
-    section: 'Guide',
-    description:
-      'A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points.',
-    sourcePath: 'guides/learn-grpc.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/learn-grpc.md`,
-    highlights: ['Proto contract', 'Reflection paths', 'HTTP/2 and trailers'],
-  },
-  {
-    slug: 'feature-roadmap',
-    title: 'Feature roadmap',
-    section: 'Roadmap',
-    description: 'The shipped protocol workbench and the gates for future transport-aware work.',
-    sourcePath: 'guides/feature-roadmap.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/feature-roadmap.md`,
-    highlights: ['gRPC + HTTP', 'Safety boundaries', 'Gated plans'],
-  },
-  {
-    slug: 'network-workbench',
-    title: 'Network workbench',
-    section: 'Guide',
-    description:
-      'A practical guide to DNS, kernel routes, Linux hop evidence, authorized private discovery, logical topology, local storage, and exchange formats.',
-    sourcePath: 'guides/network-workbench.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/network-workbench.md`,
-    highlights: ['Source RTT', 'Authorized /24 discovery', 'Logical topology'],
-  },
-  {
-    slug: 'this-pc',
-    title: 'This PC evidence',
-    section: 'Guide',
-    description:
-      'The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace.',
-    sourcePath: 'guides/this-pc.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/this-pc.md`,
-    highlights: ['Local listeners', 'Public IPv4 and IPv6', 'Bounded connection quality'],
-  },
-  {
-    slug: 'competitive-landscape',
-    title: 'Competitive workflow decisions',
-    section: 'Product research',
-    description:
-      'A source-backed comparison of workflows worth learning from and the boundaries that keep ProtoPeek focused.',
-    sourcePath: 'guides/competitive-landscape.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/competitive-landscape.md`,
-    highlights: ['Official sources', 'Workflow decisions', 'Lightweight boundaries'],
-  },
-  {
-    slug: 'route-and-nmap-evidence',
-    title: 'Network evidence boundaries',
-    section: 'Guide',
-    description:
-      'Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.',
-    sourcePath: 'guides/route-and-nmap-evidence.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/route-and-nmap-evidence.md`,
-    highlights: ['Source RTT', 'Authorized discovery', 'No hidden execution'],
-  },
-  {
-    slug: 'transport-boundaries',
-    title: 'Transport boundaries',
-    section: 'Architecture',
-    description:
-      'The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.',
-    sourcePath: 'guides/transport-boundaries.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/transport-boundaries.md`,
-    highlights: ['Local-first shell', 'Native evidence', 'Release gates'],
-  },
-  {
-    slug: 'vscode-extension-spec',
-    title: 'VS Code / Open VSX spec',
-    section: 'Extension',
-    description:
-      'A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime.',
-    sourcePath: 'guides/vscode-extension-spec.md',
-    sourceURL: `${repoRootURL}/blob/master/guides/vscode-extension-spec.md`,
-    highlights: ['Launch helper', '1 MB target', 'No duplicate client'],
-  },
-];
+validateRegistry();
 
 async function main() {
   await Promise.all([
@@ -100,9 +24,121 @@ async function main() {
     writeDocsHubPage(),
     writeDownloaderPage(),
   ]);
+  await writeDiscoveryMetadata();
+}
+
+function requirePage(id) {
+  const page = publicPages.find((candidate) => candidate.id === id);
+  if (!page) throw new Error(`Missing public page registry entry: ${id}`);
+  return page;
+}
+
+function validateRegistry() {
+  if (registry.schemaVersion !== 1 || !Array.isArray(publicPages)) {
+    throw new Error('Unsupported ProtoPeek public page registry.');
+  }
+  const ids = new Set();
+  const paths = new Set();
+  for (const page of publicPages) {
+    if (!page.id || ids.has(page.id)) throw new Error(`Duplicate or missing page id: ${page.id}`);
+    if (!page.path?.startsWith('/') || (page.path !== '/' && !page.path.endsWith('/'))) {
+      throw new Error(`Public page paths must use canonical trailing slashes: ${page.path}`);
+    }
+    if (page.path.includes('#') || paths.has(page.path)) {
+      throw new Error(`Duplicate or fragment public page path: ${page.path}`);
+    }
+    if (!page.documentTitle || !page.description) {
+      throw new Error(`Public page ${page.id} needs unique title and description metadata.`);
+    }
+    if (page.generator === 'markdown' && !page.sourcePath) {
+      throw new Error(`Markdown page ${page.id} is missing sourcePath.`);
+    }
+    ids.add(page.id);
+    paths.add(page.path);
+  }
+}
+
+async function writeDiscoveryMetadata() {
+  const sitemap = renderSitemap();
+  const llms = renderLLMSText();
+  await Promise.all([
+    fs.writeFile(path.join(publicRoot, 'sitemap.xml'), sitemap),
+    fs.writeFile(path.join(docsRoot, 'sitemap.xml'), sitemap),
+    fs.writeFile(path.join(publicRoot, 'llms.txt'), llms),
+    fs.writeFile(path.join(docsRoot, 'llms.txt'), llms),
+  ]);
+}
+
+function renderSitemap() {
+  const entries = publicPages
+    .filter((page) => page.sitemap)
+    .map(
+      (page) => `  <url>
+    <loc>${escapeXml(`${siteRoot}${page.path}`)}</loc>
+    <lastmod>${registry.lastModified}</lastmod>
+    <changefreq>${escapeXml(page.sitemap.changefreq)}</changefreq>
+    <priority>${escapeXml(page.sitemap.priority)}</priority>
+  </url>`
+    )
+    .join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries}
+</urlset>
+`;
+}
+
+function renderLLMSText() {
+  const pages = hubPages
+    .map(
+      (page) =>
+        `- ${page.title}: ${siteRoot}${page.path}${page.status ? ` — ${page.status.label}` : ''}`
+    )
+    .join('\n');
+  return `# ProtoPeek
+
+> ProtoPeek is a local systems workbench for seeing the path from request to system without flattening protocol-specific evidence.
+
+Primary site: ${siteRoot}/
+Author: https://shreyam1008.com.np/
+Repository: ${repoRootURL}
+
+## Release truth
+
+- v0.5.0 is the current stable release. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
+- Stable v0.5.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, offline Nmap XML import, local downloads, and consented Security evidence.
+- The verified release resolvers and \`@latest\` install v0.5.0 from checksum-pinned release archives.
+- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. ProtoPeek does not bundle aria2.
+
+## Current source after v0.5.0
+
+- Current source adds a seventh route-lazy area, This PC. It is not part of the published v0.5.0 packages.
+- This PC reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
+- Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
+
+## v0.5.0 capability boundary
+
+- Downloader product page: ${siteRoot}/downloader/
+- Downloader uses an explicitly configured or system-installed \`aria2c\`; ProtoPeek does not bundle aria2.
+- Website observation requires separate consent and sends exactly one credential-free, non-following \`HEAD\` request to a public-only target. It reads no body, follows no redirect, and emits no security score.
+- GoBarryGo files, releases, repository history, and public origin remain independent; the public redirect and retirement are not complete.
+
+## Public features and guides
+
+${pages}
+
+## Stable install
+
+- Homebrew: \`brew install shreyam1008/tap/protopeek\`
+- Scoop: \`scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket\`, then \`scoop install shreyam/protopeek\`
+- Unix resolver: \`curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh\`
+- PowerShell resolver: \`irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex\`
+`;
 }
 
 async function writeDownloaderPage() {
+  const downloaderCanonicalURL = `${siteRoot}${downloaderPage.path}`;
+  const downloaderDescription = downloaderPage.description;
   const destination = path.join(docsRoot, 'downloader', 'index.html');
   await fs.mkdir(path.dirname(destination), { recursive: true });
 
@@ -153,6 +189,19 @@ async function writeDownloaderPage() {
       price: '0',
       priceCurrency: 'USD',
     },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${siteRoot}/` },
+        { '@type': 'ListItem', position: 2, name: 'Guides', item: `${siteRoot}/docs/` },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: downloaderPage.title,
+          item: downloaderCanonicalURL,
+        },
+      ],
+    },
   }).replaceAll('<', '\\u003c');
 
   const html = `<!doctype html>
@@ -166,7 +215,7 @@ async function writeDownloaderPage() {
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="${downloaderCanonicalURL}" />
     <link rel="icon" type="image/svg+xml" href="${siteBase}/favicon.svg" />
@@ -192,21 +241,13 @@ async function writeDownloaderPage() {
     <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell pp-download-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="${siteBase}/" aria-label="ProtoPeek home">ProtoPeek</a>
-          <nav class="pp-doc-nav" aria-label="Primary">
-            <a href="${siteBase}/">Home</a>
-            <a href="${siteBase}/docs/">Docs</a>
-            <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Installation</a>
-            <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
+        ${renderTopbar()}
 
-        <main class="pp-download-main">
+        <main class="pp-download-main" id="main-content">
+          ${renderBreadcrumb(downloaderPage.title, downloaderPage.path)}
           <section class="pp-download-hero" aria-labelledby="downloader-title">
             <div class="pp-download-hero-copy">
               <h1 id="downloader-title">Download locally. Keep every decision visible.</h1>
@@ -216,9 +257,11 @@ async function writeDownloaderPage() {
                 pause or resume one job or the whole queue, retry, cancel, choose the destination,
                 and enforce a single-job expected SHA-256 without sending transfer details to a hosted service.
               </p>
+              ${renderStatus(downloaderPage.status)}
+              <p class="pp-download-boundary">${escapeHtml(downloaderPage.status.detail)}</p>
               <div class="pp-download-actions">
                 <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Open v0.5.0 release</a>
-                <a class="pp-download-action-secondary" href="${siteBase}/docs/">Read installation boundaries</a>
+                <a class="pp-download-action-secondary" href="${siteBase}/install/">Read installation boundaries</a>
               </div>
               <dl class="pp-download-truth">
                 <div>
@@ -325,12 +368,10 @@ async function writeDownloaderPage() {
             </p>
             <a href="${repoRootURL}/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the consolidation and migration record</a>
           </section>
+          ${renderRelatedNavigation(downloaderPage.id)}
         </main>
 
-        <footer class="pp-download-footer">
-          <p>ProtoPeek by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a></p>
-          <p>Real product evidence. Explicit release boundaries. Local control.</p>
-        </footer>
+        ${renderFooter()}
       </div>
     </div>
   </body>
@@ -349,96 +390,77 @@ async function writeMarkdownPage(page) {
     destination,
     renderPageTemplate({
       title: page.title,
-      documentTitle: `${page.title} | ProtoPeek`,
+      documentTitle: page.documentTitle,
       description: page.description,
-      canonicalPath: `/${page.slug}/`,
+      canonicalPath: page.path,
       section: page.section,
-      intro: page.description,
+      intro: page.question || page.description,
       body,
       toc,
-      sourceURL: page.sourceURL,
+      sourceURL: `${repoRootURL}/blob/master/${page.sourcePath}`,
       sourcePath: page.sourcePath,
       highlights: page.highlights,
-      heroVisual: renderHeroVisual(title, page.highlights),
+      heroVisual: renderFeatureVisual(page),
+      status: page.status,
+      flow: page.flow,
+      pageId: page.id,
     })
   );
 }
 
 async function writeDocsHubPage() {
+  const docsPage = requirePage('docs');
   const destination = path.join(docsRoot, 'docs', 'index.html');
   await fs.mkdir(path.dirname(destination), { recursive: true });
-  const body = `
-    <section class="pp-doc-stack">
-      <div class="pp-doc-grid-cards">
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Fast path</div>
-          <h2>README on GitHub</h2>
-          <p>The quickest install and run path for people who already know what ProtoPeek is.</p>
-          <a href="${repoRootURL}#readme" rel="noreferrer" target="_blank">Open README</a>
-        </article>
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Narrative path</div>
-          <h2>Website</h2>
-          <p>The visual gRPC and HTTP product story, install flow, and gRPC tutorial experience.</p>
-          <a href="${siteRoot}/">Open homepage</a>
-        </article>
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Detailed path</div>
-          <h2>Published guides</h2>
-          <p>Long-form pages for gRPC, the network workbench, product research, evidence boundaries, transport architecture, the roadmap, and extension design.</p>
-          <a href="${siteBase}/network-workbench/">Open the network workbench guide</a>
-        </article>
-      </div>
-    </section>
-    <section class="pp-doc-stack">
-      <h2 id="published-guides">Published guides</h2>
-      <div class="pp-doc-grid-cards">
-        ${publishedPages
-          .map(
-            (page) => `
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">${page.section}</div>
-                <h3>${escapeHtml(page.title)}</h3>
-                <p>${escapeHtml(page.description)}</p>
-                <div class="pp-doc-chip-row">
-                  ${page.highlights
-                    .map((highlight) => `<span>${escapeHtml(highlight)}</span>`)
-                    .join('')}
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="${siteBase}/${page.slug}/">Open page</a>
-                  <a href="${page.sourceURL}" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
-            `
-          )
-          .join('')}
-      </div>
-    </section>
-  `;
+  const body = registry.groups
+    .map((group) => {
+      const pages = hubPages.filter((page) => page.group === group.id);
+      if (!pages.length) return '';
+      return `
+        <section class="pp-guide-group" id="${escapeAttr(group.id)}">
+          <header class="pp-guide-group-heading">
+            <h2>${escapeHtml(group.title)}</h2>
+            <p>${escapeHtml(group.description)}</p>
+          </header>
+          <div class="pp-guide-list">
+            ${pages
+              .map(
+                (page, index) => `
+                  <a class="pp-guide-row" href="${page.path}">
+                    <span class="pp-guide-index" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>${escapeHtml(page.title)}</strong>
+                      <small>${escapeHtml(page.question || page.description)}</small>
+                    </span>
+                    ${renderStatus(page.status, 'compact')}
+                    <span class="pp-guide-arrow" aria-hidden="true">${arrowIcon()}</span>
+                  </a>
+                `
+              )
+              .join('')}
+          </div>
+        </section>
+      `;
+    })
+    .join('');
 
   await fs.writeFile(
     destination,
     renderPageTemplate({
-      title: 'Docs hub',
-      documentTitle: 'Docs hub | ProtoPeek',
-      description:
-        'Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design.',
-      canonicalPath: '/docs/',
-      section: 'Docs',
-      intro:
-        'ProtoPeek publishes its guides as first-class pages, from the gRPC fast path through bounded network evidence and its trust boundaries.',
+      title: docsPage.title,
+      documentTitle: docsPage.documentTitle,
+      description: docsPage.description,
+      canonicalPath: docsPage.path,
+      section: docsPage.section,
+      intro: 'Choose the thing you want to understand. Every page shows what to do, what evidence appears, and where the boundary ends.',
       body,
-      toc: [{ id: 'published-guides', text: 'Published guides', level: 2 }],
-      sourceURL: `${repoRootURL}/tree/master/guides`,
-      sourcePath: 'guides/',
-      highlights: ['Protocol guides', 'Network evidence', 'GitHub source links'],
-      heroVisual: renderHeroVisual('Docs hub', [
-        'Homepage',
-        'Network workbench',
-        'Source markdown',
-      ]),
+      toc: registry.groups.map((group) => ({ id: group.id, text: group.title, level: 2 })),
+      sourceURL: `${repoRootURL}/blob/master/web/src/site/public-pages.json`,
+      sourcePath: 'web/src/site/public-pages.json',
+      highlights: docsPage.highlights,
+      heroVisual: renderFeatureVisual(docsPage),
       schemaType: 'CollectionPage',
+      pageId: docsPage.id,
     })
   );
 }
@@ -654,8 +676,16 @@ function renderPageTemplate({
   highlights,
   heroVisual,
   schemaType = 'TechArticle',
+  status,
+  flow,
+  pageId,
 }) {
   const canonicalURL = `${siteRoot}${canonicalPath}`;
+  const breadcrumbItems = [
+    { name: 'Home', item: `${siteRoot}/` },
+    { name: 'Guides', item: `${siteRoot}/docs/` },
+  ];
+  if (canonicalPath !== '/docs/') breadcrumbItems.push({ name: title, item: canonicalURL });
   const structuredData = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': schemaType,
@@ -663,6 +693,7 @@ function renderPageTemplate({
     description,
     url: canonicalURL,
     mainEntityOfPage: canonicalURL,
+    dateModified: registry.lastModified,
     author: {
       '@type': 'Person',
       name: 'Shreyam Adhikari',
@@ -672,6 +703,21 @@ function renderPageTemplate({
       '@type': 'WebSite',
       name: 'ProtoPeek',
       url: `${siteRoot}/`,
+    },
+    about: {
+      '@type': 'SoftwareApplication',
+      '@id': `${siteRoot}/#software`,
+      name: 'ProtoPeek',
+      operatingSystem: ['Linux', 'macOS', 'Windows'],
+      applicationCategory: 'DeveloperApplication',
+    },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: breadcrumbItems.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        ...item,
+      })),
     },
   }).replaceAll('<', '\\u003c');
   const html = `<!doctype html>
@@ -685,7 +731,7 @@ function renderPageTemplate({
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="${canonicalURL}" />
     <link rel="icon" type="image/svg+xml" href="${siteBase}/favicon.svg" />
@@ -702,87 +748,78 @@ function renderPageTemplate({
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeAttr(documentTitle)}" />
     <meta name="twitter:description" content="${escapeAttr(description)}" />
     <meta name="twitter:image" content="${siteRoot}/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="${siteBase}/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="${siteBase}/">Home</a>
-            <a href="${siteBase}/docs/">Docs</a>
-            <a href="${siteBase}/learn-grpc/">Learn gRPC</a>
-            <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
+        ${renderTopbar()}
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">${escapeHtml(section)}</div>
+        <main id="main-content">
+          ${renderBreadcrumb(title, canonicalPath)}
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>${escapeHtml(title)}</h1>
+              <h1 id="page-title">${escapeHtml(title)}</h1>
               <p>${escapeHtml(intro)}</p>
-              <div class="pp-doc-chip-row">
-                ${highlights.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}
-              </div>
+              ${renderStatus(status)}
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                ${highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+              </ul>
             </div>
             ${heroVisual}
           </div>
-        </section>
+          </section>
 
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
-              ${body}
-            </div>
-          </article>
+          ${renderFlow(flow)}
 
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                ${
-                  toc.length > 0
-                    ? toc
-                        .map(
-                          (item) =>
-                            `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`
-                        )
-                        .join('')
-                    : '<span class="pp-doc-empty">No section headings in this page.</span>'
-                }
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                ${body}
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">${escapeHtml(sourcePath)}</div>
-              <a href="${sourceURL}" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  ${
+                    toc.length > 0
+                      ? toc
+                          .map(
+                            (item) =>
+                              `<a class="level-${item.level}" href="#${item.id}">${escapeHtml(item.text)}</a>`
+                          )
+                          .join('')
+                      : '<span class="pp-doc-empty">Use the guide groups below.</span>'
+                  }
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                ${publishedPages
-                  .filter((item) => item.title !== title)
-                  .map(
-                    (item) =>
-                      `<a href="${siteBase}/${item.slug}/"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(item.section)}</span></a>`
-                  )
-                  .join('')}
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">${escapeHtml(sourcePath)}</div>
+                <a href="${sourceURL}" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>${escapeHtml(status?.detail || 'This page is documentation, not a new product or release claim.')}</p>
+              </section>
+            </aside>
+          </div>
+
+          ${renderRelatedNavigation(pageId)}
         </main>
+        ${renderFooter()}
       </div>
     </div>
   </body>
@@ -791,37 +828,168 @@ function renderPageTemplate({
   return html.replace(/[ \t]+$/gm, '');
 }
 
-function renderHeroVisual(title, highlights) {
-  const bars = highlights
+function renderFeatureVisual(page) {
+  const specs = {
+    hub: ['Request', 'Path', 'Machine', 'Transfer'],
+    install: ['Channel', 'Checksum', 'Binary'],
+    grpc: ['Schema', 'RPC', 'Evidence'],
+    http: ['Request', 'TLS', 'Response'],
+    'learn-grpc': ['Contract', 'Stream', 'Status'],
+    network: ['DNS', 'Route', 'Hop', 'Evidence'],
+    'network-boundary': ['Passive', 'Active', 'Imported'],
+    'this-pc': ['Local', 'Public', 'Quality'],
+    downloader: ['Queue', 'Control', 'Verify'],
+    security: ['DNS', 'TLS', 'HTTP'],
+    settings: ['Browser', 'Bridge', 'Host'],
+    roadmap: ['Shipped', 'Next', 'Gated'],
+    architecture: ['Shell', 'Adapter', 'Evidence'],
+    research: ['Observe', 'Compare', 'Decide'],
+    extension: ['Proto file', 'Launch', 'Workbench'],
+  };
+  const nodes = specs[page.visual] || page.highlights || ['Start', 'Observe', 'Decide'];
+  const visualId = `visual-${page.id}`;
+  const nodeWidth = nodes.length === 4 ? 88 : 116;
+  const gap = nodes.length === 4 ? 14 : 20;
+  const start = nodes.length === 4 ? 14 : 20;
+  const centers = nodes.map((_, index) => start + nodeWidth / 2 + index * (nodeWidth + gap));
+  const lines = centers
+    .slice(0, -1)
     .map(
-      (item, index) => `
-        <div class="pp-doc-visual-row" style="animation-delay:${index * 140}ms">
-          <span>${escapeHtml(item)}</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-${index + 1}"></div>
-          </div>
-        </div>
-      `
+      (center, index) =>
+        `<path class="pp-visual-link" d="M ${center + nodeWidth / 2 - 6} 94 H ${centers[index + 1] - nodeWidth / 2 + 6}" />`
     )
+    .join('');
+  const nodeMarkup = nodes
+    .map((node, index) => {
+      const x = start + index * (nodeWidth + gap);
+      return `
+        <g class="pp-visual-node">
+          <rect x="${x}" y="56" width="${nodeWidth}" height="76" rx="10" />
+          <circle cx="${x + 18}" cy="75" r="5" />
+          <text x="${x + 14}" y="108">${escapeHtml(node)}</text>
+        </g>
+      `;
+    })
     .join('');
 
   return `
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">${escapeHtml(title)}</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-${escapeAttr(page.visual)}">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>${escapeHtml(page.question || page.title)}</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
-        ${bars}
-      </div>
-    </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="${visualId}-title ${visualId}-description">
+        <title id="${visualId}-title">${escapeHtml(page.title)} evidence path</title>
+        <desc id="${visualId}-description">${escapeHtml(nodes.join(' to '))}</desc>
+        ${lines}
+        ${nodeMarkup}
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
   `;
+}
+
+function renderTopbar() {
+  return `
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="${siteBase}/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="${siteBase}/#product">Product</a>
+        <a href="${siteBase}/docs/" aria-current="page">Guides</a>
+        <a href="${siteBase}/install/">Download</a>
+        <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub ${externalIcon()}</a>
+      </nav>
+    </header>
+  `;
+}
+
+function renderBreadcrumb(title, canonicalPath) {
+  const current = canonicalPath === '/docs/' ? '' : `<span aria-current="page">${escapeHtml(title)}</span>`;
+  return `
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="${siteBase}/">Home</a>
+      ${arrowIcon()}
+      ${canonicalPath === '/docs/' ? '<span aria-current="page">Guides</span>' : `<a href="${siteBase}/docs/">Guides</a>${arrowIcon()}${current}`}
+    </nav>
+  `;
+}
+
+function renderStatus(status, variant = 'full') {
+  if (!status) return '';
+  return `
+    <span class="pp-page-status is-${escapeAttr(status.tone || 'guide')} is-${escapeAttr(variant)}">
+      <i aria-hidden="true"></i>${escapeHtml(status.label)}
+    </span>
+  `;
+}
+
+function renderFlow(flow) {
+  if (!flow?.length) return '';
+  return `
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+      ${flow
+        .map(
+          (step, index) => `
+            <article>
+              <span>${String(index + 1).padStart(2, '0')} · ${escapeHtml(step.verb)}</span>
+              <h2>${escapeHtml(step.title)}</h2>
+              <p>${escapeHtml(step.detail)}</p>
+            </article>
+          `
+        )
+        .join('')}
+    </section>
+  `;
+}
+
+function renderRelatedNavigation(pageId) {
+  if (!pageId || pageId === 'docs') return '';
+  const index = hubPages.findIndex((page) => page.id === pageId);
+  if (index < 0) return '';
+  const previous = hubPages[index - 1] || hubPages.at(-1);
+  const next = hubPages[index + 1] || hubPages[0];
+  return `
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="${previous.path}">
+        <span>${arrowIcon('back')} Previous guide</span>
+        <strong>${escapeHtml(previous.title)}</strong>
+      </a>
+      <a href="${next.path}">
+        <span>Next guide ${arrowIcon()}</span>
+        <strong>${escapeHtml(next.title)}</strong>
+      </a>
+    </nav>
+  `;
+}
+
+function renderFooter() {
+  return `
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="${siteBase}/docs/">Guides</a>
+        <a href="${siteBase}/install/">Download</a>
+        <a href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+  `;
+}
+
+function arrowIcon(direction = 'forward') {
+  return `<svg class="pp-inline-icon${direction === 'back' ? ' is-back' : ''}" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>`;
+}
+
+function externalIcon() {
+  return '<svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg>';
 }
 
 function renderInline(text) {
@@ -881,6 +1049,15 @@ function escapeHtml(text) {
 
 function escapeAttr(text) {
   return escapeHtml(text);
+}
+
+function escapeXml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
 }
 
 function isExternal(href) {

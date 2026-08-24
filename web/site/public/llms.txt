@@ -11,45 +11,41 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - v0.5.0 is the current stable release. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
 - Stable v0.5.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, offline Nmap XML import, local downloads, and consented Security evidence.
 - The verified release resolvers and `@latest` install v0.5.0 from checksum-pinned release archives.
-- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. Those package-manager installs provide Downloader without bundling aria2 into ProtoPeek.
-- The v0.4.0 release and package history remain preserved.
+- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. ProtoPeek does not bundle aria2.
 
 ## Current source after v0.5.0
 
 - Current source adds a seventh route-lazy area, This PC. It is not part of the published v0.5.0 packages.
-- Initial This PC render reads only local process-perspective system and interface evidence. It does not inspect socket ownership, contact a provider, start a benchmark, poll in the background, or persist returned evidence.
-- Explicit Linux local inspection returns bounded listeners and current connections with best-effort same-user PID/process names. A local listener is not an Internet-open port. Explicit one-shot interface sampling is aggregate interface load, not per-process traffic.
-- A separate acknowledged action observes public IPv4/IPv6 through fixed ipify endpoints and best-effort Team Cymru BGP-origin data. The origin is provider-reported, not a verified retail ISP or location.
-- A separate acknowledged browser action lazy-loads the official Cloudflare speed-test engine with a small custom payload plan, upload disabled by default, no packet-loss step, and both dedicated result-logging endpoints disabled. It measures single-flow HTTPS connection quality to Cloudflare edge, not ISP line maximum.
-- Exact providers, limits, privacy disclosures, platform capability gaps, and non-goals: https://protopeek.shreyam1008.com.np/this-pc/
+- This PC reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
+- Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
 
 ## v0.5.0 capability boundary
 
 - Downloader product page: https://protopeek.shreyam1008.com.np/downloader/
 - Downloader uses an explicitly configured or system-installed `aria2c`; ProtoPeek does not bundle aria2.
-- The browser queues 1–32 independent jobs with honest partial-success results, bounded destination/headers/User-Agent, per-job and whole-queue controls, and single-job-only output/SHA-256 evidence. Exact retry values are private host state and are never returned in queue/API results.
-- `pp download [--output NAME] [--sha256 64_HEX] URL` performs one HTTP(S) transfer, owns its local engine session, writes progress to stderr, prints the completed path to stdout, and preserves partial data plus the aria2 session on interruption. It does not attach to an already-running ProtoPeek process.
-- `pp migrate-gobarry` is observational by default. Explicit import copies only bounded allowlisted preferences/session state, leaves GoBarryGo files unchanged, pauses imported jobs, and creates a private guarded rollback receipt.
-- GoBarryGo v0.0.9, its public origin, releases, checksums, screenshots, and repository history remain independent. The public redirect, package retirement, and repository retirement are not complete.
-- Historical certificate-name lookup runs only after disclosing that the registrable domain is sent to `crt.name`. Returned names are historical candidates, not proof that a host is live or owned.
-- Website observation requires separate consent and sends exactly one credential-free, non-following `HEAD` request to a public-only target. ProtoPeek resolves and pins public addresses, verifies TLS for HTTPS, reads no body, and reports bounded DNS, TLS, HTTP, and timing evidence.
-- ProtoPeek emits no security score and makes no universal vulnerability verdict. Broader probes remain planned.
+- Website observation requires separate consent and sends exactly one credential-free, non-following `HEAD` request to a public-only target. It reads no body, follows no redirect, and emits no security score.
+- GoBarryGo files, releases, repository history, and public origin remain independent; the public redirect and retirement are not complete.
+
+## Public features and guides
+
+- Install ProtoPeek: https://protopeek.shreyam1008.com.np/install/ — Stable · v0.5.0
+- gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.5.0
+- HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.5.0
+- Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Reference guide
+- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.5.0
+- Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable boundary
+- This PC evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Current source · after v0.5.0
+- Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.5.0
+- Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable core · current-source report
+- Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable core · current-source host settings
+- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Living roadmap
+- Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide
+- Competitive workflow decisions: https://protopeek.shreyam1008.com.np/competitive-landscape/ — Research record
+- VS Code and Open VSX spec: https://protopeek.shreyam1008.com.np/vscode-extension-spec/ — Planned · not shipped
 
 ## Stable install
 
-- Homebrew (v0.5.0): `brew install shreyam1008/tap/protopeek`
-- Scoop (v0.5.0): `scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket`, then `scoop install shreyam/protopeek`
-- Unix resolver (v0.5.0): `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh`
-- PowerShell resolver (v0.5.0): `irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex`
-
-## Documentation
-
-- https://protopeek.shreyam1008.com.np/docs/
-- https://protopeek.shreyam1008.com.np/learn-grpc/
-- https://protopeek.shreyam1008.com.np/network-workbench/
-- https://protopeek.shreyam1008.com.np/this-pc/
-- https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
-- https://protopeek.shreyam1008.com.np/transport-boundaries/
-- https://github.com/shreyam1008/ProtoPeek/blob/master/README.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md
-- https://github.com/shreyam1008/ProtoPeek/blob/master/guides/website-analysis-security.md
+- Homebrew: `brew install shreyam1008/tap/protopeek`
+- Scoop: `scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket`, then `scoop install shreyam/protopeek`
+- Unix resolver: `curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh`
+- PowerShell resolver: `irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex`

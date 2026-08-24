@@ -28,7 +28,7 @@ const (
 	cymruASNNameSuffix  = ".asn.cymru.com."
 )
 
-var errBGPAmbiguous = errors.New("Team Cymru returned ambiguous BGP origin evidence")
+var errBGPAmbiguous = errors.New("ambiguous Team Cymru BGP origin evidence")
 
 type ipifyFetcher interface {
 	Fetch(context.Context, string) (netip.Addr, error)
@@ -281,7 +281,7 @@ func (client *cymruClient) Lookup(ctx context.Context, address netip.Addr) (*BGP
 	}
 	records, err := client.lookupBoundedTXT(ctx, query)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Team Cymru BGP origin lookup failed: %w", err)
+		return nil, nil, fmt.Errorf("team Cymru BGP origin lookup failed: %w", err)
 	}
 	if len(records) != 1 {
 		return nil, nil, fmt.Errorf("%w: received %d origin records", errBGPAmbiguous, len(records))
@@ -299,10 +299,10 @@ func (client *cymruClient) Lookup(ctx context.Context, address netip.Addr) (*BGP
 	}
 	nameRecords, nameErr := client.lookupBoundedTXT(ctx, "AS"+strconv.FormatUint(uint64(asn), 10)+cymruASNNameSuffix)
 	if nameErr != nil {
-		return result, fmt.Errorf("Team Cymru ASN-name lookup failed: %w", nameErr), nil
+		return result, fmt.Errorf("team Cymru ASN-name lookup failed: %w", nameErr), nil
 	}
 	if len(nameRecords) != 1 {
-		return result, fmt.Errorf("Team Cymru ASN-name lookup returned %d records", len(nameRecords)), nil
+		return result, fmt.Errorf("team Cymru ASN-name lookup returned %d records", len(nameRecords)), nil
 	}
 	name, err := parseCymruASNNameRecord(nameRecords[0], asn)
 	if err != nil {
@@ -314,7 +314,7 @@ func (client *cymruClient) Lookup(ctx context.Context, address netip.Addr) (*BGP
 
 func (client *cymruClient) lookupBoundedTXT(ctx context.Context, query string) ([]string, error) {
 	if client == nil || client.resolver == nil {
-		return nil, fmt.Errorf("DNS resolver is unavailable")
+		return nil, fmt.Errorf("configured DNS resolver is unavailable")
 	}
 	if !validCymruQuery(query) {
 		return nil, fmt.Errorf("refused non-Cymru DNS query")
@@ -398,7 +398,7 @@ func cymruOriginQuery(address netip.Addr) (string, error) {
 func parseCymruOriginRecord(record string, address netip.Addr) (uint32, netip.Prefix, error) {
 	fields := splitCymruRecord(record)
 	if len(fields) != 5 {
-		return 0, netip.Prefix{}, fmt.Errorf("Team Cymru BGP origin response was malformed")
+		return 0, netip.Prefix{}, fmt.Errorf("team Cymru BGP origin response was malformed")
 	}
 	asnFields := strings.Fields(fields[0])
 	if len(asnFields) != 1 {
@@ -406,16 +406,16 @@ func parseCymruOriginRecord(record string, address netip.Addr) (uint32, netip.Pr
 	}
 	asn, err := strconv.ParseUint(asnFields[0], 10, 32)
 	if err != nil || asn == 0 {
-		return 0, netip.Prefix{}, fmt.Errorf("Team Cymru BGP origin ASN was malformed")
+		return 0, netip.Prefix{}, fmt.Errorf("team Cymru BGP origin ASN was malformed")
 	}
 	prefix, err := netip.ParsePrefix(fields[1])
 	if err != nil {
-		return 0, netip.Prefix{}, fmt.Errorf("Team Cymru BGP origin prefix was malformed")
+		return 0, netip.Prefix{}, fmt.Errorf("team Cymru BGP origin prefix was malformed")
 	}
 	prefix = prefix.Masked()
 	address = address.Unmap()
 	if !prefix.Contains(address) || prefix.Addr().Is4() != address.Is4() {
-		return 0, netip.Prefix{}, fmt.Errorf("Team Cymru BGP origin prefix did not contain the observed address")
+		return 0, netip.Prefix{}, fmt.Errorf("team Cymru BGP origin prefix did not contain the observed address")
 	}
 	return uint32(asn), prefix, nil
 }
@@ -423,15 +423,15 @@ func parseCymruOriginRecord(record string, address netip.Addr) (uint32, netip.Pr
 func parseCymruASNNameRecord(record string, expected uint32) (string, error) {
 	fields := splitCymruRecord(record)
 	if len(fields) != 5 {
-		return "", fmt.Errorf("Team Cymru ASN-name response was malformed")
+		return "", fmt.Errorf("team Cymru ASN-name response was malformed")
 	}
 	asn, err := strconv.ParseUint(fields[0], 10, 32)
 	if err != nil || uint32(asn) != expected {
-		return "", fmt.Errorf("Team Cymru ASN-name response did not match the origin ASN")
+		return "", fmt.Errorf("team Cymru ASN-name response did not match the origin ASN")
 	}
 	name := boundedText(fields[4], 256)
 	if name == "" {
-		return "", fmt.Errorf("Team Cymru ASN-name response contained no name")
+		return "", fmt.Errorf("team Cymru ASN-name response contained no name")
 	}
 	return name, nil
 }

@@ -177,8 +177,8 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 			Addresses: make([]InterfaceAddress, 0),
 		}
 		if observed, ok := counters[value.Name]; ok {
-			copy := publicCounters(observed)
-			item.Traffic = &copy
+			trafficCopy := publicCounters(observed)
+			item.Traffic = &trafficCopy
 		}
 		addresses, addressErr := service.interfaceAddrs(value)
 		if addressErr != nil {

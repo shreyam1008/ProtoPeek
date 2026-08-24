@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>This PC evidence | ProtoPeek</title>
-    <meta name="description" content="The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace." />
+    <title>This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek</title>
+    <meta name="description" content="Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/this-pc/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="This PC evidence | ProtoPeek" />
-    <meta property="og:description" content="The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace." />
+    <meta property="og:title" content="This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
+    <meta property="og:description" content="Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/this-pc/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -26,84 +26,121 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="This PC evidence | ProtoPeek" />
-    <meta name="twitter:description" content="The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace." />
+    <meta name="twitter:title" content="This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
+    <meta name="twitter:description" content="Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"This PC evidence","description":"The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace.","url":"https://protopeek.shreyam1008.com.np/this-pc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/this-pc/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"This PC evidence","description":"Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run.","url":"https://protopeek.shreyam1008.com.np/this-pc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/this-pc/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"This PC evidence","item":"https://protopeek.shreyam1008.com.np/this-pc/"}]}}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="/">Home</a>
-            <a href="/docs/">Docs</a>
-            <a href="/learn-grpc/">Learn gRPC</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">Guide</div>
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">This PC evidence</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>This PC evidence</h1>
-              <p>The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace.</p>
-              <div class="pp-doc-chip-row">
-                <span>Local listeners</span><span>Public IPv4 and IPv6</span><span>Bounded connection quality</span>
-              </div>
+              <h1 id="page-title">This PC evidence</h1>
+              <p>What is happening on this computer?</p>
+
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Current source · after v0.5.0
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Local listeners and connections</li><li>Public IPv4 and IPv6</li><li>Bounded connection quality</li>
+              </ul>
             </div>
 
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">This PC evidence and connection-quality boundary</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-this-pc">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What is happening on this computer?</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-this-pc-title visual-this-pc-description">
+        <title id="visual-this-pc-title">This PC evidence evidence path</title>
+        <desc id="visual-this-pc-description">Local to Public to Quality</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
 
-        <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>Local listeners</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-1"></div>
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Local</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Public</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Quality</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
           </div>
-        </div>
+          </section>
 
-        <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Public IPv4 and IPv6</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-2"></div>
-          </div>
-        </div>
 
-        <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>Bounded connection quality</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-3"></div>
-          </div>
-        </div>
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
 
-      </div>
-    </div>
+            <article>
+              <span>01 · Start</span>
+              <h2>Read the local baseline</h2>
+              <p>Initial render reads process-perspective identity, platform capability, and interfaces only.</p>
+            </article>
 
-          </div>
-        </section>
+            <article>
+              <span>02 · Ask</span>
+              <h2>Run one explicit observation</h2>
+              <p>Listeners, connections, traffic, public identity, and speed each have separate actions.</p>
+            </article>
 
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
-              <p>Status: <strong>available in current source after v0.5.0; not part of the published v0.5.0 release</strong>.</p>
+            <article>
+              <span>03 · Interpret</span>
+              <h2>Keep the boundary beside the result</h2>
+              <p>A listener is not an Internet-open port and a Cloudflare run is not ISP line maximum.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Status: <strong>available in current source after v0.5.0; not part of the published v0.5.0 release</strong>.</p>
 <p><strong>This PC</strong> is ProtoPeek&#39;s device-centred workspace. The existing <strong>Network</strong> workspace starts with a target and asks how this ProtoPeek process can reach it. This PC starts with the machine running ProtoPeek and answers four narrower questions:</p>
 <ol><li><div class="pp-doc-list-title">What local system and interface evidence can this process observe without sending a packet?</div></li><li><div class="pp-doc-list-title">Which local listeners and current connections can the operating system expose to it?</div></li><li><div class="pp-doc-list-title">Which public IPv4 or IPv6 address and BGP-origin network do named providers observe?</div></li><li><div class="pp-doc-list-title">What bounded browser-to-Cloudflare connection quality is measured during one explicit run?</div></li></ol>
 <p>The page is an evidence workspace, not a health score. Mounting it reads only local identity, capability, and interface data. It does not inspect processes, contact an external provider, start a benchmark, poll in the background, elevate privileges, or persist the returned evidence.</p>
@@ -166,31 +203,57 @@
 <p>measurement, logging, loaded-latency, pause, and packet-loss contracts.</p>
 <ul><li><a href="https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedtcptable" rel="noreferrer" target="_blank">Windows `GetExtendedTcpTable`</a>,</li></ul>
 <p><a href="https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedudptable" rel="noreferrer" target="_blank">`GetExtendedUdpTable`</a>, and <a href="https://learn.microsoft.com/en-us/windows-hardware/drivers/network/getiftable2" rel="noreferrer" target="_blank">`GetIfTable2`</a> for the planned native Windows backend.</p>
-            </div>
-          </article>
-
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                <a class="level-2" href="#read-the-evidence-spine">Read the evidence spine</a><a class="level-2" href="#local-overview">Local overview</a><a class="level-2" href="#local-listeners-and-current-connections">Local listeners and current connections</a><a class="level-2" href="#one-shot-interface-load">One-shot interface load</a><a class="level-2" href="#public-identity">Public identity</a><a class="level-2" href="#bounded-cloudflare-connection-quality-run">Bounded Cloudflare connection-quality run</a><a class="level-2" href="#platform-capability-matrix">Platform capability matrix</a><a class="level-2" href="#deliberate-next-slices">Deliberate next slices</a><a class="level-2" href="#permanent-non-goals-for-this-slice">Permanent non-goals for this slice</a><a class="level-2" href="#verification-contract">Verification contract</a><a class="level-2" href="#primary-references">Primary references</a>
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/this-pc.md</div>
-              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/this-pc.md" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#read-the-evidence-spine">Read the evidence spine</a><a class="level-2" href="#local-overview">Local overview</a><a class="level-2" href="#local-listeners-and-current-connections">Local listeners and current connections</a><a class="level-2" href="#one-shot-interface-load">One-shot interface load</a><a class="level-2" href="#public-identity">Public identity</a><a class="level-2" href="#bounded-cloudflare-connection-quality-run">Bounded Cloudflare connection-quality run</a><a class="level-2" href="#platform-capability-matrix">Platform capability matrix</a><a class="level-2" href="#deliberate-next-slices">Deliberate next slices</a><a class="level-2" href="#permanent-non-goals-for-this-slice">Permanent non-goals for this slice</a><a class="level-2" href="#verification-contract">Verification contract</a><a class="level-2" href="#primary-references">Primary references</a>
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/route-and-nmap-evidence/"><strong>Network evidence boundaries</strong><span>Guide</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/this-pc.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/this-pc.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>This seventh route-lazy area is not included in published v0.5.0 packages.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/route-and-nmap-evidence/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Network evidence boundaries</strong>
+      </a>
+      <a href="/downloader/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Downloader</strong>
+      </a>
+    </nav>
+
         </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
       </div>
     </div>
   </body>

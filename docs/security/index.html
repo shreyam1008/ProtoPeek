@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Security Evidence: DNS, TLS &amp; HTTP | ProtoPeek</title>
+    <meta name="description" content="Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/security/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Website Security Evidence: DNS, TLS &amp; HTTP | ProtoPeek" />
+    <meta property="og:description" content="Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/security/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Website Security Evidence: DNS, TLS &amp; HTTP | ProtoPeek" />
+    <meta name="twitter:description" content="Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Website security evidence","description":"Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.","url":"https://protopeek.shreyam1008.com.np/security/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/security/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Website security evidence","item":"https://protopeek.shreyam1008.com.np/security/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Website security evidence</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Website security evidence</h1>
+              <p>What can I verify about this public website?</p>
+
+    <span class="pp-page-status is-mixed is-full">
+      <i aria-hidden="true"></i>Stable core · current-source report
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Historical certificate names</li><li>One consented HEAD</li><li>No security score</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-security">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What can I verify about this public website?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-security-title visual-security-description">
+        <title id="visual-security-title">Website security evidence evidence path</title>
+        <desc id="visual-security-description">DNS to TLS to HTTP</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">DNS</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">TLS</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">HTTP</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Choose</span>
+              <h2>Use one explicit action</h2>
+              <p>Look up historical certificate names or observe one public HTTP(S) response.</p>
+            </article>
+
+            <article>
+              <span>02 · Observe</span>
+              <h2>Pin the destination</h2>
+              <p>The website action resolves public addresses, verifies TLS, reads no body, and follows no redirect.</p>
+            </article>
+
+            <article>
+              <span>03 · Read</span>
+              <h2>Treat evidence as bounded</h2>
+              <p>Headers and certificate observations are not a vulnerability score or universal verdict.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Status: one passive historical-name lookup and one direct website observation ship in v0.5.0. Current source after v0.5.0 also derives a bounded, copyable evidence report from that retained response without making another request. Broader website plans, active findings, and selected-port handoffs remain planned.</p>
+<p>ProtoPeek helps a user understand a website from the perspective of the local ProtoPeek process. It must not become an ambient Internet scanner, a security-score generator, or an automated exploitation tool. This document separates the current build from later safety requirements.</p>
+<h2 id="current-build">Current build</h2>
+<h3 id="historical-certificate-name-candidates">Historical certificate-name candidates</h3>
+<p>The user enters one hostname and must explicitly acknowledge that its normalized registrable apex will be sent to the named third party <code>crt.name</code>. The adapter then:</p>
+<ul><li>sends one bounded request to the fixed <code>https://crt.name/v1/search</code> endpoint;</li><li>allows at most two concurrent client requests and is also wired behind a two-operation process</li></ul>
+<p>admission limit;</p>
+<ul><li>uses an eight-second timeout, a 256 KiB response-body limit, at most 256 retained candidates, a</li></ul>
+<p>15-minute cache, and at most 32 cache entries by default;</p>
+<ul><li>suffix-checks, IDNA-normalizes, deduplicates, sorts, and bounds candidate names;</li><li>retains only each normalized name and whether it was a wildcard pattern; the provider adapter</li></ul>
+<p>does not return per-candidate observation dates;</p>
+<ul><li>never resolves, probes, scans, or opens a returned candidate.</li></ul>
+<p><code>crt.name</code> is a historical certificate-name index, not proof that a returned name is live, owned, still configured, or independently deployed. Wildcards remain patterns. DNS has no universal “list every subdomain” operation, and this adapter does not use <code>ANY</code>, attempt AXFR, brute-force labels, or fan out across returned names.</p>
+<h3 id="one-public-website-response">One public website response</h3>
+<p>Website observation has a separate acknowledgement because it contacts the target and may create a server log. Each accepted operation performs exactly one credential-free <code>HEAD</code> request:</p>
+<ul><li>absolute HTTP or HTTPS only; user information, query strings, and fragments are rejected;</li><li>the hostname is normalized with the IDNA lookup profile;</li><li>DNS is resolved once, at most eight answers are retained by default, and every answer must be an</li></ul>
+<p>ordinary public address; mixed public/blocked results fail closed;</p>
+<ul><li>dials use only the validated numeric pin set while the original hostname remains the HTTP Host,</li></ul>
+<p>TLS SNI, and certificate-verification name;</p>
+<ul><li>environment proxies are disabled, compression and keep-alives are disabled, and HTTPS uses</li></ul>
+<p>verified TLS 1.2 or newer;</p>
+<ul><li>redirects are returned as bounded evidence but never followed or resolved;</li><li>no cookie, authorization header, request body, retry, or response-body read is used;</li><li>the default whole-operation wall is 15 seconds and the outer process admits at most two website</li></ul>
+<p>observations concurrently;</p>
+<ul><li>the result retains the observed URL, complete pinned address set, bounded selected headers,</li></ul>
+<p>status/protocol, safe redirect location, successful TLS certificate evidence when HTTPS applies, and DNS/connect/TLS/first-byte/total timing where observed.</p>
+<p>The result is one source-perspective observation at one time. A missing header, failed request, redirect, hostname, route, or timing value is not a universal vulnerability verdict. ProtoPeek does not emit a security score and does not infer a CVE from a <code>Server</code> header.</p>
+<h3 id="current-source-after-v0-5-0-local-head-evidence-report">Current source after v0.5.0: local HEAD evidence report</h3>
+<p>This source-only refinement is not part of the published v0.5.0 release. After one successful website observation, the Security page now runs a pure deterministic analyzer over the already retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect follow, body read, crawl, login attempt, or port connection.</p>
+<p>The report uses only <code>observed</code>, <code>not observed</code>, and <code>attention</code> labels for:</p>
+<ul><li>HTTPS, verified TLS-chain evidence, and certificate validity at the observation time;</li><li><code>Strict-Transport-Security</code>, <code>Content-Security-Policy</code>, <code>X-Content-Type-Options</code>,</li></ul>
+<p><code>Referrer-Policy</code>, and <code>Permissions-Policy</code> response-header evidence;</p>
+<ul><li>frame-embedding evidence from CSP <code>frame-ancestors</code> or <code>X-Frame-Options</code>;</li><li>retained <code>Server</code> disclosure without treating a product string as a vulnerability;</li><li>the requested HTTP/HTTPS scheme and any retained redirect location, without following it.</li></ul>
+<p>The user can copy a versioned JSON report containing the normalized observation, fixed one-HEAD boundary, derived labels, and source-field references. Header names and duplicate values are canonicalized for deterministic output; the original selected evidence remains bounded by the observer and UI response limits. No score, grade, pass/fail state, CVE, or exploit claim is added.</p>
+<p>These labels describe only the retained response to one non-following <code>HEAD</code> request. <code>HEAD</code> evidence can differ from <code>GET</code> responses and application behavior. <code>Not observed</code> means absent from this retained response, not absent from every route, method, browser session, CDN path, or future response. <code>Attention</code> identifies evidence that needs human interpretation; it is not a vulnerability verdict.</p>
+<h3 id="shared-destination-guard">Shared destination guard</h3>
+<p>Both current adapters use public-only pinned transports for their outbound website/provider request. The guard blocks loopback, RFC1918/RFC4193 private, link-local, shared/CGNAT, multicast, unspecified, documentation, benchmarking, protocol-assignment, and reserved ranges. IPv4-mapped IPv6 is unmapped before classification. A dial for any authority outside the approved pin set is refused.</p>
+<p>CSRF protects loopback browser mutations, but it is not user authentication and does not weaken the destination policy. Nothing runs on page load.</p>
+<h2 id="planned-not-shipped">Planned, not shipped</h2>
+<p>The current Security page labels these ideas as planned. None is a current API or product claim:</p>
+<ul><li>user-selected DNS record observation beyond the DNS evidence already required to pin one HEAD;</li><li>multi-request website plans, optional GET, HTTP-to-HTTPS upgrade checks, <code>security.txt</code>, cookies,</li></ul>
+<p>HTML or form inspection, or any redirect-following plan;</p>
+<ul><li>multi-page or multi-request findings, scheduled comparisons, and broader report formats;</li><li>public selected-port handoff or automatic fan-out across historical names;</li><li>ASN, GeoIP, ownership, provider, or physical-path enrichment;</li><li>authenticated crawling, browser automation, or scheduled monitoring.</li></ul>
+<p>Any later multi-request or active plan must show the exact target, methods, paths, ports, request count, concurrency, deadlines, redirect policy, and stop control before fresh authorization. Editing the plan invalidates that authorization. Consent must never become a persistent global preference.</p>
+<h2 id="authorization-tiers-for-future-work">Authorization tiers for future work</h2>
+<ol><li><div class="pp-doc-list-title"><strong>External intelligence</strong> — explicit request to a named provider and clear disclosure of what is</div><p>sent. The current <code>crt.name</code> adapter is in this tier.</p></li><li><div class="pp-doc-list-title"><strong>Direct observation</strong> — bounded DNS, verified TLS, and a fixed safe HTTP request to the target.</div><p>The current one-HEAD observer is the only shipped website plan.</p></li><li><div class="pp-doc-list-title"><strong>Authorized active probes</strong> — selected ports, path probes, private discovery, multiple requests,</div><p>or multiple targets. Existing Network tools keep their own authorization; no new website-tier active probe is shipped.</p></li><li><div class="pp-doc-list-title"><strong>Intrusive testing</strong> — outside the core product.</div></li></ol>
+<h2 id="excluded-behavior">Excluded behavior</h2>
+<p>ProtoPeek core does not perform password guessing, spraying, credential stuffing, authentication bypass, injection payloads, account creation, state-changing requests, directory brute force, <code>.git</code>/<code>.env</code>/admin/backup probing, login testing, CORS payload matrices, exploit verification, denial-of-service, or authenticated crawling.</p>
+<p>An open TCP port would prove only a listener, not a named application protocol. A hostname, route, or source-to-responder RTT would not prove a country, datacenter, provider, owner, physical cable path, or adjacent-link latency.</p>
+<h2 id="evidence-and-test-contract">Evidence and test contract</h2>
+<p>Current tests must continue to prove explicit disclosure/consent, IDNA and public-suffix normalization, special-range and mixed-answer rejection, resolve-once pinned dialing, proxy bypass, no redirect follow, no body read, verified TLS behavior, fixed request method, provider/target timeouts, body/name/header limits, cancellation, admission saturation, malformed provider results, cache bounds, and that candidate names are never contacted. Current-source UI tests additionally prove deterministic case-insensitive header analysis, duplicate-value handling, invalid certificate dates, HTTP without TLS, missing headers, absolute and relative redirect interpretation, fixed status vocabulary, clipboard failure handling, and that copying the JSON report causes no second target-observation request.</p>
+<p>Future features require their own tests for plan invalidation and for every additional request, redirect, body, port, credential, persistence, and export boundary before they can move out of the planned section.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#current-build">Current build</a><a class="level-3" href="#historical-certificate-name-candidates">Historical certificate-name candidates</a><a class="level-3" href="#one-public-website-response">One public website response</a><a class="level-3" href="#current-source-after-v0-5-0-local-head-evidence-report">Current source after v0.5.0: local HEAD evidence report</a><a class="level-3" href="#shared-destination-guard">Shared destination guard</a><a class="level-2" href="#planned-not-shipped">Planned, not shipped</a><a class="level-2" href="#authorization-tiers-for-future-work">Authorization tiers for future work</a><a class="level-2" href="#excluded-behavior">Excluded behavior</a><a class="level-2" href="#evidence-and-test-contract">Evidence and test contract</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/website-analysis-security.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/website-analysis-security.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>v0.5.0 ships the name lookup and one HEAD observation; the derived local report is current source.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/downloader/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Downloader</strong>
+      </a>
+      <a href="/settings/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Settings</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

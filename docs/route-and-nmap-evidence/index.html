@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Network evidence boundaries | ProtoPeek</title>
-    <meta name="description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
+    <title>Route, Path, Discovery &amp; Nmap Evidence Limits | ProtoPeek</title>
+    <meta name="description" content="Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="Network evidence boundaries | ProtoPeek" />
-    <meta property="og:description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
+    <meta property="og:title" content="Route, Path, Discovery &amp; Nmap Evidence Limits | ProtoPeek" />
+    <meta property="og:description" content="Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -26,84 +26,99 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Network evidence boundaries | ProtoPeek" />
-    <meta name="twitter:description" content="Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
+    <meta name="twitter:title" content="Route, Path, Discovery &amp; Nmap Evidence Limits | ProtoPeek" />
+    <meta name="twitter:description" content="Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Network evidence boundaries","description":"Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.","url":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Network evidence boundaries","description":"Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.","url":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Network evidence boundaries","item":"https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/"}]}}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="/">Home</a>
-            <a href="/docs/">Docs</a>
-            <a href="/learn-grpc/">Learn gRPC</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">Guide</div>
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Network evidence boundaries</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>Network evidence boundaries</h1>
-              <p>Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.</p>
-              <div class="pp-doc-chip-row">
-                <span>Source RTT</span><span>Authorized discovery</span><span>No hidden execution</span>
-              </div>
+              <h1 id="page-title">Network evidence boundaries</h1>
+              <p>What does each network result prove?</p>
+
+    <span class="pp-page-status is-guide is-full">
+      <i aria-hidden="true"></i>Stable boundary
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Source RTT</li><li>Authorized discovery</li><li>No hidden Nmap execution</li>
+              </ul>
             </div>
 
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">Route, path, discovery, and Nmap evidence boundary</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-network-boundary">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What does each network result prove?</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-route-and-nmap-evidence-title visual-route-and-nmap-evidence-description">
+        <title id="visual-route-and-nmap-evidence-title">Network evidence boundaries evidence path</title>
+        <desc id="visual-route-and-nmap-evidence-description">Passive to Active to Imported</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
 
-        <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>Source RTT</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-1"></div>
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Passive</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Active</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Imported</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
           </div>
-        </div>
+          </section>
 
-        <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Authorized discovery</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-2"></div>
-          </div>
-        </div>
 
-        <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>No hidden execution</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-3"></div>
-          </div>
-        </div>
 
-      </div>
-    </div>
-
-          </div>
-        </section>
-
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
-              <p>ProtoPeek keeps four network-evidence paths separate because they have different authority and trust models. Next-hop lookup reads the local kernel without probes. Network Path sends a bounded, consented active probe plan. Local discovery opens selected TCP connections inside one authorized private IPv4 scope. The Nmap path imports a file produced elsewhere. None is a general-purpose or ambient network scanner.</p>
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>ProtoPeek keeps four network-evidence paths separate because they have different authority and trust models. Next-hop lookup reads the local kernel without probes. Network Path sends a bounded, consented active probe plan. Local discovery opens selected TCP connections inside one authorized private IPv4 scope. The Nmap path imports a file produced elsewhere. None is a general-purpose or ambient network scanner.</p>
 <h2 id="next-hop-route-lookup">Next-hop route lookup</h2>
 <p><code>POST /api/route/lookup</code> accepts JSON with <code>destination</code> and an optional <code>family</code> of <code>auto</code>, <code>ipv4</code>, or <code>ipv6</code>. The same-origin CSRF token is required. The request body is capped at 16 KiB and the destination at 253 bytes. Resolution plus all route lookups request a two-second deadline. ProtoPeek keeps at most eight unique resolved addresses and runs at most four kernel lookups concurrently. Windows IP Helper calls are synchronous, so cancellation prevents new work but cannot interrupt an already-running operating-system call.</p>
 <p>The result is one kernel-selected route per address from the ProtoPeek process perspective. It can include source IP, interface index/name, exact next hop or on-link state, local-route state, prefix, route metric/table when known, backend, notes, and a per-address error. One address failing does not erase successful siblings.</p>
@@ -159,31 +174,57 @@
 <h2 id="remaining-wider-boundaries">Remaining wider boundaries</h2>
 <ul><li><strong>Bundled Nmap execution:</strong> not planned for the core binary because executable discovery, argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.</li><li><strong>Darwin and Windows active hop probes:</strong> need verified unprivileged native backends. ProtoPeek will not hide an executable install or privilege escalation behind a trace action.</li><li><strong>Broader, public, or IPv6 range discovery:</strong> excluded from the current local workflow. The implemented path stays inside one authorized RFC 1918 IPv4 <code>/24</code>-or-smaller scope and one exact selected-TCP profile.</li><li><strong>Nmap-to-topology integration:</strong> may later map existing bounded XML into a workspace with explicit import provenance and loss reporting. It does not imply command execution.</li><li><strong>Live capture:</strong> gated because it can require privilege and expose secrets. Release requires an explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.</li></ul>
 <p>For the user workflow, storage behavior, and Now/Soon/Later plan, see the <a href="/network-workbench/">network workbench guide</a>.</p>
-            </div>
-          </article>
-
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                <a class="level-2" href="#next-hop-route-lookup">Next-hop route lookup</a><a class="level-3" href="#platform-boundary">Platform boundary</a><a class="level-2" href="#active-network-path">Active Network Path</a><a class="level-3" href="#linux-native-udp-evidence">Linux native UDP evidence</a><a class="level-3" href="#interpretation-boundary">Interpretation boundary</a><a class="level-2" href="#authorized-local-network-discovery">Authorized local-network discovery</a><a class="level-2" href="#saved-network-evidence">Saved network evidence</a><a class="level-2" href="#offline-nmap-xml-import">Offline Nmap XML import</a><a class="level-2" href="#remaining-wider-boundaries">Remaining wider boundaries</a>
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/route-and-nmap-evidence.md</div>
-              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#next-hop-route-lookup">Next-hop route lookup</a><a class="level-3" href="#platform-boundary">Platform boundary</a><a class="level-2" href="#active-network-path">Active Network Path</a><a class="level-3" href="#linux-native-udp-evidence">Linux native UDP evidence</a><a class="level-3" href="#interpretation-boundary">Interpretation boundary</a><a class="level-2" href="#authorized-local-network-discovery">Authorized local-network discovery</a><a class="level-2" href="#saved-network-evidence">Saved network evidence</a><a class="level-2" href="#offline-nmap-xml-import">Offline Nmap XML import</a><a class="level-2" href="#remaining-wider-boundaries">Remaining wider boundaries</a>
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/this-pc/"><strong>This PC evidence</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/route-and-nmap-evidence.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>These limits describe shipped evidence and the claims ProtoPeek deliberately avoids.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/network-workbench/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Network workbench</strong>
+      </a>
+      <a href="/this-pc/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>This PC evidence</strong>
+      </a>
+    </nav>
+
         </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
       </div>
     </div>
   </body>

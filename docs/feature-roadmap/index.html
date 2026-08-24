@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feature roadmap | ProtoPeek</title>
-    <meta name="description" content="The shipped protocol workbench and the gates for future transport-aware work." />
+    <title>ProtoPeek Feature Roadmap: Shipped, Next &amp; Gated</title>
+    <meta name="description" content="See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/feature-roadmap/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="Feature roadmap | ProtoPeek" />
-    <meta property="og:description" content="The shipped protocol workbench and the gates for future transport-aware work." />
+    <meta property="og:title" content="ProtoPeek Feature Roadmap: Shipped, Next &amp; Gated" />
+    <meta property="og:description" content="See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/feature-roadmap/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -26,84 +26,99 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Feature roadmap | ProtoPeek" />
-    <meta name="twitter:description" content="The shipped protocol workbench and the gates for future transport-aware work." />
+    <meta name="twitter:title" content="ProtoPeek Feature Roadmap: Shipped, Next &amp; Gated" />
+    <meta name="twitter:description" content="See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Feature roadmap","description":"The shipped protocol workbench and the gates for future transport-aware work.","url":"https://protopeek.shreyam1008.com.np/feature-roadmap/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/feature-roadmap/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Feature roadmap","description":"See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters.","url":"https://protopeek.shreyam1008.com.np/feature-roadmap/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/feature-roadmap/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Feature roadmap","item":"https://protopeek.shreyam1008.com.np/feature-roadmap/"}]}}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="/">Home</a>
-            <a href="/docs/">Docs</a>
-            <a href="/learn-grpc/">Learn gRPC</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">Roadmap</div>
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Feature roadmap</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>Feature roadmap</h1>
-              <p>The shipped protocol workbench and the gates for future transport-aware work.</p>
-              <div class="pp-doc-chip-row">
-                <span>gRPC + HTTP</span><span>Safety boundaries</span><span>Gated plans</span>
-              </div>
+              <h1 id="page-title">Feature roadmap</h1>
+              <p>What is shipped, next, exploring, or gated?</p>
+
+    <span class="pp-page-status is-guide is-full">
+      <i aria-hidden="true"></i>Living roadmap
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>gRPC and HTTP</li><li>Safety boundaries</li><li>Gated plans</li>
+              </ul>
             </div>
 
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">ProtoPeek protocol roadmap</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-roadmap">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What is shipped, next, exploring, or gated?</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-feature-roadmap-title visual-feature-roadmap-description">
+        <title id="visual-feature-roadmap-title">Feature roadmap evidence path</title>
+        <desc id="visual-feature-roadmap-description">Shipped to Next to Gated</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
 
-        <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>gRPC + HTTP</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-1"></div>
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Shipped</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Next</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Gated</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
           </div>
-        </div>
+          </section>
 
-        <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Safety boundaries</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-2"></div>
-          </div>
-        </div>
 
-        <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>Gated plans</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-3"></div>
-          </div>
-        </div>
 
-      </div>
-    </div>
-
-          </div>
-        </section>
-
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
-              <p>ProtoPeek is <strong>Protocol Peek</strong>: a local workbench for understanding the path from a request to a server response. It is not trying to become a cloud API-management suite or a clone of Postman. Its advantage is that difficult protocols remain explainable: the request editor, the transport events, and the final evidence stay close together.</p>
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>ProtoPeek is <strong>Protocol Peek</strong>: a local workbench for understanding the path from a request to a server response. It is not trying to become a cloud API-management suite or a clone of Postman. Its advantage is that difficult protocols remain explainable: the request editor, the transport events, and the final evidence stay close together.</p>
 <h2 id="product-contract">Product contract</h2>
 <h3 id="what-protopeek-is">What ProtoPeek is</h3>
 <ul><li>A single-binary, local-first console with no account, remote sync, or external database.</li><li>A shared shell for targets, request editing, response evidence, local history, cancellation, and</li></ul>
@@ -261,31 +276,57 @@ console shell: target -&gt; operation -&gt; request -&gt; response evidence
 <p>The canonical <code>bun run build</code> measures every emitted console JavaScript/CSS asset. Current ceilings are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; lazy HTTP workspace 54 KiB / 16 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 140 KiB / 27 KiB; network shell 64 KiB / 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security 36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This PC 58 KiB / 16 KiB JavaScript, 64 KiB / 18 KiB benchmark-engine JavaScript, and 24 KiB / 5 KiB CSS; suite shell pages CSS 12 KiB / 3 KiB; Settings CSS 12 KiB / 3 KiB (current 10.80 KiB / 1.92 KiB gzip baseline, with explicit headroom for the unreleased host-settings card); all JavaScript 884 KiB / 272 KiB; and all CSS 264 KiB / 50 KiB. Single-chunk rules fail on a missing or duplicate match, and aggregate rules keep growth visible across lazy boundaries. These are regression ceilings for the current unified suite, not target payload sizes; individual route budgets preserve the lighter v0.3 architecture.</p>
 <h2 id="research-trail">Research trail</h2>
 <ul><li><a href="/network-workbench/">Network workbench guide</a></li><li><a href="/route-and-nmap-evidence/">Route, path, discovery, and Nmap boundaries</a></li><li><a href="/competitive-landscape/">ProtoPeek competitive workflow decisions</a></li><li><a href="https://grpc.io/docs/guides/" rel="noreferrer" target="_blank">gRPC guides</a></li><li><a href="https://grpc.io/docs/guides/debugging/" rel="noreferrer" target="_blank">gRPC debugging</a></li><li><a href="https://grpc.io/docs/guides/health-checking/" rel="noreferrer" target="_blank">gRPC health checking</a></li><li><a href="https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto" rel="noreferrer" target="_blank">Canonical gRPC Health protocol</a></li><li><a href="https://grpc.io/docs/platforms/web/basics/" rel="noreferrer" target="_blank">gRPC-Web basics</a></li><li><a href="https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/other_protocols/grpc.html" rel="noreferrer" target="_blank">Envoy gRPC overview</a></li><li><a href="https://learning.postman.com/docs/sending-requests/grpc/grpc-request-interface/" rel="noreferrer" target="_blank">Postman gRPC request interface</a></li><li><a href="https://wicg.github.io/file-system-access/" rel="noreferrer" target="_blank">File System Access specification</a></li><li><a href="https://xhr.spec.whatwg.org/#interface-formdata" rel="noreferrer" target="_blank">FormData entry-list specification</a></li></ul>
-            </div>
-          </article>
-
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-workbench-six-shipped-areas-in-v0-5-0">Current workbench: six shipped areas in v0.5.0</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#v0-5-0-workbench-release">v0.5.0 workbench release</a><a class="level-3" href="#shipped-in-v0-5-0">Shipped in v0.5.0</a><a class="level-3" href="#still-gated-after-v0-5-0">Still gated after v0.5.0</a><a class="level-3" href="#available-in-current-source-after-v0-5-0">Available in current source after v0.5.0</a><a class="level-2" href="#network-workbench-roadmap">Network workbench roadmap</a><a class="level-3" href="#now-shipped-in-v0-4-0">Now — shipped in v0.4.0</a><a class="level-3" href="#soon-improve-evidence-depth">Soon — improve evidence depth</a><a class="level-3" href="#later-optional-integrations-after-safety-and-size-review">Later — optional integrations after safety and size review</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</a><a class="level-3" href="#milestone-2-next-hop-and-offline-nmap-evidence-available-in-this-build">Milestone 2 — next-hop and offline Nmap evidence (available in this build)</a><a class="level-3" href="#milestone-3-browser-schema-snapshots-and-repeatable-unary-evidence-available-in-this-build">Milestone 3 — browser schema snapshots and repeatable unary evidence (available in this build)</a><a class="level-3" href="#milestone-4-explicit-grpc-health-evidence-available-in-this-build">Milestone 4 — explicit gRPC health evidence (available in this build)</a><a class="level-3" href="#distribution-owned-package-channels-available">Distribution — owned package channels (available)</a><a class="level-3" href="#next-daily-workflow-gaps">Next — daily workflow gaps</a><a class="level-3" href="#exploring-evidence-and-protocol-fit">Exploring — evidence and protocol fit</a><a class="level-3" href="#gated-operations-with-a-wider-safety-boundary">Gated — operations with a wider safety boundary</a><a class="level-3" href="#later-experiment-cap-n-proto">Later experiment — Cap&#39;n Proto</a><a class="level-3" href="#protocol-shelf-later">Protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-3" href="#v0-3-0-bundle-evidence-and-regression-budgets">v0.3.0 bundle evidence and regression budgets</a><a class="level-2" href="#research-trail">Research trail</a>
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/feature-roadmap.md</div>
-              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#product-contract">Product contract</a><a class="level-3" href="#what-protopeek-is">What ProtoPeek is</a><a class="level-3" href="#what-protopeek-is-not">What ProtoPeek is not</a><a class="level-2" href="#current-workbench-six-shipped-areas-in-v0-5-0">Current workbench: six shipped areas in v0.5.0</a><a class="level-2" href="#shared-adapter-architecture">Shared adapter architecture</a><a class="level-2" href="#v0-5-0-workbench-release">v0.5.0 workbench release</a><a class="level-3" href="#shipped-in-v0-5-0">Shipped in v0.5.0</a><a class="level-3" href="#still-gated-after-v0-5-0">Still gated after v0.5.0</a><a class="level-3" href="#available-in-current-source-after-v0-5-0">Available in current source after v0.5.0</a><a class="level-2" href="#network-workbench-roadmap">Network workbench roadmap</a><a class="level-3" href="#now-shipped-in-v0-4-0">Now — shipped in v0.4.0</a><a class="level-3" href="#soon-improve-evidence-depth">Soon — improve evidence depth</a><a class="level-3" href="#later-optional-integrations-after-safety-and-size-review">Later — optional integrations after safety and size review</a><a class="level-2" href="#delivery-plan">Delivery plan</a><a class="level-3" href="#phase-1-grpc-hardening-live">Phase 1 — gRPC hardening (live)</a><a class="level-3" href="#phase-2-bounded-http-rest-live">Phase 2 — bounded HTTP / REST (live)</a><a class="level-3" href="#milestone-2-next-hop-and-offline-nmap-evidence-available-in-this-build">Milestone 2 — next-hop and offline Nmap evidence (available in this build)</a><a class="level-3" href="#milestone-3-browser-schema-snapshots-and-repeatable-unary-evidence-available-in-this-build">Milestone 3 — browser schema snapshots and repeatable unary evidence (available in this build)</a><a class="level-3" href="#milestone-4-explicit-grpc-health-evidence-available-in-this-build">Milestone 4 — explicit gRPC health evidence (available in this build)</a><a class="level-3" href="#distribution-owned-package-channels-available">Distribution — owned package channels (available)</a><a class="level-3" href="#next-daily-workflow-gaps">Next — daily workflow gaps</a><a class="level-3" href="#exploring-evidence-and-protocol-fit">Exploring — evidence and protocol fit</a><a class="level-3" href="#gated-operations-with-a-wider-safety-boundary">Gated — operations with a wider safety boundary</a><a class="level-3" href="#later-experiment-cap-n-proto">Later experiment — Cap&#39;n Proto</a><a class="level-3" href="#protocol-shelf-later">Protocol shelf (later)</a><a class="level-2" href="#ux-rules-for-every-adapter">UX rules for every adapter</a><a class="level-2" href="#verification-gates">Verification gates</a><a class="level-3" href="#v0-3-0-bundle-evidence-and-regression-budgets">v0.3.0 bundle evidence and regression budgets</a><a class="level-2" href="#research-trail">Research trail</a>
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/this-pc/"><strong>This PC evidence</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/route-and-nmap-evidence/"><strong>Network evidence boundaries</strong><span>Guide</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/feature-roadmap.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>No fake dates: every item is labelled by evidence and release state.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/settings/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Settings</strong>
+      </a>
+      <a href="/transport-boundaries/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Transport boundaries</strong>
+      </a>
+    </nav>
+
         </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
       </div>
     </div>
   </body>

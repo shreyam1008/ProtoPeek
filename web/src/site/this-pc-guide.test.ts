@@ -29,7 +29,7 @@ describe('This PC current-source guide', () => {
     const docsHub = parseHtml('docs/docs/index.html');
     const sitemap = readRepositoryFile('docs/sitemap.xml');
 
-    expect(page.title).toBe('This PC evidence | ProtoPeek');
+    expect(page.title).toBe('This PC: Local Ports, Public IP & Speed Evidence | ProtoPeek');
     expect(page.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://protopeek.shreyam1008.com.np/this-pc/'
     );

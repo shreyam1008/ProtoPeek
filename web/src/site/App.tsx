@@ -10,9 +10,17 @@ import {
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
+import publicPagesRegistry from './public-pages.json';
+
+function publicPagePath(id: string): string {
+  const page = publicPagesRegistry.pages.find((candidate) => candidate.id === id);
+  if (!page) throw new Error(`Missing public page registry entry: ${id}`);
+  return page.path;
+}
+
 const siteNavigation = [
   { href: '#product', label: 'Product' },
-  { href: '/docs/', label: 'Guides' },
+  { href: publicPagePath('docs'), label: 'Guides' },
   { href: '#install', label: 'Download' },
 ] as const;
 
@@ -20,32 +28,32 @@ const productQuestions = [
   {
     question: 'Can I reach this service?',
     answer: 'Call gRPC or HTTP and see exactly what came back.',
-    action: 'Open API guides',
-    href: '/docs/',
+    action: 'Choose gRPC or HTTP',
+    href: `${publicPagePath('docs')}#protocols`,
   },
   {
     question: 'Why is this request slow?',
     answer: 'Check DNS, routes, hops, and timing in one path.',
     action: 'Trace the path',
-    href: '/network-workbench/',
+    href: `${publicPagePath('network-workbench')}#network-path`,
   },
   {
     question: 'What can I verify about this public website?',
     answer: 'See DNS, TLS, and response-header evidence when you ask.',
-    action: 'See safety limits',
-    href: '/transport-boundaries/',
+    action: 'See website evidence',
+    href: publicPagePath('security'),
   },
   {
     question: 'What is happening on this computer?',
     answer: 'Current-source preview: listeners, connections, IPs, and bounded speed evidence.',
     action: 'Preview This PC',
-    href: '/this-pc/',
+    href: publicPagePath('this-pc'),
   },
   {
     question: 'Can I manage this download locally?',
     answer: 'Queue, pause, resume, and verify HTTP(S) transfers.',
     action: 'Meet Downloader',
-    href: '/downloader/',
+    href: publicPagePath('downloader'),
   },
 ] as const;
 
@@ -306,6 +314,19 @@ function ProductQuestions() {
             </article>
           ))}
         </div>
+
+        <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-black/10 bg-neutral-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <p className="max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+            Follow one connected map through every feature, its evidence, and its limits.
+          </p>
+          <a
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 font-semibold text-[#0b5cff]"
+            href={publicPagePath('docs')}
+          >
+            Explore all features
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -408,7 +429,7 @@ function Install() {
           </p>
           <a
             className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
-            href="/docs/"
+            href={publicPagePath('install')}
           >
             Other install options
             <ArrowRight className="size-4" aria-hidden="true" />
@@ -533,7 +554,7 @@ function Footer() {
           </a>
         </p>
         <div className="flex flex-wrap gap-x-5 gap-y-3">
-          <a className="hover:text-black" href="/docs/">
+          <a className="hover:text-black" href={publicPagePath('docs')}>
             Guides
           </a>
           <a className="hover:text-black" href="#install">

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Install ProtoPeek on macOS, Linux &amp; Windows | Guide</title>
+    <meta name="description" content="Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/install/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Install ProtoPeek on macOS, Linux &amp; Windows | Guide" />
+    <meta property="og:description" content="Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/install/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Install ProtoPeek on macOS, Linux &amp; Windows | Guide" />
+    <meta name="twitter:description" content="Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Install ProtoPeek","description":"Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker.","url":"https://protopeek.shreyam1008.com.np/install/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/install/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Install ProtoPeek","item":"https://protopeek.shreyam1008.com.np/install/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Install ProtoPeek</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Install ProtoPeek</h1>
+              <p>How do I install ProtoPeek?</p>
+
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>macOS, Linux, Windows</li><li>Checksum verification</li><li>Rollback path</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-install">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How do I install ProtoPeek?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-install-title visual-install-description">
+        <title id="visual-install-title">Install ProtoPeek evidence path</title>
+        <desc id="visual-install-description">Channel to Checksum to Binary</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Channel</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Checksum</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Binary</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Choose</span>
+              <h2>Pick one channel</h2>
+              <p>Use Homebrew, Scoop, a verified release resolver, or Docker.</p>
+            </article>
+
+            <article>
+              <span>02 · Verify</span>
+              <h2>Keep checksums in the path</h2>
+              <p>The supported installers verify the selected archive before replacing a binary.</p>
+            </article>
+
+            <article>
+              <span>03 · Run</span>
+              <h2>Open one local page</h2>
+              <p>Start protopeek or pp and keep the workbench on the machine running the process.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>&gt; v0.5.0 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
+<h2 id="install-through-an-owned-package-channel">Install through an owned package channel</h2>
+<p>Homebrew on macOS or Linux installs both <code>protopeek</code> and <code>pp</code>, plus both manpages:</p>
+<pre class="pp-doc-code"><code data-lang="sh">brew install shreyam1008/tap/protopeek</code></pre>
+<p>Scoop on Windows installs both executable shims from the owned bucket:</p>
+<pre class="pp-doc-code"><code data-lang="powershell">scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
+scoop install shreyam/protopeek</code></pre>
+<p>The formula and manifest pin the public v0.5.0 archives by SHA-256 and declare aria2 as an external package dependency. They provide the v0.5.0 Downloader without bundling aria2 into ProtoPeek. Update with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>; uninstall with <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>.</p>
+<h2 id="install-through-the-release-resolver">Install through the release resolver</h2>
+<pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh</code></pre>
+<p>The installer verifies the selected archive against the matching <code>checksums.txt</code> before extraction. It provides <code>protopeek</code> and the short <code>pp</code> command unless an unrelated <code>pp</code> already occupies the install directory; that file is never overwritten. Older verified archives that contain only <code>protopeek</code> are supported by deriving the alias from that verified binary.</p>
+<p>The v0.5.0 archive does not bundle aria2. Install <code>aria2c</code> separately or configure its executable path before using Downloader or <code>pp download</code>; every other v0.5.0 workbench area remains usable without starting the transfer engine.</p>
+<p>Windows PowerShell installs per user and updates the user PATH without requiring administrator access:</p>
+<pre class="pp-doc-code"><code data-lang="powershell">irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
+<p>To inspect the script first:</p>
+<pre class="pp-doc-code"><code data-lang="powershell">irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 -OutFile install.ps1
+Get-Content .\install.ps1
+.\install.ps1</code></pre>
+<h2 id="install-a-pinned-release">Install a pinned release</h2>
+<p>The installers accept a pinned immutable tag:</p>
+<pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.5.0 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
+<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.5.0&#39;
+irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
+<p>Use <code>PROTOPEEK_CHANNEL=edge</code> only when intentionally testing the rolling edge prerelease. A stable-resolution failure never falls back to edge.</p>
+<h2 id="upgrade-and-rollback">Upgrade and rollback</h2>
+<p>Upgrade a package-manager installation with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>. To switch to a pinned rollback, first uninstall that package through the same manager so command paths do not conflict.</p>
+<p>For a release-resolver installation, repeat the verified install for the target version. To roll back, set <code>PROTOPEEK_VERSION</code> to the previous tag and rerun the matching installer after stopping ProtoPeek. Launch on loopback and reconnect a non-production target before normal use.</p>
+<p>Saved launcher targets live in the local browser profile. Back up browser site data before a major launcher migration.</p>
+<h2 id="uninstall">Uninstall</h2>
+<p>For package-manager installs, use <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>. For a Unix release-resolver install, remove <code>protopeek</code>, the ProtoPeek-owned <code>pp</code>, <code>.protopeek-install</code>, and the <code>protopeek.1</code> and <code>pp.1</code> files from the configured install/man directories. For a PowerShell release-resolver install, remove <code>%LOCALAPPDATA%\Programs\ProtoPeek</code> and remove that directory from the user PATH. Never remove an unrelated <code>pp</code> command. Browser-saved targets remain until cleared through browser site-data controls.</p>
+<h2 id="docker">Docker</h2>
+<p>No public container image is claimed. Build the local development image, then keep its published host port on loopback:</p>
+<pre class="pp-doc-code"><code data-lang="sh">make docker
+docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
+<p>The image&#39;s <code>-allow-non-loopback-bind</code> flag permits its container-interface listener but keeps browser requests limited to loopback Hosts and matching Origins. It is distinct from <code>-unsafe-allow-remote</code>, which disables that guard and requires an authenticated, TLS-terminated, rate-limited boundary.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/INSTALLING.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/INSTALLING.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>The owned Homebrew and Scoop channels and verified release resolvers install v0.5.0.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/vscode-extension-spec/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>VS Code and Open VSX spec</strong>
+      </a>
+      <a href="/grpc-workbench/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>gRPC workbench</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>
