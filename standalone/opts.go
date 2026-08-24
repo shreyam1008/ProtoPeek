@@ -266,6 +266,14 @@ func WithTransferService(service TransferService) HandlerOption {
 	})
 }
 
+// WithThisPCService injects explicit local-runtime observations. Constructing
+// the service and handler performs no host, procfs, DNS, or HTTP I/O.
+func WithThisPCService(service ThisPCService) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.thisPCService = service
+	})
+}
+
 // WithInitialScanTarget pre-fills and automatically probes one explicit target
 // in launcher mode. The scan endpoint still enforces its fixed candidate limit
 // and network policy.
@@ -307,6 +315,7 @@ type handlerOptions struct {
 	pathCapabilitiesHandler http.Handler
 	pathTraceHandler        http.Handler
 	transferService         TransferService
+	thisPCService           ThisPCService
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

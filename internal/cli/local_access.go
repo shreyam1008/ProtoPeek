@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/shreyam1008/ProtoPeek/internal/thispc"
+	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
 func validateWebBind(bindAddress string, allowNonLoopbackBind, unsafeAllowRemote bool) error {
@@ -34,6 +37,13 @@ func localAccessHandler(next http.Handler, unsafeAllowRemote bool) http.Handler 
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func localThisPCService(unsafeAllowRemote bool) standalone.ThisPCService {
+	if unsafeAllowRemote {
+		return nil
+	}
+	return thispc.NewService()
 }
 
 func requestHostname(hostport string) string {

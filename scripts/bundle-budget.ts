@@ -108,6 +108,24 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 5 * kibibyte,
   },
   {
+    label: 'This PC workspace JavaScript',
+    pattern: /^ThisPC-.+\.js$/,
+    maxRawBytes: 58 * kibibyte,
+    maxGzipBytes: 16 * kibibyte,
+  },
+  {
+    label: 'This PC benchmark engine JavaScript',
+    pattern: /^speedtest-.+\.js$/,
+    maxRawBytes: 64 * kibibyte,
+    maxGzipBytes: 18 * kibibyte,
+  },
+  {
+    label: 'This PC workspace CSS',
+    pattern: /^ThisPC-.+\.css$/,
+    maxRawBytes: 24 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
     label: 'suite shell pages CSS',
     pattern: /^suite-pages-.+\.css$/,
     maxRawBytes: 12 * kibibyte,
@@ -130,19 +148,19 @@ export const consoleBundleBudgets: BundleBudget[] = [
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    maxRawBytes: 768 * kibibyte,
-    maxGzipBytes: 240 * kibibyte,
+    maxRawBytes: 884 * kibibyte,
+    maxGzipBytes: 272 * kibibyte,
   },
   {
     label: 'all console CSS',
     pattern: /\.css$/,
     mode: 'aggregate',
     // The stable shared stylesheet remains independently capped above; the
-    // aggregate includes every route-lazy feature stylesheet. The Settings
-    // host-controls card moved the measured suite baseline to 231,799 raw /
-    // 41,796 gzip bytes, so keep a small explicit post-slice headroom budget.
-    maxRawBytes: 236 * kibibyte,
-    maxGzipBytes: 44 * kibibyte,
+    // aggregate includes every route-lazy feature stylesheet. The This PC
+    // slice moves the measured suite baseline to 253,664 raw bytes; keep a
+    // small explicit post-slice headroom budget without hiding route growth.
+    maxRawBytes: 264 * kibibyte,
+    maxGzipBytes: 50 * kibibyte,
   },
 ];
 

@@ -292,6 +292,7 @@ jobs:
             contents="$(tar -tzf "$archive")"
             grep -Eq '(^|/)protopeek$' <<<"$contents"
             grep -Eq '(^|/)pp$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
             grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
             grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
             grep -Fq "$(basename "$archive")" dist/checksums.txt
@@ -303,6 +304,7 @@ jobs:
             contents="$(unzip -Z1 "$archive")"
             grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
             grep -Eq '(^|/)pp\.exe$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
             grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
             grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
             grep -Fq "$(basename "$archive")" dist/checksums.txt

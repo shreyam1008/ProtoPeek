@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
 func TestValidateWebBind(t *testing.T) {
@@ -125,6 +127,26 @@ func TestExplicitUnsafeRemoteModeAcceptsNonLoopbackHost(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusNoContent {
 		t.Fatalf("explicit unsafe remote status = %d, want %d", response.Code, http.StatusNoContent)
+	}
+}
+
+func TestUnsafeRemoteModeMountsNoThisPCServiceOrRoutes(t *testing.T) {
+	t.Parallel()
+	if service := localThisPCService(true); service != nil {
+		t.Fatal("unsafe remote mode unexpectedly constructed a This PC service")
+	}
+	var options []standalone.HandlerOption
+	if service := localThisPCService(true); service != nil {
+		options = append(options, standalone.WithThisPCService(service))
+	}
+	handler := standalone.Handler(nil, "", nil, nil, options...)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/this-pc/capabilities", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("unsafe remote This PC route status = %d", response.Code)
+	}
+	if service := localThisPCService(false); service == nil {
+		t.Fatal("local browser mode did not construct a This PC service")
 	}
 }
 

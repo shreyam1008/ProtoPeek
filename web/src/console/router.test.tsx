@@ -88,6 +88,7 @@ describe('protocol routes', () => {
     expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
     expect(screen.getByText('Private discovery')).toBeInTheDocument();
     expect(screen.getByText('Opt-in')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /On demandThis PC/ })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
     expect(
@@ -134,6 +135,13 @@ describe('protocol routes', () => {
       await screen.findByRole('heading', { name: 'Network evidence map' })
     ).toBeInTheDocument();
     expect(screen.getByText(/logical evidence.*not physical cabling/i)).toBeVisible();
+
+    await act(async () => {
+      await router.navigate({ to: '/this-pc' });
+    });
+    expect(await screen.findByRole('heading', { name: 'This PC' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/this-pc');
+    expect(screen.getByRole('link', { name: 'Open This PC' })).toHaveClass('is-active');
 
     await act(async () => {
       await router.navigate({ to: '/roadmap' });

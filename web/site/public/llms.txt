@@ -14,6 +14,15 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. Those package-manager installs provide Downloader without bundling aria2 into ProtoPeek.
 - The v0.4.0 release and package history remain preserved.
 
+## Current source after v0.5.0
+
+- Current source adds a seventh route-lazy area, This PC. It is not part of the published v0.5.0 packages.
+- Initial This PC render reads only local process-perspective system and interface evidence. It does not inspect socket ownership, contact a provider, start a benchmark, poll in the background, or persist returned evidence.
+- Explicit Linux local inspection returns bounded listeners and current connections with best-effort same-user PID/process names. A local listener is not an Internet-open port. Explicit one-shot interface sampling is aggregate interface load, not per-process traffic.
+- A separate acknowledged action observes public IPv4/IPv6 through fixed ipify endpoints and best-effort Team Cymru BGP-origin data. The origin is provider-reported, not a verified retail ISP or location.
+- A separate acknowledged browser action lazy-loads the official Cloudflare speed-test engine with a small custom payload plan, upload disabled by default, no packet-loss step, and both dedicated result-logging endpoints disabled. It measures single-flow HTTPS connection quality to Cloudflare edge, not ISP line maximum.
+- Exact providers, limits, privacy disclosures, platform capability gaps, and non-goals: https://protopeek.shreyam1008.com.np/this-pc/
+
 ## v0.5.0 capability boundary
 
 - Downloader product page: https://protopeek.shreyam1008.com.np/downloader/
@@ -38,6 +47,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - https://protopeek.shreyam1008.com.np/docs/
 - https://protopeek.shreyam1008.com.np/learn-grpc/
 - https://protopeek.shreyam1008.com.np/network-workbench/
+- https://protopeek.shreyam1008.com.np/this-pc/
 - https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/
 - https://protopeek.shreyam1008.com.np/transport-boundaries/
 - https://github.com/shreyam1008/ProtoPeek/blob/master/README.md

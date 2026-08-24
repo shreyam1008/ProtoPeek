@@ -13,6 +13,7 @@ func TestHandlerRedirectsSPARoutesIntoHashShell(t *testing.T) {
 		"/protocols/grpc",
 		"/protocols/http",
 		"/downloader",
+		"/this-pc",
 		"/network/route",
 		"/security",
 		"/settings",

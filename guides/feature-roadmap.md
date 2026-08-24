@@ -144,6 +144,13 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 ### Available in current source after v0.5.0
 
+- A seventh, route-lazy **This PC** area separates device, interface, local-exposure, and Internet
+  evidence. Initial render reads only local capabilities and a bounded process-perspective system
+  snapshot. Linux can explicitly inspect bounded socket tables with same-user PID/name attribution
+  and sample aggregate interface counters once; macOS and Windows render honest capability gaps
+  rather than shelling out or elevating. Public IPv4/IPv6 plus provider-reported BGP origin and the
+  data-bounded Cloudflare quality plan have separate disclosures and actions. See the
+  [This PC boundary](/this-pc/) for exact providers, limits, platform support, and non-goals.
 - The Downloader Settings card (unreleased post-v0.5.0 source) reads the
   existing transfer snapshot and exposes only supported host controls: the
   aria2 executable/path, download directory, active jobs, per-host
@@ -401,11 +408,12 @@ are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; 
 54 KiB / 16 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 140 KiB / 27 KiB; network shell 64 KiB /
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
-36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; suite shell pages CSS 12 KiB / 3 KiB; Settings CSS
+36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This PC 58 KiB / 16 KiB JavaScript,
+64 KiB / 18 KiB benchmark-engine JavaScript, and 24 KiB / 5 KiB CSS; suite shell pages CSS
+12 KiB / 3 KiB; Settings CSS
 12 KiB / 3 KiB (current 10.80 KiB / 1.92 KiB gzip baseline, with explicit headroom for the
-unreleased host-settings card); all JavaScript 768 KiB / 240 KiB; and all CSS 236 KiB / 44 KiB
-(current 226.37 KiB / 40.82 KiB gzip after the same unreleased card, with explicit aggregate
-headroom). Single-chunk rules
+unreleased host-settings card); all JavaScript 884 KiB / 272 KiB; and all CSS 264 KiB / 50 KiB.
+Single-chunk rules
 fail on a missing or duplicate match, and aggregate rules keep growth visible across lazy boundaries.
 These are regression ceilings for the current unified suite, not target payload sizes; individual
 route budgets preserve the lighter v0.3 architecture.
