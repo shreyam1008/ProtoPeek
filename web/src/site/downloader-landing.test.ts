@@ -32,11 +32,11 @@ describe('Downloader public landing page', () => {
     expect(downloader.querySelector('meta[name="robots"]')?.getAttribute('content')).toMatch(
       /^index,follow,/
     );
-    expect(
-      Array.from(downloader.querySelectorAll<HTMLAnchorElement>('a[href]')).every(
-        (link) => !link.getAttribute('href')?.startsWith('#')
-      )
-    ).toBe(true);
+    const fragmentLinks = Array.from(
+      downloader.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')
+    );
+    expect(fragmentLinks.map((link) => link.getAttribute('href'))).toEqual(['#main-content']);
+    expect(downloader.querySelector('#main-content')).not.toBeNull();
   });
 
   it('contains one parseable JSON-LD block with the v0.5.0 product boundary', () => {
@@ -114,10 +114,12 @@ describe('Downloader public landing page', () => {
 
   it('is discoverable from the public homepage, sitemap, and llms metadata', () => {
     const homepage = parseHtml('docs/index.html');
+    const docsHub = parseHtml('docs/docs/index.html');
     const sitemap = readRepositoryFile('docs/sitemap.xml');
     const llms = readRepositoryFile('docs/llms.txt');
 
     expect(homepage.querySelectorAll('a[href="/downloader/"]').length).toBeGreaterThan(0);
+    expect(docsHub.querySelector('a[href="/downloader/"]')).not.toBeNull();
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'

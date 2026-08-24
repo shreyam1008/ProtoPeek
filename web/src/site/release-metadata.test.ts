@@ -38,6 +38,7 @@ describe('release metadata', () => {
     const manifest = JSON.parse(readRepositoryFile('web/site/public/site.webmanifest')) as {
       name: string;
       description: string;
+      theme_color: string;
     };
 
     expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
@@ -46,6 +47,12 @@ describe('release metadata', () => {
     expect(siteIndex).toContain(
       'six areas: Overview, Protocols, Network, Downloader, Security, and Settings'
     );
+    expect(siteIndex).toContain(
+      '<meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />'
+    );
+    expect(siteIndex).toContain('<meta property="og:image:width" content="1200" />');
+    expect(siteIndex).toContain('<meta property="og:image:height" content="630" />');
+    expect(manifest.theme_color).toBe('#0b5cff');
     expect(llms).toContain('v0.5.0 is the current stable release');
     expect(llms).toContain('Homebrew and Scoop channels install v0.5.0');
     expect(llms).toContain('ProtoPeek does not bundle aria2');
@@ -55,7 +62,15 @@ describe('release metadata', () => {
     expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
     expect(sitemap).toContain('<lastmod>2026-08-24</lastmod>');
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
-    expect(sitemap).not.toContain('/security/');
+    for (const path of [
+      '/install/',
+      '/grpc-workbench/',
+      '/http-workbench/',
+      '/security/',
+      '/settings/',
+    ]) {
+      expect(sitemap).toContain(`<loc>https://protopeek.shreyam1008.com.np${path}</loc>`);
+    }
     expect(manifest).toEqual(
       expect.objectContaining({
         name: 'ProtoPeek — Local Systems Workbench',

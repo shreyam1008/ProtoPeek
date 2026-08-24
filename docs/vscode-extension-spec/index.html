@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VS Code / Open VSX spec | ProtoPeek</title>
-    <meta name="description" content="A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime." />
+    <title>ProtoPeek VS Code &amp; Open VSX Extension Specification</title>
+    <meta name="description" content="Read the compact extension plan for launching ProtoPeek from proto files without duplicating its gRPC runtime, request editor, or local safety policy." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/vscode-extension-spec/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="VS Code / Open VSX spec | ProtoPeek" />
-    <meta property="og:description" content="A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime." />
+    <meta property="og:title" content="ProtoPeek VS Code &amp; Open VSX Extension Specification" />
+    <meta property="og:description" content="Read the compact extension plan for launching ProtoPeek from proto files without duplicating its gRPC runtime, request editor, or local safety policy." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/vscode-extension-spec/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -26,84 +26,99 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="VS Code / Open VSX spec | ProtoPeek" />
-    <meta name="twitter:description" content="A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime." />
+    <meta name="twitter:title" content="ProtoPeek VS Code &amp; Open VSX Extension Specification" />
+    <meta name="twitter:description" content="Read the compact extension plan for launching ProtoPeek from proto files without duplicating its gRPC runtime, request editor, or local safety policy." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"VS Code / Open VSX spec","description":"A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime.","url":"https://protopeek.shreyam1008.com.np/vscode-extension-spec/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/vscode-extension-spec/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"VS Code and Open VSX spec","description":"Read the compact extension plan for launching ProtoPeek from proto files without duplicating its gRPC runtime, request editor, or local safety policy.","url":"https://protopeek.shreyam1008.com.np/vscode-extension-spec/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/vscode-extension-spec/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"VS Code and Open VSX spec","item":"https://protopeek.shreyam1008.com.np/vscode-extension-spec/"}]}}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="/">Home</a>
-            <a href="/docs/">Docs</a>
-            <a href="/learn-grpc/">Learn gRPC</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">Extension</div>
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">VS Code and Open VSX spec</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>VS Code / Open VSX spec</h1>
-              <p>A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime.</p>
-              <div class="pp-doc-chip-row">
-                <span>Launch helper</span><span>1 MB target</span><span>No duplicate client</span>
-              </div>
+              <h1 id="page-title">VS Code and Open VSX spec</h1>
+              <p>How could an editor launch ProtoPeek without cloning it?</p>
+
+    <span class="pp-page-status is-planned is-full">
+      <i aria-hidden="true"></i>Planned · not shipped
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Launch helper</li><li>Small extension target</li><li>No duplicate client</li>
+              </ul>
             </div>
 
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">ProtoPeek VS Code / Open VSX Extension Spec</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-extension">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How could an editor launch ProtoPeek without cloning it?</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-vscode-extension-spec-title visual-vscode-extension-spec-description">
+        <title id="visual-vscode-extension-spec-title">VS Code and Open VSX spec evidence path</title>
+        <desc id="visual-vscode-extension-spec-description">Proto file to Launch to Workbench</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
 
-        <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>Launch helper</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-1"></div>
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Proto file</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Launch</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Workbench</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
           </div>
-        </div>
+          </section>
 
-        <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>1 MB target</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-2"></div>
-          </div>
-        </div>
 
-        <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>No duplicate client</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-3"></div>
-          </div>
-        </div>
 
-      </div>
-    </div>
-
-          </div>
-        </section>
-
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
-              <p>Goal: ship a helper extension that stays under roughly 1 MB unpacked while still being useful.</p>
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Goal: ship a helper extension that stays under roughly 1 MB unpacked while still being useful.</p>
 <h2 id="scope">Scope</h2>
 <ul><li>Detect <code>.proto</code> files and surface a “Open in ProtoPeek” command.</li><li>Let users configure a default target such as <code>localhost:50051</code>.</li><li>Offer quick actions for:</li><li>Run <code>protopeek -plaintext localhost:50051</code></li><li>Open the learn page</li><li>Open the current workspace export</li></ul>
 <h2 id="what-not-to-include">What not to include</h2>
@@ -115,31 +130,57 @@
 <ul><li><code>protopeek.open</code></li><li><code>protopeek.openWithTarget</code></li><li><code>protopeek.learnGrpc</code></li></ul>
 <h2 id="suggested-agent-rules">Suggested agent rules</h2>
 <ul><li>Never parse protos in the extension when the CLI can do it.</li><li>Prefer shelling out to <code>protopeek</code> instead of duplicating transport logic.</li><li>Keep command strings transparent and editable by the user.</li><li>Make failure states actionable: missing binary, reflection disabled, target unreachable.</li></ul>
-            </div>
-          </article>
-
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                <a class="level-2" href="#scope">Scope</a><a class="level-2" href="#what-not-to-include">What not to include</a><a class="level-2" href="#suggested-files">Suggested files</a><a class="level-2" href="#suggested-commands">Suggested commands</a><a class="level-2" href="#suggested-agent-rules">Suggested agent rules</a>
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/vscode-extension-spec.md</div>
-              <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/vscode-extension-spec.md" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#scope">Scope</a><a class="level-2" href="#what-not-to-include">What not to include</a><a class="level-2" href="#suggested-files">Suggested files</a><a class="level-2" href="#suggested-commands">Suggested commands</a><a class="level-2" href="#suggested-agent-rules">Suggested agent rules</a>
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/this-pc/"><strong>This PC evidence</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/route-and-nmap-evidence/"><strong>Network evidence boundaries</strong><span>Guide</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a>
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/vscode-extension-spec.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/vscode-extension-spec.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>This is an extension specification, not a current package or product control.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/competitive-landscape/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Competitive workflow decisions</strong>
+      </a>
+      <a href="/install/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Install ProtoPeek</strong>
+      </a>
+    </nav>
+
         </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
       </div>
     </div>
   </body>

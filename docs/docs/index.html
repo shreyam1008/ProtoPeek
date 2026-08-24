@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Docs hub | ProtoPeek</title>
-    <meta name="description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design." />
+    <title>ProtoPeek Features &amp; Guides | Local Systems Workbench</title>
+    <meta name="description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
-    <meta name="theme-color" content="#0d9488" />
+    <meta name="theme-color" content="#0b5cff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="canonical" href="https://protopeek.shreyam1008.com.np/docs/" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="Docs hub | ProtoPeek" />
-    <meta property="og:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design." />
+    <meta property="og:title" content="ProtoPeek Features &amp; Guides | Local Systems Workbench" />
+    <meta property="og:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/docs/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -26,242 +26,397 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Docs hub | ProtoPeek" />
-    <meta name="twitter:description" content="Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design." />
+    <meta name="twitter:title" content="ProtoPeek Features &amp; Guides | Local Systems Workbench" />
+    <meta name="twitter:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
-    <meta name="twitter:image:alt" content="ProtoPeek local protocol workbench showing gRPC Health, HTTP, and bounded discovery" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","headline":"Docs hub","description":"Published ProtoPeek guides for gRPC, HTTP boundaries, network-path and topology evidence, roadmap planning, and extension design.","url":"https://protopeek.shreyam1008.com.np/docs/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/docs/","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"}}</script>
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","headline":"Features and guides","description":"Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings.","url":"https://protopeek.shreyam1008.com.np/docs/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/docs/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"}]}}</script>
   </head>
   <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
     <div class="pp-doc-shell">
-      <div class="pp-doc-orb pp-doc-orb-a"></div>
-      <div class="pp-doc-orb pp-doc-orb-b"></div>
       <div class="pp-doc-container">
-        <header class="pp-doc-topbar">
-          <a class="pp-doc-brand" href="/">ProtoPeek</a>
-          <nav class="pp-doc-nav">
-            <a href="/">Home</a>
-            <a href="/docs/">Docs</a>
-            <a href="/learn-grpc/">Learn gRPC</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
-          </nav>
-        </header>
 
-        <section class="pp-doc-hero">
-          <div class="pp-doc-eyebrow">Docs</div>
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <span aria-current="page">Guides</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1>Docs hub</h1>
-              <p>ProtoPeek publishes its guides as first-class pages, from the gRPC fast path through bounded network evidence and its trust boundaries.</p>
-              <div class="pp-doc-chip-row">
-                <span>Protocol guides</span><span>Network evidence</span><span>GitHub source links</span>
-              </div>
+              <h1 id="page-title">Features and guides</h1>
+              <p>Choose the thing you want to understand. Every page shows what to do, what evidence appears, and where the boundary ends.</p>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Choose a task</li><li>See real evidence</li><li>Know the limits</li>
+              </ul>
             </div>
 
-    <div class="pp-doc-visual">
-      <div class="pp-doc-visual-card">
-        <div class="pp-doc-visual-label">Reading path</div>
-        <div class="pp-doc-visual-title">Docs hub</div>
-        <svg viewBox="0 0 300 120" aria-hidden="true">
-          <path d="M12 88 C72 24 140 24 196 74 S262 110 288 32" />
-          <circle cx="12" cy="88" r="6" />
-          <circle cx="196" cy="74" r="6" />
-          <circle cx="288" cy="32" r="6" />
-        </svg>
+    <figure class="pp-doc-visual pp-visual-hub">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>Features and guides</strong>
       </div>
-      <div class="pp-doc-visual-metrics">
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-docs-title visual-docs-description">
+        <title id="visual-docs-title">Features and guides evidence path</title>
+        <desc id="visual-docs-description">Request to Path to Machine to Transfer</desc>
+        <path class="pp-visual-link" d="M 96 94 H 122" /><path class="pp-visual-link" d="M 198 94 H 224" /><path class="pp-visual-link" d="M 300 94 H 326" />
 
-        <div class="pp-doc-visual-row" style="animation-delay:0ms">
-          <span>Homepage</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-1"></div>
+        <g class="pp-visual-node">
+          <rect x="14" y="56" width="88" height="76" rx="10" />
+          <circle cx="32" cy="75" r="5" />
+          <text x="28" y="108">Request</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="116" y="56" width="88" height="76" rx="10" />
+          <circle cx="134" cy="75" r="5" />
+          <text x="130" y="108">Path</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="218" y="56" width="88" height="76" rx="10" />
+          <circle cx="236" cy="75" r="5" />
+          <text x="232" y="108">Machine</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="320" y="56" width="88" height="76" rx="10" />
+          <circle cx="338" cy="75" r="5" />
+          <text x="334" y="108">Transfer</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
           </div>
-        </div>
+          </section>
 
-        <div class="pp-doc-visual-row" style="animation-delay:140ms">
-          <span>Network workbench</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-2"></div>
-          </div>
-        </div>
 
-        <div class="pp-doc-visual-row" style="animation-delay:280ms">
-          <span>Source markdown</span>
-          <div class="pp-doc-visual-bar">
-            <div class="pp-doc-visual-fill fill-3"></div>
-          </div>
-        </div>
 
-      </div>
-    </div>
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+
+        <section class="pp-guide-group" id="getting-started">
+          <header class="pp-guide-group-heading">
+            <h2>Get started</h2>
+            <p>Install ProtoPeek and choose the shortest path into the local workbench.</p>
+          </header>
+          <div class="pp-guide-list">
+
+                  <a class="pp-guide-row" href="/install/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Install ProtoPeek</strong>
+                      <small>How do I install ProtoPeek?</small>
+                    </span>
+
+    <span class="pp-page-status is-stable is-compact">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
 
           </div>
         </section>
 
-        <main class="pp-doc-main">
-          <article class="pp-doc-article">
-            <div class="pp-doc-prose">
+        <section class="pp-guide-group" id="protocols">
+          <header class="pp-guide-group-heading">
+            <h2>Inspect an API</h2>
+            <p>Use a protocol-native request surface instead of flattening every service into the same JSON box.</p>
+          </header>
+          <div class="pp-guide-list">
 
-    <section class="pp-doc-stack">
-      <div class="pp-doc-grid-cards">
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Fast path</div>
-          <h2>README on GitHub</h2>
-          <p>The quickest install and run path for people who already know what ProtoPeek is.</p>
-          <a href="https://github.com/shreyam1008/ProtoPeek#readme" rel="noreferrer" target="_blank">Open README</a>
-        </article>
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Narrative path</div>
-          <h2>Website</h2>
-          <p>The visual gRPC and HTTP product story, install flow, and gRPC tutorial experience.</p>
-          <a href="https://protopeek.shreyam1008.com.np/">Open homepage</a>
-        </article>
-        <article class="pp-doc-card">
-          <div class="pp-doc-pill">Detailed path</div>
-          <h2>Published guides</h2>
-          <p>Long-form pages for gRPC, the network workbench, product research, evidence boundaries, transport architecture, the roadmap, and extension design.</p>
-          <a href="/network-workbench/">Open the network workbench guide</a>
-        </article>
-      </div>
-    </section>
-    <section class="pp-doc-stack">
-      <h2 id="published-guides">Published guides</h2>
-      <div class="pp-doc-grid-cards">
+                  <a class="pp-guide-row" href="/grpc-workbench/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>gRPC workbench</strong>
+                      <small>What happened inside this gRPC call?</small>
+                    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Guide</div>
-                <h3>Learn gRPC</h3>
-                <p>A transport-first walkthrough of proto contracts, reflection, HTTP/2, metadata, gRPC-Web, and debugging pressure points.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Proto contract</span><span>Reflection paths</span><span>HTTP/2 and trailers</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/learn-grpc/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+    <span class="pp-page-status is-stable is-compact">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Roadmap</div>
-                <h3>Feature roadmap</h3>
-                <p>The shipped protocol workbench and the gates for future transport-aware work.</p>
-                <div class="pp-doc-chip-row">
-                  <span>gRPC + HTTP</span><span>Safety boundaries</span><span>Gated plans</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/feature-roadmap/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/feature-roadmap.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Guide</div>
-                <h3>Network workbench</h3>
-                <p>A practical guide to DNS, kernel routes, Linux hop evidence, authorized private discovery, logical topology, local storage, and exchange formats.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Source RTT</span><span>Authorized /24 discovery</span><span>Logical topology</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/network-workbench/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/network-workbench.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+                  <a class="pp-guide-row" href="/http-workbench/">
+                    <span class="pp-guide-index" aria-hidden="true">02</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>HTTP workbench</strong>
+                      <small>What did this HTTP service actually return?</small>
+                    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Guide</div>
-                <h3>This PC evidence</h3>
-                <p>The local-only defaults, explicit provider actions, platform capabilities, measurement budgets, and evidence boundaries for ProtoPeek’s device-centred workspace.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Local listeners</span><span>Public IPv4 and IPv6</span><span>Bounded connection quality</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/this-pc/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/this-pc.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+    <span class="pp-page-status is-stable is-compact">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Product research</div>
-                <h3>Competitive workflow decisions</h3>
-                <p>A source-backed comparison of workflows worth learning from and the boundaries that keep ProtoPeek focused.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Official sources</span><span>Workflow decisions</span><span>Lightweight boundaries</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/competitive-landscape/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/competitive-landscape.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Guide</div>
-                <h3>Network evidence boundaries</h3>
-                <p>Exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Source RTT</span><span>Authorized discovery</span><span>No hidden execution</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/route-and-nmap-evidence/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/route-and-nmap-evidence.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+                  <a class="pp-guide-row" href="/learn-grpc/">
+                    <span class="pp-guide-index" aria-hidden="true">03</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Learn gRPC</strong>
+                      <small>Why does gRPC need a protocol-native console?</small>
+                    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Architecture</div>
-                <h3>Transport boundaries</h3>
-                <p>The shared-shell contract, protocol-native adapter responsibilities, and permanent safety boundaries for ProtoPeek.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Local-first shell</span><span>Native evidence</span><span>Release gates</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/transport-boundaries/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/transport-boundaries.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+    <span class="pp-page-status is-guide is-compact">
+      <i aria-hidden="true"></i>Reference guide
+    </span>
 
-              <article class="pp-doc-card">
-                <div class="pp-doc-pill">Extension</div>
-                <h3>VS Code / Open VSX spec</h3>
-                <p>A compact extension plan that launches ProtoPeek from `.proto` files without duplicating the gRPC client runtime.</p>
-                <div class="pp-doc-chip-row">
-                  <span>Launch helper</span><span>1 MB target</span><span>No duplicate client</span>
-                </div>
-                <div class="pp-doc-card-links">
-                  <a href="/vscode-extension-spec/">Open page</a>
-                  <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/vscode-extension-spec.md" rel="noreferrer" target="_blank">Source markdown</a>
-                </div>
-              </article>
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
 
-      </div>
-    </section>
+          </div>
+        </section>
 
-            </div>
-          </article>
+        <section class="pp-guide-group" id="network">
+          <header class="pp-guide-group-heading">
+            <h2>Understand the network path</h2>
+            <p>Separate DNS, selected routes, measured hops, authorized discovery, maps, and imported evidence.</p>
+          </header>
+          <div class="pp-guide-list">
 
-          <aside class="pp-doc-aside">
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">On this page</div>
-              <div class="pp-doc-toc">
-                <a class="level-2" href="#published-guides">Published guides</a>
+                  <a class="pp-guide-row" href="/network-workbench/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Network workbench</strong>
+                      <small>Why is this request taking that path?</small>
+                    </span>
+
+    <span class="pp-page-status is-stable is-compact">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/route-and-nmap-evidence/">
+                    <span class="pp-guide-index" aria-hidden="true">02</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Network evidence boundaries</strong>
+                      <small>What does each network result prove?</small>
+                    </span>
+
+    <span class="pp-page-status is-guide is-compact">
+      <i aria-hidden="true"></i>Stable boundary
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+          </div>
+        </section>
+
+        <section class="pp-guide-group" id="system">
+          <header class="pp-guide-group-heading">
+            <h2>Check this system</h2>
+            <p>Inspect the local machine, one public website response, or a visible download queue.</p>
+          </header>
+          <div class="pp-guide-list">
+
+                  <a class="pp-guide-row" href="/this-pc/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>This PC evidence</strong>
+                      <small>What is happening on this computer?</small>
+                    </span>
+
+    <span class="pp-page-status is-current is-compact">
+      <i aria-hidden="true"></i>Current source · after v0.5.0
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/downloader/">
+                    <span class="pp-guide-index" aria-hidden="true">02</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Downloader</strong>
+                      <small>Can I manage this download locally?</small>
+                    </span>
+
+    <span class="pp-page-status is-stable is-compact">
+      <i aria-hidden="true"></i>Stable · v0.5.0
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/security/">
+                    <span class="pp-guide-index" aria-hidden="true">03</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Website security evidence</strong>
+                      <small>What can I verify about this public website?</small>
+                    </span>
+
+    <span class="pp-page-status is-mixed is-compact">
+      <i aria-hidden="true"></i>Stable core · current-source report
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+          </div>
+        </section>
+
+        <section class="pp-guide-group" id="preferences">
+          <header class="pp-guide-group-heading">
+            <h2>Keep local control</h2>
+            <p>Tune this browser and review the few settings that belong to the local ProtoPeek host.</p>
+          </header>
+          <div class="pp-guide-list">
+
+                  <a class="pp-guide-row" href="/settings/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Settings</strong>
+                      <small>Which settings stay in this browser or host?</small>
+                    </span>
+
+    <span class="pp-page-status is-mixed is-compact">
+      <i aria-hidden="true"></i>Stable core · current-source host settings
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+          </div>
+        </section>
+
+        <section class="pp-guide-group" id="direction">
+          <header class="pp-guide-group-heading">
+            <h2>Read the product decisions</h2>
+            <p>See what has shipped, what remains gated, and why transport and safety boundaries stay explicit.</p>
+          </header>
+          <div class="pp-guide-list">
+
+                  <a class="pp-guide-row" href="/feature-roadmap/">
+                    <span class="pp-guide-index" aria-hidden="true">01</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Feature roadmap</strong>
+                      <small>What is shipped, next, exploring, or gated?</small>
+                    </span>
+
+    <span class="pp-page-status is-guide is-compact">
+      <i aria-hidden="true"></i>Living roadmap
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/transport-boundaries/">
+                    <span class="pp-guide-index" aria-hidden="true">02</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Transport boundaries</strong>
+                      <small>What does every protocol adapter need to preserve?</small>
+                    </span>
+
+    <span class="pp-page-status is-guide is-compact">
+      <i aria-hidden="true"></i>Architecture guide
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/competitive-landscape/">
+                    <span class="pp-guide-index" aria-hidden="true">03</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Competitive workflow decisions</strong>
+                      <small>Which outside workflows are worth learning from?</small>
+                    </span>
+
+    <span class="pp-page-status is-guide is-compact">
+      <i aria-hidden="true"></i>Research record
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/vscode-extension-spec/">
+                    <span class="pp-guide-index" aria-hidden="true">04</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>VS Code and Open VSX spec</strong>
+                      <small>How could an editor launch ProtoPeek without cloning it?</small>
+                    </span>
+
+    <span class="pp-page-status is-planned is-compact">
+      <i aria-hidden="true"></i>Planned · not shipped
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+          </div>
+        </section>
+
               </div>
-            </section>
+            </article>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">Source</div>
-              <div class="pp-doc-source-path">guides/</div>
-              <a href="https://github.com/shreyam1008/ProtoPeek/tree/master/guides" rel="noreferrer" target="_blank">Open source markdown</a>
-            </section>
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#getting-started">Get started</a><a class="level-2" href="#protocols">Inspect an API</a><a class="level-2" href="#network">Understand the network path</a><a class="level-2" href="#system">Check this system</a><a class="level-2" href="#preferences">Keep local control</a><a class="level-2" href="#direction">Read the product decisions</a>
+                </div>
+              </section>
 
-            <section class="pp-doc-side-card">
-              <div class="pp-doc-side-label">More ProtoPeek docs</div>
-              <div class="pp-doc-related">
-                <a href="/learn-grpc/"><strong>Learn gRPC</strong><span>Guide</span></a><a href="/feature-roadmap/"><strong>Feature roadmap</strong><span>Roadmap</span></a><a href="/network-workbench/"><strong>Network workbench</strong><span>Guide</span></a><a href="/this-pc/"><strong>This PC evidence</strong><span>Guide</span></a><a href="/competitive-landscape/"><strong>Competitive workflow decisions</strong><span>Product research</span></a><a href="/route-and-nmap-evidence/"><strong>Network evidence boundaries</strong><span>Guide</span></a><a href="/transport-boundaries/"><strong>Transport boundaries</strong><span>Architecture</span></a><a href="/vscode-extension-spec/"><strong>VS Code / Open VSX spec</strong><span>Extension</span></a>
-              </div>
-            </section>
-          </aside>
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">web/src/site/public-pages.json</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/web/src/site/public-pages.json" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>This page is documentation, not a new product or release claim.</p>
+              </section>
+            </aside>
+          </div>
+
+
         </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
       </div>
     </div>
   </body>

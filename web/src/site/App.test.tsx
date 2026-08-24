@@ -55,6 +55,22 @@ describe('public site', () => {
       '/this-pc/'
     );
     expect(within(product).getByText(/current-source preview/i)).toBeVisible();
+    expect(within(product).getByRole('link', { name: /choose grpc or http/i })).toHaveAttribute(
+      'href',
+      '/docs/#protocols'
+    );
+    expect(within(product).getByRole('link', { name: /trace the path/i })).toHaveAttribute(
+      'href',
+      '/network-workbench/#network-path'
+    );
+    expect(within(product).getByRole('link', { name: /see website evidence/i })).toHaveAttribute(
+      'href',
+      '/security/'
+    );
+    expect(within(product).getByRole('link', { name: /explore all features/i })).toHaveAttribute(
+      'href',
+      '/docs/'
+    );
   });
 
   it('uses only repository-verified screenshots and labels older captures honestly', () => {
@@ -92,7 +108,7 @@ describe('public site', () => {
     );
     expect(within(install).getByRole('link', { name: /other install options/i })).toHaveAttribute(
       'href',
-      '/docs/'
+      '/install/'
     );
   });
 

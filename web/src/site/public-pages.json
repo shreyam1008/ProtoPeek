@@ -1,0 +1,522 @@
+{
+  "schemaVersion": 1,
+  "lastModified": "2026-08-24",
+  "groups": [
+    {
+      "id": "getting-started",
+      "title": "Get started",
+      "description": "Install ProtoPeek and choose the shortest path into the local workbench."
+    },
+    {
+      "id": "protocols",
+      "title": "Inspect an API",
+      "description": "Use a protocol-native request surface instead of flattening every service into the same JSON box."
+    },
+    {
+      "id": "network",
+      "title": "Understand the network path",
+      "description": "Separate DNS, selected routes, measured hops, authorized discovery, maps, and imported evidence."
+    },
+    {
+      "id": "system",
+      "title": "Check this system",
+      "description": "Inspect the local machine, one public website response, or a visible download queue."
+    },
+    {
+      "id": "preferences",
+      "title": "Keep local control",
+      "description": "Tune this browser and review the few settings that belong to the local ProtoPeek host."
+    },
+    {
+      "id": "direction",
+      "title": "Read the product decisions",
+      "description": "See what has shipped, what remains gated, and why transport and safety boundaries stay explicit."
+    }
+  ],
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "slug": "",
+      "kind": "root",
+      "generator": "external",
+      "title": "ProtoPeek",
+      "documentTitle": "ProtoPeek | Local Systems Workbench",
+      "description": "ProtoPeek is a local systems workbench for native gRPC and HTTP requests, bounded network and security evidence, and visible aria2-backed downloads.",
+      "sitemap": { "changefreq": "weekly", "priority": "1.0" }
+    },
+    {
+      "id": "docs",
+      "path": "/docs/",
+      "slug": "docs",
+      "kind": "hub",
+      "generator": "hub",
+      "title": "Features and guides",
+      "documentTitle": "ProtoPeek Features & Guides | Local Systems Workbench",
+      "description": "Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings.",
+      "section": "Guides",
+      "highlights": ["Choose a task", "See real evidence", "Know the limits"],
+      "visual": "hub",
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "install",
+      "path": "/install/",
+      "slug": "install",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "getting-started",
+      "title": "Install ProtoPeek",
+      "documentTitle": "Install ProtoPeek on macOS, Linux & Windows | Guide",
+      "description": "Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker.",
+      "question": "How do I install ProtoPeek?",
+      "section": "Install guide",
+      "sourcePath": "guides/INSTALLING.md",
+      "status": {
+        "label": "Stable · v0.5.0",
+        "tone": "stable",
+        "detail": "The owned Homebrew and Scoop channels and verified release resolvers install v0.5.0."
+      },
+      "highlights": ["macOS, Linux, Windows", "Checksum verification", "Rollback path"],
+      "visual": "install",
+      "flow": [
+        {
+          "verb": "Choose",
+          "title": "Pick one channel",
+          "detail": "Use Homebrew, Scoop, a verified release resolver, or Docker."
+        },
+        {
+          "verb": "Verify",
+          "title": "Keep checksums in the path",
+          "detail": "The supported installers verify the selected archive before replacing a binary."
+        },
+        {
+          "verb": "Run",
+          "title": "Open one local page",
+          "detail": "Start protopeek or pp and keep the workbench on the machine running the process."
+        }
+      ],
+      "sitemap": { "changefreq": "monthly", "priority": "0.9" }
+    },
+    {
+      "id": "grpc-workbench",
+      "path": "/grpc-workbench/",
+      "slug": "grpc-workbench",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "protocols",
+      "title": "gRPC workbench",
+      "documentTitle": "gRPC API Workbench: Requests, Streams & Health | ProtoPeek",
+      "description": "Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests.",
+      "question": "What happened inside this gRPC call?",
+      "section": "Stable feature",
+      "sourcePath": "guides/grpc-workbench.md",
+      "status": {
+        "label": "Stable · v0.5.0",
+        "tone": "stable",
+        "detail": "Protocol-native gRPC inspection ships in the stable v0.5.0 workbench."
+      },
+      "highlights": [
+        "Reflection or proto files",
+        "Unary and streaming",
+        "Headers, messages, trailers"
+      ],
+      "visual": "grpc",
+      "flow": [
+        {
+          "verb": "Start",
+          "title": "Open one target",
+          "detail": "Use reflection, a browser proto folder, host proto paths, or a protoset."
+        },
+        {
+          "verb": "Invoke",
+          "title": "Send the native RPC shape",
+          "detail": "Keep metadata, deadline, TLS choice, payload, stream mode, and cancellation visible."
+        },
+        {
+          "verb": "Read",
+          "title": "Follow the evidence in order",
+          "detail": "Inspect headers, response messages, trailers, final status, and observed timing separately."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "http-workbench",
+      "path": "/http-workbench/",
+      "slug": "http-workbench",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "protocols",
+      "title": "HTTP workbench",
+      "documentTitle": "HTTP & REST Workbench: Local Requests and Timing | ProtoPeek",
+      "description": "Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export.",
+      "question": "What did this HTTP service actually return?",
+      "section": "Stable feature",
+      "sourcePath": "guides/http-workbench.md",
+      "status": {
+        "label": "Stable · v0.5.0",
+        "tone": "stable",
+        "detail": "The bounded HTTP and REST request workbench ships in stable v0.5.0."
+      },
+      "highlights": ["Explicit request", "TLS and redirects", "Timing and response evidence"],
+      "visual": "http",
+      "flow": [
+        {
+          "verb": "Start",
+          "title": "Write one explicit request",
+          "detail": "Choose the method, URL, query, headers, auth, body, timeout, and redirect policy."
+        },
+        {
+          "verb": "Send",
+          "title": "Use the local Go relay",
+          "detail": "ProtoPeek validates a bounded request and keeps TLS verification on by default."
+        },
+        {
+          "verb": "Read",
+          "title": "Separate response evidence",
+          "detail": "See status, protocol, peer, headers, body, redirects, truncation, and timing phases."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "learn-grpc",
+      "path": "/learn-grpc/",
+      "slug": "learn-grpc",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "protocols",
+      "title": "Learn gRPC",
+      "documentTitle": "Learn gRPC: Protobuf, Streams, Metadata & Health | ProtoPeek",
+      "description": "Learn the gRPC concepts ProtoPeek keeps visible: proto contracts, reflection, HTTP/2, RPC stream shapes, metadata, trailers, status, timing, and Health.",
+      "question": "Why does gRPC need a protocol-native console?",
+      "section": "Technical guide",
+      "sourcePath": "guides/learn-grpc.md",
+      "status": {
+        "label": "Reference guide",
+        "tone": "guide",
+        "detail": "A technical companion to the shipped gRPC workbench."
+      },
+      "highlights": ["Proto contract", "Four RPC shapes", "HTTP/2 and trailers"],
+      "visual": "learn-grpc",
+      "sitemap": { "changefreq": "monthly", "priority": "0.8" }
+    },
+    {
+      "id": "network-workbench",
+      "path": "/network-workbench/",
+      "slug": "network-workbench",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "network",
+      "title": "Network workbench",
+      "documentTitle": "Network Paths, Local Discovery & Evidence Maps | ProtoPeek",
+      "description": "Trace DNS, selected routes and Linux hops; discover an authorized private range; save logical evidence maps; and import bounded Nmap XML without running Nmap.",
+      "question": "Why is this request taking that path?",
+      "section": "Stable feature",
+      "sourcePath": "guides/network-workbench.md",
+      "status": {
+        "label": "Stable · v0.5.0",
+        "tone": "stable",
+        "detail": "The bounded network workbench shipped before and remains part of stable v0.5.0."
+      },
+      "highlights": [
+        "DNS and selected route",
+        "Authorized local discovery",
+        "Logical maps and history"
+      ],
+      "visual": "network",
+      "flow": [
+        {
+          "verb": "Start",
+          "title": "Choose one evidence source",
+          "detail": "Trace a target, authorize a private /24-or-smaller plan, or import saved Nmap XML."
+        },
+        {
+          "verb": "Observe",
+          "title": "Keep provenance visible",
+          "detail": "ProtoPeek labels observed, inferred, manual, imported, and unknown records separately."
+        },
+        {
+          "verb": "Save",
+          "title": "Build a local evidence history",
+          "detail": "Store immutable snapshots and export canonical JSON, disclosed-loss GraphML, or flat CSV."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "route-and-nmap-evidence",
+      "path": "/route-and-nmap-evidence/",
+      "slug": "route-and-nmap-evidence",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "network",
+      "title": "Network evidence boundaries",
+      "documentTitle": "Route, Path, Discovery & Nmap Evidence Limits | ProtoPeek",
+      "description": "Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.",
+      "question": "What does each network result prove?",
+      "section": "Evidence guide",
+      "sourcePath": "guides/route-and-nmap-evidence.md",
+      "status": {
+        "label": "Stable boundary",
+        "tone": "guide",
+        "detail": "These limits describe shipped evidence and the claims ProtoPeek deliberately avoids."
+      },
+      "highlights": ["Source RTT", "Authorized discovery", "No hidden Nmap execution"],
+      "visual": "network-boundary",
+      "sitemap": { "changefreq": "monthly", "priority": "0.8" }
+    },
+    {
+      "id": "this-pc",
+      "path": "/this-pc/",
+      "slug": "this-pc",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "system",
+      "title": "This PC evidence",
+      "documentTitle": "This PC: Local Ports, Public IP & Speed Evidence | ProtoPeek",
+      "description": "Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run.",
+      "question": "What is happening on this computer?",
+      "section": "Current-source feature",
+      "sourcePath": "guides/this-pc.md",
+      "status": {
+        "label": "Current source · after v0.5.0",
+        "tone": "current",
+        "detail": "This seventh route-lazy area is not included in published v0.5.0 packages."
+      },
+      "highlights": [
+        "Local listeners and connections",
+        "Public IPv4 and IPv6",
+        "Bounded connection quality"
+      ],
+      "visual": "this-pc",
+      "flow": [
+        {
+          "verb": "Start",
+          "title": "Read the local baseline",
+          "detail": "Initial render reads process-perspective identity, platform capability, and interfaces only."
+        },
+        {
+          "verb": "Ask",
+          "title": "Run one explicit observation",
+          "detail": "Listeners, connections, traffic, public identity, and speed each have separate actions."
+        },
+        {
+          "verb": "Interpret",
+          "title": "Keep the boundary beside the result",
+          "detail": "A listener is not an Internet-open port and a Cloudflare run is not ISP line maximum."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "downloader",
+      "path": "/downloader/",
+      "slug": "downloader",
+      "kind": "feature",
+      "generator": "downloader",
+      "group": "system",
+      "title": "Downloader",
+      "documentTitle": "ProtoPeek Downloader | Local aria2c Transfer Workbench",
+      "description": "ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.",
+      "question": "Can I manage this download locally?",
+      "section": "Stable feature",
+      "status": {
+        "label": "Stable · v0.5.0",
+        "tone": "stable",
+        "detail": "Downloader ships in v0.5.0 and uses external configured or system aria2c."
+      },
+      "highlights": ["One to 32 HTTP(S) jobs", "Pause, resume, retry, cancel", "SHA-256 evidence"],
+      "visual": "downloader",
+      "flow": [
+        {
+          "verb": "Queue",
+          "title": "Add one or several jobs",
+          "detail": "Set an explicit destination and bounded per-job request options."
+        },
+        {
+          "verb": "Control",
+          "title": "Keep every state visible",
+          "detail": "Pause, resume, retry, or cancel one job or the whole queue."
+        },
+        {
+          "verb": "Verify",
+          "title": "Finish with local evidence",
+          "detail": "See the completed path and optional expected SHA-256 result for a single job."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "security",
+      "path": "/security/",
+      "slug": "security",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "system",
+      "title": "Website security evidence",
+      "documentTitle": "Website Security Evidence: DNS, TLS & HTTP | ProtoPeek",
+      "description": "Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.",
+      "question": "What can I verify about this public website?",
+      "section": "Stable core and current-source report",
+      "sourcePath": "guides/website-analysis-security.md",
+      "status": {
+        "label": "Stable core · current-source report",
+        "tone": "mixed",
+        "detail": "v0.5.0 ships the name lookup and one HEAD observation; the derived local report is current source."
+      },
+      "highlights": ["Historical certificate names", "One consented HEAD", "No security score"],
+      "visual": "security",
+      "flow": [
+        {
+          "verb": "Choose",
+          "title": "Use one explicit action",
+          "detail": "Look up historical certificate names or observe one public HTTP(S) response."
+        },
+        {
+          "verb": "Observe",
+          "title": "Pin the destination",
+          "detail": "The website action resolves public addresses, verifies TLS, reads no body, and follows no redirect."
+        },
+        {
+          "verb": "Read",
+          "title": "Treat evidence as bounded",
+          "detail": "Headers and certificate observations are not a vulnerability score or universal verdict."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
+      "id": "settings",
+      "path": "/settings/",
+      "slug": "settings",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "preferences",
+      "title": "Settings",
+      "documentTitle": "ProtoPeek Settings: Local Preferences & Host Controls",
+      "description": "Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings.",
+      "question": "Which settings stay in this browser or host?",
+      "section": "Stable core and current-source controls",
+      "sourcePath": "guides/settings.md",
+      "status": {
+        "label": "Stable core · current-source host settings",
+        "tone": "mixed",
+        "detail": "Browser preferences and the GoBarryGo bridge ship in v0.5.0; Downloader host controls are current source."
+      },
+      "highlights": [
+        "Browser-only preferences",
+        "Reversible GoBarryGo bridge",
+        "Private host configuration"
+      ],
+      "visual": "settings",
+      "flow": [
+        {
+          "verb": "Shape",
+          "title": "Tune this browser",
+          "detail": "Appearance, density, hints, and browser-local preferences stay in this profile."
+        },
+        {
+          "verb": "Review",
+          "title": "Preview before migration",
+          "detail": "The GoBarryGo bridge is observational first and never modifies the old profile."
+        },
+        {
+          "verb": "Control",
+          "title": "Change supported host values",
+          "detail": "Current source keeps Downloader engine settings in a private host file, not localStorage."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+    },
+    {
+      "id": "feature-roadmap",
+      "path": "/feature-roadmap/",
+      "slug": "feature-roadmap",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "direction",
+      "title": "Feature roadmap",
+      "documentTitle": "ProtoPeek Feature Roadmap: Shipped, Next & Gated",
+      "description": "See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters.",
+      "question": "What is shipped, next, exploring, or gated?",
+      "section": "Roadmap",
+      "sourcePath": "guides/feature-roadmap.md",
+      "status": {
+        "label": "Living roadmap",
+        "tone": "guide",
+        "detail": "No fake dates: every item is labelled by evidence and release state."
+      },
+      "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
+      "visual": "roadmap",
+      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+    },
+    {
+      "id": "transport-boundaries",
+      "path": "/transport-boundaries/",
+      "slug": "transport-boundaries",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "direction",
+      "title": "Transport boundaries",
+      "documentTitle": "ProtoPeek Transport Boundaries & Adapter Architecture",
+      "description": "Understand ProtoPeek’s shared local shell, protocol-owned evidence, workspace transfer limits, target safety policy, and gates for additional adapters.",
+      "question": "What does every protocol adapter need to preserve?",
+      "section": "Architecture",
+      "sourcePath": "guides/transport-boundaries.md",
+      "status": {
+        "label": "Architecture guide",
+        "tone": "guide",
+        "detail": "The shared shell stays small while each protocol owns its native evidence."
+      },
+      "highlights": ["Local-first shell", "Protocol-native evidence", "Release gates"],
+      "visual": "architecture",
+      "sitemap": { "changefreq": "monthly", "priority": "0.7" }
+    },
+    {
+      "id": "competitive-landscape",
+      "path": "/competitive-landscape/",
+      "slug": "competitive-landscape",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "direction",
+      "title": "Competitive workflow decisions",
+      "documentTitle": "ProtoPeek Competitive Workflow & Product Decisions",
+      "description": "Review the source-backed workflows ProtoPeek learns from and the lightweight, local-first, protocol-native boundaries it deliberately preserves.",
+      "question": "Which outside workflows are worth learning from?",
+      "section": "Product research",
+      "sourcePath": "guides/competitive-landscape.md",
+      "status": {
+        "label": "Research record",
+        "tone": "guide",
+        "detail": "A source-backed decision record, not a shipped feature claim."
+      },
+      "highlights": ["Official sources", "Workflow decisions", "Lightweight boundary"],
+      "visual": "research",
+      "sitemap": { "changefreq": "monthly", "priority": "0.6" }
+    },
+    {
+      "id": "vscode-extension-spec",
+      "path": "/vscode-extension-spec/",
+      "slug": "vscode-extension-spec",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "direction",
+      "title": "VS Code and Open VSX spec",
+      "documentTitle": "ProtoPeek VS Code & Open VSX Extension Specification",
+      "description": "Read the compact extension plan for launching ProtoPeek from proto files without duplicating its gRPC runtime, request editor, or local safety policy.",
+      "question": "How could an editor launch ProtoPeek without cloning it?",
+      "section": "Planning document",
+      "sourcePath": "guides/vscode-extension-spec.md",
+      "status": {
+        "label": "Planned · not shipped",
+        "tone": "planned",
+        "detail": "This is an extension specification, not a current package or product control."
+      },
+      "highlights": ["Launch helper", "Small extension target", "No duplicate client"],
+      "visual": "extension",
+      "sitemap": { "changefreq": "monthly", "priority": "0.5" }
+    }
+  ]
+}
