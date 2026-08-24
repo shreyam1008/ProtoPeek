@@ -1,14 +1,10 @@
 import {
   ArrowRight,
   Check,
+  ChevronRight,
   Copy,
   Download,
-  LayoutDashboard,
   Menu,
-  Network,
-  Server,
-  Settings2,
-  ShieldCheck,
   SquareArrowOutUpRight,
   X,
 } from 'lucide-react';
@@ -16,133 +12,93 @@ import { useRef, useState } from 'react';
 
 const siteNavigation = [
   { href: '#product', label: 'Product' },
-  { href: '/downloader/', label: 'Downloader' },
-  { href: '#screenshots', label: 'Screenshots' },
-  { href: '#release', label: 'v0.5.0' },
-  { href: '#install', label: 'Install' },
+  { href: '/docs/', label: 'Guides' },
+  { href: '#install', label: 'Download' },
 ] as const;
 
-const suiteAreas = [
+const productQuestions = [
   {
-    name: 'Overview',
-    description: 'Start from one local home with recent evidence and explicit target inspection.',
-    icon: LayoutDashboard,
+    question: 'Can I reach this service?',
+    answer: 'Call gRPC or HTTP and see exactly what came back.',
+    action: 'Open API guides',
+    href: '/docs/',
   },
   {
-    name: 'Protocols',
-    description: 'Keep gRPC and HTTP in native workbenches instead of flattening their evidence.',
-    icon: Server,
+    question: 'Why is this request slow?',
+    answer: 'Check DNS, routes, hops, and timing in one path.',
+    action: 'Trace the path',
+    href: '/network-workbench/',
   },
   {
-    name: 'Network',
-    description: 'Separate DNS, routes, Linux path probes, private discovery, and logical maps.',
-    icon: Network,
+    question: 'What can I verify about this public website?',
+    answer: 'See DNS, TLS, and response-header evidence when you ask.',
+    action: 'See safety limits',
+    href: '/transport-boundaries/',
   },
   {
-    name: 'Downloader',
-    description: 'Queue and verify HTTP(S) transfers through configured or system aria2c.',
-    icon: Download,
+    question: 'What is happening on this computer?',
+    answer: 'Current-source preview: listeners, connections, IPs, and bounded speed evidence.',
+    action: 'Preview This PC',
+    href: '/this-pc/',
   },
   {
-    name: 'Security',
-    description: 'Inspect disclosed domain history and one consented public website response.',
-    icon: ShieldCheck,
-  },
-  {
-    name: 'Settings',
-    description:
-      'Keep browser preferences local and explicitly preview, import, or roll back GoBarryGo state.',
-    icon: Settings2,
+    question: 'Can I manage this download locally?',
+    answer: 'Queue, pause, resume, and verify HTTP(S) transfers.',
+    action: 'Meet Downloader',
+    href: '/downloader/',
   },
 ] as const;
 
 const verifiedScreenshots = [
-  {
-    src: '/assets/protopeek-downloader-development.jpg',
-    alt: 'ProtoPeek v0.5.0 Downloader desktop with two completed local aria2 transfers and selected expected SHA-256 evidence',
-    width: 1487,
-    height: 1058,
-    label: 'Downloader · v0.5.0 desktop',
-    caption:
-      'Real Chrome capture of the feature source promoted into v0.5.0 using system aria2: two completed local transfers, with expected SHA-256 enforcement on the selected transfer.',
-    layout: 'md:col-span-2',
-  },
   {
     src: '/assets/protopeek-downloader-development-mobile.jpg',
     alt: 'ProtoPeek v0.5.0 Downloader queue at a 390 by 844 responsive viewport',
     width: 390,
     height: 844,
     label: 'Downloader · v0.5.0 mobile',
-    caption:
-      'Real Chrome capture of the feature source promoted into v0.5.0 at 390 × 844 with the local Downloader running and two completed transfers.',
-    layout: 'md:col-span-1',
   },
   {
     src: '/assets/protopeek-dashboard-dark.png',
-    alt: 'ProtoPeek v0.3 Protocol Peek dashboard in the persisted dark theme',
+    alt: 'Historical ProtoPeek v0.3.0 systems dashboard in its persisted dark theme',
     width: 1600,
     height: 913,
-    label: 'Desktop · dark',
-    caption: 'Real local Chrome capture of the v0.3.0 dashboard in its persisted dark theme.',
-    layout: 'md:col-span-3',
-  },
-  {
-    src: '/assets/protopeek-dashboard.png',
-    alt: 'ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces',
-    width: 1600,
-    height: 1000,
-    label: 'Desktop · light',
-    caption: 'Real local headless Chrome capture of the v0.3.0 light-first dashboard.',
-    layout: 'md:col-span-2',
-  },
-  {
-    src: '/assets/protopeek-dashboard-mobile.png',
-    alt: 'ProtoPeek v0.3 Protocol Peek dashboard at a 390 by 844 mobile viewport',
-    width: 390,
-    height: 844,
-    label: 'Mobile · 390 × 844',
-    caption: 'Real local headless Chrome capture of the v0.3.0 dashboard at its mobile viewport.',
-    layout: 'md:col-span-1',
+    label: 'Historical overview · v0.3.0 capture',
   },
 ] as const;
 
-const installCommands = [
+const installOptions = [
   {
-    label: 'Homebrew',
-    status: 'v0.5.0 channel',
+    id: 'macos',
+    label: 'macOS',
     command: 'brew install shreyam1008/tap/protopeek',
   },
   {
-    label: 'Scoop',
-    status: 'v0.5.0 channel',
-    command:
-      'scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket; scoop install shreyam/protopeek',
-  },
-  {
-    label: 'Unix',
-    status: 'v0.5.0 resolver',
+    id: 'linux',
+    label: 'Linux',
     command:
       'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
   },
   {
-    label: 'PowerShell',
-    status: 'v0.5.0 resolver',
+    id: 'windows',
+    label: 'Windows',
     command: 'irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex',
   },
 ] as const;
 
+type InstallOption = (typeof installOptions)[number];
+
 export function App() {
   return (
-    <div className="min-h-screen bg-pp-bg">
+    <div className="min-h-screen bg-white text-[#0a0a0a]">
       <Nav />
-      <main className="mx-auto max-w-6xl px-5 pb-16 sm:px-6">
+      <main>
         <Hero />
-        <SuiteAreas />
-        <ScreenshotGallery />
-        <ReleaseHighlights />
+        <ProductQuestions />
+        <Evidence />
         <Install />
-        <Footer />
+        <Privacy />
       </main>
+      <Footer />
     </div>
   );
 }
@@ -157,7 +113,7 @@ function Nav() {
 
   return (
     <nav
-      className="sticky top-0 z-50 border-b border-pp-border bg-white/95 backdrop-blur-lg"
+      className="sticky top-0 z-50 border-b border-black/10 bg-white/95 backdrop-blur-xl"
       aria-label="Primary"
       onKeyDown={(event) => {
         if (event.key !== 'Escape' || !mobileOpen) return;
@@ -166,42 +122,37 @@ function Nav() {
         mobileToggleRef.current?.focus();
       }}
     >
-      <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-5 sm:px-6">
-        <a className="flex min-w-0 items-center gap-2" href="#top" aria-label="ProtoPeek home">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
+        <a className="flex min-w-0 items-center gap-2.5" href="#top" aria-label="ProtoPeek home">
           <ProtoPeekMark />
-          <span>
-            <strong className="block text-sm tracking-tight text-pp-ink">ProtoPeek</strong>
-            <small className="hidden font-mono text-[0.62rem] text-pp-muted sm:block">
-              local systems workbench
-            </small>
-          </span>
+          <strong className="text-sm tracking-[-0.02em]">ProtoPeek</strong>
         </a>
 
-        <div className="hidden items-center gap-5 md:flex">
+        <div className="hidden items-center gap-7 md:flex">
           {siteNavigation.map((link) => (
             <a
               key={link.href}
-              className="text-sm text-pp-muted transition hover:text-pp-ink"
+              className="text-sm text-neutral-600 transition-colors hover:text-black motion-reduce:transition-none"
               href={link.href}
             >
               {link.label}
             </a>
           ))}
           <a
-            className="pp-button-primary py-1.5 text-xs"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-600 transition-colors hover:text-black motion-reduce:transition-none"
             href="https://github.com/shreyam1008/ProtoPeek"
             target="_blank"
             rel="noreferrer"
           >
             GitHub
-            <SquareArrowOutUpRight className="size-3" aria-hidden="true" />
+            <SquareArrowOutUpRight className="size-3.5" aria-hidden="true" />
           </a>
         </div>
 
         <button
           ref={mobileToggleRef}
           type="button"
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-pp-border bg-white text-pp-ink shadow-sm transition hover:border-pp-brand md:hidden"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-white text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none md:hidden"
           aria-label={`${mobileOpen ? 'Close' : 'Open'} site navigation`}
           aria-controls="mobile-site-navigation"
           aria-expanded={mobileOpen}
@@ -217,14 +168,14 @@ function Nav() {
 
       <div
         id="mobile-site-navigation"
-        className="absolute inset-x-0 top-full border-b border-pp-border bg-white px-5 py-3 shadow-lg md:hidden"
+        className="absolute inset-x-0 top-full border-b border-black/10 bg-white px-5 py-3 shadow-xl md:hidden"
         hidden={!mobileOpen}
       >
-        <div className="mx-auto grid max-w-6xl gap-1">
+        <div className="mx-auto grid max-w-7xl gap-1">
           {siteNavigation.map((link) => (
             <a
               key={link.href}
-              className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-pp-muted transition hover:bg-pp-bg-strong hover:text-pp-ink"
+              className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
               href={link.href}
               onClick={closeMobileNavigation}
             >
@@ -232,7 +183,7 @@ function Nav() {
             </a>
           ))}
           <a
-            className="mt-1 flex min-h-11 items-center justify-between rounded-lg bg-pp-brand px-3 text-sm font-semibold text-white"
+            className="flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
             href="https://github.com/shreyam1008/ProtoPeek"
             target="_blank"
             rel="noreferrer"
@@ -251,219 +202,170 @@ function Hero() {
   return (
     <section
       id="top"
-      className="grid gap-8 border-b border-pp-border py-14 lg:grid-cols-[1fr_auto] lg:items-end lg:py-20"
+      className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[minmax(0,0.9fr)_minmax(30rem,1.1fr)] lg:items-center lg:px-12 lg:py-28"
+      aria-labelledby="hero-title"
     >
       <div>
-        <p className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-pp-brand">
-          Stable v0.5.0 · six-area local workbench
-        </p>
-        <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-[-0.045em] text-pp-ink sm:text-5xl lg:text-6xl">
-          One local workbench for the path from request to system.
-        </h1>
-        <p className="mt-5 max-w-3xl text-base leading-relaxed text-pp-muted sm:text-lg">
-          v0.5.0 ships native gRPC and HTTP, bounded network evidence, a local Downloader, consented
-          Security evidence, and Settings with a reversible GoBarryGo bridge in one explicit shell.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3 lg:max-w-64 lg:justify-end">
-        <a className="pp-button-primary" href="#install">
-          <Download className="size-4" aria-hidden="true" />
-          Install stable
-        </a>
-        <a
-          className="pp-button-secondary"
-          href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
-          target="_blank"
-          rel="noreferrer"
+        <h1
+          id="hero-title"
+          className="max-w-3xl text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-balance sm:text-6xl lg:text-7xl"
         >
-          Release v0.5.0
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </a>
+          See what your system is doing.
+        </h1>
+        <p className="mt-7 max-w-xl text-lg leading-relaxed text-neutral-600 sm:text-xl">
+          Inspect APIs, trace network paths, check a website, and manage downloads — locally.
+        </p>
+        <div className="mt-9 flex flex-wrap gap-3">
+          <a
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0b5cff] px-5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 motion-reduce:transform-none motion-reduce:transition-none"
+            href="#install"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Get ProtoPeek
+          </a>
+          <a
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none"
+            href="#product"
+          >
+            See how it works
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
+        </div>
+        <p className="mt-5 flex items-center gap-2 text-sm text-neutral-500">
+          <span className="size-1.5 rounded-full bg-[#f4a313]" aria-hidden="true" />
+          Local-first. No account.
+        </p>
       </div>
+
+      <figure className="min-w-0 overflow-hidden rounded-2xl border border-neutral-800 bg-[#0b1118] p-2 shadow-2xl shadow-blue-950/15 sm:p-3">
+        <div className="flex items-center gap-1.5 px-1 pb-2 sm:px-2 sm:pb-3" aria-hidden="true">
+          <span className="size-2 rounded-full bg-[#ff6258]" />
+          <span className="size-2 rounded-full bg-[#f4a313]" />
+          <span className="size-2 rounded-full bg-[#30c775]" />
+          <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-[0.14em] text-neutral-500">
+            local session
+          </span>
+        </div>
+        <img
+          src="/assets/protopeek-downloader-development.jpg"
+          alt="ProtoPeek v0.5.0 Downloader with completed local aria2 transfers and SHA-256 evidence"
+          width="1487"
+          height="1058"
+          decoding="async"
+          fetchPriority="high"
+          className="block w-full rounded-lg border border-white/10"
+        />
+        <figcaption className="px-2 pb-1 pt-3 text-xs text-neutral-400">
+          Stable v0.5.0 capture · Local transfers with visible progress and integrity evidence.
+        </figcaption>
+      </figure>
     </section>
   );
 }
 
-function SuiteAreas() {
+function ProductQuestions() {
   return (
-    <section id="product" className="py-14 sm:py-16" aria-labelledby="suite-title">
-      <SectionHeading
-        id="suite-title"
-        title="Six areas. One explicit local shell."
-        description="This information architecture ships in v0.5.0. Every active operation stays visible and user-triggered."
-      />
+    <section
+      id="product"
+      className="scroll-mt-20 border-t border-black/10"
+      aria-labelledby="product-title"
+    >
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+        <div className="max-w-3xl">
+          <h2 id="product-title" className="text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">
+            Start with a question.
+          </h2>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:text-lg">
+            Pick the thing you are trying to understand. ProtoPeek keeps the evidence together.
+          </p>
+        </div>
 
-      <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-pp-border bg-pp-border sm:grid-cols-2 lg:grid-cols-3">
-        {suiteAreas.map((area) => (
-          <article key={area.name} className="flex gap-4 bg-white p-5">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-pp-brand/10 text-pp-brand">
-              <area.icon className="size-4.5" aria-hidden="true" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-pp-ink">{area.name}</h3>
-              <p className="mt-1 text-sm leading-relaxed text-pp-muted">{area.description}</p>
-            </div>
-          </article>
-        ))}
+        <div className="mt-10 border-t border-black/15">
+          {productQuestions.map((item, index) => (
+            <article
+              key={item.question}
+              className="group grid gap-4 border-b border-black/15 py-6 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(15rem,0.8fr)_auto] sm:items-center sm:gap-6"
+            >
+              <span className="font-mono text-xs text-neutral-400" aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <h3 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
+                {item.question}
+              </h3>
+              <p className="text-sm leading-relaxed text-neutral-600 sm:text-base">{item.answer}</p>
+              <a
+                className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-sm font-semibold text-[#0b5cff] sm:justify-self-end"
+                href={item.href}
+              >
+                {item.action}
+                <ChevronRight
+                  className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
+                  aria-hidden="true"
+                />
+              </a>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-function ScreenshotGallery() {
+function Evidence() {
   return (
     <section
       id="screenshots"
-      className="border-t border-pp-border py-14 sm:py-16"
-      aria-labelledby="screenshots-title"
+      className="scroll-mt-20 bg-[#0b1118] text-white"
+      aria-labelledby="evidence-title"
     >
-      <SectionHeading
-        id="screenshots-title"
-        title="Verified product captures."
-        description="Every capture is recorded in the repository manifest. The Downloader pair is v0.5.0 release-source evidence; the remaining three preserve the versioned v0.3.0 dashboard."
-      />
-
-      <div className="mt-8 grid gap-5 md:grid-cols-3">
-        {verifiedScreenshots.map((screenshot) => (
-          <ScreenshotFigure key={screenshot.src} screenshot={screenshot} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ScreenshotFigure({ screenshot }: { screenshot: (typeof verifiedScreenshots)[number] }) {
-  return (
-    <figure
-      className={`flex flex-col overflow-hidden rounded-xl border border-neutral-800 bg-[#071017] shadow-xl ${screenshot.layout}`}
-    >
-      <img
-        src={screenshot.src}
-        alt={screenshot.alt}
-        width={screenshot.width}
-        height={screenshot.height}
-        loading="lazy"
-        decoding="async"
-        className="block max-h-[42rem] w-full flex-1 object-contain object-top"
-      />
-      <figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-relaxed text-neutral-400">
-        <strong className="mr-2 font-semibold text-neutral-200">{screenshot.label}</strong>
-        {screenshot.caption}
-      </figcaption>
-    </figure>
-  );
-}
-
-function ReleaseHighlights() {
-  return (
-    <section
-      id="release"
-      className="border-t border-pp-border py-14 sm:py-16"
-      aria-labelledby="release-title"
-    >
-      <SectionHeading
-        id="release-title"
-        title="What ships in v0.5.0."
-        description="Downloader and Security are stable v0.5.0 surfaces. Homebrew and Scoop install v0.5.0 and declare aria2 as an external package dependency."
-      />
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        <article className="min-w-0 border-l-2 border-pp-brand pl-5">
-          <div className="flex items-center gap-3">
-            <Download className="size-5 text-pp-brand" aria-hidden="true" />
-            <h3 className="text-lg font-semibold text-pp-ink">Downloader</h3>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-pp-muted">
-            ProtoPeek uses an explicitly configured or system-installed <code>aria2c</code>. It does
-            not bundle aria2. The local UI starts the engine only when requested and exposes queue,
-            progress, pause, resume, retry, cancel, destination, and optional SHA-256 evidence.
-          </p>
-          <div className="mt-4 rounded-lg border border-neutral-800 bg-[#0d1117] p-4">
-            <code className="block overflow-x-auto whitespace-nowrap font-mono text-sm text-emerald-400">
-              pp download [--output NAME] [--sha256 64_HEX] URL
-            </code>
-            <p className="mt-2 text-xs leading-relaxed text-neutral-400">
-              One-shot CLI: owns its local engine session, reports progress on stderr, prints the
-              completed path on stdout, and preserves partial data plus the aria2 session when
-              interrupted. It does not attach to an already-running browser process.
-            </p>
-          </div>
-          <a
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-pp-brand hover:underline"
-            href="/downloader/"
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.8fr)] lg:items-end">
+          <h2
+            id="evidence-title"
+            className="max-w-3xl text-4xl font-semibold leading-none tracking-[-0.05em] sm:text-6xl"
           >
-            Open the Downloader product page
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </a>
-        </article>
+            One workbench. Real evidence.
+          </h2>
+          <p className="max-w-xl text-base leading-relaxed text-neutral-400 lg:justify-self-end">
+            Requests, routes, listeners, certificates, downloads, and timing stay together.
+          </p>
+        </div>
 
-        <article className="min-w-0 border-l-2 border-pp-brand pl-5">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="size-5 text-pp-brand" aria-hidden="true" />
-            <h3 className="text-lg font-semibold text-pp-ink">Security evidence</h3>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-pp-muted">
-            Historical certificate-name lookup runs only after an explicit disclosure that the
-            registrable domain is sent to <code>crt.name</code>. Returned names are historical
-            candidates; ProtoPeek does not automatically resolve or probe them.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-pp-muted">
-            A separate opt-in sends exactly one credential-free, non-following public
-            <code> HEAD</code> request. ProtoPeek resolves and pins public addresses, verifies TLS
-            for HTTPS, reads no body, and records bounded DNS, TLS, HTTP, and timing evidence. It
-            emits no security score and makes no universal vulnerability verdict.
-          </p>
-        </article>
+        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+          {verifiedScreenshots.map((screenshot) => (
+            <figure key={screenshot.src} className="min-w-0">
+              <div className="overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl shadow-black/30">
+                <img
+                  src={screenshot.src}
+                  alt={screenshot.alt}
+                  width={screenshot.width}
+                  height={screenshot.height}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[16/10] w-full object-cover object-top"
+                />
+              </div>
+              <figcaption className="mt-3 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-neutral-500">
+                {screenshot.label}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
 function Install() {
-  return (
-    <section
-      id="install"
-      className="border-t border-pp-border py-14 sm:py-16"
-      aria-labelledby="install-title"
-    >
-      <SectionHeading
-        id="install-title"
-        title="Install v0.5.0 from a verified channel."
-        description="The release resolvers, Homebrew tap, and Scoop bucket install v0.5.0. Both package-manager definitions keep aria2 external to ProtoPeek while declaring it as a dependency."
-      />
-
-      <div className="mt-8 grid gap-3">
-        {installCommands.map((option) => (
-          <InstallCommand key={option.label} option={option} />
-        ))}
-      </div>
-
-      <p className="mt-5 text-center text-sm leading-relaxed text-pp-muted">
-        Run <code className="font-semibold text-pp-ink">pp</code> for the local dashboard or pass an
-        exact <code className="font-semibold text-pp-ink">host:port</code> for direct gRPC mode.
-        Read the{' '}
-        <a className="text-pp-brand hover:underline" href="/docs/">
-          published docs
-        </a>{' '}
-        or inspect the{' '}
-        <a
-          className="text-pp-brand hover:underline"
-          href="https://github.com/shreyam1008/ProtoPeek/tree/v0.5.0"
-          target="_blank"
-          rel="noreferrer"
-        >
-          v0.5.0 release source
-        </a>{' '}
-        for release setup.
-      </p>
-    </section>
-  );
-}
-
-function InstallCommand({ option }: { option: (typeof installCommands)[number] }) {
-  const commandRef = useRef<HTMLInputElement | null>(null);
+  const [activeId, setActiveId] = useState<InstallOption['id']>('macos');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'manual'>('idle');
+  const commandRef = useRef<HTMLInputElement | null>(null);
+  const activeOption = installOptions.find((option) => option.id === activeId) ?? installOptions[0];
+
+  function selectOption(option: InstallOption) {
+    setActiveId(option.id);
+    setCopyState('idle');
+  }
 
   function selectForManualCopy() {
     commandRef.current?.focus();
@@ -480,7 +382,7 @@ function InstallCommand({ option }: { option: (typeof installCommands)[number] }
     }
 
     try {
-      await clipboard.writeText(option.command);
+      await clipboard.writeText(activeOption.command);
       setCopyState('copied');
     } catch {
       selectForManualCopy();
@@ -488,107 +390,181 @@ function InstallCommand({ option }: { option: (typeof installCommands)[number] }
   }
 
   return (
-    <div className="min-w-0 rounded-xl border border-neutral-800 bg-[#0d1117] px-4 py-3">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="shrink-0 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-neutral-400">
-          {option.label}
-        </span>
-        <span className="hidden shrink-0 font-mono text-[0.65rem] text-neutral-500 sm:inline">
-          {option.status}
-        </span>
-        <input
-          ref={commandRef}
-          type="text"
-          readOnly
-          value={option.command}
-          aria-label={`${option.label} install command`}
-          className="min-w-0 flex-1 bg-transparent font-mono text-sm text-emerald-400 outline-none selection:bg-emerald-400/30"
-        />
-        <button
-          type="button"
-          className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs text-neutral-400 transition hover:bg-white/10 hover:text-white"
-          onClick={() => void copyCommand()}
-          aria-label={
-            copyState === 'copied'
-              ? `${option.label} command copied`
-              : `Copy ${option.label} command`
-          }
-        >
-          {copyState === 'copied' ? (
-            <>
-              <Check className="size-4" aria-hidden="true" /> Copied
-            </>
-          ) : (
-            <Copy className="size-4" aria-hidden="true" />
-          )}
-        </button>
+    <section
+      id="install"
+      className="scroll-mt-20 border-b border-black/10"
+      aria-labelledby="install-title"
+    >
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[minmax(0,0.75fr)_minmax(30rem,1.25fr)] lg:items-center lg:gap-20 lg:px-12">
+        <div>
+          <h2
+            id="install-title"
+            className="text-4xl font-semibold leading-none tracking-[-0.05em] sm:text-6xl"
+          >
+            Ready when you are.
+          </h2>
+          <p className="mt-5 text-lg leading-relaxed text-neutral-600">
+            One command. One local page.
+          </p>
+          <a
+            className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
+            href="/docs/"
+          >
+            Other install options
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-neutral-800 bg-[#0b1118] text-white shadow-2xl shadow-blue-950/10">
+          <fieldset className="flex gap-1 overflow-x-auto border-b border-white/10 px-4 pt-4 sm:px-6">
+            <legend className="sr-only">Operating system</legend>
+            {installOptions.map((option) => {
+              const selected = option.id === activeOption.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={selected}
+                  className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors motion-reduce:transition-none ${
+                    selected
+                      ? 'border-[#7da7ff] text-white'
+                      : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                  }`}
+                  onClick={() => selectOption(option)}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </fieldset>
+
+          <div id="install-command-panel" className="p-4 sm:p-6">
+            <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-white/10 bg-black/30 p-3 sm:flex-row sm:items-center">
+              <input
+                ref={commandRef}
+                type="text"
+                readOnly
+                value={activeOption.command}
+                aria-label={`${activeOption.label} install command`}
+                className="min-w-0 flex-1 bg-transparent font-mono text-xs leading-relaxed text-[#87e3ae] outline-none selection:bg-emerald-400/30 sm:text-sm"
+              />
+              <button
+                type="button"
+                className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/15 px-3 text-xs font-semibold text-neutral-300 transition-colors hover:bg-white/10 hover:text-white motion-reduce:transition-none"
+                onClick={() => void copyCommand()}
+                aria-label={
+                  copyState === 'copied'
+                    ? `${activeOption.label} command copied`
+                    : `Copy ${activeOption.label} command`
+                }
+              >
+                {copyState === 'copied' ? (
+                  <>
+                    <Check className="size-4" aria-hidden="true" /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="size-4" aria-hidden="true" /> Copy command
+                  </>
+                )}
+              </button>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-neutral-500" aria-live="polite">
+              {copyState === 'manual'
+                ? 'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
+                : 'Installs stable ProtoPeek v0.5.0. Downloader uses your system aria2c.'}
+            </p>
+          </div>
+        </div>
       </div>
-      {copyState === 'manual' ? (
-        <p className="mt-2 text-xs text-amber-300" role="alert">
-          Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.
-        </p>
-      ) : null}
-    </div>
+    </section>
+  );
+}
+
+function Privacy() {
+  return (
+    <section id="privacy" aria-labelledby="privacy-title">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[minmax(0,1fr)_minmax(26rem,0.8fr)] lg:items-center lg:gap-20 lg:px-12">
+        <div>
+          <h2
+            id="privacy-title"
+            className="max-w-3xl text-4xl font-semibold leading-none tracking-[-0.05em] sm:text-6xl"
+          >
+            Your machine stays yours.
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-neutral-600">
+            ProtoPeek opens locally. External checks run only when you ask.
+          </p>
+        </div>
+
+        <ul className="border-t border-black/15" aria-label="Privacy boundaries">
+          {['No account', 'No ProtoPeek cloud sync', 'Clear consent before external checks'].map(
+            (boundary) => (
+              <li
+                key={boundary}
+                className="flex items-center gap-3 border-b border-black/15 py-5 text-base font-medium"
+              >
+                <span className="flex size-6 items-center justify-center rounded-full bg-[#0b5cff]/10 text-[#0b5cff]">
+                  <Check className="size-3.5" aria-hidden="true" />
+                </span>
+                {boundary}
+              </li>
+            )
+          )}
+        </ul>
+      </div>
+    </section>
   );
 }
 
 function Footer() {
   return (
-    <footer className="flex flex-col gap-4 border-t border-pp-border py-8 text-sm text-pp-muted sm:flex-row sm:items-center sm:justify-between">
-      <p>
-        ProtoPeek by{' '}
-        <a
-          className="text-pp-brand hover:underline"
-          href="https://shreyam1008.com.np/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Shreyam Adhikari
-        </a>
-      </p>
-      <div className="flex flex-wrap gap-4">
-        <a className="hover:text-pp-ink" href="/docs/">
-          Docs
-        </a>
-        <a className="hover:text-pp-ink" href="/man/protopeek.1">
-          Man page
-        </a>
-        <a
-          className="inline-flex items-center gap-1 hover:text-pp-ink"
-          href="https://github.com/shreyam1008/ProtoPeek"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Source <SquareArrowOutUpRight className="size-3" aria-hidden="true" />
-        </a>
+    <footer className="border-t border-black/10 bg-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 text-sm text-neutral-500 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
+        <p>
+          ProtoPeek · Built by{' '}
+          <a
+            className="text-neutral-800 hover:underline"
+            href="https://shreyam1008.com.np/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Shreyam Adhikari
+          </a>
+        </p>
+        <div className="flex flex-wrap gap-x-5 gap-y-3">
+          <a className="hover:text-black" href="/docs/">
+            Guides
+          </a>
+          <a className="hover:text-black" href="#install">
+            Download
+          </a>
+          <a
+            className="hover:text-black"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Release notes
+          </a>
+          <a
+            className="inline-flex items-center gap-1 hover:text-black"
+            href="https://github.com/shreyam1008/ProtoPeek"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub <SquareArrowOutUpRight className="size-3" aria-hidden="true" />
+          </a>
+        </div>
       </div>
     </footer>
   );
 }
 
-function SectionHeading({
-  id,
-  title,
-  description,
-}: {
-  id: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="grid gap-3 md:grid-cols-[minmax(0,0.85fr)_minmax(20rem,1fr)] md:items-end md:gap-10">
-      <h2 id={id} className="text-2xl font-bold tracking-tight text-pp-ink sm:text-3xl">
-        {title}
-      </h2>
-      <p className="text-sm leading-relaxed text-pp-muted md:text-right">{description}</p>
-    </div>
-  );
-}
-
 function ProtoPeekMark() {
   return (
-    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-pp-brand text-[#07151b]">
-      <svg viewBox="0 0 32 32" className="size-6" aria-hidden="true">
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#0b5cff] text-white">
+      <svg viewBox="0 0 32 32" className="size-5" aria-hidden="true">
         <path
           d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"
           fill="none"

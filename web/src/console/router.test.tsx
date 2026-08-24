@@ -54,8 +54,10 @@ describe('protocol routes', () => {
 
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
-    expect(screen.getByText(/No protocol evidence recorded/i)).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'What do you need to check?' })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/No recent services yet/i)).toBeVisible();
   });
 
   it('owns the HTTP query boundary inside the lazy HTTP route', async () => {
@@ -83,14 +85,16 @@ describe('protocol routes', () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole('heading', { name: 'Protocol Peek' })).toBeInTheDocument();
-    expect(screen.getByText('Network Path')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'What do you need to check?' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Network path')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
-    expect(screen.getByText('Private discovery')).toBeInTheDocument();
-    expect(screen.getByText('Opt-in')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /On demandThis PC/ })).toBeVisible();
+    expect(screen.getByText('Local discovery')).toBeInTheDocument();
+    expect(screen.getByText('Ask first')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Check this computer/ })).toBeVisible();
 
-    fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
     expect(
       await screen.findByRole('dialog', { name: 'Scan target' }, { timeout: 5000 })
     ).toBeInTheDocument();
@@ -244,8 +248,8 @@ describe('protocol routes', () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
     render(<RouterProvider router={router} />);
 
-    await screen.findByRole('heading', { name: 'Protocol Peek' });
-    fireEvent.click(screen.getByRole('button', { name: /Scan target/ }));
+    await screen.findByRole('heading', { name: 'What do you need to check?' });
+    fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Scan target' }), {
       target: { value: 'http://127.0.0.1:8080' },
     });
