@@ -99,8 +99,10 @@ browser-folder snapshot, host proto paths, or host protoset paths), and cert pat
 defaults to `http://localhost:8080/`. Exact `localhost`, `127.0.0.1`, and `[::1]` shorthand may omit
 the scheme and is normalized to HTTP; every non-loopback host must state `http://` or `https://`.
 HTTP history shows its 12 newest secret-safe entries with total observed time, and JSON formatting
-is optional—invalid JSON remains sendable verbatim. Light is the first-run theme; dark mode and
-local histories are stored only in the browser profile.
+is optional—invalid JSON remains sendable verbatim. Current source can also import an explicit,
+bounded OpenAPI 3.x or Swagger 2.0 JSON definition by file or URL, including a Swagger UI or Scalar
+page that exposes its linked JSON definition. Light is the first-run theme; dark mode and local
+histories are stored only in the browser profile.
 
 v0.5.0 adds a local Downloader surface plus one explicit one-shot transfer command. The browser
 queues one URL or up to 32 independent jobs, reports partial batch success
@@ -275,7 +277,7 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
-| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; copy the current draft as bounded, credential-redacted cURL |
+| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; import bounded OpenAPI 3.x or Swagger 2.0 JSON into a searchable operation rail; copy the current draft as bounded, credential-redacted cURL |
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
 | **This PC · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux socket/process evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; no ambient monitor or Internet-open-port claim |
@@ -349,7 +351,7 @@ cancellation, and its native inspector.
 | Adapter | Status | First useful slice |
 |---|---|---|
 | gRPC | Stable · v0.3.0 | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, canonical Health Check/Watch, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
-| HTTP / REST | Stable · v0.3.0 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, and bounded text/base64 response bodies |
+| HTTP / REST | Stable · v0.3.0; OpenAPI import in current source | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, bounded text/base64 response bodies, and explicit OpenAPI 3.x or Swagger 2.0 JSON import |
 | Next-hop route evidence | Shipped · v0.3.0 | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
 | Network Path | Shipped · v0.4.0 · Linux | Built-in unprivileged UDP error-queue tracing with separate DNS, route, per-TTL sample, and source-RTT evidence; active probes require explicit consent |
 | Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |

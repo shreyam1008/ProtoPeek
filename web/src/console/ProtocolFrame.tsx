@@ -60,7 +60,7 @@ const ScanTargetDialog = lazy(async () => {
 
 const primaryNavigation = [
   { id: 'overview', label: 'Overview', to: '/', icon: Home, exact: true },
-  { id: 'protocols', label: 'Protocols', to: '/protocols', icon: Server, exact: false },
+  { id: 'protocols', label: 'APIs', to: '/protocols', icon: Server, exact: false },
   { id: 'network', label: 'Network', to: '/network', icon: Network, exact: false },
   { id: 'this-pc', label: 'This PC', to: '/this-pc', icon: Monitor, exact: false },
   { id: 'downloader', label: 'Downloader', to: '/downloader', icon: Download, exact: false },
@@ -165,8 +165,8 @@ export function ProtocolFrame() {
       },
       {
         id: 'protocols',
-        label: 'Open Protocols',
-        keywords: 'protocol grpc http workbench',
+        label: 'Open API workbenches',
+        keywords: 'api protocol grpc http rest openapi workbench',
         run: () => void navigate({ to: '/protocols' }),
       },
       {

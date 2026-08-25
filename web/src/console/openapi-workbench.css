@@ -1,0 +1,440 @@
+@layer components {
+  .pp-openapi-collection-trigger {
+    display: inline-flex;
+    max-width: 12rem;
+    min-height: 2rem;
+    align-items: center;
+    gap: 0.38rem;
+    overflow: hidden;
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.4rem;
+    padding: 0.35rem 0.55rem;
+    background: var(--pp-surface-raised);
+    color: var(--pp-text-muted);
+    font-size: 0.65rem;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pp-openapi-collection-trigger:hover,
+  .pp-openapi-collection-trigger[aria-expanded="true"] {
+    border-color: var(--pp-accent-signal);
+    color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-collection-trigger span {
+    border-radius: 999px;
+    padding: 0.05rem 0.28rem;
+    background: var(--pp-accent-soft);
+    color: var(--pp-accent-signal);
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+  }
+
+  .pp-openapi-import-panel {
+    position: absolute;
+    z-index: 45;
+    top: calc(100% + 0.45rem);
+    right: 0.9rem;
+    width: min(32rem, calc(100vw - 7rem));
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.55rem;
+    padding: 0.8rem;
+    background: var(--pp-surface-raised);
+    box-shadow: 0 1rem 3rem var(--pp-shadow);
+    color: var(--pp-text);
+  }
+
+  .pp-openapi-import-panel > header,
+  .pp-openapi-import-panel > header > div,
+  .pp-openapi-import-panel > header span {
+    display: flex;
+  }
+
+  .pp-openapi-import-panel > header {
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .pp-openapi-import-panel > header > div {
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .pp-openapi-heading-icon {
+    width: 1rem;
+    color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-import-panel > header span {
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .pp-openapi-import-panel > header strong {
+    font-size: 0.76rem;
+  }
+
+  .pp-openapi-import-panel > header small,
+  .pp-openapi-import-panel > p {
+    color: var(--pp-text-faint);
+    font-size: 0.59rem;
+    line-height: 1.45;
+  }
+
+  .pp-openapi-import-panel > header button {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border-radius: 0.3rem;
+    color: var(--pp-text-muted);
+  }
+
+  .pp-openapi-import-panel > header button:hover {
+    background: var(--pp-surface-sunken);
+    color: var(--pp-text);
+  }
+
+  .pp-openapi-import-panel form {
+    margin-top: 0.8rem;
+  }
+
+  .pp-openapi-import-panel form > label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--pp-text-muted);
+    font-size: 0.62rem;
+    font-weight: 700;
+  }
+
+  .pp-openapi-import-panel form > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+  }
+
+  .pp-openapi-url-input {
+    min-width: 0;
+    height: 2.35rem;
+    border: 1px solid var(--pp-stroke-strong);
+    border-radius: 0.36rem;
+    outline: 0;
+    padding: 0 0.65rem;
+    background: var(--pp-surface);
+    color: var(--pp-text);
+    font-family: var(--font-mono);
+    font-size: 0.67rem;
+  }
+
+  .pp-openapi-url-input:focus {
+    border-color: var(--pp-accent-signal);
+    box-shadow: 0 0 0 2px var(--pp-accent-soft);
+  }
+
+  .pp-openapi-import-panel form button,
+  .pp-openapi-file-action {
+    display: inline-flex;
+    min-height: 2.35rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.36rem;
+    padding: 0 0.75rem;
+    background: var(--pp-accent-signal);
+    color: var(--pp-inverse-text);
+    font-size: 0.65rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .pp-openapi-import-submit:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  .pp-openapi-import-divider {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.55rem;
+    align-items: center;
+    margin: 0.65rem 0;
+    color: var(--pp-text-faint);
+    font-size: 0.58rem;
+  }
+
+  .pp-openapi-import-divider::before,
+  .pp-openapi-import-divider::after {
+    height: 1px;
+    background: var(--pp-stroke);
+    content: "";
+  }
+
+  .pp-openapi-file-action {
+    width: 100%;
+    border: 1px solid var(--pp-stroke-strong);
+    background: var(--pp-surface);
+    color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-file-action:hover {
+    background: var(--pp-accent-soft);
+  }
+
+  .pp-openapi-file-icon {
+    width: 0.8rem;
+  }
+
+  .pp-openapi-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .pp-openapi-import-panel > p {
+    margin: 0.65rem 0 0;
+  }
+
+  .pp-openapi-import-panel > [role="alert"] {
+    margin-top: 0.65rem;
+    border: 1px solid var(--pp-danger-signal);
+    border-radius: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    background: var(--pp-danger-soft);
+    color: var(--pp-danger-signal);
+    font-size: 0.62rem;
+    line-height: 1.4;
+  }
+
+  .pp-http-workspace.has-openapi-rail {
+    grid-template-columns: 15.5rem minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pp-openapi-rail {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--pp-chrome);
+    color: var(--pp-text);
+  }
+
+  .pp-openapi-rail > header {
+    display: flex;
+    min-height: 4.5rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    border-bottom: 1px solid var(--pp-stroke);
+    padding: 0.72rem;
+  }
+
+  .pp-openapi-rail > header > span {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+  }
+
+  .pp-openapi-rail > header small {
+    color: var(--pp-accent-signal);
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    font-weight: 800;
+  }
+
+  .pp-openapi-rail > header strong,
+  .pp-openapi-source,
+  .pp-openapi-operation-list button > strong,
+  .pp-openapi-operation-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pp-openapi-rail > header strong {
+    font-size: 0.72rem;
+  }
+
+  .pp-openapi-source {
+    color: var(--pp-text-faint);
+    font-size: 0.53rem;
+  }
+
+  .pp-openapi-rail > header button {
+    display: grid;
+    width: 1.8rem;
+    height: 1.8rem;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--pp-stroke);
+    border-radius: 0.34rem;
+    color: var(--pp-text-muted);
+  }
+
+  .pp-openapi-rail > header button:hover {
+    border-color: var(--pp-accent-signal);
+    color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-rail > header button svg {
+    width: 0.78rem;
+  }
+
+  .pp-openapi-search {
+    position: relative;
+    display: block;
+    border-bottom: 1px solid var(--pp-stroke);
+    padding: 0.55rem;
+  }
+
+  .pp-openapi-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.95rem;
+    width: 0.72rem;
+    color: var(--pp-text-faint);
+    transform: translateY(-50%);
+  }
+
+  .pp-openapi-search-input {
+    width: 100%;
+    height: 2rem;
+    border: 1px solid var(--pp-stroke);
+    border-radius: 0.34rem;
+    outline: 0;
+    padding: 0 0.55rem 0 1.75rem;
+    background: var(--pp-surface);
+    color: var(--pp-text);
+    font-size: 0.62rem;
+  }
+
+  .pp-openapi-search-input:focus {
+    border-color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-operation-list {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.45rem;
+  }
+
+  .pp-openapi-operation-list section + section {
+    margin-top: 0.65rem;
+  }
+
+  .pp-openapi-operation-list h2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0.3rem 0.4rem;
+    color: var(--pp-text-muted);
+    font-size: 0.61rem;
+    font-weight: 780;
+  }
+
+  .pp-openapi-operation-list h2 span {
+    color: var(--pp-text-faint);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+  }
+
+  .pp-openapi-operation-list section > button {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 0.12rem 0.35rem;
+    border-left: 2px solid transparent;
+    border-radius: 0.3rem;
+    padding: 0.5rem 0.45rem;
+    color: var(--pp-text-muted);
+    text-align: left;
+  }
+
+  .pp-openapi-operation-list section > button:hover {
+    background: var(--pp-surface-sunken);
+    color: var(--pp-text);
+  }
+
+  .pp-openapi-operation-list section > button.is-active {
+    border-left-color: var(--pp-accent-signal);
+    background: var(--pp-accent-soft);
+    color: var(--pp-text);
+  }
+
+  .pp-openapi-operation-list button > span {
+    grid-row: 1 / 3;
+    padding-top: 0.08rem;
+    font-family: var(--font-mono);
+    font-size: 0.54rem;
+    font-weight: 850;
+  }
+
+  .pp-openapi-operation-list button > span.is-get {
+    color: var(--pp-success-signal);
+  }
+
+  .pp-openapi-operation-list button > span.is-post {
+    color: var(--pp-accent-signal);
+  }
+
+  .pp-openapi-operation-list button > span.is-put,
+  .pp-openapi-operation-list button > span.is-patch {
+    color: var(--pp-warning-signal);
+  }
+
+  .pp-openapi-operation-list button > span.is-delete {
+    color: var(--pp-danger-signal);
+  }
+
+  .pp-openapi-operation-list button > strong {
+    font-size: 0.62rem;
+  }
+
+  .pp-openapi-operation-path {
+    color: var(--pp-text-faint);
+    font-size: 0.53rem;
+  }
+
+  .pp-openapi-operation-list > p {
+    padding: 1.25rem 0.5rem;
+    color: var(--pp-text-faint);
+    font-size: 0.62rem;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 1180px) {
+  .pp-http-workspace.has-openapi-rail {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .pp-http-workspace.has-openapi-rail .pp-openapi-rail {
+    position: absolute;
+    z-index: 24;
+    inset: 0 auto 0 0;
+    width: min(20rem, calc(100% - 2rem));
+    border-right: 1px solid var(--pp-stroke-strong);
+    box-shadow: 1rem 0 2.5rem var(--pp-shadow);
+  }
+}
+
+@media (max-width: 760px) {
+  .pp-openapi-import-panel {
+    right: 0.55rem;
+    width: min(30rem, calc(100vw - 1.1rem));
+  }
+
+  .pp-openapi-import-panel form > div,
+  .pp-http-workspace.has-openapi-rail {
+    grid-template-columns: 1fr;
+  }
+}

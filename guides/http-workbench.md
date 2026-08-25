@@ -8,6 +8,12 @@ Choose the method and an absolute `http://` or `https://` URL. Add duplicate que
 
 The live editor can hold credentials for the request you intend to send. Automatic history strips URL user information, redacts credential-like query values, keeps only a small non-sensitive header allowlist, and never persists the request body.
 
+## Start from an API definition
+
+Current source can import an explicit OpenAPI 3.x or Swagger 2.0 JSON definition from a local file or URL. A Swagger UI or Scalar page URL also works when the page exposes a linked JSON definition. ProtoPeek loads the first operation into the same request editor and adds a searchable operation rail; choosing another operation updates the method, URL, parameters, headers, and example body without creating a second request system.
+
+URL imports travel through the same bounded local HTTP relay as other requests. The imported document is capped at 2 MiB and 1,000 operations. YAML, automatic endpoint discovery, code generation, and persisted API collections are deliberately outside this focused slice.
+
 ## Keep transport choices visible
 
 TLS verification is on by default. Redirect following is off by default. If redirects are enabled, ProtoPeek retains the bounded redirect chain and refuses unsafe policy changes such as an HTTPS downgrade.
@@ -38,11 +44,10 @@ The copied command runs in your shell. Its DNS, proxy, trust roots, network name
 
 ## Deliberate limits
 
-ProtoPeek does not currently provide cURL import, OpenAPI discovery, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
+ProtoPeek does not currently provide cURL import, automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
 
 ## Go deeper
 
 - [See how network path evidence stays separate](/network-workbench/).
 - [Read the transport and workspace boundary](/transport-boundaries/).
 - [Install stable ProtoPeek v0.5.0](/install/).
-

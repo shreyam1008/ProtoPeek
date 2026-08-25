@@ -1,6 +1,18 @@
 import { useMutation } from '@tanstack/react-query';
-import { Clock3, Copy, History, KeyRound, LockKeyhole, Play, Plus, Square, X } from 'lucide-react';
-import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  Clock3,
+  Copy,
+  FileJson2,
+  History,
+  KeyRound,
+  LockKeyhole,
+  Play,
+  Plus,
+  Square,
+  X,
+} from 'lucide-react';
+import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import type {
   HTTPHistoryEntry,
@@ -33,7 +45,15 @@ import {
   normalizeHTTPDraftURL,
   prepareHTTPRequestDraft,
 } from './http-request-draft';
+import type { OpenAPICollection, OpenAPIOperation } from './openapi';
 import { protocolShellEvents } from './ProtocolShellContext';
+
+const OpenAPIImportPanel = lazy(() =>
+  import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIImportPanel }))
+);
+const OpenAPIOperationRail = lazy(() =>
+  import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIOperationRail }))
+);
 
 type RequestTab = 'params' | 'headers' | 'auth' | 'body';
 type BodyMode = 'none' | 'json' | 'text';
@@ -73,10 +93,18 @@ export function HTTPWorkbench() {
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
   const [curlCopyNotice, setCurlCopyNotice] = useState<CurlCopyNotice | null>(null);
+  const [openAPIImportOpen, setOpenAPIImportOpen] = useState(false);
+  const [openAPIImportURL, setOpenAPIImportURL] = useState('');
+  const [openAPIImportError, setOpenAPIImportError] = useState<string | null>(null);
+  const [openAPIImporting, setOpenAPIImporting] = useState(false);
+  const [openAPICollection, setOpenAPICollection] = useState<OpenAPICollection | null>(null);
+  const [selectedOpenAPIOperation, setSelectedOpenAPIOperation] = useState<string | null>(null);
+  const [openAPIRailVisible, setOpenAPIRailVisible] = useState(false);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
     normalizeHTTPHistory(loadStoredValue<unknown>(appStorageKeys.httpHistory, []))
   );
   const abortRef = useRef<AbortController | null>(null);
+  const openAPIAbortRef = useRef<AbortController | null>(null);
   const requestGenerationRef = useRef(0);
   const curlCopyGenerationRef = useRef(0);
   const historyRef = useRef<HTMLDetailsElement | null>(null);
@@ -119,6 +147,88 @@ export function HTTPWorkbench() {
     requestAnimationFrame(() => urlInputRef.current?.focus());
   }
 
+  function applyOpenAPIOperation(operation: OpenAPIOperation) {
+    requestGenerationRef.current++;
+    curlCopyGenerationRef.current++;
+    const active = abortRef.current;
+    abortRef.current = null;
+    active?.abort();
+    mutation.reset();
+    setMethod(operation.method);
+    setURL(operation.url);
+    setParams(operation.query.map((entry) => ({ ...entry })));
+    setHeaders(operation.headers.map((entry) => ({ ...entry })));
+    setAuthMode('none');
+    setAuthName('X-API-Key');
+    setAuthUser('');
+    setAuthSecret('');
+    setBodyMode(operation.body === null ? 'none' : 'json');
+    setBody(operation.body ?? '');
+    setResponse(null);
+    setValidationError(null);
+    setHistoryNotice(null);
+    setCurlCopyNotice(null);
+    setRequestTab(operation.body === null ? 'params' : 'body');
+    setMobilePane('request');
+    setSelectedOpenAPIOperation(operation.id);
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 1180px)').matches
+    ) {
+      setOpenAPIRailVisible(false);
+    }
+  }
+
+  function acceptOpenAPICollection(collection: OpenAPICollection) {
+    setOpenAPICollection(collection);
+    setOpenAPIRailVisible(true);
+    setOpenAPIImportOpen(false);
+    setOpenAPIImportError(null);
+    applyOpenAPIOperation(collection.operations[0]);
+  }
+
+  async function importOpenAPIURL() {
+    const target = openAPIImportURL.trim();
+    if (!target) {
+      setOpenAPIImportError('Enter a Swagger, Scalar, or OpenAPI definition URL.');
+      return;
+    }
+    openAPIAbortRef.current?.abort();
+    const controller = new AbortController();
+    openAPIAbortRef.current = controller;
+    setOpenAPIImporting(true);
+    setOpenAPIImportError(null);
+    try {
+      const { importOpenAPIFromURL } = await import('./openapi-import');
+      acceptOpenAPICollection(await importOpenAPIFromURL(target, controller.signal));
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setOpenAPIImportError(
+          error instanceof Error ? error.message : 'Could not import the API definition.'
+        );
+      }
+    } finally {
+      if (openAPIAbortRef.current === controller) openAPIAbortRef.current = null;
+      setOpenAPIImporting(false);
+    }
+  }
+
+  async function importOpenAPIFile(file?: File) {
+    if (!file) return;
+    setOpenAPIImporting(true);
+    setOpenAPIImportError(null);
+    try {
+      const { importOpenAPIFromFile } = await import('./openapi-import');
+      acceptOpenAPICollection(await importOpenAPIFromFile(file));
+    } catch (error) {
+      setOpenAPIImportError(
+        error instanceof Error ? error.message : 'Could not import the API definition.'
+      );
+    } finally {
+      setOpenAPIImporting(false);
+    }
+  }
+
   const applyDiscoveryURL = useEffectEvent((nextURL: string) => {
     try {
       const parsed = new URL(nextURL);
@@ -148,9 +258,19 @@ export function HTTPWorkbench() {
       const active = abortRef.current;
       abortRef.current = null;
       active?.abort();
+      openAPIAbortRef.current?.abort();
     },
     []
   );
+
+  useEffect(() => {
+    if (!openAPIImportOpen) return;
+    function closeImport(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpenAPIImportOpen(false);
+    }
+    window.addEventListener('keydown', closeImport);
+    return () => window.removeEventListener('keydown', closeImport);
+  }, [openAPIImportOpen]);
 
   useEffect(() => {
     function handleDiscovery(event: Event) {
@@ -438,6 +558,40 @@ export function HTTPWorkbench() {
         <button type="button" className="pp-http-new-request" onClick={() => resetRequest()}>
           <Plus aria-hidden="true" /> New request
         </button>
+        <button
+          type="button"
+          className="pp-openapi-import-trigger"
+          aria-expanded={openAPIImportOpen}
+          onClick={() => {
+            setOpenAPIImportError(null);
+            setOpenAPIImportOpen((open) => !open);
+          }}
+        >
+          <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
+        </button>
+        {openAPICollection ? (
+          <button
+            type="button"
+            className="pp-openapi-collection-trigger"
+            aria-expanded={openAPIRailVisible}
+            onClick={() => setOpenAPIRailVisible((visible) => !visible)}
+          >
+            {openAPICollection.title} <span>{openAPICollection.operations.length}</span>
+          </button>
+        ) : null}
+        {openAPIImportOpen ? (
+          <Suspense fallback={null}>
+            <OpenAPIImportPanel
+              url={openAPIImportURL}
+              error={openAPIImportError}
+              importing={openAPIImporting}
+              onURLChange={setOpenAPIImportURL}
+              onImportURL={() => void importOpenAPIURL()}
+              onImportFile={(file) => void importOpenAPIFile(file)}
+              onClose={() => setOpenAPIImportOpen(false)}
+            />
+          </Suspense>
+        ) : null}
         <details ref={historyRef} className="pp-http-history">
           <summary>
             <History aria-hidden="true" /> History <span>{history.length}</span>
@@ -552,7 +706,22 @@ export function HTTPWorkbench() {
         className="pp-http-mobile-tabs"
       />
 
-      <div className="pp-http-workspace">
+      <div
+        className={classNames(
+          'pp-http-workspace',
+          openAPICollection && openAPIRailVisible && 'has-openapi-rail'
+        )}
+      >
+        {openAPICollection && openAPIRailVisible ? (
+          <Suspense fallback={null}>
+            <OpenAPIOperationRail
+              collection={openAPICollection}
+              selectedOperation={selectedOpenAPIOperation}
+              onSelect={applyOpenAPIOperation}
+              onClose={() => setOpenAPIRailVisible(false)}
+            />
+          </Suspense>
+        ) : null}
         <section
           id="http-mobile-pane-panel-request"
           role="tabpanel"

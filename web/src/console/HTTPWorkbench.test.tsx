@@ -46,6 +46,57 @@ describe('HTTPWorkbench', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Request workbench' })).toBeVisible();
   });
 
+  it('imports an OpenAPI URL through the local relay and loads operations into the request editor', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=test-token; path=/';
+    const definition = JSON.stringify({
+      openapi: '3.1.0',
+      info: { title: 'Pets API', version: '1.0.0' },
+      servers: [{ url: 'https://pets.example.test/v1' }],
+      paths: {
+        '/pets/{id}': {
+          get: {
+            operationId: 'getPet',
+            summary: 'Get pet',
+            tags: ['Pets'],
+            parameters: [
+              { name: 'id', in: 'path', example: 'pet-7' },
+              { name: 'include', in: 'query', schema: { default: 'owner' } },
+            ],
+          },
+        },
+      },
+    });
+    const fetchMock = vi.fn(
+      async () =>
+        ({
+          ok: true,
+          json: async () => ({ ...response, body: definition, bytes: definition.length }),
+          text: async () => '',
+        }) as Response
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Import OpenAPI' }));
+    fireEvent.change(await screen.findByLabelText('Swagger, Scalar, or definition URL'), {
+      target: { value: 'https://pets.example.test/openapi.json' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Import URL' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('complementary', { name: 'Pets API operations' })).toBeVisible()
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('HTTP method')).toHaveValue('GET');
+    expect(screen.getByLabelText('Request URL')).toHaveValue(
+      'https://pets.example.test/v1/pets/pet-7'
+    );
+    expect(screen.getByLabelText('Query parameters name 1')).toHaveValue('include');
+    expect(screen.getByLabelText('Query parameters value 1')).toHaveValue('owner');
+    expect(screen.getByRole('button', { name: /Pets API 1/ })).toBeVisible();
+  });
+
   it('sends loopback shorthand as http but refuses to guess a remote scheme', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
     document.cookie = '_protopeek_csrf_token=test-token; path=/';

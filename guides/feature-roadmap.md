@@ -57,6 +57,8 @@ The HTTP adapter is the first additional protocol slice:
 5. Keep automatic local history secret-safe; credentials remain editable for the live request but
    are redacted before persistence or default export.
 6. Preserve HTTP vocabulary instead of presenting HTTP as a gRPC-shaped or generic JSON call.
+7. In current source, import a bounded explicit OpenAPI 3.x or Swagger 2.0 JSON file or URL into a
+   searchable operation rail while reusing the same request editor and response evidence.
 
 The evidence workbench keeps passive, active, discovered, imported, and manual records distinct:
 
@@ -230,9 +232,9 @@ one portable command cannot reproduce ProtoPeek's bounded redirect policy. Expor
 and must be reviewed before the command is shared or run. The shell's DNS, network namespace,
 proxies, trust roots, cURL version, and implicit headers may differ from the ProtoPeek relay.
 
-This slice deliberately excludes OpenAPI discovery, a cookie jar, cloud sync, script runners, mock
-servers, OAuth app marketplaces, and team workspaces. Those features are not implied by the HTTP
-surface and would require separate product and security review.
+This slice deliberately excludes automatic OpenAPI endpoint discovery, OpenAPI YAML, a cookie jar,
+cloud sync, script runners, mock servers, OAuth app marketplaces, and team workspaces. Those
+features are not implied by the HTTP surface and would require separate product and security review.
 
 The live handler applies one shared low-end-friendly admission budget per operation class: eight
 ordinary gRPC invokes across direct and workspace sessions, four HTTP relays, and two native route
@@ -403,9 +405,14 @@ gzip for canonical Health Check/Watch and bounded evidence handling, while CSS a
 the Health inspector, responsive states, contrast, and motion safeguards. No frontend dependency was
 added. Future adapters must preserve these lazy boundaries and the no-heavy-chart-library budget.
 
+Current-source OpenAPI import preserves that boundary: the normal HTTP route measures 54.68 KiB /
+16.35 KiB gzip, while the parser/import path is a separate 5.28 KiB / 2.32 KiB gzip chunk and the
+import panel plus operation rail is a separate 4.00 KiB / 1.56 KiB gzip chunk with 7.47 KiB /
+1.72 KiB gzip route-lazy CSS. No frontend dependency was added for the importer.
+
 The canonical `bun run build` measures every emitted console JavaScript/CSS asset. Current ceilings
 are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; lazy HTTP workspace
-54 KiB / 16 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 140 KiB / 27 KiB; network shell 64 KiB /
+56 KiB / 17 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 141 KiB / 27 KiB; network shell 64 KiB /
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
 36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This PC 58 KiB / 16 KiB JavaScript,

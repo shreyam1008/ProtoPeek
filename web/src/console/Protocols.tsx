@@ -46,9 +46,11 @@ export function Protocols() {
     <div className="pp-suite-page pp-protocols-page">
       <header className="pp-suite-page-heading">
         <div>
-          <span className="pp-kicker">Protocols</span>
-          <h1>Choose the native workbench.</h1>
-          <p>One local shell, with the vocabulary and evidence of each protocol kept intact.</p>
+          <span className="pp-kicker">APIs</span>
+          <h1>Choose the API workbench.</h1>
+          <p>
+            REST and gRPC stay related here, while each keeps its native vocabulary and evidence.
+          </p>
         </div>
         <button type="button" className="pp-suite-page-action" onClick={() => openScan()}>
           <Radar aria-hidden="true" />
@@ -64,7 +66,7 @@ export function Protocols() {
         <header>
           <div>
             <span className="pp-kicker">Available now</span>
-            <h2 id="available-protocols-title">Protocol-native consoles</h2>
+            <h2 id="available-protocols-title">API-native consoles</h2>
           </div>
           <span>Local session</span>
         </header>

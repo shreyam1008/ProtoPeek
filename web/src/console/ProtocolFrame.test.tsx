@@ -16,22 +16,14 @@ describe('ProtocolFrame', () => {
   it('keeps seven exact primary destinations and Roadmap secondary', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the native workbench.' });
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
 
     const primary = screen.getByRole('navigation', { name: 'Primary' });
     expect(
       within(primary)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
-    ).toEqual([
-      'Overview',
-      'Protocols',
-      'Network',
-      'This PC',
-      'Downloader',
-      'Security',
-      'Settings',
-    ]);
+    ).toEqual(['Overview', 'APIs', 'Network', 'This PC', 'Downloader', 'Security', 'Settings']);
     expect(within(primary).queryByText('Roadmap')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Roadmap' })).toBeVisible();
   });
@@ -43,7 +35,7 @@ describe('ProtocolFrame', () => {
     });
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the native workbench.' });
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
 
     const menu = screen.getByRole('button', { name: 'Open navigation menu' });
     menu.focus();

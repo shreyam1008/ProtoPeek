@@ -12,14 +12,12 @@ afterEach(() => {
 });
 
 describe('Protocols chooser', () => {
-  it('opens shipped protocol-native workbenches and truthfully gates future research', async () => {
+  it('opens shipped API-native workbenches and truthfully gates future research', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Choose the native workbench.' })
-    ).toBeVisible();
-    const available = screen.getByRole('region', { name: 'Protocol-native consoles' });
+    expect(await screen.findByRole('heading', { name: 'Choose the API workbench.' })).toBeVisible();
+    const available = screen.getByRole('region', { name: 'API-native consoles' });
     expect(within(available).getByRole('link', { name: /gRPC/i })).toHaveAttribute(
       'href',
       '/protocols/grpc'

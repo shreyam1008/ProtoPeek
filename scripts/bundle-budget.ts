@@ -35,8 +35,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'HTTP workspace JavaScript',
     pattern: /^HTTPRoute-.+\.js$/,
-    maxRawBytes: 54 * kibibyte,
-    maxGzipBytes: 16 * kibibyte,
+    // OpenAPI import remains behind independent lazy parser/UI chunks. The
+    // measured base route is 54.68 KiB / 16.35 KiB gzip; retain tight headroom.
+    maxRawBytes: 56 * kibibyte,
+    maxGzipBytes: 17 * kibibyte,
   },
   {
     label: 'scan dialog JavaScript',
@@ -47,7 +49,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'console CSS',
     pattern: /^index-.+\.css$/,
-    maxRawBytes: 140 * kibibyte,
+    maxRawBytes: 141 * kibibyte,
     maxGzipBytes: 27 * kibibyte,
   },
   // Network diagnostics stay dependency-free and route-lazy. Budget every lazy stage together so
