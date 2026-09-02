@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const speedtestMock = vi.hoisted(() => {
@@ -154,6 +154,16 @@ function json(value: unknown, init?: ResponseInit) {
     headers: { 'content-type': 'application/json' },
     ...init,
   });
+}
+
+function deferred<T>() {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
 }
 
 type ResponseOverrides = Partial<
@@ -416,5 +426,119 @@ describe('This PC workspace', () => {
     expect(await screen.findByText('1.0 Mbps average')).toBeVisible();
     expect(screen.getByText('2.0 Mbps average')).toBeVisible();
     expect(screen.getByText(/no per-process claim/i)).toBeVisible();
+  });
+
+  it('supersedes the shared action owner without stuck loading or stale evidence', async () => {
+    const pendingActivity = deferred<Response>();
+    const pendingTraffic = deferred<Response>();
+    const pendingPublic = deferred<Response>();
+    let activitySignal: AbortSignal | null | undefined;
+    let trafficSignal: AbortSignal | null | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/capabilities')) return Promise.resolve(json(capabilities));
+        if (path.endsWith('/snapshot')) return Promise.resolve(json(snapshot));
+        if (path.endsWith('/activity')) {
+          activitySignal = init?.signal;
+          return pendingActivity.promise;
+        }
+        if (path.endsWith('/traffic/sample')) {
+          trafficSignal = init?.signal;
+          return pendingTraffic.promise;
+        }
+        return pendingPublic.promise;
+      })
+    );
+
+    render(<ThisPC />);
+    await waitForSnapshot();
+    await inspectListeners();
+    expect(activitySignal).toBeInstanceOf(AbortSignal);
+    expect(activitySignal?.aborted).toBe(false);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sample once' }));
+    expect(activitySignal?.aborted).toBe(true);
+    expect(trafficSignal).toBeInstanceOf(AbortSignal);
+    expect(trafficSignal?.aborted).toBe(false);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Listeners' }));
+    expect(screen.getByRole('button', { name: 'Inspect local listeners' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check public identity' }));
+    const dialog = screen.getByRole('dialog', { name: 'Check public IPv4 and IPv6' });
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', {
+        name: /I understand this makes the disclosed external requests once/i,
+      })
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Check selected families' }));
+    expect(trafficSignal?.aborted).toBe(true);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    expect(screen.getByRole('button', { name: 'Sample once' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    await act(async () => {
+      pendingPublic.resolve(json(publicIdentity));
+    });
+    expect(await screen.findByText('203.0.113.8')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+
+    await act(async () => {
+      pendingActivity.resolve(
+        json({
+          ...activity,
+          listeners: [
+            {
+              ...socket,
+              processes: [{ pid: 77, comm: 'stale-action' }],
+            },
+          ],
+        })
+      );
+      pendingTraffic.reject(new Error('stale traffic failure'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(screen.queryByText('1.0 Mbps average')).not.toBeInTheDocument();
+    expect(screen.queryByText('stale traffic failure')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Listeners' }));
+    expect(screen.queryByText('stale-action (PID 77)')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Inspect local listeners' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    expect(screen.getByText('203.0.113.8')).toBeVisible();
+  });
+
+  it('invalidates and aborts the shared activity owner before unmount', async () => {
+    const pendingActivity = deferred<Response>();
+    let activitySignal: AbortSignal | null | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/capabilities')) return Promise.resolve(json(capabilities));
+        if (path.endsWith('/snapshot')) return Promise.resolve(json(snapshot));
+        if (path.endsWith('/activity')) {
+          activitySignal = init?.signal;
+          return pendingActivity.promise;
+        }
+        return Promise.resolve(json(publicIdentity));
+      })
+    );
+
+    const { unmount } = render(<ThisPC />);
+    await waitForSnapshot();
+    await inspectListeners();
+    expect(activitySignal?.aborted).toBe(false);
+
+    unmount();
+    expect(activitySignal?.aborted).toBe(true);
+    await act(async () => {
+      pendingActivity.resolve(json(activity));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
   });
 });

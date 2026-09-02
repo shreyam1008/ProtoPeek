@@ -55,6 +55,12 @@ import {
 import './this-pc.css';
 
 type ThisPCView = 'overview' | 'listeners' | 'activity' | 'benchmark';
+type ThisPCActionKind = 'activity' | 'traffic' | 'public';
+type ThisPCAction = {
+  kind: ThisPCActionKind;
+  generation: number;
+  controller: AbortController;
+};
 type Resource<T> =
   | { status: 'loading'; value?: undefined; error?: undefined }
   | { status: 'ready'; value: T; error?: undefined }
@@ -1378,7 +1384,9 @@ export function ThisPC() {
   const [benchmarkUpload, setBenchmarkUpload] = useState(false);
   const [benchmarkAcknowledged, setBenchmarkAcknowledged] = useState(false);
   const snapshotControllerRef = useRef<AbortController | null>(null);
-  const actionControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(false);
+  const actionGenerationRef = useRef(0);
+  const actionControllerRef = useRef<ThisPCAction | null>(null);
   const benchmarkControlRef = useRef<ThisPCBenchmarkControl | null>(null);
   const benchmarkControllerRef = useRef<AbortController | null>(null);
 
@@ -1397,6 +1405,7 @@ export function ThisPC() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     const controller = new AbortController();
     void fetchThisPCCapabilities(controller.signal).then(
       (value) => {
@@ -1413,13 +1422,58 @@ export function ThisPC() {
     );
     loadSnapshot();
     return () => {
+      mountedRef.current = false;
       controller.abort();
       snapshotControllerRef.current?.abort();
-      actionControllerRef.current?.abort();
+      actionGenerationRef.current += 1;
+      const action = actionControllerRef.current;
+      actionControllerRef.current = null;
+      action?.controller.abort();
       benchmarkControllerRef.current?.abort();
       benchmarkControlRef.current?.pause();
     };
   }, [loadSnapshot]);
+
+  function returnActionToIdle(kind: ThisPCActionKind) {
+    if (kind === 'activity') {
+      setActivity((current) => (current.status === 'loading' ? { status: 'idle' } : current));
+      return;
+    }
+    if (kind === 'traffic') {
+      setTraffic((current) => (current.status === 'loading' ? { status: 'idle' } : current));
+      return;
+    }
+    setPublicIdentity((current) => (current.status === 'loading' ? { status: 'idle' } : current));
+  }
+
+  function beginAction(kind: ThisPCActionKind) {
+    const previous = actionControllerRef.current;
+    actionControllerRef.current = null;
+    const generation = actionGenerationRef.current + 1;
+    actionGenerationRef.current = generation;
+    if (previous) {
+      returnActionToIdle(previous.kind);
+      previous.controller.abort();
+    }
+    const action = { kind, generation, controller: new AbortController() };
+    actionControllerRef.current = action;
+    return action;
+  }
+
+  function actionIsCurrent(action: ThisPCAction) {
+    return (
+      mountedRef.current &&
+      actionControllerRef.current === action &&
+      actionGenerationRef.current === action.generation &&
+      !action.controller.signal.aborted
+    );
+  }
+
+  function settleAction(action: ThisPCAction, commit: () => void) {
+    if (!actionIsCurrent(action)) return;
+    actionControllerRef.current = null;
+    commit();
+  }
 
   function openActivityConsent(purpose: 'listeners' | 'connections') {
     setActivityPurpose(purpose);
@@ -1430,29 +1484,29 @@ export function ThisPC() {
   function inspectActivity() {
     setActivityConsent(false);
     setActivityAcknowledged(false);
-    actionControllerRef.current?.abort();
-    const controller = new AbortController();
-    actionControllerRef.current = controller;
+    const action = beginAction('activity');
     setActivity({ status: 'loading' });
-    void inspectThisPCActivity(controller.signal).then(
-      (value) => setActivity({ status: 'ready', value }),
+    void inspectThisPCActivity(action.controller.signal).then(
+      (value) => settleAction(action, () => setActivity({ status: 'ready', value })),
       (error: unknown) => {
         const message = errorMessage(error, 'Local activity inspection failed.');
-        if (message) setActivity({ status: 'error', error: message });
+        settleAction(action, () =>
+          setActivity(message ? { status: 'error', error: message } : { status: 'idle' })
+        );
       }
     );
   }
 
   function sampleTraffic() {
-    actionControllerRef.current?.abort();
-    const controller = new AbortController();
-    actionControllerRef.current = controller;
+    const action = beginAction('traffic');
     setTraffic({ status: 'loading' });
-    void sampleThisPCTraffic(trafficDuration, controller.signal).then(
-      (value) => setTraffic({ status: 'ready', value }),
+    void sampleThisPCTraffic(trafficDuration, action.controller.signal).then(
+      (value) => settleAction(action, () => setTraffic({ status: 'ready', value })),
       (error: unknown) => {
         const message = errorMessage(error, 'Local traffic sample failed.');
-        if (message) setTraffic({ status: 'error', error: message });
+        settleAction(action, () =>
+          setTraffic(message ? { status: 'error', error: message } : { status: 'idle' })
+        );
       }
     );
   }
@@ -1460,15 +1514,15 @@ export function ThisPC() {
   function checkPublicIdentity() {
     setPublicConsent(false);
     setPublicAcknowledged(false);
-    actionControllerRef.current?.abort();
-    const controller = new AbortController();
-    actionControllerRef.current = controller;
+    const action = beginAction('public');
     setPublicIdentity({ status: 'loading' });
-    void fetchThisPCPublicIdentity(publicFamilies, controller.signal).then(
-      (value) => setPublicIdentity({ status: 'ready', value }),
+    void fetchThisPCPublicIdentity(publicFamilies, action.controller.signal).then(
+      (value) => settleAction(action, () => setPublicIdentity({ status: 'ready', value })),
       (error: unknown) => {
         const message = errorMessage(error, 'Public identity check failed.');
-        if (message) setPublicIdentity({ status: 'error', error: message });
+        settleAction(action, () =>
+          setPublicIdentity(message ? { status: 'error', error: message } : { status: 'idle' })
+        );
       }
     );
   }
