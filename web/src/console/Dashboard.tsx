@@ -14,46 +14,17 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { compactDate, displayBuildVersion } from '@/shared/runtime';
 
 import { fetchBootstrap } from './api';
+import { homeEntryFeatures } from './app/feature-registry';
 import { useProtocolShell } from './ProtocolShellContext';
 
-const startTasks = [
-  {
-    name: 'Send an API request',
-    detail: 'Open an HTTP request or a gRPC method.',
-    to: '/protocols' as const,
-    icon: Server,
-  },
-  {
-    name: 'Trace a network path',
-    detail: 'See the DNS answer, selected route, and measured hops.',
-    to: '/network/path' as const,
-    icon: Network,
-  },
-  {
-    name: 'Check this computer',
-    detail: 'Review interfaces, connections, public IP, and browser-path speed.',
-    to: '/this-pc' as const,
-    icon: Monitor,
-  },
-  {
-    name: 'Inspect Cloudflare tunnels',
-    detail: 'See local service, config authority, ingress routes, and safe change drafts.',
-    to: '/tunnels' as const,
-    icon: Cloud,
-  },
-  {
-    name: 'Download a file',
-    detail: 'Start, pause, resume, and verify transfers.',
-    to: '/downloader' as const,
-    icon: Download,
-  },
-  {
-    name: 'Check a public website',
-    detail: 'Inspect its DNS, HTTP, and TLS evidence when you ask.',
-    to: '/security' as const,
-    icon: ShieldCheck,
-  },
-];
+const startTaskIcons = {
+  protocols: Server,
+  'network-path': Network,
+  'this-pc': Monitor,
+  tunnels: Cloud,
+  downloader: Download,
+  security: ShieldCheck,
+} as const;
 
 const safetyBoundaries = [
   {
@@ -128,16 +99,19 @@ export function Dashboard() {
             </div>
           </header>
           <div className="pp-start-list">
-            {startTasks.map((task) => (
-              <Link key={task.name} to={task.to} className="pp-start-link">
-                <task.icon aria-hidden="true" />
-                <span>
-                  <strong>{task.name}</strong>
-                  <p>{task.detail}</p>
-                </span>
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            ))}
+            {homeEntryFeatures.map((feature) => {
+              const Icon = startTaskIcons[feature.id];
+              return (
+                <Link key={feature.id} to={feature.route} className="pp-start-link">
+                  <Icon aria-hidden="true" />
+                  <span>
+                    <strong>{feature.homeEntry.label}</strong>
+                    <p>{feature.homeEntry.detail}</p>
+                  </span>
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              );
+            })}
           </div>
         </section>
 

@@ -1,27 +1,11 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, Braces, Globe2, Radar, RadioTower, Server } from 'lucide-react';
 
+import { protocolChoiceFeatures } from './app/feature-registry';
 import { useProtocolShell } from './ProtocolShellContext';
 import './suite-pages.css';
 
-const availableProtocols = [
-  {
-    name: 'gRPC',
-    state: 'Stable',
-    detail:
-      'Reflection, proto folders and protosets, unary and streaming calls, metadata, trailers.',
-    to: '/protocols/grpc' as const,
-    icon: Server,
-  },
-  {
-    name: 'HTTP',
-    state: 'Stable',
-    detail:
-      'Methods, URLs, auth, request bodies, redirects, TLS, timing, headers, and response data.',
-    to: '/protocols/http' as const,
-    icon: Globe2,
-  },
-];
+const protocolIcons = { grpc: Server, http: Globe2 } as const;
 
 const futureProtocols = [
   {
@@ -71,17 +55,20 @@ export function Protocols() {
           <span>Local session</span>
         </header>
         <div className="pp-protocol-choice-list">
-          {availableProtocols.map((protocol) => (
-            <Link key={protocol.name} to={protocol.to} className="pp-protocol-choice">
-              <protocol.icon aria-hidden="true" />
-              <span>
-                <small>{protocol.state}</small>
-                <strong>{protocol.name}</strong>
-                <p>{protocol.detail}</p>
-              </span>
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          ))}
+          {protocolChoiceFeatures.map((feature) => {
+            const Icon = protocolIcons[feature.id];
+            return (
+              <Link key={feature.id} to={feature.route} className="pp-protocol-choice">
+                <Icon aria-hidden="true" />
+                <span>
+                  <small>Stable</small>
+                  <strong>{feature.label}</strong>
+                  <p>{feature.protocolChoice.detail}</p>
+                </span>
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            );
+          })}
         </div>
       </section>
 

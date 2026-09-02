@@ -17,16 +17,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
   type AppearancePreference,
@@ -37,6 +28,11 @@ import {
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
+import {
+  commandDestinationFeatures,
+  currentPrimaryNavigation,
+  currentSecondaryNavigation,
+} from './app/feature-registry';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { scanResultHTTPURL } from './discovery-url';
 import {
@@ -53,6 +49,7 @@ import {
 } from './ProtocolShellContext';
 import { ProtoPeekMark } from './ProtoPeekMark';
 import { normalizeRecentDiscoveries } from './recent-discovery';
+import { useDialogFocus } from './use-dialog-focus';
 import './unified-shell.css';
 
 const ScanTargetDialog = lazy(async () => {
@@ -60,16 +57,18 @@ const ScanTargetDialog = lazy(async () => {
   return { default: module.ScanTargetDialog };
 });
 
-const primaryNavigation = [
-  { id: 'overview', label: 'Overview', to: '/', icon: Home, exact: true },
-  { id: 'protocols', label: 'APIs', to: '/protocols', icon: Server, exact: false },
-  { id: 'network', label: 'Network', to: '/network', icon: Network, exact: false },
-  { id: 'this-pc', label: 'This PC', to: '/this-pc', icon: Monitor, exact: false },
-  { id: 'tunnels', label: 'Tunnels', to: '/tunnels', icon: Cloud, exact: false },
-  { id: 'downloader', label: 'Downloader', to: '/downloader', icon: Download, exact: false },
-  { id: 'security', label: 'Security', to: '/security', icon: ShieldCheck, exact: false },
-  { id: 'settings', label: 'Settings', to: '/settings', icon: SettingsIcon, exact: false },
-] as const;
+const primaryNavigationIcons = {
+  overview: Home,
+  protocols: Server,
+  network: Network,
+  'this-pc': Monitor,
+  tunnels: Cloud,
+  downloader: Download,
+  security: ShieldCheck,
+  settings: SettingsIcon,
+} as const;
+
+const secondaryNavigationIcons = { roadmap: ListTodo } as const;
 
 function systemPrefersDark() {
   if (typeof window.matchMedia !== 'function') return false;
@@ -192,98 +191,22 @@ export function ProtocolFrame() {
     [navigate]
   );
 
-  const actions = useMemo<PaletteAction[]>(
-    () => [
-      {
-        id: 'home',
-        label: 'Open ProtoPeek overview',
-        keywords: 'home dashboard suite',
-        run: () => void navigate({ to: '/' }),
-      },
-      {
-        id: 'protocols',
-        label: 'Open API workbenches',
-        keywords: 'api protocol grpc http rest openapi workbench',
-        run: () => void navigate({ to: '/protocols' }),
-      },
-      {
-        id: 'grpc',
-        label: 'Open gRPC workbench',
-        keywords: 'reflection proto protoset streams trailers',
-        run: () => void navigate({ to: '/protocols/grpc' }),
-      },
-      {
-        id: 'http',
-        label: 'Open HTTP workbench',
-        keywords: 'rest request response headers tls',
-        run: () => void navigate({ to: '/protocols/http' }),
-      },
+  const actions = useMemo<PaletteAction[]>(() => {
+    const routeActions = commandDestinationFeatures.map((feature) => ({
+      id: feature.id,
+      label: feature.command.label,
+      keywords: feature.command.keywords,
+      run: () => void navigate({ to: feature.route }),
+    }));
+    return [
+      ...routeActions.slice(0, 4),
       {
         id: 'scan',
         label: 'Probe or import discovery evidence',
         keywords: 'discover grpc http tcp nmap xml',
         run: () => openScan(),
       },
-      {
-        id: 'routes',
-        label: 'Open next-hop route evidence',
-        keywords: 'route kernel next hop interface source',
-        run: () => void navigate({ to: '/network/route' }),
-      },
-      {
-        id: 'network-path',
-        label: 'Trace a measured network path',
-        keywords: 'network hops latency dns route traceroute udp',
-        run: () => void navigate({ to: '/network/path' }),
-      },
-      {
-        id: 'network-local',
-        label: 'Discover an authorized local network',
-        keywords: 'network local cidr ports inventory private scan',
-        run: () => void navigate({ to: '/network/local' }),
-      },
-      {
-        id: 'network-map',
-        label: 'Open the network evidence map',
-        keywords: 'network map topology graph inventory history',
-        run: () => void navigate({ to: '/network/map' }),
-      },
-      {
-        id: 'this-pc',
-        label: 'Open This PC',
-        keywords: 'machine device interfaces listeners connections traffic benchmark public ip',
-        run: () => void navigate({ to: '/this-pc' }),
-      },
-      {
-        id: 'downloader',
-        label: 'Open Downloader',
-        keywords: 'download transfer queue artifact aria2',
-        run: () => void navigate({ to: '/downloader' }),
-      },
-      {
-        id: 'tunnels',
-        label: 'Open Cloudflare tunnel operations',
-        keywords: 'cloudflare cloudflared tunnel ingress config service connector route',
-        run: () => void navigate({ to: '/tunnels' }),
-      },
-      {
-        id: 'security',
-        label: 'Open Security evidence',
-        keywords: 'domain certificate tls dns authorized checks',
-        run: () => void navigate({ to: '/security' }),
-      },
-      {
-        id: 'settings',
-        label: 'Open Settings',
-        keywords: 'appearance density keyboard browser local preferences',
-        run: () => void navigate({ to: '/settings' }),
-      },
-      {
-        id: 'roadmap',
-        label: 'Open product roadmap',
-        keywords: 'available next exploring gated',
-        run: () => void navigate({ to: '/roadmap' }),
-      },
+      ...routeActions.slice(4),
       {
         id: 'theme',
         label: `Switch to ${resolvedAppearance.theme === 'light' ? 'dark' : 'light'} mode`,
@@ -300,9 +223,8 @@ export function ProtocolFrame() {
         keywords: 'help evidence transport',
         run: () => setHelpOpen(true),
       },
-    ],
-    [appearance, navigate, openScan, resolvedAppearance.theme, setAppearance]
-  );
+    ];
+  }, [appearance, navigate, openScan, resolvedAppearance.theme, setAppearance]);
 
   useEffect(() => {
     function handleGlobalShortcut(event: KeyboardEvent) {
@@ -353,30 +275,39 @@ export function ProtocolFrame() {
             <ProtoPeekMark />
           </Link>
           <nav className="pp-suite-primary" aria-label="Primary">
-            {primaryNavigation.map((item) => (
-              <Link
-                key={item.id}
-                to={item.to}
-                className="pp-suite-nav-link"
-                activeOptions={item.exact ? { exact: true } : undefined}
-                activeProps={{ className: 'is-active' }}
-                aria-label={`Open ${item.label}`}
-              >
-                <item.icon aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {currentPrimaryNavigation.map((item) => {
+              const Icon = primaryNavigationIcons[item.id];
+              return (
+                <Link
+                  key={item.id}
+                  to={item.route}
+                  className="pp-suite-nav-link"
+                  activeOptions={item.route === '/' ? { exact: true } : undefined}
+                  activeProps={{ className: 'is-active' }}
+                  aria-label={`Open ${item.label}`}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
           <div className="pp-suite-secondary">
-            <Link
-              to="/roadmap"
-              className="pp-suite-nav-link"
-              activeProps={{ className: 'is-active' }}
-              aria-label="Open Roadmap"
-            >
-              <ListTodo aria-hidden="true" />
-              <span>Roadmap</span>
-            </Link>
+            {currentSecondaryNavigation.map((item) => {
+              const Icon = secondaryNavigationIcons[item.id];
+              return (
+                <Link
+                  key={item.id}
+                  to={item.route}
+                  className="pp-suite-nav-link"
+                  activeProps={{ className: 'is-active' }}
+                  aria-label={`Open ${item.label}`}
+                >
+                  <Icon aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
             <button
               type="button"
               className="pp-suite-nav-link"
@@ -499,44 +430,7 @@ function MobileNavigationDrawer({
 }) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-  const closeDrawer = useEffectEvent(onClose);
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocusRef.current = document.activeElement as HTMLElement | null;
-    requestAnimationFrame(() => closeButtonRef.current?.focus());
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        closeDrawer();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusable = Array.from(
-        drawerRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        ) ?? []
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      restoreFocusRef.current?.focus();
-    };
-  }, [open]);
+  useDialogFocus(open, onClose, drawerRef, closeButtonRef);
 
   if (!open) return null;
 
@@ -580,19 +474,22 @@ function MobileNavigationDrawer({
           </button>
         </header>
         <nav aria-label="Mobile primary">
-          {primaryNavigation.map((item) => (
-            <Link
-              key={item.id}
-              to={item.to}
-              className="pp-suite-mobile-link pp-suite-mobile-primary-link"
-              activeOptions={item.exact ? { exact: true } : undefined}
-              activeProps={{ className: 'is-active' }}
-              onClick={onClose}
-            >
-              <item.icon aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {currentPrimaryNavigation.map((item) => {
+            const Icon = primaryNavigationIcons[item.id];
+            return (
+              <Link
+                key={item.id}
+                to={item.route}
+                className="pp-suite-mobile-link pp-suite-mobile-primary-link"
+                activeOptions={item.route === '/' ? { exact: true } : undefined}
+                activeProps={{ className: 'is-active' }}
+                onClick={onClose}
+              >
+                <Icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="pp-suite-mobile-actions">
           <button
@@ -602,9 +499,19 @@ function MobileNavigationDrawer({
           >
             <Radar aria-hidden="true" /> Inspect target
           </button>
-          <Link to="/roadmap" className="pp-suite-mobile-link" onClick={onClose}>
-            <ListTodo aria-hidden="true" /> Roadmap
-          </Link>
+          {currentSecondaryNavigation.map((item) => {
+            const Icon = secondaryNavigationIcons[item.id];
+            return (
+              <Link
+                key={item.id}
+                to={item.route}
+                className="pp-suite-mobile-link"
+                onClick={onClose}
+              >
+                <Icon aria-hidden="true" /> {item.label}
+              </Link>
+            );
+          })}
           <button type="button" className="pp-suite-mobile-link" onClick={() => closeThen(onHelp)}>
             <CircleHelp aria-hidden="true" /> Help
           </button>
@@ -620,43 +527,7 @@ function MobileNavigationDrawer({
 function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocusRef.current = document.activeElement as HTMLElement | null;
-    requestAnimationFrame(() => closeButtonRef.current?.focus());
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-      if (event.key !== 'Tab') return;
-      const focusable = Array.from(
-        drawerRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        ) ?? []
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      restoreFocusRef.current?.focus();
-    };
-  }, [open, onClose]);
+  useDialogFocus(open, onClose, drawerRef, closeButtonRef);
 
   if (!open) return null;
   return (

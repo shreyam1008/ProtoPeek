@@ -74,6 +74,34 @@ describe('ProtocolFrame', () => {
     expect(screen.getByRole('link', { name: 'Open Roadmap' })).toBeVisible();
   });
 
+  it('uses registered route labels and keywords in the command menu', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+
+    const trigger = screen.getByRole('button', { name: 'Open global command menu' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const commands = screen.getByRole('dialog', { name: 'ProtoPeek commands' });
+    expect(within(commands).getByRole('button', { name: 'Open Downloader' })).toBeVisible();
+    expect(
+      within(commands).getByRole('button', { name: 'Open Cloudflare tunnel operations' })
+    ).toBeVisible();
+
+    fireEvent.change(within(commands).getByRole('textbox', { name: 'Search commands' }), {
+      target: { value: 'trailers' },
+    });
+    expect(within(commands).getByRole('button', { name: 'Open gRPC workbench' })).toBeVisible();
+    expect(within(commands).queryByRole('button', { name: 'Open HTTP workbench' })).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole('textbox', { name: 'Search commands' })).toHaveValue('');
+  });
+
   it('traps and restores focus in the mobile drawer, then navigates without a horizontal rail', async () => {
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);

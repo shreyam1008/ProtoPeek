@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { BootstrapResponse } from '@/shared/types';
 
+import { getCompatibilityRouteTargets } from './app/feature-registry';
 import { createProtoPeekRouter } from './router';
 
 const bootstrap: BootstrapResponse = {
@@ -38,25 +39,21 @@ const bootstrap: BootstrapResponse = {
   services: [],
 };
 
-const compatibilityRedirects = [
-  { from: '/grpc', to: '/protocols/grpc' },
-  { from: '/http', to: '/protocols/http' },
-  { from: '/routes', to: '/network/route' },
-  { from: '/downloads', to: '/downloader' },
-] as const;
-
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
 });
 
 describe('protocol routes', () => {
-  it.each(compatibilityRedirects)('redirects $from to $to', async ({ from, to }) => {
-    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: [from] }));
+  it.each(getCompatibilityRouteTargets())('redirects $route to $target', async ({
+    route,
+    target,
+  }) => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: [route] }));
 
     await router.load();
 
-    expect(router.state.location.pathname).toBe(to);
+    expect(router.state.location.pathname).toBe(target);
   });
 
   it('ignores malformed recent-discovery storage while rendering the dashboard', async () => {
