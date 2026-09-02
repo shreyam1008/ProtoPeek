@@ -812,6 +812,138 @@ describe('gRPC launcher recents', () => {
   });
 });
 
+describe('gRPC workspace context routing', () => {
+  it('invokes through the connected session endpoint with the current payload and abort signal', async () => {
+    const connectedBootstrap = {
+      ...directBootstrap,
+      target: 'connected.test:50051',
+      launcherMode: false,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const { pathname } = url;
+      if (pathname.endsWith('/api/bootstrap')) return response(launcherBootstrap);
+      if (pathname.endsWith('/examples')) return response([]);
+      if (pathname.endsWith('/api/scan')) return response([]);
+      if (pathname.endsWith('/api/workspace/connect')) {
+        return response({ sessionId: 'session-invoke', bootstrap: connectedBootstrap });
+      }
+      if (pathname.endsWith('/api/workspace/metadata')) return response(directSchema);
+      if (pathname.endsWith('/api/workspace/protos')) return response({ files: [] });
+      if (pathname.includes('/api/workspace/invoke/')) {
+        return response({ headers: [], responses: [], requests: null, trailers: [], error: null });
+      }
+      if (pathname.endsWith('/api/workspace/session') && init?.method === 'DELETE') {
+        return response(null);
+      }
+      throw new Error(`Unexpected request: ${pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'connected.test:50051' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
+    const callWorkspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.change(within(callWorkspace).getByLabelText('Request JSON'), {
+      target: { value: '{"message":"hello"}' },
+    });
+    fireEvent.click(within(callWorkspace).getByRole('button', { name: /^Invoke/ }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes('/api/workspace/invoke/demo.Echo%2FEcho')
+        )
+      ).toBe(true)
+    );
+    const invokeCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes('/api/workspace/invoke/demo.Echo%2FEcho')
+    );
+    const invokeURL = new URL(String(invokeCall?.[0]));
+    expect(invokeURL.searchParams.get('session_id')).toBe('session-invoke');
+    expect(invokeCall?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    expect(JSON.parse(String(invokeCall?.[1]?.body))).toEqual({
+      timeout_seconds: 15,
+      metadata: [],
+      data: [{ message: 'hello' }],
+    });
+    const signal = invokeCall?.[1]?.signal as AbortSignal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal.aborted).toBe(false);
+  });
+
+  it('ignores a stale direct schema after discovery changes the active session context', async () => {
+    let resolveDirectSchema: ((value: Response) => void) | undefined;
+    const pendingDirectSchema = new Promise<Response>((resolve) => {
+      resolveDirectSchema = resolve;
+    });
+    const connectedSchema = {
+      ...directSchema,
+      requestType: 'demo.ConnectedRequest',
+      messageTypes: { 'demo.ConnectedRequest': [] },
+    };
+    const staleSchema = {
+      ...directSchema,
+      requestType: 'demo.StaleRequest',
+      messageTypes: { 'demo.StaleRequest': [] },
+    };
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const pathname = new URL(String(input)).pathname;
+      if (pathname.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
+      if (pathname.endsWith('/examples')) return Promise.resolve(response([]));
+      if (pathname.endsWith('/api/workspace/connect')) {
+        return Promise.resolve(
+          response({
+            sessionId: 'session-context',
+            bootstrap: { ...directBootstrap, target: 'context.test:50051' },
+          })
+        );
+      }
+      if (pathname.endsWith('/api/workspace/metadata')) {
+        return Promise.resolve(response(connectedSchema));
+      }
+      if (pathname.endsWith('/api/workspace/protos')) {
+        return Promise.resolve(response({ files: [] }));
+      }
+      if (pathname.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
+      if (pathname.endsWith('/metadata')) return pendingDirectSchema;
+      if (pathname.endsWith('/api/workspace/session') && init?.method === 'DELETE') {
+        return Promise.resolve(response(null));
+      }
+      throw new Error(`Unexpected request: ${pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          new URL(String(input)).pathname.endsWith('/metadata')
+        )
+      ).toBe(true)
+    );
+
+    fireEvent(
+      window,
+      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, {
+        detail: reflectedTarget('context.test:50051'),
+      })
+    );
+    expect(await screen.findByText('demo.ConnectedRequest')).toBeVisible();
+
+    await act(async () => {
+      resolveDirectSchema?.(response(staleSchema));
+      await pendingDirectSchema;
+    });
+    expect(screen.getByText('demo.ConnectedRequest')).toBeVisible();
+    expect(screen.queryByText('demo.StaleRequest')).not.toBeInTheDocument();
+  });
+});
+
 describe('gRPC workbench command ownership', () => {
   it('keeps local actions button-only while preserving the slash method shortcut', async () => {
     vi.stubGlobal('fetch', installDirectFetch());
