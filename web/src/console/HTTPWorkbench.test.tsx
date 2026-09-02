@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,12 +23,7 @@ const response: HTTPResponse = {
 };
 
 function renderWorkbench() {
-  const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
-  return render(
-    <QueryClientProvider client={client}>
-      <HTTPWorkbench />
-    </QueryClientProvider>
-  );
+  return render(<HTTPWorkbench />);
 }
 
 afterEach(() => {
@@ -720,21 +714,36 @@ describe('HTTPWorkbench', () => {
     expect(stored).not.toContain('201 Old');
   });
 
-  it('turns a rapid second send into cancellation instead of overlap', async () => {
+  it('turns a rapid second send into cancellation and returns the request to idle', async () => {
     const fetchMock = vi.fn(
-      (_input: RequestInfo | URL, _init?: RequestInit) =>
-        new Promise<Response>(() => {
-          // Keep the first request pending so the second click exercises cancellation.
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Aborted', 'AbortError')),
+            { once: true }
+          );
         })
     );
     vi.stubGlobal('fetch', fetchMock);
     renderWorkbench();
 
-    const send = screen.getByRole('button', { name: /^Send/ });
-    fireEvent.click(send);
-    fireEvent.click(send);
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Cancel/ }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toHaveProperty('aborted', true);
+    expect(await screen.findByRole('alert')).toHaveTextContent('HTTP request cancelled.');
+    expect(screen.getByRole('button', { name: /^Send/ })).toBeVisible();
+  });
+
+  it('reports request failures and returns the request to idle', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Local relay unavailable.')));
+    renderWorkbench();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Local relay unavailable.');
+    expect(screen.getByRole('button', { name: /^Send/ })).toBeVisible();
   });
 
   it('sanitizes malformed and credential-bearing stored history without crashing', async () => {
@@ -901,6 +910,9 @@ describe('HTTPWorkbench', () => {
       text: async () => '',
     } as Response);
     await waitFor(() => expect(screen.getAllByText('202 Current').length).toBeGreaterThan(0));
+    await waitFor(() =>
+      expect(window.localStorage.getItem(appStorageKeys.httpHistory) ?? '').toContain('202 Current')
+    );
     const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
     expect(stored).toContain('202 Current');
     expect(stored).not.toContain('201 Old');

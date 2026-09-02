@@ -1,4 +1,3 @@
-import { useMutation } from '@tanstack/react-query';
 import {
   ChevronDown,
   Clock3,
@@ -14,12 +13,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
 
-import type {
-  HTTPHistoryEntry,
-  HTTPRequestInput,
-  HTTPResponse,
-  MetadataEntry,
-} from '@/shared/types';
+import type { HTTPHistoryEntry, HTTPResponse, MetadataEntry } from '@/shared/types';
 import {
   appStorageKeys,
   classNames,
@@ -89,6 +83,8 @@ export function HTTPWorkbench() {
   const [requestTab, setRequestTab] = useState<RequestTab>('params');
   const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
   const [response, setResponse] = useState<HTTPResponse | null>(null);
+  const [requestPending, setRequestPending] = useState(false);
+  const [requestFailure, setRequestFailure] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
@@ -110,13 +106,6 @@ export function HTTPWorkbench() {
   const historyRef = useRef<HTMLDetailsElement | null>(null);
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const modifier = modifierKeyLabel();
-  const mutation = useMutation<
-    HTTPResponse,
-    Error,
-    { input: HTTPRequestInput; signal: AbortSignal }
-  >({
-    mutationFn: ({ input, signal }) => sendHTTPRequest(input, signal),
-  });
 
   function resetRequest(nextURL = 'http://localhost:8080/') {
     requestGenerationRef.current++;
@@ -124,7 +113,8 @@ export function HTTPWorkbench() {
     const active = abortRef.current;
     abortRef.current = null;
     active?.abort();
-    mutation.reset();
+    setRequestPending(false);
+    setRequestFailure(null);
     setMethod('GET');
     setURL(nextURL);
     setParams([]);
@@ -153,7 +143,8 @@ export function HTTPWorkbench() {
     const active = abortRef.current;
     abortRef.current = null;
     active?.abort();
-    mutation.reset();
+    setRequestPending(false);
+    setRequestFailure(null);
     setMethod(operation.method);
     setURL(operation.url);
     setParams(operation.query.map((entry) => ({ ...entry })));
@@ -375,10 +366,10 @@ export function HTTPWorkbench() {
   }
 
   async function handleSend() {
-    if (abortRef.current || mutation.isPending) return;
+    if (abortRef.current || requestPending) return;
     setValidationError(null);
     setHistoryNotice(null);
-    mutation.reset();
+    setRequestFailure(null);
     setResponse(null);
     const prepared = prepareCurrentDraft();
     if (!prepared.ok) {
@@ -399,9 +390,10 @@ export function HTTPWorkbench() {
     const requestGeneration = requestGenerationRef.current + 1;
     requestGenerationRef.current = requestGeneration;
     abortRef.current = controller;
+    setRequestPending(true);
     showResponsePane();
     try {
-      const result = await mutation.mutateAsync({ input, signal: controller.signal });
+      const result = await sendHTTPRequest(input, controller.signal);
       if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
         return;
       }
@@ -427,11 +419,18 @@ export function HTTPWorkbench() {
       }
       if (controller.signal.aborted) {
         setValidationError('HTTP request cancelled.');
-      } else if (!(error instanceof Error)) {
-        setValidationError('HTTP request failed.');
+      } else {
+        setRequestFailure(
+          error instanceof Error
+            ? error.message.trim() || 'HTTP request failed.'
+            : 'HTTP request failed.'
+        );
       }
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setRequestPending(false);
+      }
     }
   }
 
@@ -500,9 +499,7 @@ export function HTTPWorkbench() {
     return () => window.removeEventListener('keydown', handleShortcut);
   }, []);
 
-  const requestError =
-    validationError ??
-    (mutation.error ? mutation.error.message.trim() || 'HTTP request failed.' : null);
+  const requestError = validationError ?? requestFailure;
   const visibleHistoryNotice = historyStorageError ?? historyNotice;
   const jsonDraft = bodyMode === 'json' ? formatJSONDraft(body) : null;
 
@@ -527,9 +524,10 @@ export function HTTPWorkbench() {
     setTimeoutSeconds(30);
     setFollowRedirects(false);
     setResponse(null);
+    setRequestPending(false);
+    setRequestFailure(null);
     setValidationError(null);
     setCurlCopyNotice(null);
-    mutation.reset();
     const redactedCount = replayURL.redactedCount + replayHeaders.redactedCount;
     setHistoryNotice(
       redactedCount > 0
@@ -652,11 +650,11 @@ export function HTTPWorkbench() {
         />
         <button
           type="button"
-          className={classNames('pp-http-send', mutation.isPending && 'is-cancel')}
-          onClick={mutation.isPending ? () => abortRef.current?.abort() : () => void handleSend()}
+          className={classNames('pp-http-send', requestPending && 'is-cancel')}
+          onClick={requestPending ? () => abortRef.current?.abort() : () => void handleSend()}
         >
-          {mutation.isPending ? <Square aria-hidden="true" /> : <Play aria-hidden="true" />}
-          {mutation.isPending ? 'Cancel' : 'Send'}
+          {requestPending ? <Square aria-hidden="true" /> : <Play aria-hidden="true" />}
+          {requestPending ? 'Cancel' : 'Send'}
           <kbd>{modifier} ↵</kbd>
         </button>
       </div>
@@ -938,11 +936,7 @@ export function HTTPWorkbench() {
           aria-labelledby="http-mobile-pane-tab-response"
           className={classNames(mobilePane !== 'response' && 'pp-mobile-pane-hidden')}
         >
-          <HTTPResponsePanel
-            response={response}
-            loading={mutation.isPending}
-            error={requestError}
-          />
+          <HTTPResponsePanel response={response} loading={requestPending} error={requestError} />
         </div>
       </div>
     </div>
