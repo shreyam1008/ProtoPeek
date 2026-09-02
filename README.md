@@ -1,12 +1,12 @@
 # ProtoPeek
 
-ProtoPeek (Protocol Peek) is a local-first systems workbench for seeing the
-request-to-server path clearly. Its protocol-native gRPC and HTTP surfaces keep transport details
-visible. Its bounded evidence tools add DNS and kernel-route context, Linux-native active hop
-observations, authorized private-network service discovery, a logical topology notebook, and
-offline Nmap XML import without background polling or an external database. Its local Downloader
-uses an external `aria2c`, while Security keeps historical-name lookup and one public website
-observation behind separate disclosures and explicit consent.
+ProtoPeek (Protocol Peek) is the lightweight local workbench for finding, reaching, inspecting, and
+safely exposing services. Its protocol-native gRPC and HTTP surfaces keep transport details visible.
+Its bounded evidence tools add DNS and kernel-route context, Linux-native active hop observations,
+authorized private-network service discovery, a logical topology notebook, and offline Nmap XML
+import without background polling or an external database. Its local Downloader uses an external
+`aria2c`, while Security keeps historical-name lookup and one public website observation behind
+separate disclosures and explicit consent.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
@@ -23,6 +23,27 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > installed/latest `cloudflared` versions on request, and can confirm and verify
 > start/stop/restart for the one canonical OS service. Route drafts remain browser-only. Neither
 > workspace is part of the published v0.5.0 packages.
+
+## Product contract
+
+The v0.6 product reset organizes the workbench into six destinations without pretending that the
+new shell shipped in v0.5.0:
+
+| Destination | Responsibility | Current and compatibility paths retained |
+| --- | --- | --- |
+| Home | resume and bounded discovery | `/` |
+| Inspect | gRPC, HTTP, website, and TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security`, `/grpc`, `/http` |
+| Network | this device, next hop, path, authorized discovery, map, and history | `/network/*`, `/this-pc`, `/routes` |
+| Publish | current-source Cloudflare host evidence and guarded service actions | `/tunnels` |
+| Files | Downloader and artifact evidence | `/downloader`, `/downloads` |
+| Settings | appearance, local dependencies, host policy, About, Help, and Roadmap | `/settings`, `/roadmap` |
+
+Existing deep links remain valid. Private Access and Tailscale, Headscale, and NetBird workflows are
+planned; they are not shipped capabilities. A feature belongs in ProtoPeek only when it operates on
+a service or related artifact, strengthens an existing journey or typed handoff, remains useful
+local-first, stays lazy/bounded/quiet, and has a truthful Windows, Linux, and macOS story that one
+maintainer can support. See the [suite strategy](guides/protopeek-suite-strategy.md) and selected
+[desktop workbench contract](guides/desktop-workbench-design.md).
 
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 

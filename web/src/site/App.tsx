@@ -218,10 +218,10 @@ function Hero() {
           id="hero-title"
           className="max-w-3xl text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-balance sm:text-6xl lg:text-7xl"
         >
-          See what your system is doing.
+          Find, reach, and inspect services locally.
         </h1>
         <p className="mt-7 max-w-xl text-lg leading-relaxed text-neutral-600 sm:text-xl">
-          Inspect APIs, trace network paths, check a website, and manage downloads — locally.
+          Keep gRPC, HTTP, network-path, website, and transfer evidence explicit and bounded.
         </p>
         <div className="mt-9 flex flex-wrap gap-3">
           <a

@@ -30,7 +30,7 @@ describe('public site', () => {
     render(<App />);
 
     expect(
-      screen.getByRole('heading', { level: 1, name: 'See what your system is doing.' })
+      screen.getByRole('heading', { level: 1, name: 'Find, reach, and inspect services locally.' })
     ).toBeVisible();
     expect(screen.getByText('Local-first. No account.')).toBeVisible();
 

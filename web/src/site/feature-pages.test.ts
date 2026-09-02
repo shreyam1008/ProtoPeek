@@ -89,6 +89,25 @@ describe('connected public feature guides', () => {
     }
   });
 
+  it('groups current guides by the v0.6 product contract without claiming planned providers', () => {
+    const groupByPage = Object.fromEntries(registry.pages.map((page) => [page.id, page.group]));
+
+    expect(groupByPage).toMatchObject({
+      'grpc-workbench': 'protocols',
+      'http-workbench': 'protocols',
+      security: 'protocols',
+      'network-workbench': 'network',
+      'this-pc': 'network',
+      'cloudflare-tunnels': 'publish',
+      downloader: 'files',
+      settings: 'preferences',
+    });
+    expect(registry.groups.map((group) => group.id)).not.toContain('system');
+    expect(registry.pages.map((page) => page.id)).not.toEqual(
+      expect.arrayContaining(['private-access', 'tailscale', 'headscale', 'netbird'])
+    );
+  });
+
   it('keeps wrapped Cloudflare guide bullets inside their list items', () => {
     const guide = parseHtml('docs/cloudflare-tunnels/index.html');
     const listItems = Array.from(guide.querySelectorAll('.pp-doc-prose li')).map((item) =>

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "protopeek",
   "name": "ProtoPeek",
-  "summary": "A lightweight local systems workbench with native gRPC and HTTP, bounded network and security evidence, and a local aria2-backed Downloader.",
+  "summary": "A lightweight local workbench for finding, reaching, and inspecting services with native gRPC and HTTP, bounded network evidence, and local aria2-backed transfers.",
   "visibility": "public",
   "portfolioApproved": true,
   "lifecycle": "released",

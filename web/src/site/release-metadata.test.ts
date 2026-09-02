@@ -56,11 +56,12 @@ describe('release metadata', () => {
     expect(llms).toContain('v0.5.0 is the current stable release');
     expect(llms).toContain('Homebrew and Scoop channels install v0.5.0');
     expect(llms).toContain('ProtoPeek does not bundle aria2');
+    expect(llms).toContain('Tailscale, Headscale, and NetBird workflows remain planned');
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
     );
     expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
-    expect(sitemap).toContain('<lastmod>2026-08-24</lastmod>');
+    expect(sitemap).toContain('<lastmod>2026-09-02</lastmod>');
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
     for (const path of [
       '/install/',
@@ -77,6 +78,7 @@ describe('release metadata', () => {
         description: expect.stringContaining('bounded network and security evidence'),
       })
     );
+    expect(manifest.description).not.toContain('Six-area');
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');

@@ -1,30 +1,71 @@
-# ProtoPeek protocol roadmap
+# ProtoPeek service workbench roadmap
 
-ProtoPeek is **Protocol Peek**: a local workbench for understanding the path from a
-request to a server response. It is not trying to become a cloud API-management suite or a clone of
-Postman. Its advantage is that difficult protocols remain explainable: the request editor, the
-transport events, and the final evidence stay close together.
+ProtoPeek is the performance-first, local-first workbench for finding, reaching, inspecting, and
+safely exposing services. It is not a cloud API-management suite, generic operations dashboard, or
+clone of Postman. gRPC remains the quality bar: request editing, transport events, streaming mode,
+headers, trailers, reflection, deadlines, and final evidence stay close together rather than being
+flattened into generic JSON.
 
 ## Product contract
 
 ### What ProtoPeek is
 
 - A single-binary, local-first console with no account, remote sync, or external database.
-- A shared shell for targets, request editing, response evidence, local history, cancellation, and
-  session lifecycle.
-- A family of protocol adapters. Each adapter owns discovery, schemas, invocation, validation,
-  cancellation, and protocol-native inspection.
-- A tool that makes the request-server boundary legible under time pressure.
+- A shared local workbench for service targets, protocol inspection, reachability evidence, bounded
+  transfers, and guarded publishing operations.
+- A family of cohesive domains. Each owns its discovery, validation, cancellation, lifecycle, and
+  native evidence while sharing only proven shell and handoff concepts.
+- A tool that makes the path from a target to an observed or published service legible under time
+  pressure.
 
 ### What ProtoPeek is not
 
-- A generic JSON box that hides gRPC trailers, Cap'n Proto capabilities, or HTTP status semantics.
+- A generic JSON box that hides gRPC trailers, HTTP status semantics, route provenance, host scope,
+  transfer verification, or publishing authority.
 - A cloud workspace, script marketplace, cookie automation layer, mock-server platform, or team
   collaboration product.
-- A promise that every protocol belongs in the default binary. Future adapters should be opt-in when
-  they add meaningful binary, dependency, or security cost.
+- A universal VPN client, cloud control-plane clone, arbitrary shell, or promise that every provider
+  and protocol belongs in the default binary.
 
-## Current workbench: six shipped areas in v0.5.0
+### Feature admission test
+
+A proposed feature belongs in ProtoPeek only when all five conditions hold:
+
+1. It operates on a service, endpoint, network path, exposure, or directly related artifact.
+2. It strengthens an existing journey or typed handoff.
+3. It remains useful local-first without a required account or external database.
+4. It can stay route-lazy, bounded, and quiet when the user does not ask it to work.
+5. One maintainer can support a truthful Windows, Linux, and macOS story.
+
+If a feature fails a condition, prefer an integration link, a separate product, or rejection.
+Provider popularity alone is not an admission reason.
+
+## Release truth and the v0.6 destination target
+
+Keep these layers separate:
+
+- Stable v0.5.0 shipped Overview, Protocols, Network, Downloader, Security, and Settings.
+- Current source after v0.5.0 additionally has separate This PC and Cloudflare Tunnel routes plus
+  the source-only refinements named below.
+- v0.6 targets one shell with Home, Inspect, Network, Publish, Files, and Settings. That regrouping
+  is not live until its implementation and verification gates pass.
+- Private Access, Tailscale, Headscale-backed client workflows, and NetBird remain planned. They are
+  not current-source or stable-release capabilities.
+
+| v0.6 destination | Purpose and current-source surfaces to regroup | Retained current paths | Existing compatibility redirects | Planned later, not current source |
+| --- | --- | --- | --- | --- |
+| **Home** | Overview and bounded discovery entry | `/` | None | Cross-domain recent sessions and receipts are v0.7 work |
+| **Inspect** | Protocols, gRPC, HTTP, Security, and public-web/TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security` | `/grpc` -> `/protocols/grpc`; `/http` -> `/protocols/http` | Additional protocol adapters remain gated |
+| **Network** | This PC, next hop, path, authorized local discovery, map, and history | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
+| **Publish** | Current Cloudflare host observation, explicit release check, guarded canonical-service actions, and browser-only route drafts | `/tunnels` | None | Shared audience selection, config/account mutation, Cloudflare Quick Tunnel, Tailscale Serve/Funnel, and NetBird Expose |
+| **Files** | Downloader and its host settings | `/downloader` | `/downloads` -> `/downloader` | Taildrop remains separately gated |
+| **Settings** | Appearance, local dependencies, host policy, About, and documentation; Roadmap remains secondary | `/settings`, `/roadmap` | None | No provider setup surface is implied |
+
+These paths describe the current route tree exactly. The v0.6 information architecture may regroup
+their presentation, but it must not break saved URLs or deep links. Help has no standalone current
+route and remains a command/About surface.
+
+## Stable v0.5.0 workbench: six shipped areas
 
 ProtoPeek v0.5.0 organizes the local workbench into exactly Overview, Protocols, Network,
 Downloader, Security, and Settings. The shell is shared, but each operation keeps its own evidence,
@@ -100,8 +141,8 @@ console shell: target -> operation -> request -> response evidence
         +-- Security           disclosed provider lookup | one consented public HEAD
         +-- Settings           browser preferences | explicit GoBarryGo bridge
         +-- private access     planned: Tailscale/Headscale first | NetBird second
-        +-- Cloudflare Tunnel  real host | canonical service ops | config/route evidence | safe drafts
-        +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
+        +-- Cloudflare Tunnel  current source: real host | canonical service ops | config/route evidence | safe drafts
+        +-- Cap'n Proto        exploring only: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
 ```
 
@@ -186,6 +227,10 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
   derived labels, and the explicit warning that `HEAD` evidence can differ from `GET` and
   application behavior. This source refinement is not claimed as part of stable v0.5.0.
 
+No private-access, Tailscale, Headscale-backed client, or NetBird workflow is implemented in current
+source. Cloudflare config/account mutation, Quick Tunnel, and the shared audience-first Publish flow
+also remain planned rather than implied by the local-operations foundation above.
+
 ## Network workbench roadmap
 
 ### Now — shipped in v0.4.0
@@ -214,8 +259,9 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 - Treat Headscale as a custom control-plane choice for the Tailscale client, not a duplicate local
   adapter. Start with local inspection and safe controls; keep Headscale server administration
   gated.
-- Connect peers to unsent HTTP/gRPC drafts and connect This PC listeners to a single audience-first
-  publishing workflow in Tunnels.
+- Connect peers to unsent HTTP/gRPC drafts and connect This Device listeners to a single
+  audience-first workflow in the v0.6 Publish destination while retaining `/tunnels` as the current
+  deep link.
 - Add NetBird only after the Tailscale slice proves the small common boundary. Preserve NetBird's
   native ICE, signal, relay, route, and DNS evidence rather than flattening it into Tailscale terms.
 - Keep Cloudflare Tunnel as service exposure, not private-mesh state. See the

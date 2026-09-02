@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastModified": "2026-08-24",
+  "lastModified": "2026-09-02",
   "groups": [
     {
       "id": "getting-started",
@@ -9,18 +9,23 @@
     },
     {
       "id": "protocols",
-      "title": "Inspect an API",
-      "description": "Use a protocol-native request surface instead of flattening every service into the same JSON box."
+      "title": "Inspect services",
+      "description": "Use protocol-native request and website evidence instead of flattening every service into the same JSON box."
     },
     {
       "id": "network",
       "title": "Understand the network path",
-      "description": "Separate DNS, selected routes, measured hops, authorized discovery, maps, and imported evidence."
+      "description": "Separate this-device facts, DNS, selected routes, measured hops, authorized discovery, maps, and imported evidence."
     },
     {
-      "id": "system",
-      "title": "Check this system",
-      "description": "Inspect the local machine, one public website response, or a visible download queue."
+      "id": "publish",
+      "title": "Publish safely",
+      "description": "Inspect current-source Cloudflare Tunnel host state and understand which local actions remain guarded."
+    },
+    {
+      "id": "files",
+      "title": "Transfer artifacts",
+      "description": "Queue, control, and verify bounded local downloads through an external aria2c."
     },
     {
       "id": "preferences",
@@ -42,7 +47,7 @@
       "generator": "external",
       "title": "ProtoPeek",
       "documentTitle": "ProtoPeek | Local Systems Workbench",
-      "description": "ProtoPeek is a local systems workbench for native gRPC and HTTP requests, bounded network and security evidence, and visible aria2-backed downloads.",
+      "description": "ProtoPeek is a lightweight local workbench for finding, reaching, and inspecting services with native gRPC and HTTP, network evidence, and local downloads.",
       "sitemap": { "changefreq": "weekly", "priority": "1.0" }
     },
     {
@@ -53,7 +58,7 @@
       "generator": "hub",
       "title": "Features and guides",
       "documentTitle": "ProtoPeek Features & Guides | Local Systems Workbench",
-      "description": "Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings.",
+      "description": "Browse ProtoPeek guides for gRPC and HTTP, network and host evidence, current-source Cloudflare Tunnel operations, local downloads, security, and settings.",
       "section": "Guides",
       "lastModified": "2026-09-02",
       "highlights": ["Choose a task", "See real evidence", "Know the limits"],
@@ -274,17 +279,17 @@
       "slug": "this-pc",
       "kind": "feature",
       "generator": "markdown",
-      "group": "system",
+      "group": "network",
       "title": "This PC evidence",
       "documentTitle": "This PC: Local Ports, Public IP & Speed Evidence | ProtoPeek",
-      "description": "Inspect local identity and interfaces, explicit Linux listeners and connections, public IPv4 and IPv6, BGP-origin context, and a bounded Cloudflare speed run.",
+      "description": "Current source after v0.5.0 adds local identity/interfaces, explicit Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run.",
       "question": "What is happening on this computer?",
       "section": "Current-source feature",
       "sourcePath": "guides/this-pc.md",
       "status": {
         "label": "Current source · after v0.5.0",
         "tone": "current",
-        "detail": "This seventh route-lazy area is not included in published v0.5.0 packages."
+        "detail": "This route-lazy workspace is not included in published v0.5.0 packages."
       },
       "highlights": [
         "Local listeners and connections",
@@ -317,10 +322,10 @@
       "slug": "cloudflare-tunnels",
       "kind": "feature",
       "generator": "markdown",
-      "group": "system",
+      "group": "publish",
       "title": "Manage Cloudflare Tunnel locally",
       "documentTitle": "Manage Cloudflare Tunnel Locally | ProtoPeek",
-      "description": "Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek.",
+      "description": "Current source after v0.5.0 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
       "question": "Is cloudflared installed, current, and running on this host?",
       "section": "Current-source feature",
       "sourcePath": "guides/cloudflare-tunnels.md",
@@ -375,7 +380,7 @@
       "slug": "downloader",
       "kind": "feature",
       "generator": "downloader",
-      "group": "system",
+      "group": "files",
       "title": "Downloader",
       "documentTitle": "ProtoPeek Downloader | Local aria2c Transfer Workbench",
       "description": "ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.",
@@ -413,7 +418,7 @@
       "slug": "security",
       "kind": "feature",
       "generator": "markdown",
-      "group": "system",
+      "group": "protocols",
       "title": "Website security evidence",
       "documentTitle": "Website Security Evidence: DNS, TLS & HTTP | ProtoPeek",
       "description": "Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.",

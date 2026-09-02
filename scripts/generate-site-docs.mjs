@@ -104,7 +104,7 @@ function renderLLMSText() {
     .join('\n');
   return `# ProtoPeek
 
-> ProtoPeek is a local systems workbench for seeing the path from request to system without flattening protocol-specific evidence.
+> ProtoPeek is a lightweight local workbench for finding, reaching, and inspecting services without flattening protocol-specific evidence.
 
 Primary site: ${siteRoot}/
 Author: https://shreyam1008.com.np/
@@ -124,6 +124,7 @@ Repository: ${repoRootURL}
 - Current source also adds an eighth route-lazy area, Cloudflare Tunnel. It is not part of the published v0.5.0 packages.
 - Cloudflare Tunnel starts only from explicit local actions. It inspects the real host, compares cloudflared with the official release on request, and confirms, stale-guards, and verifies canonical OS service control. Route drafts remain browser-only; config/account writes, password capture, automatic installation or update, Docker-daemon access, and background polling stay unavailable.
 - Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
+- Private Access and Tailscale, Headscale, and NetBird workflows remain planned; none ships in the stable release or current source.
 
 ## v0.5.0 capability boundary
 

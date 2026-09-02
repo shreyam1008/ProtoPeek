@@ -1,7 +1,8 @@
 # ProtoPeek suite strategy
 
-Status: product decision, redesign brief, and staged delivery plan. It does not claim that the
-redesigned shell, TailScout migration, or private-network features are shipped.
+Status: product decision, selected redesign contract, and staged delivery plan. The six-destination
+shell is the v0.6 target and is not the current shell. This document does not claim that the
+TailScout migration or any private-network provider integration is shipped.
 
 Last reviewed: 2026-09-02.
 
@@ -15,9 +16,11 @@ The product promise is:
 > **ProtoPeek is the lightweight local workbench for finding, reaching, inspecting, and safely
 > exposing services.**
 
-That promise is narrower and more useful than "all-in-one developer tools." It gives HTTP, gRPC,
-local/network evidence, Tailscale, Headscale-backed clients, Cloudflare Tunnel, and bounded file
-transfer one shared reason to exist. It also supplies a clear reason to reject unrelated features.
+That promise is narrower and more useful than "all-in-one developer tools." It gives the current
+HTTP, gRPC, local/network evidence, Cloudflare host operations, and bounded file transfer one shared
+reason to exist. Planned Tailscale, Headscale-backed client, and NetBird workflows must earn their
+place in the same journey before they ship. The promise also supplies a clear reason to reject
+unrelated features.
 
 The core journey is one connected loop:
 
@@ -53,11 +56,11 @@ Useful integrations can still exist without a merger:
 
 ### Feature admission test
 
-A proposed ProtoPeek feature must pass all five checks:
+A proposed ProtoPeek feature belongs only when all five conditions hold:
 
 1. It operates on a service, endpoint, network path, exposure, or directly related artifact.
-2. It strengthens at least one existing journey or typed handoff.
-3. It remains useful local-first without a required account or database.
+2. It strengthens an existing journey or typed handoff.
+3. It remains useful local-first without a required account or external database.
 4. It can stay route-lazy, bounded, and quiet when the user does not ask it to work.
 5. One maintainer can support a truthful Windows, Linux, and macOS story.
 
@@ -68,8 +71,9 @@ Provider popularity alone is not an admission reason.
 
 The repository exposes several kinds of drift:
 
-- `AGENTS.md` still calls ProtoPeek a gRPC console while the README and product metadata describe a
-  systems workbench.
+- Contributor, README, product-metadata, website, and roadmap language previously described the
+  product at different scopes; the v0.6 reset keeps those contracts aligned without rewriting
+  historical release claims.
 - The current shell presents eight primary areas plus persistent Roadmap and Help destinations.
 - Routes, navigation, dashboard tasks, command-palette actions, public feature pages, and roadmap
   status are separate hand-maintained catalogs.
@@ -89,7 +93,7 @@ Tailscale page to the present catalog would increase all three forms of drift.
 
 ### One primary object: the target
 
-The suite should revolve around a selected **target**, not a collection of tools.
+The v0.6 suite should revolve around a selected **target**, not a collection of tools.
 
 A target may originate as:
 
@@ -101,25 +105,31 @@ A target may originate as:
 - an imported piece of evidence that still requires explicit verification.
 
 Selecting a target reveals only valid next actions. For example, a local TCP listener can open an
-HTTP or gRPC draft, route evidence, or the Publish flow. A Tailscale peer can open a provider-native
-ping, route evidence, HTTP, or gRPC. No handoff sends traffic or changes state automatically.
+HTTP or gRPC draft, route evidence, or the Publish flow. In the planned private-access slice, a
+Tailscale peer can open a provider-native ping, route evidence, HTTP, or gRPC. No handoff sends
+traffic or changes state automatically.
 
-### Six stable destinations
+### v0.6 target: six permanent destinations
 
-| Destination | Purpose | Current surfaces that move under it |
-| --- | --- | --- |
-| **Home** | Resume a target, session, or operation; start the four main tasks | Overview and global discovery entry |
-| **Inspect** | Ask what a service returned and preserve native evidence | Protocols, gRPC, HTTP, website/TLS evidence |
-| **Network** | Ask how a service is reached | This PC, routes, path, authorized discovery, maps, Private Access |
-| **Publish** | Choose an audience and expose one local service safely | Cloudflare Tunnel, Tailscale Serve/Funnel, later NetBird Expose |
-| **Files** | Acquire and verify a directly related artifact | Downloader; Taildrop only after a separate demand/security decision |
-| **Settings** | Appearance, local dependencies, host policy, About and documentation | Settings, secondary Help/Roadmap links |
+The released v0.5.0 shell still uses Overview, Protocols, Network, Downloader, Security, and
+Settings. Current source after v0.5.0 adds separate This PC and Cloudflare Tunnel areas. The table
+below is the target grouping for v0.6; it does not describe the current shell as already reset.
+
+| Destination | Purpose and current-source surfaces to regroup in v0.6 | Retained current paths | Existing compatibility redirects | Planned later, not current source |
+| --- | --- | --- | --- | --- |
+| **Home** | Resume the current local task and enter bounded discovery from Overview | `/` | None | Cross-domain recent sessions and receipts are v0.7 work |
+| **Inspect** | Preserve protocol-native gRPC, HTTP, public-web, and TLS evidence; Security moves here | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security` | `/grpc` -> `/protocols/grpc`; `/http` -> `/protocols/http` | Additional protocol adapters remain gated by native evidence and size review |
+| **Network** | Explain how a service is reached; This PC becomes This Device beside next-hop, path, authorized discovery, map, and history | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
+| **Publish** | Regroup the current `/tunnels` Cloudflare host observation, explicit release check, guarded canonical-service actions, and browser-only route drafts | `/tunnels` | None | The audience-first shared publishing flow, config/account mutation, Cloudflare Quick Tunnel, Tailscale Serve/Funnel, and NetBird Expose |
+| **Files** | Acquire and verify related artifacts through Downloader | `/downloader` | `/downloads` -> `/downloader` | Taildrop remains a separate demand and security decision |
+| **Settings** | Own appearance, local dependencies, host policy, About, and documentation; Roadmap stays secondary | `/settings`, `/roadmap` | None | No provider setup surface is implied |
 
 Roadmap and Help remain available from the command menu and an About/documentation surface. They
 do not consume permanent primary-navigation space.
 
-Existing local routes remain valid as compatibility routes during the redesign. The information
-architecture can change without breaking saved URLs or deep links.
+These paths are exact for the current route tree. New destination labels do not authorize deleting,
+repurposing, or silently changing an existing deep link. Help has no standalone current route; it
+remains a command/About surface.
 
 ### Home is a command center, not a feature catalog
 
@@ -199,12 +209,12 @@ network
   |- this device
   |- route and path
   |- authorized discovery and maps
-  `- private access
+  `- private access (planned after v0.7)
 
 publish
-  |- shared audience-first flow
-  |- cloudflared
-  `- tailscale serve / funnel
+  |- cloudflared local observation and guarded service control (current source)
+  |- shared audience-first flow (planned)
+  `- tailscale serve / funnel (planned)
 
 files
   `- aria2 downloader
@@ -278,6 +288,11 @@ the same experience, not pretending every operating system offers the same capab
 
 ## Connected workflows
 
+These are target journeys, not one current capability claim. The existing HTTP, gRPC, network,
+Downloader, This PC, Security, and Cloudflare host-operation steps keep their documented release
+status. Any step involving a private peer, Tailscale, a Headscale-backed client, NetBird, shared
+audience selection, or temporary exposure remains planned.
+
 ### Inspect a discovered service
 
 ```text
@@ -289,7 +304,7 @@ Home target field
   -> save a local receipt
 ```
 
-### Reach a private peer
+### Reach a private peer (planned)
 
 ```text
 Network / Private Access
@@ -302,7 +317,7 @@ Network / Private Access
 Headscale is an advanced custom-control-server choice for the installed Tailscale client, not a
 second peer product. NetBird is a later, separate adapter and retains its own terminology.
 
-### Publish a local service
+### Publish a local service (planned shared flow)
 
 ```text
 This Device listener or explicit loopback target
@@ -315,7 +330,7 @@ This Device listener or explicit loopback target
   -> keep Stop visible
 ```
 
-Initial audience mapping:
+Planned audience mapping after the required providers and process lifecycle ship:
 
 | Audience | First backend | Later backends |
 | --- | --- | --- |
