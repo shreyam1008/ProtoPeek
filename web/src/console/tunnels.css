@@ -4,15 +4,7 @@
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background-color: var(--pp-canvas);
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--pp-stroke) 28%, transparent) 1px, transparent 1px),
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--pp-stroke) 28%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 28px 28px;
+  background: var(--pp-canvas);
   color: var(--pp-text);
 }
 
@@ -1867,7 +1859,6 @@
   border: 1px solid color-mix(in srgb, var(--pp-accent-signal) 42%, var(--pp-stroke));
   border-radius: 0.44rem;
   background: var(--pp-surface);
-  box-shadow: 0 0.45rem 1.4rem color-mix(in srgb, var(--pp-accent-signal) 7%, transparent);
 }
 
 .pp-tunnel-next-step > header {
@@ -2328,7 +2319,6 @@
   inset: 0;
   border: 0;
   background: rgb(4 9 18 / 62%);
-  backdrop-filter: blur(2px);
 }
 
 .pp-tunnel-service-dialog {
@@ -2531,7 +2521,6 @@
 @media (max-width: 640px) {
   .pp-tunnels {
     min-height: calc(100dvh - var(--pp-suite-header-height));
-    background-image: none;
   }
 
   .pp-tunnel-page-heading {

@@ -11,12 +11,72 @@
     <title>ProtoPeek Console</title>
     <script>
       (() => {
-        let theme = 'light';
+        const modes = ['system', 'light', 'dark'];
+        const palettes = ['protopeek', 'graphite', 'nord', 'solarized', 'high-contrast'];
+        const parse = (raw) => {
+          if (raw === null) return null;
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        };
+        const validAppearance = (value) =>
+          value !== null &&
+          typeof value === 'object' &&
+          !Array.isArray(value) &&
+          value.version === 2 &&
+          modes.includes(value.mode) &&
+          palettes.includes(value.palette);
+
+        let mode = 'system';
+        let palette = 'graphite';
+        let storageReadable = true;
+        let appearance = null;
         try {
-          const preference = JSON.parse(localStorage.getItem('protopeek.theme.v1') || 'null');
-          if (preference?.version === 1 && preference?.theme === 'dark') theme = 'dark';
-        } catch {}
-        document.documentElement.dataset.theme = theme;
+          appearance = parse(localStorage.getItem('protopeek.appearance.v2'));
+        } catch {
+          storageReadable = false;
+        }
+
+        if (validAppearance(appearance)) {
+          mode = appearance.mode;
+          palette = appearance.palette;
+        } else if (storageReadable) {
+          let legacy = null;
+          try {
+            legacy = parse(localStorage.getItem('protopeek.theme.v1'));
+          } catch {
+            storageReadable = false;
+          }
+          if (
+            storageReadable &&
+            legacy !== null &&
+            typeof legacy === 'object' &&
+            !Array.isArray(legacy) &&
+            legacy.version === 1 &&
+            (legacy.theme === 'light' || legacy.theme === 'dark')
+          ) {
+            mode = legacy.theme;
+            try {
+              localStorage.setItem(
+                'protopeek.appearance.v2',
+                JSON.stringify({ version: 2, mode, palette })
+              );
+            } catch {}
+          }
+        }
+
+        let prefersDark = false;
+        if (mode === 'system') {
+          try {
+            prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+          } catch {}
+        }
+        const root = document.documentElement;
+        root.dataset.theme = mode === 'dark' || (mode === 'system' && prefersDark) ? 'dark' : 'light';
+        root.dataset.themeMode = mode;
+        root.dataset.palette = palette;
       })();
     </script>
   </head>

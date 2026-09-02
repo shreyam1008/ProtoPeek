@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createProtoPeekRouter } from './router';
@@ -10,9 +10,46 @@ afterEach(() => {
   document.documentElement.removeAttribute('data-density');
   document.documentElement.removeAttribute('data-keyboard-hints');
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-theme-mode');
+  document.documentElement.removeAttribute('data-palette');
 });
 
 describe('ProtocolFrame', () => {
+  it('follows system color changes without changing the selected palette or leaking a listener', async () => {
+    let matches = false;
+    let changeListener: ((event: MediaQueryListEvent) => void) | undefined;
+    const media = {
+      get matches() {
+        return matches;
+      },
+      addEventListener: vi.fn((_type: string, listener: (event: MediaQueryListEvent) => void) => {
+        changeListener = listener;
+      }),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList;
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => media)
+    );
+
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    const view = render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(document.documentElement).toHaveAttribute('data-theme-mode', 'system');
+    expect(document.documentElement).toHaveAttribute('data-palette', 'graphite');
+
+    matches = true;
+    act(() => changeListener?.({ matches: true } as MediaQueryListEvent));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(document.documentElement).toHaveAttribute('data-theme-mode', 'system');
+    expect(document.documentElement).toHaveAttribute('data-palette', 'graphite');
+
+    view.unmount();
+    expect(media.removeEventListener).toHaveBeenCalledWith('change', changeListener);
+  });
+
   it('keeps eight exact primary destinations and Roadmap secondary', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);

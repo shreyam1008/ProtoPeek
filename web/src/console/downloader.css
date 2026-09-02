@@ -4,15 +4,7 @@
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--pp-stroke) 28%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(color-mix(in srgb, var(--pp-stroke) 28%, transparent) 1px, transparent 1px),
-    var(--pp-canvas);
-  background-size: 2rem 2rem;
+  background: var(--pp-canvas);
   color: var(--pp-text);
 }
 

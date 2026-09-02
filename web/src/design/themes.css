@@ -1,0 +1,272 @@
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root {
+  --pp-color-canvas: #f4f7f8;
+  --pp-color-chrome: #eaf0f2;
+  --pp-color-surface: #ffffff;
+  --pp-color-surface-raised: #f9fbfb;
+  --pp-color-surface-sunken: #edf2f4;
+  --pp-color-code-surface: #f5f8f8;
+  --pp-color-code-surface-raised: #e8eff1;
+  /* Regular strokes are non-essential separators; strong strokes carry boundaries. */
+  --pp-color-stroke: #cdd8dc;
+  --pp-color-stroke-strong: #7c878d;
+  --pp-color-text: #12242b;
+  --pp-color-text-muted: #526a74;
+  --pp-color-text-faint: #5c6d75;
+  --pp-color-text-inverse: #f6fbfb;
+  --pp-color-accent: #087c75;
+  --pp-color-accent-strong: #05665f;
+  --pp-color-success: #066440;
+  --pp-color-warning: #7e4c04;
+  --pp-color-danger: #9a3139;
+  --pp-color-danger-strong: #8f2029;
+  --pp-color-info: #1a5997;
+  --pp-color-overlay: rgba(18, 36, 43, 0.45);
+  --pp-color-shadow: rgba(27, 48, 56, 0.16);
+  --pp-color-accent-soft: color-mix(in srgb, var(--pp-color-accent) 12%, transparent);
+  --pp-color-focus: var(--pp-color-accent);
+  --pp-color-focus-soft: var(--pp-color-accent-soft);
+  --pp-color-hover: var(--pp-color-surface-sunken);
+  --pp-color-active: var(--pp-color-accent-soft);
+  --pp-color-selection: var(--pp-color-accent-soft);
+  --pp-color-selection-strong: color-mix(in srgb, var(--pp-color-accent) 22%, transparent);
+  --pp-color-selection-border: var(--pp-color-accent);
+  --pp-color-selection-text: var(--pp-color-text);
+  --pp-color-success-soft: color-mix(in srgb, var(--pp-color-success) 12%, transparent);
+  --pp-color-success-border: color-mix(
+    in srgb,
+    var(--pp-color-success) 76%,
+    var(--pp-color-stroke)
+  );
+  --pp-color-warning-soft: color-mix(in srgb, var(--pp-color-warning) 12%, transparent);
+  --pp-color-warning-border: color-mix(
+    in srgb,
+    var(--pp-color-warning) 76%,
+    var(--pp-color-stroke)
+  );
+  --pp-color-danger-soft: color-mix(in srgb, var(--pp-color-danger) 12%, transparent);
+  --pp-color-danger-border: color-mix(in srgb, var(--pp-color-danger) 76%, var(--pp-color-stroke));
+  --pp-color-info-soft: color-mix(in srgb, var(--pp-color-info) 12%, transparent);
+  --pp-color-info-border: color-mix(in srgb, var(--pp-color-info) 76%, var(--pp-color-stroke));
+  --pp-color-code-text: var(--pp-color-text);
+  --pp-color-code-accent: var(--pp-color-accent-strong);
+  --pp-shadow-menu: 0 8px 24px var(--pp-color-shadow);
+  --pp-shadow-dialog: 0 18px 56px var(--pp-color-shadow);
+}
+
+:root[data-theme="dark"] {
+  --pp-color-canvas: #070c10;
+  --pp-color-chrome: #091117;
+  --pp-color-surface: #0d151c;
+  --pp-color-surface-raised: #111c24;
+  --pp-color-surface-sunken: #0a1015;
+  --pp-color-code-surface: #080d12;
+  --pp-color-code-surface-raised: #0d1319;
+  --pp-color-stroke: #25343d;
+  --pp-color-stroke-strong: #5d6c73;
+  --pp-color-text: #dce6ea;
+  --pp-color-text-muted: #91a4ae;
+  --pp-color-text-faint: #708690;
+  --pp-color-text-inverse: #07110f;
+  --pp-color-accent: #4fd1c5;
+  --pp-color-accent-strong: #71ded4;
+  --pp-color-success: #42d67c;
+  --pp-color-warning: #f4ca5d;
+  --pp-color-danger: #fca4a4;
+  --pp-color-danger-strong: #ffb1b1;
+  --pp-color-info: #88c1ff;
+  --pp-color-overlay: rgba(2, 6, 10, 0.76);
+  --pp-color-shadow: rgba(0, 0, 0, 0.42);
+}
+
+:root[data-palette="graphite"] {
+  --pp-color-canvas: #f3f4f6;
+  --pp-color-chrome: #e5e7eb;
+  --pp-color-surface: #ffffff;
+  --pp-color-surface-raised: #f9fafb;
+  --pp-color-surface-sunken: #eceff3;
+  --pp-color-code-surface: #f5f6f8;
+  --pp-color-code-surface-raised: #e7eaf0;
+  --pp-color-stroke: #c9ced6;
+  --pp-color-stroke-strong: #7c818b;
+  --pp-color-text: #171a1f;
+  --pp-color-text-muted: #4b5563;
+  --pp-color-text-faint: #5d6673;
+  --pp-color-accent: #2563eb;
+  --pp-color-accent-strong: #1d4ed8;
+}
+
+:root[data-palette="graphite"][data-theme="dark"] {
+  --pp-color-canvas: #090a0c;
+  --pp-color-chrome: #101216;
+  --pp-color-surface: #15181d;
+  --pp-color-surface-raised: #1b1f25;
+  --pp-color-surface-sunken: #0d0f12;
+  --pp-color-code-surface: #0b0d10;
+  --pp-color-code-surface-raised: #171b21;
+  --pp-color-stroke: #303640;
+  --pp-color-stroke-strong: #656d78;
+  --pp-color-text: #edf1f5;
+  --pp-color-text-muted: #a4adb8;
+  --pp-color-text-faint: #818b98;
+  --pp-color-accent: #7db7ff;
+  --pp-color-accent-strong: #a8ccff;
+}
+
+:root[data-palette="nord"] {
+  --pp-color-canvas: #eceff4;
+  --pp-color-chrome: #e5e9f0;
+  --pp-color-surface: #ffffff;
+  --pp-color-surface-raised: #f6f8fb;
+  --pp-color-surface-sunken: #e5e9f0;
+  --pp-color-code-surface: #e9edf3;
+  --pp-color-code-surface-raised: #dfe5ed;
+  --pp-color-stroke: #c1c8d3;
+  --pp-color-stroke-strong: #787f8c;
+  --pp-color-text: #2e3440;
+  --pp-color-text-muted: #4c566a;
+  --pp-color-text-faint: #596579;
+  --pp-color-accent: #52749e;
+  --pp-color-accent-strong: #3f5f86;
+}
+
+:root[data-palette="nord"][data-theme="dark"] {
+  --pp-color-canvas: #242933;
+  --pp-color-chrome: #252b36;
+  --pp-color-surface: #2e3440;
+  --pp-color-surface-raised: #353c4a;
+  --pp-color-surface-sunken: #20252e;
+  --pp-color-code-surface: #1f242d;
+  --pp-color-code-surface-raised: #303744;
+  --pp-color-stroke: #4c566a;
+  --pp-color-stroke-strong: #81899a;
+  --pp-color-text: #eceff4;
+  --pp-color-text-muted: #c3cad5;
+  --pp-color-text-faint: #aeb8c6;
+  --pp-color-accent: #88c0d0;
+  --pp-color-accent-strong: #9ed2df;
+}
+
+:root[data-palette="solarized"] {
+  --pp-color-canvas: #fdf6e3;
+  --pp-color-chrome: #eee8d5;
+  --pp-color-surface: #fffdf5;
+  --pp-color-surface-raised: #faf4df;
+  --pp-color-surface-sunken: #eee8d5;
+  --pp-color-code-surface: #f5efd9;
+  --pp-color-code-surface-raised: #e8e0c8;
+  --pp-color-stroke: #d1c7aa;
+  --pp-color-stroke-strong: #867b60;
+  --pp-color-text: #073642;
+  --pp-color-text-muted: #4f6268;
+  --pp-color-text-faint: #566568;
+  --pp-color-accent: #087e8b;
+  --pp-color-accent-strong: #006d77;
+}
+
+:root[data-palette="solarized"][data-theme="dark"] {
+  --pp-color-canvas: #002b36;
+  --pp-color-chrome: #073642;
+  --pp-color-surface: #0b3540;
+  --pp-color-surface-raised: #12414c;
+  --pp-color-surface-sunken: #00252e;
+  --pp-color-code-surface: #00242c;
+  --pp-color-code-surface-raised: #0b3943;
+  --pp-color-stroke: #36545b;
+  --pp-color-stroke-strong: #798c91;
+  --pp-color-text: #fdf6e3;
+  --pp-color-text-muted: #c4c8bb;
+  --pp-color-text-faint: #aab2a9;
+  --pp-color-accent: #2aa198;
+  --pp-color-accent-strong: #5ccbc1;
+}
+
+:root[data-palette="high-contrast"] {
+  --pp-color-canvas: #ffffff;
+  --pp-color-chrome: #f2f2f2;
+  --pp-color-surface: #ffffff;
+  --pp-color-surface-raised: #ffffff;
+  --pp-color-surface-sunken: #e6e6e6;
+  --pp-color-code-surface: #f5f5f5;
+  --pp-color-code-surface-raised: #e6e6e6;
+  --pp-color-stroke: #000000;
+  --pp-color-stroke-strong: #000000;
+  --pp-color-text: #000000;
+  --pp-color-text-muted: #1a1a1a;
+  --pp-color-text-faint: #333333;
+  --pp-color-accent: #0047bb;
+  --pp-color-accent-strong: #002f7d;
+}
+
+:root[data-palette="high-contrast"][data-theme="dark"] {
+  --pp-color-canvas: #000000;
+  --pp-color-chrome: #050505;
+  --pp-color-surface: #000000;
+  --pp-color-surface-raised: #101010;
+  --pp-color-surface-sunken: #000000;
+  --pp-color-code-surface: #050505;
+  --pp-color-code-surface-raised: #151515;
+  --pp-color-stroke: #ffffff;
+  --pp-color-stroke-strong: #ffffff;
+  --pp-color-text: #ffffff;
+  --pp-color-text-muted: #f2f2f2;
+  --pp-color-text-faint: #dddddd;
+  --pp-color-accent: #7ec8ff;
+  --pp-color-accent-strong: #b5e1ff;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --pp-color-canvas: Canvas;
+    --pp-color-chrome: Canvas;
+    --pp-color-surface: Canvas;
+    --pp-color-surface-raised: Canvas;
+    --pp-color-surface-sunken: Canvas;
+    --pp-color-code-surface: Canvas;
+    --pp-color-code-surface-raised: Canvas;
+    --pp-color-stroke: CanvasText;
+    --pp-color-stroke-strong: CanvasText;
+    --pp-color-text: CanvasText;
+    --pp-color-text-muted: CanvasText;
+    --pp-color-text-faint: CanvasText;
+    --pp-color-text-inverse: HighlightText;
+    --pp-color-accent: LinkText;
+    --pp-color-accent-strong: LinkText;
+    --pp-color-accent-soft: Canvas;
+    --pp-color-focus: Highlight;
+    --pp-color-focus-soft: Canvas;
+    --pp-color-hover: Canvas;
+    --pp-color-active: Canvas;
+    --pp-color-selection: Highlight;
+    --pp-color-selection-strong: Highlight;
+    --pp-color-selection-border: Highlight;
+    --pp-color-selection-text: HighlightText;
+    --pp-color-success: CanvasText;
+    --pp-color-success-soft: Canvas;
+    --pp-color-success-border: CanvasText;
+    --pp-color-warning: CanvasText;
+    --pp-color-warning-soft: Canvas;
+    --pp-color-warning-border: CanvasText;
+    --pp-color-danger: CanvasText;
+    --pp-color-danger-strong: CanvasText;
+    --pp-color-danger-soft: Canvas;
+    --pp-color-danger-border: CanvasText;
+    --pp-color-info: CanvasText;
+    --pp-color-info-soft: Canvas;
+    --pp-color-info-border: CanvasText;
+    --pp-color-overlay: transparent;
+    --pp-color-shadow: transparent;
+    --pp-color-code-text: CanvasText;
+    --pp-color-code-accent: LinkText;
+    --pp-shadow-menu: none;
+    --pp-shadow-dialog: none;
+  }
+}

@@ -4,10 +4,7 @@
   --network-manual: #6878a8;
   height: 100%;
   overflow-y: auto;
-  background:
-    linear-gradient(color-mix(in srgb, var(--pp-stroke) 16%, transparent) 1px, transparent 1px),
-    var(--pp-canvas);
-  background-size: 2rem 2rem;
+  background: var(--pp-canvas);
   color: var(--pp-text);
 }
 
@@ -23,7 +20,6 @@
   border-bottom: 1px solid var(--pp-stroke);
   padding: 0.55rem clamp(1rem, 3vw, 2.5rem);
   background: color-mix(in srgb, var(--pp-surface) 94%, transparent);
-  backdrop-filter: blur(14px);
 }
 
 .pp-network-masthead > div:first-child {
@@ -174,7 +170,6 @@
   place-items: center;
   padding: 1rem;
   background: color-mix(in srgb, var(--pp-canvas) 68%, transparent);
-  backdrop-filter: blur(5px);
 }
 
 .pp-network-leave-dialog > div {
@@ -1108,14 +1103,7 @@
   overflow: hidden;
   cursor: grab;
   touch-action: none;
-  background:
-    radial-gradient(
-      circle,
-      color-mix(in srgb, var(--pp-stroke-strong) 55%, transparent) 1px,
-      transparent 1px
-    ),
-    var(--pp-code-surface);
-  background-size: 20px 20px;
+  background: var(--pp-code-surface);
 }
 
 .pp-topology-surface:active {

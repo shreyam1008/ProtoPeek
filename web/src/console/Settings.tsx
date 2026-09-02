@@ -17,7 +17,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { ProtoPeekTheme } from '@/shared/theme';
+import {
+  type AppearanceMode,
+  type AppearancePalette,
+  defaultAppearancePreference,
+} from '@/shared/theme';
 
 import { defaultInterfacePreferences, type InterfaceDensity } from './interface-preferences';
 import { useProtocolShell } from './ProtocolShellContext';
@@ -36,20 +40,54 @@ import {
 import './suite-pages.css';
 import './settings.css';
 
-const themes: Array<{ value: ProtoPeekTheme; label: string; detail: string }> = [
-  { value: 'light', label: 'Light', detail: 'Bright evidence surfaces and dark text.' },
-  { value: 'dark', label: 'Dark', detail: 'Low-glare console surfaces and teal signals.' },
+const appearanceModeOptions: Array<{ value: AppearanceMode; label: string; detail: string }> = [
+  { value: 'system', label: 'System', detail: 'Follow this operating system as it changes.' },
+  { value: 'light', label: 'Light', detail: 'Use the selected palette’s light pair.' },
+  { value: 'dark', label: 'Dark', detail: 'Use the selected palette’s dark pair.' },
+];
+
+const paletteOptions: Array<{
+  value: AppearancePalette;
+  label: string;
+  detail: string;
+}> = [
+  {
+    value: 'graphite',
+    label: 'Graphite',
+    detail: 'Neutral workbench surfaces and clear blue focus.',
+  },
+  {
+    value: 'protopeek',
+    label: 'ProtoPeek',
+    detail: 'Blue-gray surfaces with a restrained teal signal.',
+  },
+  { value: 'nord', label: 'Nord', detail: 'Cool blue-charcoal surfaces and frost accents.' },
+  {
+    value: 'solarized',
+    label: 'Solarized',
+    detail: 'Warm paper or deep blue-green with teal evidence.',
+  },
+  {
+    value: 'high-contrast',
+    label: 'High Contrast',
+    detail: 'Strong boundaries, text, and focus in either mode.',
+  },
 ];
 
 const densities: Array<{ value: InterfaceDensity; label: string; detail: string }> = [
-  { value: 'comfortable', label: 'Comfortable', detail: 'More breathing room in app chrome.' },
-  { value: 'compact', label: 'Compact', detail: 'Tighter navigation and header controls.' },
+  {
+    value: 'comfortable',
+    label: 'Comfortable',
+    detail: 'More space inside route rows and controls.',
+  },
+  { value: 'compact', label: 'Compact', detail: 'Tighter route rows without resizing app chrome.' },
 ];
 
 const editableHostStatuses = new Set<TransferHealthStatus>(['stopped', 'failed', 'binary_missing']);
 
 export function Settings() {
-  const { theme, setTheme, interfacePreferences, setInterfacePreferences } = useProtocolShell();
+  const { appearance, setAppearance, interfacePreferences, setInterfacePreferences } =
+    useProtocolShell();
   const [notice, setNotice] = useState('');
   const [hostSnapshot, setHostSnapshot] = useState<TransferSnapshot | null>(null);
   const [hostDraft, setHostDraft] = useState<TransferHostConfig | null>(null);
@@ -108,7 +146,7 @@ export function Settings() {
   }
 
   function restoreDefaults() {
-    setTheme('light');
+    setAppearance(defaultAppearancePreference);
     setInterfacePreferences(defaultInterfacePreferences);
     setNotice('Interface defaults restored.');
   }
@@ -317,15 +355,33 @@ export function Settings() {
           </header>
 
           <fieldset className="pp-settings-choice-group">
-            <legend>Theme</legend>
-            {themes.map((option) => (
+            <legend>Mode</legend>
+            {appearanceModeOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
-                aria-pressed={theme === option.value}
+                aria-pressed={appearance.mode === option.value}
                 onClick={() => {
                   setNotice('');
-                  setTheme(option.value);
+                  setAppearance({ ...appearance, mode: option.value });
+                }}
+              >
+                <span>{option.label}</span>
+                <small>{option.detail}</small>
+              </button>
+            ))}
+          </fieldset>
+
+          <fieldset className="pp-settings-choice-group">
+            <legend>Color scheme</legend>
+            {paletteOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={appearance.palette === option.value}
+                onClick={() => {
+                  setNotice('');
+                  setAppearance({ ...appearance, palette: option.value });
                 }}
               >
                 <span>{option.label}</span>

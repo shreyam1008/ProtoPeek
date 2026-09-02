@@ -1,15 +1,7 @@
 .this-pc-page {
   min-height: 100%;
   overflow-y: auto;
-  background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--pp-stroke) 27%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(color-mix(in srgb, var(--pp-stroke) 27%, transparent) 1px, transparent 1px),
-    var(--pp-canvas);
-  background-size: 2rem 2rem;
+  background: var(--pp-canvas);
   color: var(--pp-text);
 }
 
@@ -1297,7 +1289,6 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
     background: color-mix(in srgb, var(--pp-chrome) 96%, transparent);
     box-shadow: 0 -0.65rem 2rem var(--pp-shadow);
-    backdrop-filter: blur(16px);
   }
 }
 

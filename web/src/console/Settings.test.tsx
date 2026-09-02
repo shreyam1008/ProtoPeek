@@ -2,6 +2,8 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { appearanceStorageKey } from '@/shared/theme';
+
 import { interfacePreferencesStorageKey } from './interface-preferences';
 import { createProtoPeekRouter } from './router';
 
@@ -44,6 +46,8 @@ afterEach(() => {
   document.documentElement.removeAttribute('data-density');
   document.documentElement.removeAttribute('data-keyboard-hints');
   document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-theme-mode');
+  document.documentElement.removeAttribute('data-palette');
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
@@ -61,11 +65,14 @@ describe('Settings', () => {
     expect(screen.getByText('Local + explicit')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /^Dark/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Nord/ }));
     fireEvent.click(screen.getByRole('button', { name: /^Compact/ }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Show keyboard shortcut hints/i }));
 
     await waitFor(() => {
       expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+      expect(document.documentElement).toHaveAttribute('data-theme-mode', 'dark');
+      expect(document.documentElement).toHaveAttribute('data-palette', 'nord');
       expect(document.documentElement).toHaveAttribute('data-density', 'compact');
       expect(document.documentElement).toHaveAttribute('data-keyboard-hints', 'hidden');
     });
@@ -76,10 +83,17 @@ describe('Settings', () => {
         showKeyboardHints: false,
       }
     );
+    expect(JSON.parse(window.localStorage.getItem(appearanceStorageKey) ?? '{}')).toEqual({
+      version: 2,
+      mode: 'dark',
+      palette: 'nord',
+    });
 
     fireEvent.click(screen.getByRole('button', { name: 'Restore interface defaults' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Interface defaults restored.');
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(document.documentElement).toHaveAttribute('data-theme-mode', 'system');
+    expect(document.documentElement).toHaveAttribute('data-palette', 'graphite');
     expect(document.documentElement).toHaveAttribute('data-density', 'comfortable');
     expect(document.documentElement).toHaveAttribute('data-keyboard-hints', 'shown');
     expect(

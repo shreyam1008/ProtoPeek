@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import type { ProtoPeekTheme } from '@/shared/theme';
+import type { AppearancePreference, ResolvedAppearance } from '@/shared/theme';
 
 import type { ScanResult } from './api';
 import type { InterfacePreferences } from './interface-preferences';
@@ -18,8 +18,9 @@ export const protocolShellEvents = {
 } as const;
 
 export type ProtocolShellValue = {
-  theme: ProtoPeekTheme;
-  setTheme: (theme: ProtoPeekTheme) => void;
+  appearance: AppearancePreference;
+  resolvedAppearance: ResolvedAppearance;
+  setAppearance: (appearance: AppearancePreference) => void;
   interfacePreferences: InterfacePreferences;
   setInterfacePreferences: (preferences: InterfacePreferences) => void;
   discoveries: RecentDiscovery[];

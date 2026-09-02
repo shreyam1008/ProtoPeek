@@ -29,10 +29,11 @@ import {
 } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
-  applyTheme,
-  type ProtoPeekTheme,
-  persistThemePreference,
-  readThemePreference,
+  type AppearancePreference,
+  applyAppearance,
+  persistAppearancePreference,
+  readAppearancePreference,
+  resolveAppearance,
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
@@ -70,6 +71,15 @@ const primaryNavigation = [
   { id: 'settings', label: 'Settings', to: '/settings', icon: SettingsIcon, exact: false },
 ] as const;
 
+function systemPrefersDark() {
+  if (typeof window.matchMedia !== 'function') return false;
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch {
+    return false;
+  }
+}
+
 export function ProtocolFrame() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -78,7 +88,10 @@ export function ProtocolFrame() {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanRequest, setScanRequest] = useState<ScanDialogRequest>({});
   const [scanGeneration, setScanGeneration] = useState(0);
-  const [theme, setThemeState] = useState<ProtoPeekTheme>(() => readThemePreference());
+  const [appearance, setAppearanceState] = useState<AppearancePreference>(() =>
+    readAppearancePreference()
+  );
+  const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
   const [interfacePreferences, setInterfacePreferencesState] = useState<InterfacePreferences>(() =>
     readInterfacePreferences()
   );
@@ -88,11 +101,19 @@ export function ProtocolFrame() {
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const modifier = modifierKeyLabel();
 
-  const setTheme = useCallback((nextTheme: ProtoPeekTheme) => {
-    setThemeState(nextTheme);
-    applyTheme(nextTheme, document.documentElement);
-    persistThemePreference(nextTheme);
-  }, []);
+  const resolvedAppearance = useMemo(
+    () => resolveAppearance(appearance, prefersDark),
+    [appearance, prefersDark]
+  );
+
+  const setAppearance = useCallback(
+    (nextAppearance: AppearancePreference) => {
+      setAppearanceState(nextAppearance);
+      applyAppearance(nextAppearance, prefersDark, document.documentElement);
+      persistAppearancePreference(nextAppearance);
+    },
+    [prefersDark]
+  );
 
   const setInterfacePreferences = useCallback((preferences: InterfacePreferences) => {
     setInterfacePreferencesState(preferences);
@@ -101,8 +122,22 @@ export function ProtocolFrame() {
   }, []);
 
   useEffect(() => {
-    applyTheme(theme, document.documentElement);
-  }, [theme]);
+    applyAppearance(appearance, prefersDark, document.documentElement);
+  }, [appearance, prefersDark]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    let query: MediaQueryList;
+    try {
+      query = window.matchMedia('(prefers-color-scheme: dark)');
+    } catch {
+      return;
+    }
+    const handleChange = (event: MediaQueryListEvent) => setPrefersDark(event.matches);
+    setPrefersDark(query.matches);
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     applyInterfacePreferences(interfacePreferences);
@@ -251,9 +286,13 @@ export function ProtocolFrame() {
       },
       {
         id: 'theme',
-        label: `Switch to ${theme === 'light' ? 'dark' : 'light'} theme`,
+        label: `Switch to ${resolvedAppearance.theme === 'light' ? 'dark' : 'light'} mode`,
         keywords: 'appearance color mode',
-        run: () => setTheme(theme === 'light' ? 'dark' : 'light'),
+        run: () =>
+          setAppearance({
+            ...appearance,
+            mode: resolvedAppearance.theme === 'light' ? 'dark' : 'light',
+          }),
       },
       {
         id: 'help',
@@ -262,7 +301,7 @@ export function ProtocolFrame() {
         run: () => setHelpOpen(true),
       },
     ],
-    [navigate, openScan, setTheme, theme]
+    [appearance, navigate, openScan, resolvedAppearance.theme, setAppearance]
   );
 
   useEffect(() => {
@@ -278,8 +317,9 @@ export function ProtocolFrame() {
 
   const contextValue = useMemo(
     () => ({
-      theme,
-      setTheme,
+      appearance,
+      resolvedAppearance,
+      setAppearance,
       interfacePreferences,
       setInterfacePreferences,
       discoveries,
@@ -294,8 +334,9 @@ export function ProtocolFrame() {
       openHTTPDiscovery,
       openScan,
       setInterfacePreferences,
-      setTheme,
-      theme,
+      appearance,
+      resolvedAppearance,
+      setAppearance,
     ]
   );
 
@@ -384,10 +425,19 @@ export function ProtocolFrame() {
             <button
               type="button"
               className="pp-theme-toggle"
-              aria-label={`Use ${theme === 'light' ? 'dark' : 'light'} theme`}
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              aria-label={`Use ${resolvedAppearance.theme === 'light' ? 'dark' : 'light'} mode`}
+              onClick={() =>
+                setAppearance({
+                  ...appearance,
+                  mode: resolvedAppearance.theme === 'light' ? 'dark' : 'light',
+                })
+              }
             >
-              {theme === 'light' ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
+              {resolvedAppearance.theme === 'light' ? (
+                <Moon aria-hidden="true" />
+              ) : (
+                <Sun aria-hidden="true" />
+              )}
             </button>
           </header>
           <main className="pp-protocol-surface pp-suite-surface">

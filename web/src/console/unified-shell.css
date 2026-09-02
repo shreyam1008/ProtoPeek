@@ -93,7 +93,6 @@
 
 .pp-suite-nav-link.is-active::before {
   background: var(--pp-accent-signal);
-  box-shadow: 0 0 0.8rem color-mix(in srgb, var(--pp-accent-signal) 55%, transparent);
 }
 
 .pp-suite-nav-link svg {
@@ -111,8 +110,7 @@
   min-height: var(--pp-suite-header-height);
   gap: 0.85rem;
   padding: 0.55rem 1rem;
-  background: color-mix(in srgb, var(--pp-chrome) 97%, transparent);
-  backdrop-filter: blur(14px);
+  background: var(--pp-chrome);
 }
 
 .pp-suite-header .pp-global-brand {
@@ -239,19 +237,6 @@
 .pp-dashboard-boundaries article p {
   margin-top: 0.2rem;
   color: var(--pp-text-faint);
-}
-
-:root[data-density="compact"] .pp-protocol-frame {
-  --pp-suite-header-height: 3.55rem;
-}
-
-:root[data-density="compact"] .pp-suite-rail {
-  width: 4.75rem;
-}
-
-:root[data-density="compact"] .pp-suite-nav-link {
-  min-height: 4rem;
-  font-size: 0.51rem;
 }
 
 :root[data-keyboard-hints="hidden"] kbd {

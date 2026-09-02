@@ -306,8 +306,9 @@ const remoteManagedSnapshot = {
 
 function renderTunnels() {
   const shell: ProtocolShellValue = {
-    theme: 'light',
-    setTheme: vi.fn(),
+    appearance: { version: 2, mode: 'light', palette: 'graphite' },
+    resolvedAppearance: { version: 2, mode: 'light', palette: 'graphite', theme: 'light' },
+    setAppearance: vi.fn(),
     interfacePreferences: { density: 'comfortable', showKeyboardHints: true },
     setInterfacePreferences: vi.fn(),
     discoveries: [],

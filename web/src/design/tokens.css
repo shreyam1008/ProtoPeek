@@ -1,0 +1,101 @@
+:root {
+  --pp-app-bar-height: 38px;
+  --pp-session-strip-height: 40px;
+  --pp-context-bar-height: 38px;
+  --pp-status-rail-height: 26px;
+  --pp-narrow-app-bar-height: 40px;
+  --pp-narrow-context-bar-max-height: 72px;
+  --pp-narrow-status-rail-height: 40px;
+  --pp-navigator-width: 244px;
+  --pp-navigator-min-width: 200px;
+  --pp-navigator-max-width: 360px;
+  --pp-navigator-collapsed-width: 44px;
+  --pp-attached-panel-height: 240px;
+  --pp-attached-panel-min-height: 144px;
+  --pp-attached-panel-max-height: min(48dvh, 480px);
+  --pp-control-height: 28px;
+  --pp-primary-control-height: 32px;
+  --pp-narrow-touch-height: 36px;
+
+  --pp-space-1: 2px;
+  --pp-space-2: 4px;
+  --pp-space-3: 6px;
+  --pp-space-4: 8px;
+  --pp-space-5: 10px;
+  --pp-space-6: 12px;
+  --pp-space-8: 16px;
+  --pp-space-10: 20px;
+  --pp-radius-control: 4px;
+  --pp-radius-panel: 4px;
+  --pp-radius-raised: 8px;
+  --pp-stroke-width: 1px;
+  --pp-focus-width: 2px;
+  --pp-focus-offset: 2px;
+
+  --pp-font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --pp-font-code: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --pp-text-10: 10px;
+  --pp-text-11: 11px;
+  --pp-text-12: 12px;
+  --pp-text-13: 13px;
+  --pp-text-15: 15px;
+  --pp-text-18: 18px;
+  --pp-text-24: 24px;
+  --pp-line-ui: 1.4;
+  --pp-line-copy: 1.6;
+  --pp-line-code: 1.55;
+
+  --pp-motion-fast: 80ms;
+  --pp-motion-standard: 120ms;
+  --pp-motion-slow: 160ms;
+  --pp-ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Compatibility aliases remain until route styles adopt the canonical color names. */
+  --pp-canvas: var(--pp-color-canvas);
+  --pp-chrome: var(--pp-color-chrome);
+  --pp-surface: var(--pp-color-surface);
+  --pp-surface-raised: var(--pp-color-surface-raised);
+  --pp-surface-sunken: var(--pp-color-surface-sunken);
+  --pp-code-surface: var(--pp-color-code-surface);
+  --pp-code-raised: var(--pp-color-code-surface-raised);
+  --pp-stroke: var(--pp-color-stroke);
+  --pp-stroke-strong: var(--pp-color-stroke-strong);
+  --pp-text: var(--pp-color-text);
+  --pp-text-muted: var(--pp-color-text-muted);
+  --pp-text-faint: var(--pp-color-text-faint);
+  --pp-inverse-text: var(--pp-color-text-inverse);
+  --pp-accent-signal: var(--pp-color-accent);
+  --pp-accent-strong: var(--pp-color-accent-strong);
+  --pp-accent-soft: var(--pp-color-accent-soft);
+  --pp-success-signal: var(--pp-color-success);
+  --pp-warning-signal: var(--pp-color-warning);
+  --pp-danger-signal: var(--pp-color-danger);
+  --pp-danger-soft: var(--pp-color-danger-soft);
+  --pp-overlay: var(--pp-color-overlay);
+  --pp-shadow: var(--pp-color-shadow);
+  --pp-code-text: var(--pp-color-code-text);
+  --pp-code-accent: var(--pp-color-code-accent);
+
+  --pp-bg: var(--pp-color-canvas);
+  --pp-bg-strong: var(--pp-color-surface-sunken);
+  --pp-sidebar-bg: var(--pp-color-chrome);
+  --pp-sidebar-ink: var(--pp-color-text);
+  --pp-panel: var(--pp-color-surface);
+  --pp-panel-strong: var(--pp-color-surface-raised);
+  --pp-border: var(--pp-color-stroke);
+  --pp-ink: var(--pp-color-text);
+  --pp-muted: var(--pp-color-text-muted);
+  --pp-brand: var(--pp-color-accent);
+  --pp-brand-strong: var(--pp-color-accent-strong);
+  --pp-accent: var(--pp-color-warning);
+  --pp-danger: var(--pp-color-danger);
+  --pp-ok: var(--pp-color-success);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --pp-motion-fast: 0ms;
+    --pp-motion-standard: 0ms;
+    --pp-motion-slow: 0ms;
+  }
+}
