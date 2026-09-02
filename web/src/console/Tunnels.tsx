@@ -114,6 +114,7 @@ export function Tunnels() {
   const requestRef = useRef<AbortController | null>(null);
   const releaseRequestRef = useRef<AbortController | null>(null);
   const actionRequestRef = useRef<AbortController | null>(null);
+  const actionGenerationRef = useRef(0);
   const plannerReturnFocusRef = useRef<HTMLElement | null>(null);
   const selectedIDRef = useRef('');
 
@@ -149,6 +150,7 @@ export function Tunnels() {
           ? selectedIDRef.current
           : (nextSnapshot.deployments[0]?.id ?? '');
       if (nextSelectedID !== selectedIDRef.current) {
+        actionGenerationRef.current++;
         setServiceActionResult(null);
         setPendingServiceAction(null);
       }
@@ -205,6 +207,9 @@ export function Tunnels() {
       actionRequestRef.current?.abort();
       const controller = new AbortController();
       actionRequestRef.current = controller;
+      const generation = actionGenerationRef.current + 1;
+      actionGenerationRef.current = generation;
+      const deploymentID = selectedIDRef.current;
       setServiceActionLoading(true);
       try {
         const result = await performTunnelServiceAction(
@@ -212,12 +217,26 @@ export function Tunnels() {
           snapshot.service.state,
           controller.signal
         );
-        if (!mountedRef.current || controller.signal.aborted) return;
-        setServiceActionResult(result);
-        setPendingServiceAction(null);
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          actionRequestRef.current !== controller
+        )
+          return;
+        if (actionGenerationRef.current === generation && selectedIDRef.current === deploymentID) {
+          setServiceActionResult(result);
+          setPendingServiceAction(null);
+        }
         if (result.status === 'completed' || result.status === 'unchanged') await load();
       } catch (cause) {
-        if (!mountedRef.current || controller.signal.aborted) return;
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          actionRequestRef.current !== controller ||
+          actionGenerationRef.current !== generation ||
+          selectedIDRef.current !== deploymentID
+        )
+          return;
         setServiceActionResult({
           schemaVersion: 1,
           action,
@@ -296,6 +315,7 @@ export function Tunnels() {
   }, [selectedRoute, selectedRouteID]);
 
   function selectDeployment(id: string) {
+    if (id !== selectedIDRef.current) actionGenerationRef.current++;
     selectedIDRef.current = id;
     setSelectedID(id);
     setSelectedRouteID('');
@@ -634,6 +654,11 @@ export function Tunnels() {
                     <button
                       type="button"
                       disabled={!routeSupportsWorkbench(selectedRoute, 'http')}
+                      title={
+                        selectedRouteIsDraft
+                          ? 'Browser-only drafts are not observed host evidence.'
+                          : undefined
+                      }
                       onClick={() => handoffRoute('http')}
                     >
                       <ExternalLink aria-hidden="true" /> Open in HTTP
@@ -641,6 +666,11 @@ export function Tunnels() {
                     <button
                       type="button"
                       disabled={!routeSupportsWorkbench(selectedRoute, 'grpc')}
+                      title={
+                        selectedRouteIsDraft
+                          ? 'Browser-only drafts are not observed host evidence.'
+                          : undefined
+                      }
                       onClick={() => handoffRoute('grpc')}
                     >
                       <ExternalLink aria-hidden="true" /> Open in gRPC

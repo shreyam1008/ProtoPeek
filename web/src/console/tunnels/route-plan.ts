@@ -58,14 +58,17 @@ export function validateTunnelRoutePlan(hostname: string, path: string, service:
   return '';
 }
 
-export function routeSupportsWorkbench(route: TunnelRoute | null, kind: 'http' | 'grpc') {
-  if (!route || route.catchAll) return false;
+export function routeSupportsWorkbench(
+  route: TunnelRoute | PlannedTunnelRoute | null,
+  kind: 'http' | 'grpc'
+) {
+  if (!route || route.catchAll || ('planned' in route && route.planned)) return false;
   if (kind === 'http') return route.protocol === 'http' || route.protocol === 'https';
   return route.protocol === 'h2c' || route.protocol === 'grpc' || route.protocol === 'grpcs';
 }
 
 export function scanResultFromTunnelRoute(
-  route: TunnelRoute,
+  route: TunnelRoute | PlannedTunnelRoute,
   kind: 'http' | 'grpc'
 ): ScanResult | null {
   try {

@@ -329,7 +329,7 @@ function stubTunnelAPI(
     capabilities?: unknown;
     snapshot?: unknown;
     release?: unknown;
-    serviceAction?: unknown;
+    serviceAction?: unknown | Promise<unknown>;
   } = {}
 ) {
   const request = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
@@ -339,7 +339,7 @@ function stubTunnelAPI(
     if (path.endsWith('/api/tunnels/snapshot')) return Response.json(options.snapshot ?? snapshot);
     if (path.endsWith('/api/tunnels/release')) return Response.json(options.release ?? release);
     if (path.endsWith('/api/tunnels/service-action'))
-      return Response.json(options.serviceAction ?? elevationResult);
+      return Response.json(await (options.serviceAction ?? elevationResult));
     return new Response('not found', { status: 404 });
   });
   vi.stubGlobal('fetch', request);
@@ -379,7 +379,7 @@ describe('Tunnels', () => {
 
   it('creates an in-view route draft without issuing a mutation request', async () => {
     const request = stubTunnelAPI();
-    renderTunnels();
+    const shell = renderTunnels();
     await inspectLocalHost();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
@@ -417,6 +417,22 @@ describe('Tunnels', () => {
     expect(screen.getByRole('tab', { name: 'Routes' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Draft origin · not observed')).toBeVisible();
     expect(screen.getByText(/No file, service, or Cloudflare account was changed/)).toBeVisible();
+    const httpHandoff = screen.getByRole('button', { name: 'Open in HTTP' });
+    const grpcHandoff = screen.getByRole('button', { name: 'Open in gRPC' });
+    expect(httpHandoff).toBeDisabled();
+    expect(grpcHandoff).toBeDisabled();
+    expect(httpHandoff).toHaveAttribute(
+      'title',
+      'Browser-only drafts are not observed host evidence.'
+    );
+    expect(grpcHandoff).toHaveAttribute(
+      'title',
+      'Browser-only drafts are not observed host evidence.'
+    );
+    fireEvent.click(httpHandoff);
+    fireEvent.click(grpcHandoff);
+    expect(shell.openHTTPDiscovery).not.toHaveBeenCalled();
+    expect(shell.openGRPCDiscovery).not.toHaveBeenCalled();
     expect(request).toHaveBeenCalledTimes(2);
     await waitFor(() => expect(trigger).toHaveFocus());
   });
@@ -569,6 +585,67 @@ describe('Tunnels', () => {
       );
       expect(snapshotRequests).toHaveLength(2);
     });
+  });
+
+  it('does not attribute a deferred service action result to another deployment', async () => {
+    let resolveServiceAction!: (value: typeof elevationResult) => void;
+    const serviceAction = new Promise<typeof elevationResult>((resolve) => {
+      resolveServiceAction = resolve;
+    });
+    const request = stubTunnelAPI({
+      serviceAction,
+    });
+    renderTunnels();
+    await inspectLocalHost();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Confirm restart' })).getByRole('button', {
+        name: 'Confirm restart',
+      })
+    );
+    await waitFor(() =>
+      expect(
+        request.mock.calls.some(([input]) =>
+          new URL(String(input)).pathname.endsWith('/api/tunnels/service-action')
+        )
+      ).toBe(true)
+    );
+    const actionRequest = request.mock.calls.find(([input]) =>
+      new URL(String(input)).pathname.endsWith('/api/tunnels/service-action')
+    );
+    const actionSignal = (actionRequest?.[1] as RequestInit | undefined)?.signal;
+
+    fireEvent.click(screen.getByRole('button', { name: /dev-previewUnmanaged config/ }));
+    expect(await screen.findByRole('heading', { name: 'dev-preview' })).toBeVisible();
+    expect(actionSignal?.aborted).toBe(false);
+
+    resolveServiceAction({
+      ...elevationResult,
+      status: 'completed',
+      message: 'cloudflared.service restarted.',
+      elevationRequired: false,
+      elevationMechanism: '',
+      manualCommand: '',
+    });
+
+    await waitFor(() =>
+      expect(
+        request.mock.calls.filter(([input]) =>
+          new URL(String(input)).pathname.endsWith('/api/tunnels/snapshot')
+        )
+      ).toHaveLength(2)
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Restart' })).toHaveAttribute(
+        'title',
+        expect.stringContaining('Configuration-only')
+      )
+    );
+    expect(actionSignal?.aborted).toBe(false);
+    expect(screen.queryByText('Service action completed')).not.toBeInTheDocument();
+    expect(screen.queryByText('cloudflared.service restarted.')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'dev-preview' })).toBeVisible();
   });
 
   it('clears host-service feedback and actions when an unbound config deployment is selected', async () => {
