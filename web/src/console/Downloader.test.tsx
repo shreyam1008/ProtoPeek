@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { batchResultMessage, Downloader, parseBatchSources, safeSourceLabel } from './Downloader';
@@ -73,6 +73,37 @@ describe('Downloader', () => {
     expect(await screen.findByText('Downloader starts only when requested')).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('GET');
+  });
+
+  it('characterizes the current visible-ready snapshot refresh interval', async () => {
+    let scheduledRefresh: (() => void) | undefined;
+    let visibility: DocumentVisibilityState = 'visible';
+    const intervalHandle = {} as ReturnType<typeof window.setInterval>;
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    const intervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation((handler: TimerHandler, _delay?: number) => {
+        scheduledRefresh = handler as () => void;
+        return intervalHandle;
+      });
+    const clearIntervalSpy = vi.spyOn(window, 'clearInterval');
+    const fetchMock = vi.fn(async () => Response.json(runningSnapshot));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { unmount } = render(<Downloader />);
+    await screen.findAllByText('archive.tar.gz');
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(intervalSpy).toHaveBeenCalledWith(expect.any(Function), 1_500);
+    await act(async () => scheduledRefresh?.());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    visibility = 'hidden';
+    await act(async () => scheduledRefresh?.());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    unmount();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(intervalHandle);
   });
 
   it('uses one explicit submit to start the external engine, add the URL, and show real queue state', async () => {

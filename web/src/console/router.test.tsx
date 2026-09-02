@@ -38,12 +38,27 @@ const bootstrap: BootstrapResponse = {
   services: [],
 };
 
+const compatibilityRedirects = [
+  { from: '/grpc', to: '/protocols/grpc' },
+  { from: '/http', to: '/protocols/http' },
+  { from: '/routes', to: '/network/route' },
+  { from: '/downloads', to: '/downloader' },
+] as const;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   window.localStorage.clear();
 });
 
 describe('protocol routes', () => {
+  it.each(compatibilityRedirects)('redirects $from to $to', async ({ from, to }) => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: [from] }));
+
+    await router.load();
+
+    expect(router.state.location.pathname).toBe(to);
+  });
+
   it('ignores malformed recent-discovery storage while rendering the dashboard', async () => {
     window.localStorage.setItem('protopeek.discoveries.v1', JSON.stringify({ invalid: true }));
     vi.stubGlobal(
@@ -61,7 +76,9 @@ describe('protocol routes', () => {
   });
 
   it('owns the HTTP query boundary inside the lazy HTTP route', async () => {
-    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/http'] }));
+    const router = createProtoPeekRouter(
+      createMemoryHistory({ initialEntries: ['/protocols/http'] })
+    );
 
     render(<RouterProvider router={router} />);
 
@@ -104,24 +121,6 @@ describe('protocol routes', () => {
       await screen.findByRole('dialog', { name: 'Scan target' }, { timeout: 5000 })
     ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
-
-    await act(async () => {
-      await router.navigate({ to: '/grpc' });
-    });
-    expect(await screen.findByRole('heading', { name: 'Open a gRPC target.' })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/protocols/grpc');
-
-    await act(async () => {
-      await router.navigate({ to: '/http' });
-    });
-    expect(await screen.findByText('Request workbench')).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/protocols/http');
-
-    await act(async () => {
-      await router.navigate({ to: '/routes' });
-    });
-    expect(await screen.findByRole('heading', { name: 'Next-hop route' })).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/network/route');
 
     await act(async () => {
       await router.navigate({ to: '/network' });
