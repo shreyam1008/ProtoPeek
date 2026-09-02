@@ -99,6 +99,7 @@ console shell: target -> operation -> request -> response evidence
         +-- Downloader         external aria2c | local queue | retry/checksum evidence
         +-- Security           disclosed provider lookup | one consented public HEAD
         +-- Settings           browser preferences | explicit GoBarryGo bridge
+        +-- private access     planned: Tailscale/Headscale first | NetBird second
         +-- Cloudflare Tunnel  real host | canonical service ops | config/route evidence | safe drafts
         +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
@@ -205,6 +206,21 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 - Add editable source-labelled region/provider evidence and privacy-conscious passive enrichment. Codes such as `SIN`, `BOM`, `IAD`, or `us-east-1` remain context hints, never automatic datacenter proof.
 - Compare immutable snapshots as added, removed, and changed evidence without calling an unobserved address offline.
 - Refine manual subnet and VLAN organization while keeping it visually and semantically separate from scan-derived facts.
+
+### Planned — private-network clients and service handoff
+
+- Fold TailScout's useful local Tailscale workflows into a route-lazy **Private access** section
+  inside Network rather than maintaining three native interfaces or adding another primary area.
+- Treat Headscale as a custom control-plane choice for the Tailscale client, not a duplicate local
+  adapter. Start with local inspection and safe controls; keep Headscale server administration
+  gated.
+- Connect peers to unsent HTTP/gRPC drafts and connect This PC listeners to a single audience-first
+  publishing workflow in Tunnels.
+- Add NetBird only after the Tailscale slice proves the small common boundary. Preserve NetBird's
+  native ICE, signal, relay, route, and DNS evidence rather than flattening it into Tailscale terms.
+- Keep Cloudflare Tunnel as service exposure, not private-mesh state. See the
+  [private-network integration plan](private-network-integration-plan.md) for sequencing,
+  retirement gates, and official-source research.
 
 ### Later — optional integrations after safety and size review
 
@@ -453,6 +469,8 @@ route budgets preserve the lighter v0.3 architecture.
 
 ## Research trail
 
+- [ProtoPeek suite product, redesign, and migration strategy](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/protopeek-suite-strategy.md)
+- [Private-network and TailScout consolidation plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/private-network-integration-plan.md)
 - [Cloudflare Tunnel workspace guide](/cloudflare-tunnels/)
 - [Cloudflare Tunnel integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnel-integration-plan.md)
 - [Network workbench guide](/network-workbench/)

@@ -381,6 +381,7 @@ cancellation, and its native inspector.
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
 | This PC | Current source after v0.5.0 | Device-centred identity/interfaces, Linux local socket/process evidence and one-shot interface load, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; no background work, privilege, or public-port verdict |
 | Cloudflare Tunnel | Current source after v0.5.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
+| Private-network clients | Planned · not implemented | Consolidate TailScout into a route-lazy Network section: Tailscale and Headscale-backed clients first, NetBird only after the real shared boundary exists; peer-to-HTTP/gRPC handoff without a cloud-admin clone or generic provider SDK |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
@@ -393,6 +394,8 @@ offline Nmap XML import. Wider range expansion and live capture remain gated.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
 [This PC evidence and connection-quality boundary](guides/this-pc.md),
+[suite product, redesign, and migration strategy](guides/protopeek-suite-strategy.md),
+[private-network and TailScout consolidation plan](guides/private-network-integration-plan.md),
 [Cloudflare Tunnel workspace guide](guides/cloudflare-tunnels.md),
 [Cloudflare Tunnel integration plan](guides/cloudflare-tunnel-integration-plan.md),
 [route, path, discovery, and Nmap evidence boundary](guides/route-and-nmap-evidence.md),
