@@ -274,6 +274,15 @@ func WithThisPCService(service ThisPCService) HandlerOption {
 	})
 }
 
+// WithTunnelService injects the local-only cloudflared observer and canonical
+// service controller. Constructing the handler performs no host inspection,
+// outbound release request, service action, or background work.
+func WithTunnelService(service TunnelService) HandlerOption {
+	return optFunc(func(opts *handlerOptions) {
+		opts.tunnelService = service
+	})
+}
+
 // WithInitialScanTarget pre-fills and automatically probes one explicit target
 // in launcher mode. The scan endpoint still enforces its fixed candidate limit
 // and network policy.
@@ -316,6 +325,7 @@ type handlerOptions struct {
 	pathTraceHandler        http.Handler
 	transferService         TransferService
 	thisPCService           ThisPCService
+	tunnelService           TunnelService
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

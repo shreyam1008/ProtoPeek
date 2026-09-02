@@ -41,6 +41,11 @@ const thisPCRoute = createRoute({
   path: '/this-pc',
   component: lazyRouteComponent(() => import('./ThisPC'), 'ThisPC'),
 });
+const tunnelsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/tunnels',
+  component: lazyRouteComponent(() => import('./Tunnels'), 'Tunnels'),
+});
 const routesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/route',
@@ -134,6 +139,7 @@ const routeTree = rootRoute.addChildren([
   grpcRoute,
   httpRoute,
   thisPCRoute,
+  tunnelsRoute,
   downloaderRoute,
   routesRoute,
   securityRoute,

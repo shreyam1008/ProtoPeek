@@ -70,7 +70,7 @@ describe('Downloader', () => {
     render(<Downloader />);
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Downloader' })).toBeVisible();
-    expect(screen.getByText('Downloader starts only when requested')).toBeVisible();
+    expect(await screen.findByText('Downloader starts only when requested')).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('GET');
   });

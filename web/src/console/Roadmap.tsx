@@ -60,6 +60,10 @@ const roadmap = [
         'Read-first preview, bounded copy-only preference/session import, paused imported jobs, private receipts, and guarded rollback without changing GoBarryGo source files.',
       ],
       [
+        'Cloudflare Tunnels · local foundation',
+        'Manual, read-only discovery of cloudflared, its canonical OS service, documented config candidates, config authority, ingress routes, and Docker and Wrangler availability, plus safe in-view route drafts.',
+      ],
+      [
         'Owned package channels',
         'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned v0.5.0 archives, declare aria2 as an external dependency, and provide both protopeek and pp.',
       ],
@@ -97,6 +101,10 @@ const roadmap = [
       [
         'WinGet package',
         'Prepare and owner-submit a schema-valid Windows package only after the owned Scoop path and installer have initial user feedback.',
+      ],
+      [
+        'Tunnel validation + runtime evidence',
+        'Add authoritative cloudflared validation, route matching, bounded logs, metrics, and diagnostics without ambient polling or credential reads.',
       ],
     ],
   },
@@ -147,6 +155,10 @@ const roadmap = [
       [
         'Live capture',
         'Why: capture can require privilege and expose payload secrets. Gate: explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.',
+      ],
+      [
+        'Tunnel service and config mutation',
+        'Why: host service control, credential paths, and config writes cross a privilege boundary. Gate: deliberate elevation, least-privilege helpers, atomic writes, validation, rollback, and auditable receipts.',
       ],
     ],
   },

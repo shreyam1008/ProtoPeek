@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manage Cloudflare Tunnel Locally | ProtoPeek</title>
+    <meta name="description" content="Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/cloudflare-tunnels/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Manage Cloudflare Tunnel Locally | ProtoPeek" />
+    <meta property="og:description" content="Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/cloudflare-tunnels/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Manage Cloudflare Tunnel Locally | ProtoPeek" />
+    <meta name="twitter:description" content="Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Manage Cloudflare Tunnel locally","description":"Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek.","url":"https://protopeek.shreyam1008.com.np/cloudflare-tunnels/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/cloudflare-tunnels/","dateModified":"2026-09-02","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnels.md","keywords":["cloudflared service","Cloudflare Tunnel","cloudflared version","cloudflared config","systemd cloudflared","launchd cloudflared","Windows cloudflared service"],"author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Manage Cloudflare Tunnel locally","item":"https://protopeek.shreyam1008.com.np/cloudflare-tunnels/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Manage Cloudflare Tunnel locally</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Manage Cloudflare Tunnel locally</h1>
+              <p>Is cloudflared installed, current, and running on this host?</p>
+
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Current source · local operations foundation
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Real host and version evidence</li><li>Guarded OS service control</li><li>Config authority and route drafts</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-tunnels">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>Is cloudflared installed, current, and running on this host?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-cloudflare-tunnels-title visual-cloudflare-tunnels-description">
+        <title id="visual-cloudflare-tunnels-title">Manage Cloudflare Tunnel locally evidence path</title>
+        <desc id="visual-cloudflare-tunnels-description">Host + version to OS service to Config + routes</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Host + version</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">OS service</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Config + routes</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Inspect</span>
+              <h2>Check the real host</h2>
+              <p>One explicit action checks cloudflared, the canonical OS service, documented config candidates, and parsed routes including the catch-all.</p>
+            </article>
+
+            <article>
+              <span>02 · Compare</span>
+              <h2>Check version freshness</h2>
+              <p>A separate explicit action checks the official latest release and keeps download or update commands user-owned.</p>
+            </article>
+
+            <article>
+              <span>03 · Control</span>
+              <h2>Act on one canonical service</h2>
+              <p>Start, Stop, and Restart require confirmation, a fresh expected state, post-action verification, and OS-owned elevation.</p>
+            </article>
+
+            <article>
+              <span>04 · Draft</span>
+              <h2>Preview an ingress route</h2>
+              <p>Review hostname, regex path, and origin YAML in the browser; local files and Cloudflare account configuration stay unchanged.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>ProtoPeek’s <strong>Cloudflare Tunnel</strong> workspace gives a local machine one clear operations view without creating another repository, daemon, or dashboard. It reads the real Cloudflare primitives already on that host—<code>cloudflared</code>, the canonical operating-system service, and documented YAML locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, network, and machine tools: the <a href="/http-workbench/">HTTP workbench</a>, <a href="/grpc-workbench/">gRPC workbench</a>, <a href="/network-workbench/">network workbench</a>, and <a href="/this-pc/">This PC</a>.</p>
+<p>This page describes the current-source foundation after v0.5.0. It is not included in the published v0.5.0 packages, is not affiliated with or endorsed by Cloudflare, Inc., and does not make claims about Cloudflare pricing or plan limits.</p>
+<h2 id="what-works-now">What works now</h2>
+<p>Open <strong>Cloudflare Tunnel</strong> from the ProtoPeek sidebar or the Overview task list, then choose <strong>Inspect this host</strong>. No host inspection, Internet release check, service action, or background poll begins on page load. The product path always uses the running host adapter; it does not substitute demo deployments or fixture data. Test-only fakes remain isolated to automated tests.</p>
+<p>One explicit inspection can show:</p>
+<ul><li>whether <code>cloudflared</code> is available and its bounded <code>--version</code> result;</li><li>the canonical <code>cloudflared</code> service known to systemd, launchd, or Windows Service Control Manager;</li><li>the service state, PID, executable path, and any explicit <code>--config</code> or credential-source flag;</li><li>documented user and system configuration candidates, without a recursive disk search;</li><li>which YAML candidate is selected as authoritative, why it won, and whether it is readable and valid, while keeping competing candidates visible;</li><li>named tunnel identity, management mode, config revision, ingress routes, protocols, and catch-all coverage;</li><li>whether Wrangler or Docker is installed, without borrowing Wrangler authentication or contacting the Docker daemon; and</li><li>a safe <strong>Draft ingress route</strong> drawer that checks the basic hostname, path, and local-service fields and previews YAML in the browser only.</li></ul>
+<p>An empty result is useful real evidence. If <code>cloudflared</code>, the canonical service, Wrangler, or Docker is absent, ProtoPeek says so and offers the next relevant official link instead of inventing a deployment.</p>
+<p>The shortest user journey is:</p>
+<ol><li><div class="pp-doc-list-title">Choose <strong>Inspect this host</strong> to gather local evidence.</div></li><li><div class="pp-doc-list-title">If <code>cloudflared</code> is missing, review an official download link or copy the matching OS install</div><p>command; ProtoPeek does not run it.</p></li><li><div class="pp-doc-list-title">Choose <strong>Check latest version</strong> only when you want to contact the official GitHub release API.</div></li><li><div class="pp-doc-list-title">If the canonical service exists, choose Start, Stop, or Restart, review the effect, and confirm.</div><p>Refresh first if the service is transitional or its state is unknown.</p></li><li><div class="pp-doc-list-title">Choose <strong>Draft ingress route</strong> to keep a browser-only proposal. There is no Apply action.</div></li></ol>
+<p>The deployment list, filter, detail tabs, config evidence, tool diagnostics, and responsive mobile pane are all part of this local split-console workflow. Route rows for HTTP and gRPC services can hand off to ProtoPeek’s existing <a href="/http-workbench/">HTTP workbench</a> and <a href="/grpc-workbench/">gRPC workbench</a>.</p>
+<h2 id="config-authority-and-default-locations">Config authority and default locations</h2>
+<p>ProtoPeek does not pretend every YAML file it finds is active. An explicit <code>--config</code> argument in the canonical service definition identifies the authoritative candidate; existence, readability, regular-file status, and YAML validity remain separate evidence. Without an explicit path, a locally managed canonical service selects only its fixed service-manager default source. With no canonical service, the first readable documented candidate can be shown as effective without being claimed as service-bound.</p>
+<p>The bounded candidates are:</p>
+<ul><li>the current user’s <code>.cloudflared/config.yml</code> and <code>.cloudflared/config.yaml</code> on every supported platform;</li><li><code>%SystemRoot%\System32\config\systemprofile\.cloudflared\config.yml</code> or <code>config.yaml</code> on Windows only when the canonical system service exists without an explicit <code>--config</code>;</li><li><code>/etc/cloudflared/config.yml</code> and <code>/etc/cloudflared/config.yaml</code> on Linux and macOS; and</li><li><code>/usr/local/etc/cloudflared/config.yml</code> and <code>/usr/local/etc/cloudflared/config.yaml</code> on Linux and macOS.</li></ul>
+<p>On Windows, service arguments are read through the native Service Control Manager path. ProtoPeek does not crawl user profiles or guess an unrelated service account directory.</p>
+<p>Each candidate is capped at 256 KiB and 256 ingress rules. Symlinks are reported but not followed. Unreadable, oversized, non-regular, or invalid YAML remains visible as evidence rather than being silently skipped.</p>
+<p>A service started with a remotely managed tunnel token is different: <strong>Cloudflare account</strong> remains the configuration authority, and ProtoPeek does not select a local YAML destination for it. Any route draft opened for that deployment is only a browser proposal; current source cannot read or write its remote ingress configuration.</p>
+<p>Cloudflare <code>path</code> values are regular expressions, not shell-style globs. For example, use a shape such as <code>^/api/.*</code>, not <code>/api/*</code>. Current source performs only structural browser checks on a draft; authoritative <code>cloudflared tunnel ingress validate</code> and route matching remain planned. A config source’s <strong>parsed routes</strong> count includes the required final catch-all. Any separate hostname-route summary excludes that catch-all and reports its presence beside the count.</p>
+<h2 id="operating-system-service-behavior">Operating-system service behavior</h2>
+<p>ProtoPeek manages only Cloudflare’s canonical service identity. It does not accept a service name, executable, argument list, or shell command from the browser.</p>
+<table><thead><tr><th>Host</th><th>Canonical evidence</th><th>Start, stop, and restart</th><th>If elevation is required</th></tr></thead><tbody><tr><td>Windows</td><td>Windows Service Control Manager service <code>Cloudflared</code>; state, PID, and the safely parsed <code>ImagePath</code> are read with query-only access</td><td>A confirmed action targets that SCM service only</td><td>Open PowerShell as Administrator and use the exact copyable <code>Start-Service</code>, <code>Stop-Service</code>, or <code>Restart-Service</code> guidance; any PIN or password goes only to Windows</td></tr><tr><td>Linux</td><td>systemd unit <code>cloudflared.service</code>; <code>LoadState</code>, active/sub-state, PID, unit path, and a conservatively parsed <code>ExecStart</code></td><td>A confirmed action targets that unit only</td><td>Use the exact copyable <code>sudo systemctl … cloudflared.service</code> guidance; <code>sudo</code> reads the password in the terminal</td></tr><tr><td>macOS</td><td>launchd label <code>com.cloudflare.cloudflared</code>; system LaunchDaemon first, then the current user’s LaunchAgent</td><td>A confirmed action targets the detected launchd definition only</td><td>A protected LaunchDaemon uses the exact copyable administrator command; macOS reads the password in the terminal</td></tr></tbody></table>
+<p>When direct control is denied, the UI builds a command for the exact detected target. These are the canonical command shapes it exposes:</p>
+<table><thead><tr><th>Host</th><th>Start</th><th>Stop</th><th>Restart</th></tr></thead><tbody><tr><td>Windows Administrator PowerShell</td><td><code>Start-Service -Name Cloudflared</code></td><td><code>Stop-Service -Name Cloudflared</code></td><td><code>Restart-Service -Name Cloudflared</code></td></tr><tr><td>Linux terminal</td><td><code>sudo systemctl start cloudflared.service</code></td><td><code>sudo systemctl stop cloudflared.service</code></td><td><code>sudo systemctl restart cloudflared.service</code></td></tr><tr><td>macOS system LaunchDaemon</td><td><code>sudo /bin/launchctl bootstrap system &#39;/Library/LaunchDaemons/com.cloudflare.cloudflared.plist&#39;</code></td><td><code>sudo /bin/launchctl bootout system/com.cloudflare.cloudflared</code></td><td><code>sudo /bin/launchctl kickstart -k system/com.cloudflare.cloudflared</code></td></tr></tbody></table>
+<p>For a macOS user LaunchAgent, the same <code>bootstrap</code>, <code>bootout</code>, and <code>kickstart -k</code> operations use the detected <code>gui/&lt;UID&gt;</code> domain, the user plist path, and normally no <code>sudo</code>. Copy the concrete command shown by ProtoPeek instead of substituting a guessed UID or path.</p>
+<p>The Start, Stop, and Restart controls remain unavailable until an explicit inspection proves that the canonical service exists. A missing service leads to setup documentation, not a mutation attempt.</p>
+<p>Every action shows its effect and requires confirmation. The request carries the state observed by the browser; ProtoPeek re-reads the canonical service immediately before acting and refuses a stale request when the state changed. It then observes the service again and reports success only when the expected post-action state matches. Start on an already running service and stop on an already stopped service are harmless, explicitly reported no-ops.</p>
+<p>Unknown, starting, and stopping states are not actionable. Start is accepted only from stopped; Stop from running or paused; and Restart from running, stopped, or paused. Refresh after a transition or incomplete observation instead of forcing an ambiguous operation.</p>
+<p>ProtoPeek never renders a sudo, administrator, UAC, Keychain, or system-password field. It never receives, proxies, logs, or stores an operating-system password. When the current process lacks the required service permission, the UI reports <strong>Elevation required</strong> and shows bounded guidance for the operating system; it does not retry with captured credentials or run an arbitrary shell.</p>
+<h2 id="installed-version-latest-release-and-downloads">Installed version, latest release, and downloads</h2>
+<p><strong>Inspect this host</strong> reads the installed executable path and bounded <code>cloudflared --version</code> output locally. It does not imply that an executable is installed merely because a service or YAML file exists.</p>
+<p><strong>Check latest version</strong> is a separate, explicit Internet action. It reads Cloudflare’s official latest GitHub release metadata, compares it with the detected local version, and reports the check time, release time, and whether the local version is current, has an update available, is outside Cloudflare’s one-year support window, or cannot be compared safely. ProtoPeek does not perform this request on page load or in the background. As verified on 2026-09-02, the latest release was <a href="https://github.com/cloudflare/cloudflared/releases/tag/2026.8.3" rel="noreferrer" target="_blank">`2026.8.3`</a>; use the explicit check for the answer at the time you run ProtoPeek.</p>
+<p>Installation and update remain user-owned. ProtoPeek links to the official download and release pages and can copy suitable commands, but it never downloads, installs, upgrades, or restarts <code>cloudflared</code> automatically.</p>
+<table><thead><tr><th>Host</th><th>Installation/download guidance</th><th>Useful verification/service command</th></tr></thead><tbody><tr><td>Windows</td><td>Copy <code>winget install --id Cloudflare.cloudflared</code>, or use the 32/64-bit executable or MSI on <a href="https://developers.cloudflare.com/tunnel/downloads/" rel="noreferrer" target="_blank">Cloudflare Downloads</a>; <a href="https://github.com/cloudflare/cloudflared/releases/latest" rel="noreferrer" target="_blank">GitHub Releases</a> lists assets and checksums</td><td>Run <code>cloudflared.exe --version</code>; install a prepared tunnel service from an Administrator Command Prompt with Cloudflare’s documented <code>cloudflared.exe service install</code> flow</td></tr><tr><td>Linux</td><td>After adding the <a href="https://pkg.cloudflare.com/index.html" rel="noreferrer" target="_blank">Cloudflare Package Repository</a>, copy <code>sudo apt-get update &amp;&amp; sudo apt-get install cloudflared</code> or <code>sudo dnf install cloudflared</code>; Homebrew users can copy <code>brew install cloudflared</code>; direct binaries, <code>.deb</code>, and <code>.rpm</code> files are on <a href="https://developers.cloudflare.com/tunnel/downloads/" rel="noreferrer" target="_blank">Cloudflare Downloads</a></td><td>Verify with <code>cloudflared --version</code>, then follow Cloudflare’s documented <code>sudo cloudflared service install</code> flow</td></tr><tr><td>macOS</td><td>Install with <code>brew install cloudflared</code>, or select the Darwin architecture from <a href="https://developers.cloudflare.com/tunnel/downloads/" rel="noreferrer" target="_blank">Cloudflare Downloads</a></td><td>Run <code>cloudflared --version</code>; <code>cloudflared service install</code> creates a login agent, while <code>sudo cloudflared service install</code> creates a boot daemon</td></tr></tbody></table>
+<p>Package-manager channels, especially community-maintained manifests, can lag the upstream release. Run <strong>Inspect this host</strong> and then <strong>Check latest version</strong> after installation instead of assuming the package channel installed Cloudflare’s newest build.</p>
+<p>On Linux, <code>sudo</code> can change <code>$HOME</code>. If the local config is under a normal user’s home directory, use Cloudflare’s documented explicit form rather than assuming root will find it:</p>
+<pre class="pp-doc-code"><code data-lang="sh">sudo cloudflared --config /home/&lt;USER&gt;/.cloudflared/config.yml service install</code></pre>
+<p>Review and replace every placeholder yourself; ProtoPeek does not execute or silently interpolate this command.</p>
+<p>Updating can interrupt traffic and must use the same installation mechanism: package-manager installs are updated with that package manager, while eligible binary installs can use <code>cloudflared update</code>. See <a href="https://developers.cloudflare.com/tunnel/downloads/update-cloudflared/" rel="noreferrer" target="_blank">Update cloudflared</a> before changing a production connector.</p>
+<h2 id="secret-and-local-control-boundary">Secret and local-control boundary</h2>
+<p>Credential contents never enter the API response or browser. A literal <code>--token</code> value is consumed only to identify that a token flag exists and is reported as redacted. Credential-file paths may be shown because they explain configuration authority, but the files are never opened. Userinfo and sensitive token, secret, key, or auth query values in ingress service URLs are redacted.</p>
+<p>The current boundary permits only narrowly scoped canonical-service control:</p>
+<ul><li><strong>Start</strong>, <strong>Stop</strong>, and <strong>Restart</strong> require confirmation, a fresh-state check, an allowlisted canonical service target, and post-action observation;</li><li><strong>Draft ingress route</strong> produces a reviewable browser-only proposal but does not write local or remote configuration;</li><li>there is no Cloudflare account sign-in or API-token storage;</li><li>there is no password collector, arbitrary command runner, Docker daemon call, automatic install or update, ambient release check, or ambient log/metrics stream; and</li><li>the local API stays unavailable when ProtoPeek is started in unsafe remote-listen mode.</li></ul>
+<p>This boundary allows the UI and evidence model to become useful before wider privileged file and cloud mutations are earned.</p>
+<h2 id="does-wrangler-come-into-play">Does Wrangler come into play?</h2>
+<p>Wrangler is an optional diagnostic signal, not the foundation. ProtoPeek reports whether the CLI is present and its version, but does not inspect Wrangler’s login state or reuse its stored credentials. The stable primitives remain <code>cloudflared</code>, native service APIs, explicit local files, and—only in a later opt-in phase—the Cloudflare REST API.</p>
+<p>That split avoids coupling tunnel operations to an experimental developer-project workflow while leaving room for a future Wrangler adapter.</p>
+<h2 id="planned-next-steps">Planned next steps</h2>
+<p>The implementation plan separates further capability growth by risk:</p>
+<ol><li><div class="pp-doc-list-title">Finish read-only evidence with authoritative <code>cloudflared</code> validation and route matching,</div><p>bounded logs and metrics, and a local Doctor report.</p></li><li><div class="pp-doc-list-title">Add atomic config writes only after plan, authoritative validation, revision checks, rollback,</div><p>and receipts are complete on each operating system.</p></li><li><div class="pp-doc-list-title">Add optional least-privilege Cloudflare account sessions for remotely managed tunnels.</div></li><li><div class="pp-doc-list-title">Add container and optional Wrangler project awareness only after the local-host path is proven.</div></li></ol>
+<h2 id="qa-acceptance-checklist">QA acceptance checklist</h2>
+<p>Platform adapter tests exercise Windows, Linux, and macOS command/state behavior. The real Windows host checked on 2026-09-02 proved the all-absent path and an isolated <code>cloudflared</code> 2026.8.3 binary proved version and config-command shapes. That host had no canonical service, so real start/stop/restart and UAC behavior were not exercised; installed-service permission and transition smokes on Windows, Linux, and macOS remain release criteria rather than completed GA evidence.</p>
+<ul><li>With no <code>cloudflared</code>, service, YAML, Wrangler, or Docker on the machine, inspection renders a truthful empty state and official install guidance—never a sample deployment.</li><li>A real installed executable reports the exact resolved path and bounded local version output.</li><li>Windows, Linux, and macOS distinguish “service absent,” “present but unreadable,” “stopped,” “running,” transitional, and unknown states without guessing.</li><li>Start, stop, and restart require confirmation, reject a changed/stale observed state, target only the canonical service, refuse unknown/transitional states, and report completion only when the re-observed post-state matches.</li><li>An unprivileged attempt reports elevation guidance; no browser/API/log/storage value ever contains an OS password, UAC credential, tunnel token, or credential-file content.</li><li>No release-network request occurs until <strong>Check latest version</strong> is selected; failures leave the local inspection intact and show an unknown freshness result.</li><li>Every install/download action leads to an official Cloudflare or <code>cloudflare/cloudflared</code> page or copies a reviewable command. No action installs or updates software automatically.</li><li><strong>Draft ingress route</strong> treats the path as a regex, uses an accurate example such as <code>^/api/.*</code>, and remains browser-only; config bytes do not change. A remote-managed draft has Cloudflare account authority and no local YAML destination.</li><li>Parsed route counts include the final catch-all; any non-catch-all hostname count is labelled separately. Cloudflare account/cloud mutation stays unavailable, and unsafe remote-listen mode exposes no Tunnels API.</li></ul>
+<p>The full architecture, threat model, endpoint plan, GitHub milestones, test matrix, launch plan, and search strategy are in the <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnel-integration-plan.md" rel="noreferrer" target="_blank">Cloudflare Tunnel integration plan</a>.</p>
+<h2 id="primary-cloudflare-references">Primary Cloudflare references</h2>
+<ul><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/configuration-file/" rel="noreferrer" target="_blank">Cloudflare Tunnel configuration file</a></li><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/configuration-file/ingress/" rel="noreferrer" target="_blank">Cloudflare Tunnel ingress rules</a></li><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/as-a-service/" rel="noreferrer" target="_blank">Run cloudflared as a service</a></li><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/as-a-service/linux/" rel="noreferrer" target="_blank">Linux service instructions</a></li><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/as-a-service/windows/" rel="noreferrer" target="_blank">Windows service instructions</a></li><li><a href="https://developers.cloudflare.com/tunnel/advanced/local-management/as-a-service/macos/" rel="noreferrer" target="_blank">macOS service instructions</a></li><li><a href="https://developers.cloudflare.com/tunnel/downloads/" rel="noreferrer" target="_blank">Cloudflare Tunnel downloads and updates</a></li><li><a href="https://developers.cloudflare.com/tunnel/downloads/update-cloudflared/" rel="noreferrer" target="_blank">Update cloudflared</a></li><li><a href="https://github.com/cloudflare/cloudflared/releases/latest" rel="noreferrer" target="_blank">Official cloudflared releases</a></li><li><a href="https://developers.cloudflare.com/workers/wrangler/commands/tunnel/" rel="noreferrer" target="_blank">Wrangler tunnel commands</a></li><li><a href="https://www.cloudflare.com/trademark/" rel="noreferrer" target="_blank">Cloudflare trademark guidelines</a></li></ul>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#what-works-now">What works now</a><a class="level-2" href="#config-authority-and-default-locations">Config authority and default locations</a><a class="level-2" href="#operating-system-service-behavior">Operating-system service behavior</a><a class="level-2" href="#installed-version-latest-release-and-downloads">Installed version, latest release, and downloads</a><a class="level-2" href="#secret-and-local-control-boundary">Secret and local-control boundary</a><a class="level-2" href="#does-wrangler-come-into-play">Does Wrangler come into play?</a><a class="level-2" href="#planned-next-steps">Planned next steps</a><a class="level-2" href="#qa-acceptance-checklist">QA acceptance checklist</a><a class="level-2" href="#primary-cloudflare-references">Primary Cloudflare references</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/cloudflare-tunnels.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnels.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>Real host inspection, release comparison, and confirmed canonical-service control ship in source; route/config and Cloudflare account writes remain gated.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/this-pc/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>This PC evidence</strong>
+      </a>
+      <a href="/downloader/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Downloader</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

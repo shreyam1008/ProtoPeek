@@ -1,5 +1,14 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Download, Monitor, Network, Radar, Server, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  Cloud,
+  Download,
+  Monitor,
+  Network,
+  Radar,
+  Server,
+  ShieldCheck,
+} from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 
 import { compactDate, displayBuildVersion } from '@/shared/runtime';
@@ -25,6 +34,12 @@ const startTasks = [
     detail: 'Review interfaces, connections, public IP, and browser-path speed.',
     to: '/this-pc' as const,
     icon: Monitor,
+  },
+  {
+    name: 'Inspect Cloudflare tunnels',
+    detail: 'See local service, config authority, ingress routes, and safe change drafts.',
+    to: '/tunnels' as const,
+    icon: Cloud,
   },
   {
     name: 'Download a file',

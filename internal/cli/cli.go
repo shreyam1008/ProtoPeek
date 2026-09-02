@@ -602,6 +602,7 @@ func Run() {
 		exit = previousExit
 	}()
 	processThisPCService := localThisPCService(*unsafeAllowRemote)
+	processTunnelService := localTunnelService(*unsafeAllowRemote)
 
 	var handler http.Handler
 	if launcherMode {
@@ -649,6 +650,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
+		}
+		if processTunnelService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithTunnelService(processTunnelService))
 		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
@@ -798,6 +802,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
+		}
+		if processTunnelService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithTunnelService(processTunnelService))
 		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))

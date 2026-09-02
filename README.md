@@ -18,8 +18,11 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > install v0.5.0 and declare aria2 as an external package dependency.
 
 > **Current source after v0.5.0:** a seventh, route-lazy **This PC** workspace adds local machine,
-> interface, listener, connection, public-address, BGP-origin, and bounded Cloudflare
-> connection-quality evidence. It is not part of the published v0.5.0 packages.
+> interface, listener, connection, public-address, BGP-origin, and bounded connection-quality
+> evidence. An eighth **Cloudflare Tunnel** workspace explicitly inspects the real host, can compare
+> installed/latest `cloudflared` versions on request, and can confirm and verify
+> start/stop/restart for the one canonical OS service. Route drafts remain browser-only. Neither
+> workspace is part of the published v0.5.0 packages.
 
 ![ProtoPeek v0.3 Protocol Peek dashboard with gRPC, HTTP, scan, next-hop, and roadmap surfaces](https://protopeek.shreyam1008.com.np/assets/protopeek-dashboard.png)
 
@@ -92,6 +95,22 @@ process. Local socket/process inspection, public IPv4/IPv6 and BGP-origin lookup
 sampling, and a small Cloudflare quality run each remain separate user-triggered operations. A
 local listener is never presented as an Internet-open port, interface counters are never presented
 as per-process traffic, and provider throughput is never presented as the ISP line maximum.
+
+Current source also adds `/tunnels` as an eighth primary area. It performs no work until **Inspect
+this host** is chosen, then uses the real host adapter to read only the canonical `cloudflared` OS
+service, documented config candidates, and bounded executable metadata. An absent executable or
+service is a valid empty result, never replaced by a sample deployment. It identifies effective
+versus competing YAML, redacts credential values, and shows ingress routes with parsed counts that
+include the final catch-all. A remote-managed connector retains Cloudflare account authority and no
+local YAML destination. ProtoPeek detects Wrangler and Docker without reusing Wrangler
+authentication or contacting the Docker daemon. A separate **Check latest version** action reads
+the official latest GitHub release; no
+release request runs on load. Confirmed start/stop/restart actions target only the canonical
+Windows SCM, systemd, or launchd service, reject stale state, and verify the re-observed result. If
+permission is missing, the OS—not ProtoPeek—owns any Administrator/UAC/sudo password interaction.
+Installation, updates, route/config writes, and Cloudflare account/cloud mutation never run
+automatically. **Draft ingress route** treats paths as regular expressions (for example,
+`^/api/.*`) and remains a browser-only preview with no Apply action.
 
 A new gRPC target defaults to `localhost:50051`; each saved
 target keeps its own plaintext/TLS settings, authority override, schema source (reflection, a
@@ -281,6 +300,7 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
 | **This PC · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux socket/process evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; no ambient monitor or Internet-open-port claim |
+| **Cloudflare Tunnel · current source after v0.5.0** | Explicitly inspect the real host for `cloudflared`, the canonical Windows SCM/systemd/launchd service, config authority, and parsed routes including catch-all; manually compare the installed version with the official release; confirm and verify canonical-service start/stop/restart with stale-state protection and OS-owned elevation guidance; **Draft ingress route** uses regex paths and stays browser-only, remote-managed drafts have no local YAML destination, and there is no secret/password collection, automatic install/update, config mutation, Docker daemon call, or account/cloud mutation |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
 grpcurl handler callbacks and invoke return. Unary callbacks may cluster after transport completion;
@@ -360,6 +380,7 @@ cancellation, and its native inspector.
 | Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
 | This PC | Current source after v0.5.0 | Device-centred identity/interfaces, Linux local socket/process evidence and one-shot interface load, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; no background work, privilege, or public-port verdict |
+| Cloudflare Tunnel | Current source after v0.5.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
 | Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
@@ -372,6 +393,8 @@ offline Nmap XML import. Wider range expansion and live capture remain gated.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
 [This PC evidence and connection-quality boundary](guides/this-pc.md),
+[Cloudflare Tunnel workspace guide](guides/cloudflare-tunnels.md),
+[Cloudflare Tunnel integration plan](guides/cloudflare-tunnel-integration-plan.md),
 [route, path, discovery, and Nmap evidence boundary](guides/route-and-nmap-evidence.md),
 [protocol roadmap](guides/feature-roadmap.md),
 [competitive workflow decisions](guides/competitive-landscape.md),

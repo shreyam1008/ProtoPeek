@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe('ProtocolFrame', () => {
-  it('keeps seven exact primary destinations and Roadmap secondary', async () => {
+  it('keeps eight exact primary destinations and Roadmap secondary', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
     await screen.findByRole('heading', { name: 'Choose the API workbench.' });
@@ -23,7 +23,16 @@ describe('ProtocolFrame', () => {
       within(primary)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
-    ).toEqual(['Overview', 'APIs', 'Network', 'This PC', 'Downloader', 'Security', 'Settings']);
+    ).toEqual([
+      'Overview',
+      'APIs',
+      'Network',
+      'This PC',
+      'Tunnels',
+      'Downloader',
+      'Security',
+      'Settings',
+    ]);
     expect(within(primary).queryByText('Roadmap')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Roadmap' })).toBeVisible();
   });

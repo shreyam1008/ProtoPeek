@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/shreyam1008/ProtoPeek/internal/thispc"
+	"github.com/shreyam1008/ProtoPeek/internal/tunnels"
 	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
@@ -44,6 +45,13 @@ func localThisPCService(unsafeAllowRemote bool) standalone.ThisPCService {
 		return nil
 	}
 	return thispc.NewService()
+}
+
+func localTunnelService(unsafeAllowRemote bool) standalone.TunnelService {
+	if unsafeAllowRemote {
+		return nil
+	}
+	return tunnels.NewService()
 }
 
 func requestHostname(hostport string) string {

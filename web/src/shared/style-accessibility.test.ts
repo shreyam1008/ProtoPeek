@@ -5,8 +5,11 @@ import { describe, expect, it } from 'vitest';
 const consoleCSS = readFileSync(
   path.resolve(process.cwd(), 'web/src/shared/protopeek.css'),
   'utf8'
-);
-const docsCSS = readFileSync(path.resolve(process.cwd(), 'web/site/public/docs.css'), 'utf8');
+).replaceAll('\r\n', '\n');
+const docsCSS = readFileSync(
+  path.resolve(process.cwd(), 'web/site/public/docs.css'),
+  'utf8'
+).replaceAll('\r\n', '\n');
 
 function colorFrom(block: string, token: string) {
   const match = block.match(new RegExp(`${token}:\\s*(#[0-9a-f]{6})`, 'i'));

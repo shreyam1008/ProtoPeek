@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router';
 import {
   CircleHelp,
+  Cloud,
   Download,
   Home,
   ListTodo,
@@ -63,6 +64,7 @@ const primaryNavigation = [
   { id: 'protocols', label: 'APIs', to: '/protocols', icon: Server, exact: false },
   { id: 'network', label: 'Network', to: '/network', icon: Network, exact: false },
   { id: 'this-pc', label: 'This PC', to: '/this-pc', icon: Monitor, exact: false },
+  { id: 'tunnels', label: 'Tunnels', to: '/tunnels', icon: Cloud, exact: false },
   { id: 'downloader', label: 'Downloader', to: '/downloader', icon: Download, exact: false },
   { id: 'security', label: 'Security', to: '/security', icon: ShieldCheck, exact: false },
   { id: 'settings', label: 'Settings', to: '/settings', icon: SettingsIcon, exact: false },
@@ -222,6 +224,12 @@ export function ProtocolFrame() {
         label: 'Open Downloader',
         keywords: 'download transfer queue artifact aria2',
         run: () => void navigate({ to: '/downloader' }),
+      },
+      {
+        id: 'tunnels',
+        label: 'Open Cloudflare tunnel operations',
+        keywords: 'cloudflare cloudflared tunnel ingress config service connector route',
+        run: () => void navigate({ to: '/tunnels' }),
       },
       {
         id: 'security',

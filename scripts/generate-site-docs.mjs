@@ -53,6 +53,13 @@ function validateRegistry() {
     if (page.generator === 'markdown' && !page.sourcePath) {
       throw new Error(`Markdown page ${page.id} is missing sourcePath.`);
     }
+    if (
+      page.keywords !== undefined &&
+      (!Array.isArray(page.keywords) ||
+        page.keywords.some((keyword) => typeof keyword !== 'string'))
+    ) {
+      throw new Error(`Public page ${page.id} keywords must be an array of strings.`);
+    }
     ids.add(page.id);
     paths.add(page.path);
   }
@@ -75,7 +82,7 @@ function renderSitemap() {
     .map(
       (page) => `  <url>
     <loc>${escapeXml(`${siteRoot}${page.path}`)}</loc>
-    <lastmod>${registry.lastModified}</lastmod>
+    <lastmod>${page.lastModified ?? registry.lastModified}</lastmod>
     <changefreq>${escapeXml(page.sitemap.changefreq)}</changefreq>
     <priority>${escapeXml(page.sitemap.priority)}</priority>
   </url>`
@@ -114,6 +121,8 @@ Repository: ${repoRootURL}
 
 - Current source adds a seventh route-lazy area, This PC. It is not part of the published v0.5.0 packages.
 - This PC reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
+- Current source also adds an eighth route-lazy area, Cloudflare Tunnel. It is not part of the published v0.5.0 packages.
+- Cloudflare Tunnel starts only from explicit local actions. It inspects the real host, compares cloudflared with the official release on request, and confirms, stale-guards, and verifies canonical OS service control. Route drafts remain browser-only; config/account writes, password capture, automatic installation or update, Docker-daemon access, and background polling stay unavailable.
 - Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
 
 ## v0.5.0 capability boundary
@@ -383,7 +392,7 @@ async function writeDownloaderPage() {
 
 async function writeMarkdownPage(page) {
   const source = await fs.readFile(path.join(repoRoot, page.sourcePath), 'utf8');
-  const { body, toc, title } = renderMarkdownPage(source, page);
+  const { body, toc } = renderMarkdownPage(source, page);
   const destination = path.join(docsRoot, page.slug, 'index.html');
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.writeFile(
@@ -393,7 +402,6 @@ async function writeMarkdownPage(page) {
       documentTitle: page.documentTitle,
       description: page.description,
       canonicalPath: page.path,
-      section: page.section,
       intro: page.question || page.description,
       body,
       toc,
@@ -404,6 +412,8 @@ async function writeMarkdownPage(page) {
       status: page.status,
       flow: page.flow,
       pageId: page.id,
+      lastModified: page.lastModified,
+      keywords: page.keywords,
     })
   );
 }
@@ -451,8 +461,8 @@ async function writeDocsHubPage() {
       documentTitle: docsPage.documentTitle,
       description: docsPage.description,
       canonicalPath: docsPage.path,
-      section: docsPage.section,
-      intro: 'Choose the thing you want to understand. Every page shows what to do, what evidence appears, and where the boundary ends.',
+      intro:
+        'Choose the thing you want to understand. Every page shows what to do, what evidence appears, and where the boundary ends.',
       body,
       toc: registry.groups.map((group) => ({ id: group.id, text: group.title, level: 2 })),
       sourceURL: `${repoRootURL}/blob/master/web/src/site/public-pages.json`,
@@ -461,6 +471,7 @@ async function writeDocsHubPage() {
       heroVisual: renderFeatureVisual(docsPage),
       schemaType: 'CollectionPage',
       pageId: docsPage.id,
+      lastModified: docsPage.lastModified,
     })
   );
 }
@@ -607,8 +618,18 @@ function renderMarkdownPage(markdown, page) {
       flushParagraph();
       const items = [];
       while (index < lines.length && /^-\s+/.test(lines[index].trim())) {
-        items.push(`<li>${renderInline(lines[index].trim().replace(/^-\s+/, ''))}</li>`);
+        const itemLines = [lines[index].trim().replace(/^-\s+/, '')];
         index += 1;
+        while (
+          index < lines.length &&
+          lines[index].trim() &&
+          /^\s{2,}\S/.test(lines[index]) &&
+          !/^-\s+/.test(lines[index].trim())
+        ) {
+          itemLines.push(lines[index].trim());
+          index += 1;
+        }
+        items.push(`<li>${renderInline(itemLines.join(' '))}</li>`);
       }
       html.push(`<ul>${items.join('')}</ul>`);
       continue;
@@ -667,7 +688,6 @@ function renderPageTemplate({
   documentTitle,
   description,
   canonicalPath,
-  section,
   intro,
   body,
   toc,
@@ -679,6 +699,8 @@ function renderPageTemplate({
   status,
   flow,
   pageId,
+  lastModified,
+  keywords = [],
 }) {
   const canonicalURL = `${siteRoot}${canonicalPath}`;
   const breadcrumbItems = [
@@ -693,7 +715,9 @@ function renderPageTemplate({
     description,
     url: canonicalURL,
     mainEntityOfPage: canonicalURL,
-    dateModified: registry.lastModified,
+    dateModified: lastModified ?? registry.lastModified,
+    isBasedOn: sourceURL,
+    keywords: keywords.length > 0 ? keywords : undefined,
     author: {
       '@type': 'Person',
       name: 'Shreyam Adhikari',
@@ -838,6 +862,7 @@ function renderFeatureVisual(page) {
     network: ['DNS', 'Route', 'Hop', 'Evidence'],
     'network-boundary': ['Passive', 'Active', 'Imported'],
     'this-pc': ['Local', 'Public', 'Quality'],
+    tunnels: ['Host + version', 'OS service', 'Config + routes'],
     downloader: ['Queue', 'Control', 'Verify'],
     security: ['DNS', 'TLS', 'HTTP'],
     settings: ['Browser', 'Bridge', 'Host'],
@@ -909,7 +934,8 @@ function renderTopbar() {
 }
 
 function renderBreadcrumb(title, canonicalPath) {
-  const current = canonicalPath === '/docs/' ? '' : `<span aria-current="page">${escapeHtml(title)}</span>`;
+  const current =
+    canonicalPath === '/docs/' ? '' : `<span aria-current="page">${escapeHtml(title)}</span>`;
   return `
     <nav class="pp-breadcrumb" aria-label="Breadcrumb">
       <a href="${siteBase}/">Home</a>

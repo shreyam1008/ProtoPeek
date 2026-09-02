@@ -1187,7 +1187,7 @@ describe('workspace import boundaries', () => {
     fireEvent.change(await screen.findByLabelText('Address'), {
       target: { value: 'localhost:50051' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     await screen.findByRole('region', { name: 'Echo call workspace' });
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();

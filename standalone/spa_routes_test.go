@@ -14,6 +14,7 @@ func TestHandlerRedirectsSPARoutesIntoHashShell(t *testing.T) {
 		"/protocols/http",
 		"/downloader",
 		"/this-pc",
+		"/tunnels",
 		"/network/route",
 		"/security",
 		"/settings",

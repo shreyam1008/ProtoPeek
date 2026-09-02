@@ -128,6 +128,38 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 5 * kibibyte,
   },
   {
+    label: 'Tunnels workspace JavaScript',
+    pattern: /^Tunnels-.+\.js$/,
+    // The route owns bounded API normalization, real host/setup evidence,
+    // confirmed service actions, and workbench handoffs without a new state
+    // or UI library. The verified state-aware baseline is 55,430 raw /
+    // 14,555 gzip bytes; route planning is budgeted separately below.
+    maxRawBytes: 58 * kibibyte,
+    maxGzipBytes: 16 * kibibyte,
+  },
+  {
+    label: 'Tunnels route planner JavaScript',
+    pattern: /^RoutePlanner-.+\.js$/,
+    // Loaded only when an operator opens the browser-only draft workflow.
+    maxRawBytes: 8 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'Tunnels route model JavaScript',
+    pattern: /^route-plan-.+\.js$/,
+    // Shared pure validation/serialization stays small and independently visible.
+    maxRawBytes: 3 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'Tunnels workspace CSS',
+    pattern: /^Tunnels-.+\.css$/,
+    // The verified real-host setup/control workspace is 45.96 KiB /
+    // 7.14 KiB gzip and remains isolated in the route-lazy stylesheet.
+    maxRawBytes: 48 * kibibyte,
+    maxGzipBytes: 8 * kibibyte,
+  },
+  {
     label: 'suite shell pages CSS',
     pattern: /^suite-pages-.+\.css$/,
     maxRawBytes: 12 * kibibyte,
@@ -142,7 +174,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxRawBytes: 12 * kibibyte,
     maxGzipBytes: 3 * kibibyte,
   },
-  // Downloader and Security are route-lazy: neither is transferred when the
+  // Downloader, Security, This PC, and Tunnels are route-lazy: none is transferred when the
   // dashboard or a protocol workbench opens. Keep their own budgets tight,
   // preserve the existing shared-entry ceiling above, and bound the installed
   // suite separately so adding a module cannot hide in code splitting.
@@ -150,19 +182,22 @@ export const consoleBundleBudgets: BundleBudget[] = [
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    maxRawBytes: 884 * kibibyte,
-    maxGzipBytes: 272 * kibibyte,
+    // The state-aware Tunnels suite, including its independently bounded lazy
+    // planner/model chunks, measures 939,206 raw / 288,943 gzip bytes. Keep
+    // only a few KiB of aggregate headroom so split chunks cannot hide growth.
+    maxRawBytes: 920 * kibibyte,
+    maxGzipBytes: 284 * kibibyte,
   },
   {
     label: 'all console CSS',
     pattern: /\.css$/,
     mode: 'aggregate',
     // The stable shared stylesheet remains independently capped above; the
-    // aggregate includes every route-lazy feature stylesheet. The This PC
-    // slice moves the measured suite baseline to 253,664 raw bytes; keep a
-    // small explicit post-slice headroom budget without hiding route growth.
-    maxRawBytes: 264 * kibibyte,
-    maxGzipBytes: 50 * kibibyte,
+    // aggregate includes every route-lazy feature stylesheet. The Tunnels
+    // slice moves the measured suite baseline to 298,722 raw / 53,806 gzip
+    // bytes; keep small explicit headroom without hiding route growth.
+    maxRawBytes: 304 * kibibyte,
+    maxGzipBytes: 56 * kibibyte,
   },
 ];
 

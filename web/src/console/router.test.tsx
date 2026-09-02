@@ -148,6 +148,13 @@ describe('protocol routes', () => {
     expect(screen.getByRole('link', { name: 'Open This PC' })).toHaveClass('is-active');
 
     await act(async () => {
+      await router.navigate({ to: '/tunnels' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Tunnel operations' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/tunnels');
+    expect(screen.getByRole('link', { name: 'Open Tunnels' })).toHaveClass('is-active');
+
+    await act(async () => {
       await router.navigate({ to: '/roadmap' });
     });
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();

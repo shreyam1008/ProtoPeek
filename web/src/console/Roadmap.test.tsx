@@ -41,4 +41,28 @@ describe('Roadmap', () => {
     ).toBeVisible();
     expect(within(gated).queryByText('Traceroute / hop probes')).not.toBeInTheDocument();
   });
+
+  it('separates the read-only tunnel foundation from privileged mutation', () => {
+    render(<Roadmap />);
+
+    const available = screen
+      .getByRole('heading', { name: 'Available in this build' })
+      .closest('section');
+    const next = screen.getByRole('heading', { name: 'Next' }).closest('section');
+    const gated = screen.getByRole('heading', { name: 'Gated' }).closest('section');
+    expect(available).not.toBeNull();
+    expect(next).not.toBeNull();
+    expect(gated).not.toBeNull();
+    if (!available || !next || !gated) return;
+
+    expect(
+      within(available).getByRole('heading', { name: 'Cloudflare Tunnels · local foundation' })
+    ).toBeVisible();
+    expect(
+      within(next).getByRole('heading', { name: 'Tunnel validation + runtime evidence' })
+    ).toBeVisible();
+    expect(
+      within(gated).getByRole('heading', { name: 'Tunnel service and config mutation' })
+    ).toBeVisible();
+  });
 });

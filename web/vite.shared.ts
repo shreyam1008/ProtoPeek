@@ -11,7 +11,9 @@ export function sharedViteConfig() {
       {
         name: 'remove-css-crossorigin',
         transformIndexHtml(html) {
-          return html.replace(/<link rel="stylesheet" crossorigin/g, '<link rel="stylesheet"');
+          return html
+            .replace(/\r\n?/g, '\n')
+            .replace(/<link rel="stylesheet" crossorigin/g, '<link rel="stylesheet"');
         },
       },
     ],

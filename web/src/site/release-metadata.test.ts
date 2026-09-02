@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 function readRepositoryFile(path: string) {
-  return readFileSync(`${process.cwd()}/${path}`, 'utf8');
+  return readFileSync(`${process.cwd()}/${path}`, 'utf8').replaceAll('\r\n', '\n');
 }
 
 describe('release metadata', () => {

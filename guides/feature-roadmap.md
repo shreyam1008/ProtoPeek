@@ -99,6 +99,7 @@ console shell: target -> operation -> request -> response evidence
         +-- Downloader         external aria2c | local queue | retry/checksum evidence
         +-- Security           disclosed provider lookup | one consented public HEAD
         +-- Settings           browser preferences | explicit GoBarryGo bridge
+        +-- Cloudflare Tunnel  real host | canonical service ops | config/route evidence | safe drafts
         +-- Cap'n Proto adapter exploring: schema file | capability bootstrap
         +-- future adapters    only after a native UX + safety review
 ```
@@ -153,6 +154,19 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
   rather than shelling out or elevating. Public IPv4/IPv6 plus provider-reported BGP origin and the
   data-bounded Cloudflare quality plan have separate disclosures and actions. See the
   [This PC boundary](/this-pc/) for exact providers, limits, platform support, and non-goals.
+- An eighth, route-lazy **Cloudflare Tunnel** area adds a manual, real-host local-operations
+  foundation. One explicit inspection observes `cloudflared`, the canonical Windows SCM,
+  systemd, or launchd service, documented config candidates, effective-versus-competing YAML,
+  ingress routes, catch-all coverage, and optional Wrangler/Docker CLI availability. An empty host
+  stays empty rather than receiving fixture data. A separate user-triggered request compares the
+  installed version with Cloudflare’s official latest release and links to official downloads.
+  Confirmed start/stop/restart targets only the canonical service, rejects stale state, and
+  verifies the re-observed result; any UAC, Administrator, or sudo credential remains entirely with
+  the operating system. Credential contents are never read, Docker is not contacted, installation never
+  runs automatically, and **Draft ingress route** produces a browser-only proposal with regex path
+  semantics. Parsed route counts include the final catch-all; a remote-managed draft keeps
+  Cloudflare account authority and has no local YAML destination. See the
+  [Cloudflare Tunnel workspace guide](/cloudflare-tunnels/) for the exact current boundary.
 - The Downloader Settings card (unreleased post-v0.5.0 source) reads the
   existing transfer snapshot and exposes only supported host controls: the
   aria2 executable/path, download directory, active jobs, per-host
@@ -332,6 +346,16 @@ cost.
 
 ### Gated — operations with a wider safety boundary
 
+- Cloudflare Tunnel config mutation, account/cloud access, automatic installation/update, and
+  credential input, storage, or rotation remain gated. The route-lazy, local-only operations
+  foundation is implemented in current source: manual real-host discovery, native canonical-service
+  observation, bounded documented config inspection, ingress evidence, optional tool detection, explicit
+  latest-release comparison, confirmed stale-guarded canonical-service control, OS-owned elevation
+  guidance, and browser-only **Draft ingress route** planning. Authoritative `cloudflared`
+  validation and matching, logs,
+  metrics, Doctor, token handling, atomic file rollback, remote API authority, and containers remain
+  sequenced in the
+  [Cloudflare Tunnel integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnel-integration-plan.md).
 - Bundled Nmap execution is not planned for the core binary. Any future opt-in companion needs an explicit executable choice, previewed scope, hard budgets, and an auditable command.
 - Darwin and Windows active path probing remains unavailable until each has a verified unprivileged native backend; no shell-parser or elevation fallback is offered.
 - Network discovery broader than one authorized RFC 1918 IPv4 `/24`, public-range expansion, and IPv6 range discovery remain outside the current selected-TCP workflow.
@@ -416,10 +440,12 @@ are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; 
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
 36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This PC 58 KiB / 16 KiB JavaScript,
-64 KiB / 18 KiB benchmark-engine JavaScript, and 24 KiB / 5 KiB CSS; suite shell pages CSS
+64 KiB / 18 KiB benchmark-engine JavaScript, and 24 KiB / 5 KiB CSS; Cloudflare Tunnel 58 KiB /
+16 KiB JavaScript, 8 KiB / 3 KiB lazy route-planner JavaScript, 3 KiB / 2 KiB
+shared route-model JavaScript, and 48 KiB / 8 KiB CSS; suite shell pages CSS
 12 KiB / 3 KiB; Settings CSS
 12 KiB / 3 KiB (current 10.80 KiB / 1.92 KiB gzip baseline, with explicit headroom for the
-unreleased host-settings card); all JavaScript 884 KiB / 272 KiB; and all CSS 264 KiB / 50 KiB.
+unreleased host-settings card); all JavaScript 920 KiB / 284 KiB; and all CSS 304 KiB / 56 KiB.
 Single-chunk rules
 fail on a missing or duplicate match, and aggregate rules keep growth visible across lazy boundaries.
 These are regression ceilings for the current unified suite, not target payload sizes; individual
@@ -427,6 +453,8 @@ route budgets preserve the lighter v0.3 architecture.
 
 ## Research trail
 
+- [Cloudflare Tunnel workspace guide](/cloudflare-tunnels/)
+- [Cloudflare Tunnel integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnel-integration-plan.md)
 - [Network workbench guide](/network-workbench/)
 - [Route, path, discovery, and Nmap boundaries](/route-and-nmap-evidence/)
 - [ProtoPeek competitive workflow decisions](/competitive-landscape/)

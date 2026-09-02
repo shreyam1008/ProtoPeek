@@ -150,6 +150,26 @@ func TestUnsafeRemoteModeMountsNoThisPCServiceOrRoutes(t *testing.T) {
 	}
 }
 
+func TestUnsafeRemoteModeMountsNoTunnelServiceOrRoutes(t *testing.T) {
+	t.Parallel()
+	if service := localTunnelService(true); service != nil {
+		t.Fatal("unsafe remote mode unexpectedly constructed a tunnel service")
+	}
+	var options []standalone.HandlerOption
+	if service := localTunnelService(true); service != nil {
+		options = append(options, standalone.WithTunnelService(service))
+	}
+	handler := standalone.Handler(nil, "", nil, nil, options...)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/tunnels/capabilities", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("unsafe remote tunnel route status = %d", response.Code)
+	}
+	if service := localTunnelService(false); service == nil {
+		t.Fatal("local browser mode did not construct a tunnel service")
+	}
+}
+
 func TestLocalAccessHandlerRejectsUntrustedHostAndOrigin(t *testing.T) {
 	t.Parallel()
 

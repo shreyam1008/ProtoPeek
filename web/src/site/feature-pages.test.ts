@@ -89,6 +89,20 @@ describe('connected public feature guides', () => {
     }
   });
 
+  it('keeps wrapped Cloudflare guide bullets inside their list items', () => {
+    const guide = parseHtml('docs/cloudflare-tunnels/index.html');
+    const listItems = Array.from(guide.querySelectorAll('.pp-doc-prose li')).map((item) =>
+      item.textContent?.replace(/\s+/g, ' ').trim()
+    );
+
+    expect(listItems).toContain(
+      'which YAML candidate is selected as authoritative, why it won, and whether it is readable and valid, while keeping competing candidates visible;'
+    );
+    expect(listItems).toContain(
+      'the current user’s .cloudflared/config.yml and .cloudflared/config.yaml on every supported platform;'
+    );
+  });
+
   it('derives fragment-free sitemap and llms discovery files from the same registry', () => {
     const publicSitemap = readRepositoryFile('web/site/public/sitemap.xml');
     const deployedSitemap = readRepositoryFile('docs/sitemap.xml');

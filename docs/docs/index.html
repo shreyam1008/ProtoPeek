@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProtoPeek Features &amp; Guides | Local Systems Workbench</title>
-    <meta name="description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
+    <meta name="description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
@@ -18,7 +18,7 @@
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="ProtoPeek Features &amp; Guides | Local Systems Workbench" />
-    <meta property="og:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
+    <meta property="og:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/docs/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -29,10 +29,10 @@
     <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ProtoPeek Features &amp; Guides | Local Systems Workbench" />
-    <meta name="twitter:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings." />
+    <meta name="twitter:description" content="Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","headline":"Features and guides","description":"Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings.","url":"https://protopeek.shreyam1008.com.np/docs/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/docs/","dateModified":"2026-08-24","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","headline":"Features and guides","description":"Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings.","url":"https://protopeek.shreyam1008.com.np/docs/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/docs/","dateModified":"2026-09-02","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/web/src/site/public-pages.json","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -256,8 +256,22 @@
                     <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
                   </a>
 
-                  <a class="pp-guide-row" href="/downloader/">
+                  <a class="pp-guide-row" href="/cloudflare-tunnels/">
                     <span class="pp-guide-index" aria-hidden="true">02</span>
+                    <span class="pp-guide-row-copy">
+                      <strong>Manage Cloudflare Tunnel locally</strong>
+                      <small>Is cloudflared installed, current, and running on this host?</small>
+                    </span>
+
+    <span class="pp-page-status is-current is-compact">
+      <i aria-hidden="true"></i>Current source · local operations foundation
+    </span>
+
+                    <span class="pp-guide-arrow" aria-hidden="true"><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+                  </a>
+
+                  <a class="pp-guide-row" href="/downloader/">
+                    <span class="pp-guide-index" aria-hidden="true">03</span>
                     <span class="pp-guide-row-copy">
                       <strong>Downloader</strong>
                       <small>Can I manage this download locally?</small>
@@ -271,7 +285,7 @@
                   </a>
 
                   <a class="pp-guide-row" href="/security/">
-                    <span class="pp-guide-index" aria-hidden="true">03</span>
+                    <span class="pp-guide-index" aria-hidden="true">04</span>
                     <span class="pp-guide-row-copy">
                       <strong>Website security evidence</strong>
                       <small>What can I verify about this public website?</small>

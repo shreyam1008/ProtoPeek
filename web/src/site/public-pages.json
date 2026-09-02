@@ -53,8 +53,9 @@
       "generator": "hub",
       "title": "Features and guides",
       "documentTitle": "ProtoPeek Features & Guides | Local Systems Workbench",
-      "description": "Browse ProtoPeek guides for gRPC and HTTP requests, network evidence, local downloads, website checks, machine inspection, and local settings.",
+      "description": "Browse ProtoPeek guides for gRPC and HTTP requests, network and host evidence, Cloudflare Tunnel local operations, downloads, security, and settings.",
       "section": "Guides",
+      "lastModified": "2026-09-02",
       "highlights": ["Choose a task", "See real evidence", "Know the limits"],
       "visual": "hub",
       "sitemap": { "changefreq": "weekly", "priority": "0.9" }
@@ -311,6 +312,64 @@
       "sitemap": { "changefreq": "weekly", "priority": "0.9" }
     },
     {
+      "id": "cloudflare-tunnels",
+      "path": "/cloudflare-tunnels/",
+      "slug": "cloudflare-tunnels",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "system",
+      "title": "Manage Cloudflare Tunnel locally",
+      "documentTitle": "Manage Cloudflare Tunnel Locally | ProtoPeek",
+      "description": "Inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority with ProtoPeek.",
+      "question": "Is cloudflared installed, current, and running on this host?",
+      "section": "Current-source feature",
+      "sourcePath": "guides/cloudflare-tunnels.md",
+      "lastModified": "2026-09-02",
+      "keywords": [
+        "cloudflared service",
+        "Cloudflare Tunnel",
+        "cloudflared version",
+        "cloudflared config",
+        "systemd cloudflared",
+        "launchd cloudflared",
+        "Windows cloudflared service"
+      ],
+      "status": {
+        "label": "Current source · local operations foundation",
+        "tone": "current",
+        "detail": "Real host inspection, release comparison, and confirmed canonical-service control ship in source; route/config and Cloudflare account writes remain gated."
+      },
+      "highlights": [
+        "Real host and version evidence",
+        "Guarded OS service control",
+        "Config authority and route drafts"
+      ],
+      "visual": "tunnels",
+      "flow": [
+        {
+          "verb": "Inspect",
+          "title": "Check the real host",
+          "detail": "One explicit action checks cloudflared, the canonical OS service, documented config candidates, and parsed routes including the catch-all."
+        },
+        {
+          "verb": "Compare",
+          "title": "Check version freshness",
+          "detail": "A separate explicit action checks the official latest release and keeps download or update commands user-owned."
+        },
+        {
+          "verb": "Control",
+          "title": "Act on one canonical service",
+          "detail": "Start, Stop, and Restart require confirmation, a fresh expected state, post-action verification, and OS-owned elevation."
+        },
+        {
+          "verb": "Draft",
+          "title": "Preview an ingress route",
+          "detail": "Review hostname, regex path, and origin YAML in the browser; local files and Cloudflare account configuration stay unchanged."
+        }
+      ],
+      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+    },
+    {
       "id": "downloader",
       "path": "/downloader/",
       "slug": "downloader",
@@ -443,6 +502,7 @@
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
+      "lastModified": "2026-09-02",
       "status": {
         "label": "Living roadmap",
         "tone": "guide",
