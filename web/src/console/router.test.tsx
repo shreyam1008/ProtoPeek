@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { BootstrapResponse } from '@/shared/types';
@@ -81,6 +81,70 @@ describe('protocol routes', () => {
 
     expect(await screen.findByText('Request workbench')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/protocols/http');
+  });
+
+  it('gives Ctrl+K to one global command dialog while keeping gRPC actions button-only', async () => {
+    const grpcBootstrap: BootstrapResponse = {
+      ...bootstrap,
+      target: 'localhost:50051',
+      launcherMode: false,
+      services: [
+        {
+          name: 'demo.Echo',
+          description: '',
+          methods: [
+            {
+              name: 'Echo',
+              fullName: 'demo.Echo/Echo',
+              description: '',
+              clientStreaming: false,
+              serverStreaming: false,
+              requestType: 'demo.EchoRequest',
+              responseType: 'demo.EchoResponse',
+            },
+          ],
+        },
+      ],
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = new URL(String(input)).pathname;
+        if (path.endsWith('/api/bootstrap')) return Response.json(grpcBootstrap);
+        if (path.endsWith('/examples')) return Response.json([]);
+        if (path.endsWith('/metadata')) {
+          return Response.json({
+            requestType: 'demo.EchoRequest',
+            requestStream: false,
+            messageTypes: { 'demo.EchoRequest': [] },
+            enumTypes: {},
+          });
+        }
+        if (path.endsWith('/api/protos')) return Response.json({ files: [] });
+        throw new Error(`Unexpected request: ${path}`);
+      })
+    );
+    const router = createProtoPeekRouter(
+      createMemoryHistory({ initialEntries: ['/protocols/grpc'] })
+    );
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const dialogs = screen.getAllByRole('dialog', { name: 'ProtoPeek commands' });
+    expect(dialogs).toHaveLength(1);
+    expect(
+      within(dialogs[0]).getByRole('option', { name: 'Open ProtoPeek overview' })
+    ).toBeVisible();
+    expect(within(dialogs[0]).queryByRole('option', { name: /Invoke current method/ })).toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open gRPC actions' }));
+    const grpcActions = screen.getByRole('dialog', { name: 'ProtoPeek commands' });
+    expect(
+      within(grpcActions).getByRole('option', { name: /Invoke current method/ })
+    ).toBeVisible();
   });
 
   it('uses the dashboard at root and preserves lazy workbench, network, and roadmap routes', async () => {

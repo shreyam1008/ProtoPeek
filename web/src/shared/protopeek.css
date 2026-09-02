@@ -1956,14 +1956,6 @@
 }
 
 @layer components {
-  .pp-protocol-frame {
-    display: flex;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-    background: #070c10;
-  }
-
   .pp-protocol-surface {
     min-width: 0;
     height: 100vh;
@@ -2909,10 +2901,6 @@
 }
 
 @media (max-width: 760px) {
-  .pp-protocol-frame {
-    flex-direction: column;
-  }
-
   .pp-protocol-surface {
     width: 100%;
     height: calc(100vh - 3.15rem);
@@ -3672,19 +3660,6 @@
 /* Protocol shell and versioned theme overrides. New product surfaces use only
    semantic tokens so light and dark stay transport-legible together. */
 @layer components {
-  .pp-protocol-frame {
-    background: var(--pp-canvas);
-    color: var(--pp-text);
-  }
-
-  .pp-protocol-column {
-    display: flex;
-    min-width: 0;
-    flex: 1;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
   .pp-protocol-surface {
     height: auto;
     min-height: 0;
@@ -3699,118 +3674,46 @@
     min-height: 0;
   }
 
-  .pp-global-header {
-    z-index: 55;
-    display: flex;
-    min-height: 3.15rem;
-    flex: none;
-    align-items: center;
-    gap: 0.9rem;
-    border-bottom: 1px solid var(--pp-stroke);
-    padding: 0 0.8rem;
-    background: var(--pp-chrome);
-  }
-
-  .pp-global-brand {
-    display: grid;
-    min-width: 8.5rem;
-    line-height: 1.05;
-  }
-
-  .pp-global-brand span {
-    color: var(--pp-text);
-    font-size: 0.78rem;
-    font-weight: 820;
-    letter-spacing: -0.015em;
-  }
-
-  .pp-global-brand small {
-    margin-top: 0.18rem;
-    color: var(--pp-text-faint);
-    font-family: var(--font-mono);
-    font-size: 0.52rem;
-  }
-
-  .pp-global-command {
-    display: flex;
-    width: min(26rem, 42vw);
-    height: 2rem;
-    align-items: center;
-    justify-content: space-between;
-    margin-left: auto;
-    border: 1px solid var(--pp-stroke-strong);
-    border-radius: 0.38rem;
-    padding: 0 0.55rem 0 0.7rem;
-    background: var(--pp-surface);
-    color: var(--pp-text-faint);
-    font-size: 0.64rem;
-    text-align: left;
-  }
-
-  .pp-global-command:hover {
-    border-color: var(--pp-accent-signal);
-    color: var(--pp-text);
-  }
-
-  .pp-global-command kbd {
-    border: 1px solid var(--pp-stroke);
-    border-radius: 0.24rem;
-    padding: 0.12rem 0.32rem;
-    background: var(--pp-surface-sunken);
-    color: var(--pp-text-muted);
-    font-family: var(--font-mono);
-    font-size: 0.55rem;
-  }
-
-  .pp-theme-toggle {
-    display: grid;
-    width: 2rem;
-    height: 2rem;
-    flex: none;
-    place-items: center;
-    border: 1px solid var(--pp-stroke);
-    border-radius: 0.38rem;
-    background: var(--pp-surface);
-    color: var(--pp-text-muted);
-  }
-
-  .pp-theme-toggle svg {
-    width: 0.85rem;
-  }
-
   .pp-dashboard {
     height: 100%;
+    min-width: 0;
     overflow-y: auto;
-    padding: clamp(1.25rem, 3vw, 2.5rem);
+    padding: var(--pp-space-6);
     background: var(--pp-canvas);
     color: var(--pp-text);
   }
 
   .pp-dashboard-hero {
     display: flex;
-    align-items: end;
+    min-width: 0;
+    align-items: center;
     justify-content: space-between;
-    gap: 2rem;
-    width: min(74rem, 100%);
+    gap: var(--pp-space-6);
+    width: 100%;
+    max-width: 74rem;
     margin: 0 auto;
     border-bottom: 1px solid var(--pp-stroke-strong);
-    padding: clamp(1rem, 4vh, 3rem) 0 1.5rem;
+    padding: var(--pp-space-6) 0;
+  }
+
+  .pp-dashboard-hero > * {
+    min-width: 0;
   }
 
   .pp-dashboard-hero h1 {
-    margin-top: 0.6rem;
+    margin-top: var(--pp-space-2);
     color: var(--pp-text);
-    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-size: var(--pp-text-24);
     font-weight: 760;
-    letter-spacing: -0.07em;
-    line-height: 0.98;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
   }
 
   .pp-dashboard-hero p {
     max-width: 35rem;
-    margin-top: 1rem;
+    margin-top: var(--pp-space-3);
     color: var(--pp-text-muted);
-    font-size: 0.86rem;
+    font-size: var(--pp-text-12);
   }
 
   .pp-kicker {
@@ -3819,13 +3722,15 @@
 
   .pp-dashboard-scan {
     display: grid;
-    min-width: min(23rem, 100%);
-    grid-template-columns: auto 1fr auto;
+    width: 100%;
+    max-width: 19rem;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.8rem;
+    gap: var(--pp-space-4);
     border: 1px solid var(--pp-accent-signal);
     border-radius: 0.5rem;
-    padding: 0.8rem 0.9rem;
+    padding: var(--pp-space-4) var(--pp-space-5);
     background: var(--pp-accent-soft);
     color: var(--pp-text);
     text-align: left;
@@ -3846,6 +3751,7 @@
 
   .pp-dashboard-scan span {
     display: grid;
+    min-width: 0;
   }
 
   .pp-dashboard-scan strong {
@@ -3856,17 +3762,23 @@
     margin-top: 0.2rem;
     color: var(--pp-text-muted);
     font-size: 0.59rem;
+    overflow-wrap: anywhere;
   }
 
   .pp-dashboard-grid {
     display: grid;
-    width: min(74rem, 100%);
+    width: 100%;
+    max-width: 74rem;
+    min-width: 0;
     grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
     gap: 1rem;
     margin: 1rem auto;
   }
 
   .pp-dashboard-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     border: 1px solid var(--pp-stroke);
     border-radius: 0.55rem;
     padding: 1rem;
@@ -4160,14 +4072,16 @@
 
   .pp-help-drawer section,
   .pp-command-list button:hover,
-  .pp-command-list button:focus-visible {
+  .pp-command-list button:focus-visible,
+  .pp-command-list button.is-active {
     background: var(--pp-surface-raised);
   }
 
   .pp-help-drawer h2,
   .pp-command-search input,
   .pp-command-list button:hover,
-  .pp-command-list button:focus-visible {
+  .pp-command-list button:focus-visible,
+  .pp-command-list button.is-active {
     color: var(--pp-text);
   }
 
@@ -4521,7 +4435,7 @@
 
 @media (max-width: 920px) {
   .pp-dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -4536,10 +4450,6 @@
     display: none;
   }
 
-  .pp-protocol-column {
-    height: calc(100vh - 3.15rem);
-  }
-
   .pp-protocol-surface {
     height: auto;
   }
@@ -4550,36 +4460,14 @@
     height: 100%;
   }
 
-  .pp-global-header {
-    min-height: 3rem;
-    padding: 0 0.55rem;
-  }
-
-  .pp-global-brand small,
-  .pp-global-command span {
-    display: none;
-  }
-
-  .pp-global-brand {
-    min-width: auto;
-  }
-
-  .pp-global-command {
-    width: auto;
-    margin-left: auto;
-  }
-
   .pp-dashboard {
-    padding: 1rem;
+    padding: var(--pp-space-5);
   }
 
   .pp-dashboard-hero {
     display: grid;
-    padding-top: 0.5rem;
-  }
-
-  .pp-dashboard-scan {
-    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: var(--pp-space-2);
   }
 }
 

@@ -400,8 +400,8 @@ describe('gRPC launcher recents', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
     await screen.findByRole('region', { name: 'Echo call workspace' });
-    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Manage targets' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open gRPC actions' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Manage targets' }));
 
     fireEvent.change(screen.getByLabelText('Address'), {
       target: { value: 'replacement.test:50051' },
@@ -812,6 +812,29 @@ describe('gRPC launcher recents', () => {
   });
 });
 
+describe('gRPC workbench command ownership', () => {
+  it('keeps local actions button-only while preserving the slash method shortcut', async () => {
+    vi.stubGlobal('fetch', installDirectFetch());
+    render(<App />);
+    await screen.findByRole('region', { name: 'Echo call workspace' });
+
+    const actions = screen.getByRole('button', { name: 'Open gRPC actions' });
+    expect(actions).toBeVisible();
+    expect(actions).toHaveTextContent('gRPC actions');
+    expect(actions).not.toHaveTextContent(/Ctrl|⌘|K/);
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: '/' });
+    expect(screen.getByRole('textbox', { name: 'Filter services and methods' })).toHaveFocus();
+
+    fireEvent.click(actions);
+    expect(screen.getByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
+    expect(screen.getByRole('option', { name: /Invoke current method/ })).toBeVisible();
+  });
+});
+
 describe('gRPC replay safety', () => {
   it('applies same-method replay immediately and never invokes persisted redaction markers', async () => {
     window.localStorage.setItem(
@@ -835,8 +858,8 @@ describe('gRPC replay safety', () => {
     fireEvent.change(screen.getByLabelText('Request JSON'), {
       target: { value: '{"stale":true}' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Open history and saved requests' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open gRPC actions' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Open history and saved requests' }));
     fireEvent.click(screen.getByRole('button', { name: /Redacted replay/ }));
 
     expect(screen.getByLabelText('Request JSON')).toHaveValue('{"from":"saved"}');
@@ -1703,8 +1726,8 @@ describe('unary repeat', () => {
     await waitFor(() => expect(repeatSignal).toBeDefined());
 
     expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Invoke current method/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open gRPC actions' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Invoke current method/ }));
 
     expect(repeatSignal?.aborted).toBe(false);
     expect(
@@ -2187,8 +2210,8 @@ describe('gRPC Health Check and Watch', () => {
     expect(screen.getByRole('button', { name: 'Run' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Run repeat' })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open command palette' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Invoke current method/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open gRPC actions' }));
+    fireEvent.click(await screen.findByRole('option', { name: /Invoke current method/ }));
     expect(await screen.findByText(/Cancel Health first/i)).toBeVisible();
     expect(watchSignal?.aborted).toBe(false);
     expect(

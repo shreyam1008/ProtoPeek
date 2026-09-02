@@ -543,11 +543,6 @@ export function App() {
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLElement && target.isContentEditable);
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        setCommandPaletteOpen((open) => !open);
-        return;
-      }
       if (event.key === '/' && !typing) {
         event.preventDefault();
         document.querySelector<HTMLInputElement>('#method-search')?.focus();

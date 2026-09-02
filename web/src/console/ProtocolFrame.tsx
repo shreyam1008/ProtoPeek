@@ -1,22 +1,5 @@
-import { Link, Outlet, useNavigate } from '@tanstack/react-router';
-import {
-  CircleHelp,
-  Cloud,
-  Download,
-  Home,
-  ListTodo,
-  Menu,
-  Monitor,
-  Moon,
-  Network,
-  Radar,
-  Search,
-  Server,
-  Settings as SettingsIcon,
-  ShieldCheck,
-  Sun,
-  X,
-} from 'lucide-react';
+import { Outlet, useNavigate } from '@tanstack/react-router';
+import { X } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
@@ -32,6 +15,7 @@ import {
   commandDestinationFeatures,
   currentPrimaryNavigation,
   currentSecondaryNavigation,
+  type FeatureRoute,
 } from './app/feature-registry';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { scanResultHTTPURL } from './discovery-url';
@@ -47,28 +31,15 @@ import {
   type RecentDiscovery,
   type ScanDialogRequest,
 } from './ProtocolShellContext';
-import { ProtoPeekMark } from './ProtoPeekMark';
 import { normalizeRecentDiscoveries } from './recent-discovery';
+import { DesktopShell } from './shell/DesktopShell';
 import { useDialogFocus } from './use-dialog-focus';
-import './unified-shell.css';
+import './shell/shell.css';
 
 const ScanTargetDialog = lazy(async () => {
   const module = await import('./ScanTargetDialog');
   return { default: module.ScanTargetDialog };
 });
-
-const primaryNavigationIcons = {
-  overview: Home,
-  protocols: Server,
-  network: Network,
-  'this-pc': Monitor,
-  tunnels: Cloud,
-  downloader: Download,
-  security: ShieldCheck,
-  settings: SettingsIcon,
-} as const;
-
-const secondaryNavigationIcons = { roadmap: ListTodo } as const;
 
 function systemPrefersDark() {
   if (typeof window.matchMedia !== 'function') return false;
@@ -98,6 +69,7 @@ export function ProtocolFrame() {
     normalizeRecentDiscoveries(loadStoredValue<unknown>(appStorageKeys.discoveries, []))
   );
   const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const skipRouteFocusRef = useRef<FeatureRoute | null>(null);
   const modifier = modifierKeyLabel();
 
   const resolvedAppearance = useMemo(
@@ -147,9 +119,33 @@ export function ProtocolFrame() {
   }, [discoveries]);
 
   const openScan = useCallback((request: ScanDialogRequest = {}) => {
+    setCommandOpen(false);
+    setHelpOpen(false);
+    setNavigationOpen(false);
     setScanRequest(request);
     setScanGeneration((generation) => generation + 1);
     setScanOpen(true);
+  }, []);
+
+  const openCommand = useCallback(() => {
+    setHelpOpen(false);
+    setNavigationOpen(false);
+    setScanOpen(false);
+    setCommandOpen(true);
+  }, []);
+
+  const openHelp = useCallback(() => {
+    setCommandOpen(false);
+    setNavigationOpen(false);
+    setScanOpen(false);
+    setHelpOpen(true);
+  }, []);
+
+  const openNavigation = useCallback(() => {
+    setCommandOpen(false);
+    setHelpOpen(false);
+    setScanOpen(false);
+    setNavigationOpen(true);
   }, []);
 
   const recordResults = useCallback((results: ScanResult[]) => {
@@ -173,6 +169,7 @@ export function ProtocolFrame() {
         new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
       );
       setScanOpen(false);
+      skipRouteFocusRef.current = '/protocols/grpc';
       void navigate({ to: '/protocols/grpc' });
     },
     [navigate]
@@ -186,6 +183,7 @@ export function ProtocolFrame() {
         new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, { detail: url })
       );
       setScanOpen(false);
+      skipRouteFocusRef.current = '/protocols/http';
       void navigate({ to: '/protocols/http' });
     },
     [navigate]
@@ -221,16 +219,19 @@ export function ProtocolFrame() {
         id: 'help',
         label: 'Open protocol checklist',
         keywords: 'help evidence transport',
-        run: () => setHelpOpen(true),
+        run: openHelp,
       },
     ];
-  }, [appearance, navigate, openScan, resolvedAppearance.theme, setAppearance]);
+  }, [appearance, navigate, openHelp, openScan, resolvedAppearance.theme, setAppearance]);
 
   useEffect(() => {
     function handleGlobalShortcut(event: KeyboardEvent) {
       if ((!event.metaKey && !event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
       event.preventDefault();
       event.stopImmediatePropagation();
+      setHelpOpen(false);
+      setNavigationOpen(false);
+      setScanOpen(false);
       setCommandOpen((open) => !open);
     }
     window.addEventListener('keydown', handleGlobalShortcut, true);
@@ -264,263 +265,55 @@ export function ProtocolFrame() {
 
   return (
     <ProtocolShellContext.Provider value={contextValue}>
-      <div className="pp-protocol-frame">
-        <aside className="pp-suite-rail">
-          <Link
-            to="/"
-            className="pp-suite-mark"
-            aria-label="Open ProtoPeek overview"
-            activeOptions={{ exact: true }}
-          >
-            <ProtoPeekMark />
-          </Link>
-          <nav className="pp-suite-primary" aria-label="Primary">
-            {currentPrimaryNavigation.map((item) => {
-              const Icon = primaryNavigationIcons[item.id];
-              return (
-                <Link
-                  key={item.id}
-                  to={item.route}
-                  className="pp-suite-nav-link"
-                  activeOptions={item.route === '/' ? { exact: true } : undefined}
-                  activeProps={{ className: 'is-active' }}
-                  aria-label={`Open ${item.label}`}
-                >
-                  <Icon aria-hidden="true" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="pp-suite-secondary">
-            {currentSecondaryNavigation.map((item) => {
-              const Icon = secondaryNavigationIcons[item.id];
-              return (
-                <Link
-                  key={item.id}
-                  to={item.route}
-                  className="pp-suite-nav-link"
-                  activeProps={{ className: 'is-active' }}
-                  aria-label={`Open ${item.label}`}
-                >
-                  <Icon aria-hidden="true" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-            <button
-              type="button"
-              className="pp-suite-nav-link"
-              aria-label="Open ProtoPeek help"
-              aria-expanded={helpOpen}
-              onClick={() => setHelpOpen(true)}
-            >
-              <CircleHelp aria-hidden="true" />
-              <span>Help</span>
-            </button>
-          </div>
-        </aside>
-
-        <div className="pp-protocol-column pp-suite-column">
-          <header className="pp-global-header pp-suite-header">
-            <button
-              type="button"
-              className="pp-suite-mobile-menu"
-              aria-label="Open navigation menu"
-              aria-controls="protopeek-mobile-navigation"
-              aria-expanded={navigationOpen}
-              onClick={() => setNavigationOpen(true)}
-            >
-              <Menu aria-hidden="true" />
-            </button>
-            <Link to="/" className="pp-global-brand">
-              <span>ProtoPeek</span>
-              <small>local developer workbench</small>
-            </Link>
-            <span className="pp-suite-local-state">
-              <Monitor aria-hidden="true" /> Runs locally
-            </span>
-            <button type="button" className="pp-suite-scan-action" onClick={() => openScan()}>
-              <Radar aria-hidden="true" /> <span>Inspect target</span>
-            </button>
-            <button
-              type="button"
-              className="pp-global-command"
-              aria-label="Open global command menu"
-              onClick={() => setCommandOpen(true)}
-            >
-              <Search aria-hidden="true" />
-              <span>Jump to a protocol or command</span>
-              <kbd>{modifier} K</kbd>
-            </button>
-            <button
-              type="button"
-              className="pp-theme-toggle"
-              aria-label={`Use ${resolvedAppearance.theme === 'light' ? 'dark' : 'light'} mode`}
-              onClick={() =>
-                setAppearance({
-                  ...appearance,
-                  mode: resolvedAppearance.theme === 'light' ? 'dark' : 'light',
-                })
-              }
-            >
-              {resolvedAppearance.theme === 'light' ? (
-                <Moon aria-hidden="true" />
-              ) : (
-                <Sun aria-hidden="true" />
-              )}
-            </button>
-          </header>
-          <main className="pp-protocol-surface pp-suite-surface">
-            <Outlet />
-          </main>
-        </div>
-
-        <MobileNavigationDrawer
-          open={navigationOpen}
-          onClose={() => setNavigationOpen(false)}
-          onInspect={() => openScan()}
-          onHelp={() => setHelpOpen(true)}
-        />
-
-        {scanOpen ? (
-          <Suspense
-            fallback={
-              <div className="pp-scan-dialog-layer">
-                <div className="pp-scan-dialog-backdrop" aria-hidden="true" />
-                <div className="pp-scan-dialog pp-scan-dialog-loading" role="status">
-                  Opening scan tools…
-                </div>
-              </div>
-            }
-          >
-            <ScanTargetDialog
-              key={scanGeneration}
-              open
-              initialTarget={scanRequest.initialTarget}
-              autoStart={scanRequest.autoStart}
-              onClose={() => setScanOpen(false)}
-              onResults={recordResults}
-              onOpenGRPC={openGRPCDiscovery}
-              onOpenHTTP={openHTTPDiscovery}
-            />
-          </Suspense>
-        ) : null}
-        <CommandPalette
-          open={commandOpen}
-          actions={actions}
-          onClose={() => setCommandOpen(false)}
-        />
-        <HelpDrawer open={helpOpen} onClose={closeHelp} />
-      </div>
-    </ProtocolShellContext.Provider>
-  );
-}
-
-function MobileNavigationDrawer({
-  open,
-  onClose,
-  onInspect,
-  onHelp,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onInspect: () => void;
-  onHelp: () => void;
-}) {
-  const drawerRef = useRef<HTMLElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  useDialogFocus(open, onClose, drawerRef, closeButtonRef);
-
-  if (!open) return null;
-
-  function closeThen(action: () => void) {
-    onClose();
-    action();
-  }
-
-  return (
-    <div className="pp-suite-mobile-layer">
-      <button
-        type="button"
-        className="pp-suite-mobile-backdrop"
-        aria-label="Close navigation menu"
-        onClick={onClose}
-      />
-      <aside
-        id="protopeek-mobile-navigation"
-        ref={drawerRef}
-        className="pp-suite-mobile-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="protopeek-mobile-navigation-title"
+      <DesktopShell
+        primaryNavigation={currentPrimaryNavigation}
+        secondaryNavigation={currentSecondaryNavigation}
+        modifier={modifier}
+        resolvedTheme={resolvedAppearance.theme}
+        navigationOpen={navigationOpen}
+        helpOpen={helpOpen}
+        skipRouteFocusRef={skipRouteFocusRef}
+        onInspect={() => openScan()}
+        onOpenNavigation={openNavigation}
+        onCloseNavigation={() => setNavigationOpen(false)}
+        onOpenCommand={openCommand}
+        onOpenHelp={openHelp}
+        onToggleTheme={() =>
+          setAppearance({
+            ...appearance,
+            mode: resolvedAppearance.theme === 'light' ? 'dark' : 'light',
+          })
+        }
       >
-        <header>
-          <div>
-            <ProtoPeekMark />
-            <span className="pp-suite-mobile-brand-copy">
-              <strong id="protopeek-mobile-navigation-title">ProtoPeek</strong>
-              <small>Local developer workbench</small>
-            </span>
-          </div>
-          <button
-            ref={closeButtonRef}
-            type="button"
-            className="pp-suite-mobile-close"
-            aria-label="Close navigation menu"
-            onClick={onClose}
-          >
-            <X aria-hidden="true" />
-          </button>
-        </header>
-        <nav aria-label="Mobile primary">
-          {currentPrimaryNavigation.map((item) => {
-            const Icon = primaryNavigationIcons[item.id];
-            return (
-              <Link
-                key={item.id}
-                to={item.route}
-                className="pp-suite-mobile-link pp-suite-mobile-primary-link"
-                activeOptions={item.route === '/' ? { exact: true } : undefined}
-                activeProps={{ className: 'is-active' }}
-                onClick={onClose}
-              >
-                <Icon aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="pp-suite-mobile-actions">
-          <button
-            type="button"
-            className="pp-suite-mobile-link"
-            onClick={() => closeThen(onInspect)}
-          >
-            <Radar aria-hidden="true" /> Inspect target
-          </button>
-          {currentSecondaryNavigation.map((item) => {
-            const Icon = secondaryNavigationIcons[item.id];
-            return (
-              <Link
-                key={item.id}
-                to={item.route}
-                className="pp-suite-mobile-link"
-                onClick={onClose}
-              >
-                <Icon aria-hidden="true" /> {item.label}
-              </Link>
-            );
-          })}
-          <button type="button" className="pp-suite-mobile-link" onClick={() => closeThen(onHelp)}>
-            <CircleHelp aria-hidden="true" /> Help
-          </button>
-        </div>
-        <footer>
-          <Monitor aria-hidden="true" /> Local app · no account or cloud sync
-        </footer>
-      </aside>
-    </div>
+        <Outlet />
+      </DesktopShell>
+
+      {scanOpen ? (
+        <Suspense
+          fallback={
+            <div className="pp-scan-dialog-layer">
+              <div className="pp-scan-dialog-backdrop" aria-hidden="true" />
+              <div className="pp-scan-dialog pp-scan-dialog-loading" role="status">
+                Opening scan tools…
+              </div>
+            </div>
+          }
+        >
+          <ScanTargetDialog
+            key={scanGeneration}
+            open
+            initialTarget={scanRequest.initialTarget}
+            autoStart={scanRequest.autoStart}
+            onClose={() => setScanOpen(false)}
+            onResults={recordResults}
+            onOpenGRPC={openGRPCDiscovery}
+            onOpenHTTP={openHTTPDiscovery}
+          />
+        </Suspense>
+      ) : null}
+      <CommandPalette open={commandOpen} actions={actions} onClose={() => setCommandOpen(false)} />
+      <HelpDrawer open={helpOpen} onClose={closeHelp} />
+    </ProtocolShellContext.Provider>
   );
 }
 

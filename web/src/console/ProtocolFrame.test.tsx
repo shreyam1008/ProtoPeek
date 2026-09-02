@@ -83,23 +83,23 @@ describe('ProtocolFrame', () => {
     trigger.focus();
     fireEvent.click(trigger);
     const commands = screen.getByRole('dialog', { name: 'ProtoPeek commands' });
-    expect(within(commands).getByRole('button', { name: 'Open Downloader' })).toBeVisible();
+    expect(within(commands).getByRole('option', { name: 'Open Downloader' })).toBeVisible();
     expect(
-      within(commands).getByRole('button', { name: 'Open Cloudflare tunnel operations' })
+      within(commands).getByRole('option', { name: 'Open Cloudflare tunnel operations' })
     ).toBeVisible();
 
-    fireEvent.change(within(commands).getByRole('textbox', { name: 'Search commands' }), {
+    fireEvent.change(within(commands).getByRole('combobox', { name: 'Search commands' }), {
       target: { value: 'trailers' },
     });
-    expect(within(commands).getByRole('button', { name: 'Open gRPC workbench' })).toBeVisible();
-    expect(within(commands).queryByRole('button', { name: 'Open HTTP workbench' })).toBeNull();
+    expect(within(commands).getByRole('option', { name: 'Open gRPC workbench' })).toBeVisible();
+    expect(within(commands).queryByRole('option', { name: 'Open HTTP workbench' })).toBeNull();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
 
     fireEvent.click(trigger);
-    expect(screen.getByRole('textbox', { name: 'Search commands' })).toHaveValue('');
+    expect(screen.getByRole('combobox', { name: 'Search commands' })).toHaveValue('');
   });
 
   it('traps and restores focus in the mobile drawer, then navigates without a horizontal rail', async () => {
@@ -135,5 +135,80 @@ describe('ProtocolFrame', () => {
     ).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).not.toBeInTheDocument();
+  });
+
+  it('tracks bounded route sessions, keeps Home out, and focuses ordinary destination headings', async () => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+
+    const sessions = screen.getByRole('tablist', { name: 'Open workbench sessions' });
+    expect(within(sessions).getAllByRole('tab')).toHaveLength(1);
+    expect(within(sessions).getByRole('tab', { name: 'APIs' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(within(sessions).queryByRole('tab', { name: 'Overview' })).toBeNull();
+
+    fireEvent.click(
+      within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('link', {
+        name: 'Open Settings',
+      })
+    );
+    const settingsHeading = await screen.findByRole('heading', {
+      name: "Shape this browser's console.",
+    });
+    await waitFor(() => expect(settingsHeading).toHaveFocus());
+    expect(within(sessions).getAllByRole('tab')).toHaveLength(2);
+
+    fireEvent.click(within(sessions).getByRole('tab', { name: 'APIs' }));
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await waitFor(() =>
+      expect(within(sessions).getByRole('tab', { name: 'APIs' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Close APIs session' }));
+    expect(
+      await screen.findByRole('heading', { name: "Shape this browser's console." })
+    ).toBeVisible();
+    expect(router.state.location.pathname).toBe('/settings');
+    expect(within(sessions).queryByRole('tab', { name: 'APIs' })).toBeNull();
+  });
+
+  it('keeps only one global modal focus owner open at a time', async () => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek' })).toBeVisible();
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const palette = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).toBeNull();
+    expect(screen.getAllByRole('dialog')).toEqual([palette]);
+
+    fireEvent.click(within(palette).getByRole('option', { name: 'Open protocol checklist' }));
+    const help = await screen.findByRole('dialog', {
+      name: 'Debug what is actually on the wire.',
+    });
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).toBeNull();
+    expect(screen.getAllByRole('dialog')).toEqual([help]);
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
+    expect(
+      screen.queryByRole('dialog', { name: 'Debug what is actually on the wire.' })
+    ).toBeNull();
   });
 });

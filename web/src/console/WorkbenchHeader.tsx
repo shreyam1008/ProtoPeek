@@ -1,6 +1,5 @@
 import { LockKeyhole, Menu, RefreshCw, Server } from 'lucide-react';
 import type { RefObject } from 'react';
-import { modifierKeyLabel } from '@/shared/runtime';
 import type { BootstrapMethod, WorkspaceTargetProfile } from '@/shared/types';
 import { workspaceSchemaSourceLabel } from '@/shared/utils';
 
@@ -36,8 +35,6 @@ export function WorkbenchHeader({
 }) {
   const source = workspaceSchemaSourceLabel(targetProfile?.schemaSource ?? 'reflection');
   const transport = targetProfile?.plaintext === false ? 'TLS' : 'Plaintext';
-  const modifier = modifierKeyLabel();
-
   return (
     <header className="pp-workbench-header">
       <button
@@ -71,11 +68,10 @@ export function WorkbenchHeader({
       <button
         type="button"
         className="pp-command-trigger"
-        aria-label="Open command palette"
+        aria-label="Open gRPC actions"
         onClick={onOpenCommandPalette}
       >
-        <span>Commands</span>
-        <kbd>{modifier} K</kbd>
+        <span>gRPC actions</span>
       </button>
     </header>
   );
