@@ -38,6 +38,7 @@ import {
   useState,
 } from 'react';
 
+import { StatusFact } from './evidence/StatusFact';
 import { useProtocolShell } from './ProtocolShellContext';
 import {
   type PlannedTunnelRoute,
@@ -1095,10 +1096,7 @@ function RuntimePanel({
       </div>
       <dl>
         {facts.map(([label, value]) => (
-          <div key={label}>
-            <dt>{label}</dt>
-            <dd>{value}</dd>
-          </div>
+          <StatusFact key={label} label={label} value={value} />
         ))}
       </dl>
       <div className="pp-tunnel-boundary-card">

@@ -25,6 +25,7 @@ import {
   useState,
 } from 'react';
 
+import { StatusFact } from './evidence/StatusFact';
 import {
   fetchThisPCCapabilities,
   fetchThisPCPublicIdentity,
@@ -334,30 +335,12 @@ function SnapshotSummary({ snapshot }: { snapshot: Resource<ThisPCSnapshot> }) {
   return (
     <section className="this-pc-summary" aria-label="Local machine identity">
       <dl>
-        <div>
-          <dt>Host name</dt>
-          <dd>{value.hostname ?? 'Not reported'}</dd>
-        </div>
-        <div>
-          <dt>OS</dt>
-          <dd>{value.os}</dd>
-        </div>
-        <div>
-          <dt>Architecture</dt>
-          <dd>{value.arch}</dd>
-        </div>
-        <div>
-          <dt>Logical CPUs</dt>
-          <dd>{value.logicalCpus}</dd>
-        </div>
-        <div>
-          <dt>Uptime</dt>
-          <dd>{formatUptime(value.linuxSystem?.uptimeSeconds)}</dd>
-        </div>
-        <div>
-          <dt>Scope</dt>
-          <dd>Local process/network namespace</dd>
-        </div>
+        <StatusFact label="Host name" value={value.hostname ?? 'Not reported'} />
+        <StatusFact label="OS" value={value.os} />
+        <StatusFact label="Architecture" value={value.arch} />
+        <StatusFact label="Logical CPUs" value={value.logicalCpus} />
+        <StatusFact label="Uptime" value={formatUptime(value.linuxSystem?.uptimeSeconds)} />
+        <StatusFact label="Scope" value="Local process/network namespace" />
       </dl>
       <p>{value.scopeNotice}</p>
     </section>

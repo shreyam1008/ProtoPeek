@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { classNames } from '@/shared/runtime';
 
 import { lookupRoute, type RouteLookupResponse, type RouteResult } from './api';
+import { StatusFact } from './evidence/StatusFact';
 
 export function RoutesWorkbench() {
   const [destination, setDestination] = useState('');
@@ -173,51 +174,27 @@ function RouteEvidenceCard({ result }: { result: RouteResult }) {
             </span>
           </div>
           <dl className="pp-route-facts">
-            <div>
-              <dt>Destination</dt>
-              <dd>{result.destination}</dd>
-            </div>
-            <div>
-              <dt>Family</dt>
-              <dd>{result.family}</dd>
-            </div>
-            <div>
-              <dt>Source IP</dt>
-              <dd>{result.sourceIp || 'Not reported'}</dd>
-            </div>
-            <div>
-              <dt>Interface</dt>
-              <dd>
-                {interfaceLabel}
-                {result.interfaceIndex ? ` · ${result.interfaceIndex}` : ''}
-              </dd>
-            </div>
-            <div>
-              <dt>Next hop</dt>
-              <dd>{hopLabel || 'Not reported'}</dd>
-            </div>
+            <StatusFact label="Destination" value={result.destination} />
+            <StatusFact label="Family" value={result.family} />
+            <StatusFact label="Source IP" value={result.sourceIp || 'Not reported'} />
+            <StatusFact
+              label="Interface"
+              value={
+                <>
+                  {interfaceLabel}
+                  {result.interfaceIndex ? ` · ${result.interfaceIndex}` : ''}
+                </>
+              }
+            />
+            <StatusFact label="Next hop" value={hopLabel || 'Not reported'} />
             {result.prefix !== null ? (
-              <div>
-                <dt>Prefix</dt>
-                <dd>/{result.prefix}</dd>
-              </div>
+              <StatusFact label="Prefix" value={`/${result.prefix}`} />
             ) : null}
             {result.routeMetric !== null ? (
-              <div>
-                <dt>Route metric</dt>
-                <dd>{result.routeMetric}</dd>
-              </div>
+              <StatusFact label="Route metric" value={result.routeMetric} />
             ) : null}
-            {result.table !== null ? (
-              <div>
-                <dt>Route table</dt>
-                <dd>{result.table}</dd>
-              </div>
-            ) : null}
-            <div>
-              <dt>Backend</dt>
-              <dd>{result.backend}</dd>
-            </div>
+            {result.table !== null ? <StatusFact label="Route table" value={result.table} /> : null}
+            <StatusFact label="Backend" value={result.backend} />
           </dl>
         </>
       ) : (

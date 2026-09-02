@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { StatusFact } from './evidence/StatusFact';
 import {
   addTransferBatch,
   fetchTransferSnapshot,
@@ -703,36 +704,27 @@ function TransferInspector({
           style={{ '--pp-progress': `${job.progressPercent}%` } as React.CSSProperties}
         />
         <dl>
-          <div>
-            <dt>Downloaded</dt>
-            <dd>{formatProgress(job.completedBytes, job.totalBytes)}</dd>
-          </div>
-          <div>
-            <dt>Speed</dt>
-            <dd>{formatRate(job.bytesPerSecond)}</dd>
-          </div>
-          <div>
-            <dt>ETA</dt>
-            <dd>{formatETA(job.etaSeconds, job.status)}</dd>
-          </div>
-          <div>
-            <dt>Connections</dt>
-            <dd>{job.connections}</dd>
-          </div>
+          <StatusFact
+            label="Downloaded"
+            value={formatProgress(job.completedBytes, job.totalBytes)}
+          />
+          <StatusFact label="Speed" value={formatRate(job.bytesPerSecond)} />
+          <StatusFact label="ETA" value={formatETA(job.etaSeconds, job.status)} />
+          <StatusFact label="Connections" value={job.connections} />
         </dl>
       </section>
 
       <section className="pp-inspector-section">
         <span className="pp-kicker">Destination</span>
         <dl>
-          <div>
-            <dt>File path</dt>
-            <dd>{job.outputPath || 'Assigned when the engine accepts the transfer.'}</dd>
-          </div>
-          <div>
-            <dt>Total size</dt>
-            <dd>{job.totalBytes ? formatBytes(job.totalBytes) : 'Unknown'}</dd>
-          </div>
+          <StatusFact
+            label="File path"
+            value={job.outputPath || 'Assigned when the engine accepts the transfer.'}
+          />
+          <StatusFact
+            label="Total size"
+            value={job.totalBytes ? formatBytes(job.totalBytes) : 'Unknown'}
+          />
         </dl>
         {job.outputPath ? (
           <button
@@ -759,10 +751,7 @@ function TransferInspector({
       <section className="pp-inspector-section">
         <span className="pp-kicker">Integrity</span>
         <dl>
-          <div>
-            <dt>SHA-256</dt>
-            <dd>{integrityLabel(job)}</dd>
-          </div>
+          <StatusFact label="SHA-256" value={integrityLabel(job)} />
         </dl>
       </section>
 
