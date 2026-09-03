@@ -149,6 +149,24 @@ describe('published color and motion contracts', () => {
     expect(forcedColors).toContain('--pp-shadow-dialog: none');
   });
 
+  it('stops active shared loaders when reduced motion is requested', () => {
+    const reducedMotion = [
+      ...consoleCSS.matchAll(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\}/g),
+    ]
+      .map((match) => match[1])
+      .join('\n');
+
+    for (const selector of [
+      '.pp-response-spinner',
+      '.pp-scan-progress svg',
+      '.pp-evidence-loading svg',
+      '.pp-nmap-port button svg.is-loading',
+    ]) {
+      expect(reducedMotion).toContain(selector);
+    }
+    expect(reducedMotion).toMatch(/animation:\s*none/);
+  });
+
   it('keeps the canonical focus ring theme-aware', () => {
     expect(consoleCSS).toMatch(
       /:focus-visible\s*\{[^}]*outline:\s*var\(--pp-focus-width\) solid var\(--pp-color-focus\)/s

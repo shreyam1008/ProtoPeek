@@ -5572,3 +5572,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-response-spinner,
+  .pp-scan-progress svg,
+  .pp-evidence-loading svg,
+  .pp-nmap-port button svg.is-loading {
+    animation: none;
+  }
+}
