@@ -14,6 +14,8 @@
 !standalone/**
 !web/console/**
 !web/src/console/**
+!web/src/design/**
+!web/src/features/**
 !web/src/shared/**
 !web/src/vite-env.d.ts
 !web/tsconfig.json

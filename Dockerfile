@@ -5,6 +5,8 @@ WORKDIR /src
 COPY package.json bun.lock biome.json ./
 COPY web/console ./web/console
 COPY web/src/console ./web/src/console
+COPY web/src/design ./web/src/design
+COPY web/src/features ./web/src/features
 COPY web/src/shared ./web/src/shared
 COPY web/src/vite-env.d.ts ./web/src/vite-env.d.ts
 COPY web/tsconfig.json ./web/tsconfig.json

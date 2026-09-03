@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
-import '@/shared/protopeek.css';
+import './protopeek.css';
 
 import { App } from './App';
 

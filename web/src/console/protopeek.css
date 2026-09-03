@@ -1,0 +1,8 @@
+@import "../shared/protopeek.css";
+
+@source "./**/*.{ts,tsx}";
+@source "../features/**/*.{ts,tsx}";
+@source "../shared/**/*.{ts,tsx}";
+@source not "./**/*.test.{ts,tsx}";
+@source not "../features/**/*.test.{ts,tsx}";
+@source not "../shared/**/*.test.{ts,tsx}";

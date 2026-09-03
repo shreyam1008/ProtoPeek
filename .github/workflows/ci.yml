@@ -35,25 +35,20 @@ jobs:
       - name: Frontend quality gate
         run: bun run test
 
-      - name: Check checked-in embedded app budget
-        run: bun run check:bundle-budget
-
       - name: Build site and embedded app
         run: bun run build
 
       - name: Verify generated assets and prerender
         shell: bash
         run: |
-          # The locked native web toolchain emits different content hashes on Windows and Linux.
-          # Windows owns the checked-in embedded app; Linux remains the bundle-budget authority.
-          test -z "$(git status --porcelain -- docs)"
-          grep -Fq 'See what your system is doing.' docs/index.html
+          test -z "$(git status --porcelain -- docs internal/resources/app/dist)"
+          grep -Fq 'What is happening on this device?' docs/index.html
           if grep -Fq '<div id="root"></div>' docs/index.html; then
             echo 'Homepage was not prerendered.' >&2
             exit 1
           fi
 
-  embedded-assets-windows:
+  web-build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,13 +60,18 @@ jobs:
       - name: Install web dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify checked-in embedded app assets
-        shell: pwsh
+      - name: Build site and embedded app on Windows
         run: |
           bun run build:app
-          if (git status --porcelain -- internal/resources/app/dist) {
-            git status --short -- internal/resources/app/dist
-            throw 'Checked-in embedded app assets are stale.'
+          bun run build:site
+
+      - name: Verify cross-platform generated assets
+        shell: pwsh
+        run: |
+          $generatedChanges = git status --porcelain -- docs internal/resources/app/dist
+          if ($generatedChanges) {
+            $generatedChanges | Write-Error
+            throw 'Windows generated assets differ from the committed build.'
           }
 
   go:

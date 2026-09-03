@@ -1,8 +1,7 @@
 @layer theme, reset, tokens, base, shell, components, domains, utilities, overrides;
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "../design/tokens.css" layer(tokens);
 @import "../design/themes.css" layer(tokens);
-@source "../";
 
 @theme {
   --color-pp-bg: var(--pp-bg);
@@ -19,6 +18,7 @@
   --color-pp-ok: var(--pp-ok);
   --font-sans: var(--pp-font-ui);
   --font-mono: var(--pp-font-code);
+  --radius-full: 9999px;
 }
 
 @layer base {

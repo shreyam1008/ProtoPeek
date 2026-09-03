@@ -275,7 +275,8 @@ also remain planned rather than implied by the local-operations foundation above
 - Add NetBird only after the Tailscale slice proves the small common boundary. Preserve NetBird's
   native ICE, signal, relay, route, and DNS evidence rather than flattening it into Tailscale terms.
 - Keep Cloudflare Tunnel as service exposure, not private-mesh state. See the
-  [private-network integration plan](private-network-integration-plan.md) for sequencing,
+  [private-network integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/private-network-integration-plan.md)
+  for sequencing,
   retirement gates, and official-source research.
 
 ### Later — optional integrations after safety and size review
