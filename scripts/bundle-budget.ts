@@ -174,8 +174,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxRawBytes: 12 * kibibyte,
     maxGzipBytes: 3 * kibibyte,
   },
-  // Downloader, Security, This PC, and Tunnels are route-lazy: none is transferred when the
-  // dashboard or a protocol workbench opens. Keep their own budgets tight,
+  // Downloader, Security, This Device, and Tunnels are route-lazy: none is transferred when Home
+  // or another workbench opens. Keep their own budgets tight,
   // preserve the existing shared-entry ceiling above, and bound the installed
   // suite separately so adding a module cannot hide in code splitting.
   {

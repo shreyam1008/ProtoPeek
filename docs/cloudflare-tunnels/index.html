@@ -146,10 +146,10 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>ProtoPeek’s <strong>Cloudflare Tunnel</strong> workspace gives a local machine one clear operations view without creating another repository, daemon, or dashboard. It reads the real Cloudflare primitives already on that host—<code>cloudflared</code>, the canonical operating-system service, and documented YAML locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, network, and machine tools: the <a href="/http-workbench/">HTTP workbench</a>, <a href="/grpc-workbench/">gRPC workbench</a>, <a href="/network-workbench/">network workbench</a>, and <a href="/this-pc/">This PC</a>.</p>
+                <p>ProtoPeek’s <strong>Cloudflare Tunnel</strong> workspace gives a local machine one clear operations view without creating another repository, daemon, or dashboard. It reads the real Cloudflare primitives already on that host—<code>cloudflared</code>, the canonical operating-system service, and documented YAML locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, network, and machine tools: the <a href="/http-workbench/">HTTP workbench</a>, <a href="/grpc-workbench/">gRPC workbench</a>, <a href="/network-workbench/">network workbench</a>, and <a href="/this-pc/">This Device</a>.</p>
 <p>This page describes the current-source foundation after v0.5.0. It is not included in the published v0.5.0 packages, is not affiliated with or endorsed by Cloudflare, Inc., and does not make claims about Cloudflare pricing or plan limits.</p>
 <h2 id="what-works-now">What works now</h2>
-<p>Open <strong>Cloudflare Tunnel</strong> from the ProtoPeek sidebar or the Overview task list, then choose <strong>Inspect this host</strong>. No host inspection, Internet release check, service action, or background poll begins on page load. The product path always uses the running host adapter; it does not substitute demo deployments or fixture data. Test-only fakes remain isolated to automated tests.</p>
+<p>Open <strong>Publish</strong> and enter the domain-native <strong>Cloudflare Tunnel</strong> workspace, or choose its task on Home, then select <strong>Inspect this host</strong>. No host inspection, Internet release check, service action, or background poll begins on page load. The product path always uses the running host adapter; it does not substitute demo deployments or fixture data. Test-only fakes remain isolated to automated tests.</p>
 <p>One explicit inspection can show:</p>
 <ul><li>whether <code>cloudflared</code> is available and its bounded <code>--version</code> result;</li><li>the canonical <code>cloudflared</code> service known to systemd, launchd, or Windows Service Control Manager;</li><li>the service state, PID, executable path, and any explicit <code>--config</code> or credential-source flag;</li><li>documented user and system configuration candidates, without a recursive disk search;</li><li>which YAML candidate is selected as authoritative, why it won, and whether it is readable and valid, while keeping competing candidates visible;</li><li>named tunnel identity, management mode, config revision, ingress routes, protocols, and catch-all coverage;</li><li>whether Wrangler or Docker is installed, without borrowing Wrangler authentication or contacting the Docker daemon; and</li><li>a safe <strong>Draft ingress route</strong> drawer that checks the basic hostname, path, and local-service fields and previews YAML in the browser only.</li></ul>
 <p>An empty result is useful real evidence. If <code>cloudflared</code>, the canonical service, Wrangler, or Docker is absent, ProtoPeek says so and offers the next relevant official link instead of inventing a deployment.</p>
@@ -229,7 +229,7 @@
     <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
       <a href="/this-pc/">
         <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
-        <strong>This PC evidence</strong>
+        <strong>This Device evidence</strong>
       </a>
       <a href="/downloader/">
         <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>

@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek</title>
-    <meta name="description" content="Current source after v0.5.0 adds local identity/interfaces, explicit Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run." />
+    <title>This Device: Ports, Public IP &amp; Speed Evidence | ProtoPeek</title>
+    <meta name="description" content="Current source provides local identity/interfaces, Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run under Network." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="/docs.css" />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
-    <meta property="og:title" content="This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
-    <meta property="og:description" content="Current source after v0.5.0 adds local identity/interfaces, explicit Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run." />
+    <meta property="og:title" content="This Device: Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
+    <meta property="og:description" content="Current source provides local identity/interfaces, Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run under Network." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/this-pc/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -28,11 +28,11 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="This PC: Local Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
-    <meta name="twitter:description" content="Current source after v0.5.0 adds local identity/interfaces, explicit Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run." />
+    <meta name="twitter:title" content="This Device: Ports, Public IP &amp; Speed Evidence | ProtoPeek" />
+    <meta name="twitter:description" content="Current source provides local identity/interfaces, Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run under Network." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"This PC evidence","description":"Current source after v0.5.0 adds local identity/interfaces, explicit Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run.","url":"https://protopeek.shreyam1008.com.np/this-pc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/this-pc/","dateModified":"2026-09-02","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/this-pc.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"This PC evidence","item":"https://protopeek.shreyam1008.com.np/this-pc/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"This Device evidence","description":"Current source provides local identity/interfaces, Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run under Network.","url":"https://protopeek.shreyam1008.com.np/this-pc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/this-pc/","dateModified":"2026-09-03","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/this-pc.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"This Device evidence","item":"https://protopeek.shreyam1008.com.np/this-pc/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -60,14 +60,14 @@
     <nav class="pp-breadcrumb" aria-label="Breadcrumb">
       <a href="/">Home</a>
       <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
-      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">This PC evidence</span>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">This Device evidence</span>
     </nav>
 
           <section class="pp-doc-hero" aria-labelledby="page-title">
           <div class="pp-doc-hero-grid">
             <div class="pp-doc-hero-copy">
-              <h1 id="page-title">This PC evidence</h1>
-              <p>What is happening on this computer?</p>
+              <h1 id="page-title">This Device evidence</h1>
+              <p>What is happening on this device?</p>
 
     <span class="pp-page-status is-current is-full">
       <i aria-hidden="true"></i>Current source · after v0.5.0
@@ -81,10 +81,10 @@
     <figure class="pp-doc-visual pp-visual-this-pc">
       <div class="pp-doc-visual-heading">
         <span>Evidence path</span>
-        <strong>What is happening on this computer?</strong>
+        <strong>What is happening on this device?</strong>
       </div>
       <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-this-pc-title visual-this-pc-description">
-        <title id="visual-this-pc-title">This PC evidence evidence path</title>
+        <title id="visual-this-pc-title">This Device evidence evidence path</title>
         <desc id="visual-this-pc-description">Local to Public to Quality</desc>
         <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
 
@@ -140,8 +140,8 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>Status: <strong>available in current source after v0.5.0; not part of the published v0.5.0 release</strong>.</p>
-<p><strong>This PC</strong> is ProtoPeek&#39;s device-centred workspace. The existing <strong>Network</strong> workspace starts with a target and asks how this ProtoPeek process can reach it. This PC starts with the machine running ProtoPeek and answers four narrower questions:</p>
+                <p>Status: <strong>available under Network in current source after v0.5.0; not part of the published v0.5.0 release</strong>.</p>
+<p><strong>This Device</strong> is ProtoPeek&#39;s device-centred Network workspace. Its canonical <code>/this-pc</code> route and <code>/api/this-pc/*</code> endpoints retain their technical names for compatibility. The broader <strong>Network</strong> workspace starts with a target and asks how this ProtoPeek process can reach it. This Device starts with the machine running ProtoPeek and answers four narrower questions:</p>
 <ol><li><div class="pp-doc-list-title">What local system and interface evidence can this process observe without sending a packet?</div></li><li><div class="pp-doc-list-title">Which local listeners and current connections can the operating system expose to it?</div></li><li><div class="pp-doc-list-title">Which public IPv4 or IPv6 address and BGP-origin network do named providers observe?</div></li><li><div class="pp-doc-list-title">What bounded browser-to-Cloudflare connection quality is measured during one explicit run?</div></li></ol>
 <p>The page is an evidence workspace, not a health score. Mounting it reads only local identity, capability, and interface data. It does not inspect processes, contact an external provider, start a benchmark, poll in the background, elevate privileges, or persist the returned evidence.</p>
 <h2 id="read-the-evidence-spine">Read the evidence spine</h2>
@@ -182,7 +182,7 @@
 <table><thead><tr><th>Capability</th><th>Linux v1</th><th>macOS v1</th><th>Windows v1</th></tr></thead><tbody><tr><td>Identity and interface addresses</td><td>Available</td><td>Available</td><td>Available</td></tr><tr><td>Public IPv4/IPv6 and BGP-origin lookup</td><td>Explicit external action</td><td>Explicit external action</td><td>Explicit external action</td></tr><tr><td>Bounded Cloudflare quality run</td><td>Explicit browser action</td><td>Explicit browser action</td><td>Explicit browser action</td></tr><tr><td>Interface counters and one-shot load</td><td><code>/proc/net/dev</code></td><td>Unavailable</td><td>Unavailable</td></tr><tr><td>Local listeners and connections</td><td><code>/proc/net/{tcp,tcp6,udp,udp6}</code></td><td>Unavailable</td><td>Unavailable</td></tr><tr><td>Same-user PID/process attribution</td><td>Best effort</td><td>Unavailable</td><td>Unavailable</td></tr><tr><td>Elevation or shell fallback</td><td>Never</td><td>Never</td><td>Never</td></tr></tbody></table>
 <p>Phase 2 can add Windows IP Helper tables and native interface counters, plus Darwin interface counters, only after the same capability, permission, truncation, and cross-build tests pass. macOS process ownership remains outside the stable contract until a durable public native API is verified.</p>
 <h2 id="deliberate-next-slices">Deliberate next slices</h2>
-<ol><li><div class="pp-doc-list-title"><strong>Native platform parity:</strong> add reviewed Windows IP Helper and Darwin interface/socket adapters</div><p>without shelling out, then prove each on its operating system before changing capability copy.</p></li><li><div class="pp-doc-list-title"><strong>Short-window load view:</strong> add an explicitly started, visibly timed interface sampler with Stop</div><p>and a fixed memory/point budget. It can graph aggregate deltas but must still avoid a per-process-byte claim.</p></li><li><div class="pp-doc-list-title"><strong>Route hand-off:</strong> link one selected local/public address into the existing Network route and</div><p>path tools rather than duplicating gateway, DNS, or hop logic inside This PC.</p></li><li><div class="pp-doc-list-title"><strong>Optional ownership helper:</strong> consider eBPF, ETW, or a macOS Network Extension only as a</div><p>separately installed, permissioned component with preview, teardown, and redaction contracts. The core binary remains useful without it.</p></li><li><div class="pp-doc-list-title"><strong>Evidence export:</strong> add a versioned, user-triggered JSON report with explicit redaction choices;</div><p>never auto-export hostnames, private/public addresses, PIDs, process names, or remote endpoints.</p></li></ol>
+<ol><li><div class="pp-doc-list-title"><strong>Native platform parity:</strong> add reviewed Windows IP Helper and Darwin interface/socket adapters</div><p>without shelling out, then prove each on its operating system before changing capability copy.</p></li><li><div class="pp-doc-list-title"><strong>Short-window load view:</strong> add an explicitly started, visibly timed interface sampler with Stop</div><p>and a fixed memory/point budget. It can graph aggregate deltas but must still avoid a per-process-byte claim.</p></li><li><div class="pp-doc-list-title"><strong>Route hand-off:</strong> link one selected local/public address into the existing Network route and</div><p>path tools rather than duplicating gateway, DNS, or hop logic inside This Device.</p></li><li><div class="pp-doc-list-title"><strong>Optional ownership helper:</strong> consider eBPF, ETW, or a macOS Network Extension only as a</div><p>separately installed, permissioned component with preview, teardown, and redaction contracts. The core binary remains useful without it.</p></li><li><div class="pp-doc-list-title"><strong>Evidence export:</strong> add a versioned, user-triggered JSON report with explicit redaction choices;</div><p>never auto-export hostnames, private/public addresses, PIDs, process names, or remote endpoints.</p></li></ol>
 <p>An external reachability check, router/firewall verdict, or automatic port scan is not a later mode of the local-listener table. If added elsewhere, it needs its own observer, target authorization, request budget, and result label.</p>
 <h2 id="permanent-non-goals-for-this-slice">Permanent non-goals for this slice</h2>
 <ul><li>no public port scanner or external reachability claim;</li><li>no firewall/router security verdict;</li><li>no packet capture, payload inspection, browser history, or DNS history;</li><li>no command-line, environment, credential, Wi-Fi-secret, or file collection;</li><li>no per-process byte estimate from socket counts;</li><li>no automatic reverse DNS;</li><li>no city/geolocation;</li><li>no scheduled/background benchmark or hidden polling;</li><li>no Ookla bundling or automatic licence acceptance;</li><li>no single green/red network-health score.</li></ul>
@@ -210,7 +210,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>This route-lazy workspace is not included in published v0.5.0 packages.</p>
+                <p>This route-lazy Network workspace is not included in published v0.5.0 packages.</p>
               </section>
             </aside>
           </div>
