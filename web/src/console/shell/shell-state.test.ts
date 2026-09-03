@@ -26,7 +26,15 @@ describe('workbench session state', () => {
       id: 'files:/downloader',
       route: '/downloader',
     });
+    expect(sessionReferenceForPath('/routes/')).toMatchObject({
+      id: 'network:/network/route',
+      route: '/network/route',
+      label: 'Next hop',
+    });
+    expect(sessionReferenceForPath('/this-pc')).toMatchObject({ label: 'This Device' });
     expect(sessionReferenceForPath('/not-a-route')).toBeNull();
+    expect(sessionReferenceForPath('/networking')).toBeNull();
+    expect(sessionReferenceForPath('/protocols-extra')).toBeNull();
   });
 
   it('deduplicates a route reference and updates deterministic focus recency', () => {

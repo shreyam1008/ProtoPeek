@@ -1,11 +1,8 @@
 import { useLocation, useNavigate, useRouterState } from '@tanstack/react-router';
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 
-import type {
-  FeatureRoute,
-  PrimaryNavigationFeature,
-  SecondaryNavigationFeature,
-} from '../app/feature-registry';
+import type { DestinationDefinition, FeatureRoute } from '../app/feature-registry';
+import { destinationForPath } from '../app/feature-registry';
 import { AppBar } from './AppBar';
 import { SessionTabs } from './SessionTabs';
 import { StatusRail } from './StatusRail';
@@ -18,35 +15,29 @@ import {
 
 export type DesktopShellProps = {
   children: ReactNode;
-  primaryNavigation: readonly PrimaryNavigationFeature[];
-  secondaryNavigation: readonly SecondaryNavigationFeature[];
+  destinations: readonly DestinationDefinition[];
   modifier: string;
   resolvedTheme: 'light' | 'dark';
   navigationOpen: boolean;
-  helpOpen: boolean;
   skipRouteFocusRef: RefObject<FeatureRoute | null>;
   onInspect: () => void;
   onOpenNavigation: () => void;
   onCloseNavigation: () => void;
   onOpenCommand: () => void;
-  onOpenHelp: () => void;
   onToggleTheme: () => void;
 };
 
 export function DesktopShell({
   children,
-  primaryNavigation,
-  secondaryNavigation,
+  destinations,
   modifier,
   resolvedTheme,
   navigationOpen,
-  helpOpen,
   skipRouteFocusRef,
   onInspect,
   onOpenNavigation,
   onCloseNavigation,
   onOpenCommand,
-  onOpenHelp,
   onToggleTheme,
 }: DesktopShellProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -59,7 +50,8 @@ export function DesktopShell({
     visitSession(emptySessionState, sessionReferenceForPath(pathname))
   );
   const currentReference = sessionReferenceForPath(pathname);
-  const currentLabel = currentReference?.label ?? 'Overview';
+  const activeDestination = destinationForPath(pathname);
+  const currentLabel = currentReference?.label ?? activeDestination?.label ?? 'Home';
 
   useEffect(() => {
     if (sessionPathRef.current === pathname) return;
@@ -91,18 +83,16 @@ export function DesktopShell({
   return (
     <div className="pp-workbench-shell">
       <AppBar
-        primaryNavigation={primaryNavigation}
-        secondaryNavigation={secondaryNavigation}
+        destinations={destinations}
+        activeDestinationId={activeDestination?.id}
         activeLabel={currentLabel}
         modifier={modifier}
         resolvedTheme={resolvedTheme}
         navigationOpen={navigationOpen}
-        helpOpen={helpOpen}
         onOpenNavigation={onOpenNavigation}
         onCloseNavigation={onCloseNavigation}
         onInspect={onInspect}
         onOpenCommand={onOpenCommand}
-        onOpenHelp={onOpenHelp}
         onToggleTheme={onToggleTheme}
       />
       <SessionTabs

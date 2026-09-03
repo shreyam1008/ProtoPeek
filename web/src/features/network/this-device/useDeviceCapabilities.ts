@@ -35,7 +35,7 @@ export function useDeviceCapabilities() {
     void fetchThisPCCapabilities(controller.signal).then(
       (value) => setCapabilities({ status: 'ready', value }),
       (error: unknown) => {
-        const message = deviceErrorMessage(error, 'This PC capabilities could not be loaded.');
+        const message = deviceErrorMessage(error, 'This Device capabilities could not be loaded.');
         if (message) setCapabilities({ status: 'error', error: message });
       }
     );

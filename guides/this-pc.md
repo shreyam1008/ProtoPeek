@@ -1,10 +1,11 @@
-# This PC evidence and connection-quality boundary
+# This Device evidence and connection-quality boundary
 
-Status: **available in current source after v0.5.0; not part of the published v0.5.0 release**.
+Status: **available under Network in current source after v0.5.0; not part of the published v0.5.0 release**.
 
-**This PC** is ProtoPeek's device-centred workspace. The existing **Network** workspace starts with
-a target and asks how this ProtoPeek process can reach it. This PC starts with the machine running
-ProtoPeek and answers four narrower questions:
+**This Device** is ProtoPeek's device-centred Network workspace. Its canonical `/this-pc` route and
+`/api/this-pc/*` endpoints retain their technical names for compatibility. The broader **Network**
+workspace starts with a target and asks how this ProtoPeek process can reach it. This Device starts
+with the machine running ProtoPeek and answers four narrower questions:
 
 1. What local system and interface evidence can this process observe without sending a packet?
 2. Which local listeners and current connections can the operating system expose to it?
@@ -179,7 +180,7 @@ verified.
    and a fixed memory/point budget. It can graph aggregate deltas but must still avoid a
    per-process-byte claim.
 3. **Route hand-off:** link one selected local/public address into the existing Network route and
-   path tools rather than duplicating gateway, DNS, or hop logic inside This PC.
+   path tools rather than duplicating gateway, DNS, or hop logic inside This Device.
 4. **Optional ownership helper:** consider eBPF, ETW, or a macOS Network Extension only as a
    separately installed, permissioned component with preview, teardown, and redaction contracts.
    The core binary remains useful without it.

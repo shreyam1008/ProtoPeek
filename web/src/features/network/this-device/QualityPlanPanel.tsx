@@ -69,7 +69,7 @@ export function EvidenceBoundaries() {
       <ul>
         <li>Does not scan or probe the network automatically.</li>
         <li>Does not prove a local listener is reachable from the internet.</li>
-        <li>Does not collect or store This PC evidence in browser storage.</li>
+        <li>Does not collect or store This Device evidence in browser storage.</li>
         <li>Shows only information gathered on demand in this process/network namespace.</li>
       </ul>
     </section>

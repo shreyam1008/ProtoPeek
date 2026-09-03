@@ -1,10 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import {
-  CircleHelp,
   Cloud,
   Download,
   Home,
-  ListTodo,
   type LucideIcon,
   Menu,
   Monitor,
@@ -12,46 +10,36 @@ import {
   Network,
   Radar,
   Search,
-  Server,
   Settings as SettingsIcon,
-  ShieldCheck,
   Sun,
   X,
 } from 'lucide-react';
 import { useRef } from 'react';
 
-import type { PrimaryNavigationFeature, SecondaryNavigationFeature } from '../app/feature-registry';
+import type { DestinationDefinition, DestinationId } from '../app/feature-registry';
 import { ProtoPeekMark } from '../ProtoPeekMark';
 import { useDialogFocus } from '../use-dialog-focus';
 
-const primaryIcons: Record<PrimaryNavigationFeature['id'], LucideIcon> = {
-  overview: Home,
-  protocols: Server,
+const destinationIcons: Record<DestinationDefinition['icon'], LucideIcon> = {
+  home: Home,
+  search: Search,
   network: Network,
-  'this-pc': Monitor,
-  tunnels: Cloud,
-  downloader: Download,
-  security: ShieldCheck,
+  cloud: Cloud,
+  download: Download,
   settings: SettingsIcon,
 };
 
-const secondaryIcons: Record<SecondaryNavigationFeature['id'], LucideIcon> = {
-  roadmap: ListTodo,
-};
-
 export type AppBarProps = {
-  primaryNavigation: readonly PrimaryNavigationFeature[];
-  secondaryNavigation: readonly SecondaryNavigationFeature[];
+  destinations: readonly DestinationDefinition[];
+  activeDestinationId?: DestinationId;
   activeLabel: string;
   modifier: string;
   resolvedTheme: 'light' | 'dark';
   navigationOpen: boolean;
-  helpOpen: boolean;
   onOpenNavigation: () => void;
   onCloseNavigation: () => void;
   onInspect: () => void;
   onOpenCommand: () => void;
-  onOpenHelp: () => void;
   onToggleTheme: () => void;
 };
 
@@ -72,7 +60,7 @@ export function AppBar(props: AppBarProps) {
         <Link
           to="/"
           className="pp-app-brand"
-          aria-label="Open ProtoPeek overview"
+          aria-label="Open ProtoPeek Home"
           activeOptions={{ exact: true }}
         >
           <ProtoPeekMark />
@@ -80,16 +68,17 @@ export function AppBar(props: AppBarProps) {
         </Link>
         <span className="pp-app-current">{props.activeLabel}</span>
 
-        <nav className="pp-app-navigation" aria-label="Primary">
-          {props.primaryNavigation.map((item) => {
-            const Icon = primaryIcons[item.id];
+        <nav className="pp-app-navigation" aria-label="Destinations">
+          {props.destinations.map((item) => {
+            const Icon = destinationIcons[item.icon];
+            const active = item.id === props.activeDestinationId;
             return (
               <Link
                 key={item.id}
                 to={item.route}
-                className="pp-app-navigation-link"
-                activeOptions={item.route === '/' ? { exact: true } : undefined}
-                activeProps={{ className: 'is-active' }}
+                className={`pp-app-navigation-link${active ? ' is-active' : ''}`}
+                activeOptions={{ exact: true }}
+                aria-current={active ? 'page' : undefined}
                 aria-label={`Open ${item.label}`}
               >
                 <Icon aria-hidden="true" />
@@ -102,29 +91,6 @@ export function AppBar(props: AppBarProps) {
         <div className="pp-app-actions">
           <button type="button" className="pp-app-inspect" onClick={props.onInspect}>
             <Radar aria-hidden="true" /> <span>Inspect target</span>
-          </button>
-          {props.secondaryNavigation.map((item) => {
-            const Icon = secondaryIcons[item.id];
-            return (
-              <Link
-                key={item.id}
-                to={item.route}
-                className="pp-app-icon-action pp-app-secondary"
-                activeProps={{ className: 'is-active' }}
-                aria-label={`Open ${item.label}`}
-              >
-                <Icon aria-hidden="true" />
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            className="pp-app-icon-action pp-app-help"
-            aria-label="Open ProtoPeek help"
-            aria-expanded={props.helpOpen}
-            onClick={props.onOpenHelp}
-          >
-            <CircleHelp aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -157,12 +123,11 @@ export function AppBar(props: AppBarProps) {
 }
 
 function MobileNavigationDrawer({
-  primaryNavigation,
-  secondaryNavigation,
+  destinations,
+  activeDestinationId,
   navigationOpen,
   onCloseNavigation,
   onInspect,
-  onOpenHelp,
 }: AppBarProps) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -209,16 +174,17 @@ function MobileNavigationDrawer({
             <X aria-hidden="true" />
           </button>
         </header>
-        <nav aria-label="Mobile primary">
-          {primaryNavigation.map((item) => {
-            const Icon = primaryIcons[item.id];
+        <nav aria-label="Mobile destinations">
+          {destinations.map((item) => {
+            const Icon = destinationIcons[item.icon];
+            const active = item.id === activeDestinationId;
             return (
               <Link
                 key={item.id}
                 to={item.route}
-                className="pp-navigation-link"
-                activeOptions={item.route === '/' ? { exact: true } : undefined}
-                activeProps={{ className: 'is-active' }}
+                className={`pp-navigation-link${active ? ' is-active' : ''}`}
+                activeOptions={{ exact: true }}
+                aria-current={active ? 'page' : undefined}
                 onClick={onCloseNavigation}
               >
                 <Icon aria-hidden="true" />
@@ -230,26 +196,6 @@ function MobileNavigationDrawer({
         <div className="pp-navigation-actions">
           <button type="button" className="pp-navigation-link" onClick={() => closeThen(onInspect)}>
             <Radar aria-hidden="true" /> Inspect target
-          </button>
-          {secondaryNavigation.map((item) => {
-            const Icon = secondaryIcons[item.id];
-            return (
-              <Link
-                key={item.id}
-                to={item.route}
-                className="pp-navigation-link"
-                onClick={onCloseNavigation}
-              >
-                <Icon aria-hidden="true" /> {item.label}
-              </Link>
-            );
-          })}
-          <button
-            type="button"
-            className="pp-navigation-link"
-            onClick={() => closeThen(onOpenHelp)}
-          >
-            <CircleHelp aria-hidden="true" /> Help
           </button>
         </div>
         <footer>

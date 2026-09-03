@@ -44,7 +44,7 @@ of competing logos.
 The primary workflow is:
 
 ```text
-This PC listener
+This Device listener
       |
       v
 choose an audience: private network or public internet
@@ -138,7 +138,7 @@ peers or turn two independent control planes into one combined green/red state.
 
 Keep exposure in the existing Tunnels area and add one **Publish a service** entry point:
 
-1. choose a listener from This PC or enter one explicit loopback target;
+1. choose a listener from This Device or enter one explicit loopback target;
 2. choose the audience before the provider;
 3. show only compatible installed providers;
 4. preview the exact scope, lifecycle, and command effect;
@@ -157,14 +157,14 @@ Use these audience labels consistently:
 Provider selection cannot weaken the audience silently. Moving from Tailscale Serve to Funnel is a
 private-to-public change and requires a fresh confirmation.
 
-### Protocols and This PC
+### Inspect and This Device
 
 The integration becomes more useful than a vendor dashboard through handoffs:
 
 - a peer address can open as an unsent HTTP or gRPC target;
 - a route or connectivity failure can open in Network evidence;
 - a local listener can open in Publish a service;
-- an exposure route can return to This PC for origin evidence; and
+- an exposure route can return to This Device for origin evidence; and
 - a published endpoint can return to HTTP or gRPC for explicit verification.
 
 ## Cross-platform UI contract
@@ -296,7 +296,7 @@ verified by a new snapshot. The first useful private-network release is complete
 
 ### Slice 3 — service reachability and exposure
 
-- Connect This PC listeners to a single Publish a service wizard.
+- Connect This Device listeners to a single Publish a service wizard.
 - Ship Tailscale Serve first because its audience stays private.
 - Add separate origin and tailnet endpoint verification with HTTP/gRPC handoff.
 - Add Cloudflare Quick Tunnel as an explicitly public, temporary development session after the

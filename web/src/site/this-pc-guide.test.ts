@@ -9,27 +9,43 @@ function parseHtml(path: string) {
   return new DOMParser().parseFromString(readRepositoryFile(path), 'text/html');
 }
 
-describe('This PC current-source guide', () => {
-  it('keeps stable v0.5.0 history separate from the seventh current-source area', () => {
+describe('This Device current-source guide', () => {
+  it('keeps stable v0.5.0 history separate from the six-destination current source', () => {
     const readme = readRepositoryFile('README.md');
     const guide = readRepositoryFile('guides/this-pc.md');
-    const llms = readRepositoryFile('web/site/public/llms.txt');
+    const generator = readRepositoryFile('scripts/generate-site-docs.mjs');
 
     expect(readme).toContain('shipped unified shell has exactly six primary areas');
-    expect(readme).toContain('Current source after v0.5.0');
-    expect(readme).toContain('seventh, route-lazy **This PC** workspace');
+    expect(readme).toContain('the v0.6 workbench has exactly six permanent destinations');
+    expect(readme).toContain('**This Device** workspace');
+    expect(readme).not.toContain('seventh, route-lazy **This PC** workspace');
+    expect(readme).not.toContain('eighth **Cloudflare Tunnel** workspace');
     expect(guide).toContain('not part of the published v0.5.0 release');
+    expect(guide).toContain('**This Device** is ProtoPeek');
+    expect(guide).toContain('canonical `/this-pc` route');
+    expect(guide).toContain('`/api/this-pc/*` endpoints');
     expect(guide).toContain('A local listener is not proof that the port is reachable');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');
-    expect(llms).toContain('Current source adds a seventh route-lazy area, This PC');
+    expect(generator).toContain('Current source implements exactly six permanent destinations');
+    expect(generator).not.toContain('Current source adds a seventh route-lazy area, This PC');
+    expect(generator).not.toContain('Current source also adds an eighth route-lazy area');
   });
 
-  it('publishes a crawlable source-truth page without changing the stable release claim', () => {
+  it('keeps the source registry and crawlable compatibility path aligned', () => {
+    const registry = JSON.parse(readRepositoryFile('web/src/site/public-pages.json')) as {
+      pages: Array<{ id: string; path: string; title: string; documentTitle: string }>;
+    };
+    const sourcePage = registry.pages.find((candidate) => candidate.id === 'this-pc');
     const page = parseHtml('docs/this-pc/index.html');
     const docsHub = parseHtml('docs/docs/index.html');
     const sitemap = readRepositoryFile('docs/sitemap.xml');
 
-    expect(page.title).toBe('This PC: Local Ports, Public IP & Speed Evidence | ProtoPeek');
+    expect(sourcePage).toMatchObject({
+      path: '/this-pc/',
+      title: 'This Device evidence',
+      documentTitle: 'This Device: Ports, Public IP & Speed Evidence | ProtoPeek',
+    });
+    expect(page.title).toBe('This Device: Ports, Public IP & Speed Evidence | ProtoPeek');
     expect(page.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://protopeek.shreyam1008.com.np/this-pc/'
     );
@@ -37,7 +53,9 @@ describe('This PC current-source guide', () => {
       /^index,follow,/
     );
     expect(page.querySelectorAll('script[type="application/ld+json"]')).toHaveLength(1);
-    expect(docsHub.querySelector('a[href="/this-pc/"]')).not.toBeNull();
+    expect(docsHub.querySelector('a[href="/this-pc/"]')?.textContent).toContain(
+      'This Device evidence'
+    );
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/this-pc/</loc>');
   });
 

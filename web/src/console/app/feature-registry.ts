@@ -1,3 +1,11 @@
+export type DestinationDefinition = {
+  id: 'home' | 'inspect' | 'network' | 'publish' | 'files' | 'settings';
+  label: string;
+  route: string;
+  icon: 'home' | 'search' | 'network' | 'cloud' | 'download' | 'settings';
+  order: number;
+};
+
 export const destinations = [
   { id: 'home', label: 'Home', route: '/', icon: 'home', order: 10 },
   { id: 'inspect', label: 'Inspect', route: '/protocols', icon: 'search', order: 20 },
@@ -5,7 +13,7 @@ export const destinations = [
   { id: 'publish', label: 'Publish', route: '/tunnels', icon: 'cloud', order: 40 },
   { id: 'files', label: 'Files', route: '/downloader', icon: 'download', order: 50 },
   { id: 'settings', label: 'Settings', route: '/settings', icon: 'settings', order: 60 },
-] as const;
+] as const satisfies readonly DestinationDefinition[];
 
 export type DestinationId = (typeof destinations)[number]['id'];
 
@@ -16,32 +24,29 @@ export type FeatureDefinition = {
   route: string;
   order: number;
   compatibilityRoutes?: readonly string[];
-  navigation?: 'primary' | 'secondary';
   command?: { label: string; keywords: string };
   homeEntry?: { label: string; detail: string };
-  protocolChoice?: { detail: string };
+  inspectEntry?: { detail: string };
 };
 
 export const featureRegistry = [
   {
     id: 'overview',
     destination: 'home',
-    label: 'Overview',
+    label: 'Home',
     route: '/',
     order: 10,
-    navigation: 'primary',
-    command: { label: 'Open ProtoPeek overview', keywords: 'home dashboard suite' },
+    command: { label: 'Open Home', keywords: 'home overview dashboard suite' },
   },
   {
     id: 'protocols',
     destination: 'inspect',
-    label: 'APIs',
+    label: 'Inspect',
     route: '/protocols',
     order: 20,
-    navigation: 'primary',
     command: {
-      label: 'Open API workbenches',
-      keywords: 'api protocol grpc http rest openapi workbench',
+      label: 'Open Inspect',
+      keywords: 'inspect api protocol grpc http rest openapi workbench',
     },
     homeEntry: {
       label: 'Send an API request',
@@ -59,7 +64,7 @@ export const featureRegistry = [
       label: 'Open gRPC workbench',
       keywords: 'reflection proto protoset streams trailers',
     },
-    protocolChoice: {
+    inspectEntry: {
       detail:
         'Reflection, proto folders and protosets, unary and streaming calls, metadata, trailers.',
     },
@@ -75,7 +80,7 @@ export const featureRegistry = [
       label: 'Open HTTP workbench',
       keywords: 'rest request response headers tls',
     },
-    protocolChoice: {
+    inspectEntry: {
       detail:
         'Methods, URLs, auth, request bodies, redirects, TLS, timing, headers, and response data.',
     },
@@ -86,12 +91,11 @@ export const featureRegistry = [
     label: 'Network',
     route: '/network',
     order: 50,
-    navigation: 'primary',
   },
   {
     id: 'network-route',
     destination: 'network',
-    label: 'Next-hop route evidence',
+    label: 'Next hop',
     route: '/network/route',
     order: 60,
     compatibilityRoutes: ['/routes'],
@@ -147,16 +151,15 @@ export const featureRegistry = [
   {
     id: 'this-pc',
     destination: 'network',
-    label: 'This PC',
+    label: 'This Device',
     route: '/this-pc',
     order: 110,
-    navigation: 'primary',
     command: {
-      label: 'Open This PC',
+      label: 'Open This Device',
       keywords: 'machine device interfaces listeners connections traffic benchmark public ip',
     },
     homeEntry: {
-      label: 'Check this computer',
+      label: 'Check this device',
       detail: 'Review interfaces, connections, public IP, and browser-path speed.',
     },
   },
@@ -166,7 +169,6 @@ export const featureRegistry = [
     label: 'Tunnels',
     route: '/tunnels',
     order: 130,
-    navigation: 'primary',
     command: {
       label: 'Open Cloudflare tunnel operations',
       keywords: 'cloudflare cloudflared tunnel ingress config service connector route',
@@ -183,7 +185,6 @@ export const featureRegistry = [
     route: '/downloader',
     order: 120,
     compatibilityRoutes: ['/downloads'],
-    navigation: 'primary',
     command: {
       label: 'Open Downloader',
       keywords: 'download transfer queue artifact aria2',
@@ -199,7 +200,6 @@ export const featureRegistry = [
     label: 'Security',
     route: '/security',
     order: 140,
-    navigation: 'primary',
     command: {
       label: 'Open Security evidence',
       keywords: 'domain certificate tls dns authorized checks',
@@ -208,6 +208,9 @@ export const featureRegistry = [
       label: 'Check a public website',
       detail: 'Inspect its DNS, HTTP, and TLS evidence when you ask.',
     },
+    inspectEntry: {
+      detail: 'DNS, HTTP, TLS, and certificate evidence for one public website.',
+    },
   },
   {
     id: 'settings',
@@ -215,7 +218,6 @@ export const featureRegistry = [
     label: 'Settings',
     route: '/settings',
     order: 150,
-    navigation: 'primary',
     command: {
       label: 'Open Settings',
       keywords: 'appearance density keyboard browser local preferences',
@@ -227,7 +229,6 @@ export const featureRegistry = [
     label: 'Roadmap',
     route: '/roadmap',
     order: 160,
-    navigation: 'secondary',
     command: {
       label: 'Open product roadmap',
       keywords: 'available next exploring gated',
@@ -246,24 +247,9 @@ type WithField<Field extends PropertyKey> = RegisteredFeature extends infer Feat
   : never;
 
 export type CompatibilityRoute = WithField<'compatibilityRoutes'>['compatibilityRoutes'][number];
-export type PrimaryNavigationFeature = Extract<WithField<'navigation'>, { navigation: 'primary' }>;
-export type SecondaryNavigationFeature = Extract<
-  WithField<'navigation'>,
-  { navigation: 'secondary' }
->;
 export type CommandDestinationFeature = WithField<'command'>;
 export type HomeEntryFeature = WithField<'homeEntry'>;
-export type ProtocolChoiceFeature = WithField<'protocolChoice'>;
-
-export const currentPrimaryNavigation = featureRegistry.filter(
-  (feature): feature is PrimaryNavigationFeature =>
-    'navigation' in feature && feature.navigation === 'primary'
-);
-
-export const currentSecondaryNavigation = featureRegistry.filter(
-  (feature): feature is SecondaryNavigationFeature =>
-    'navigation' in feature && feature.navigation === 'secondary'
-);
+export type InspectEntryFeature = WithField<'inspectEntry'>;
 
 export const commandDestinationFeatures = featureRegistry
   .filter((feature): feature is CommandDestinationFeature => 'command' in feature)
@@ -273,9 +259,30 @@ export const homeEntryFeatures = featureRegistry.filter(
   (feature): feature is HomeEntryFeature => 'homeEntry' in feature
 );
 
-export const protocolChoiceFeatures = featureRegistry.filter(
-  (feature): feature is ProtocolChoiceFeature => 'protocolChoice' in feature
+export const inspectEntryFeatures = featureRegistry.filter(
+  (feature): feature is InspectEntryFeature => 'inspectEntry' in feature
 );
+
+function normalizeFeaturePath(pathname: string) {
+  if (pathname === '/') return pathname;
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
+export function featureForPath(pathname: string): RegisteredFeature | undefined {
+  const normalized = normalizeFeaturePath(pathname);
+  return featureRegistry.find(
+    (feature) =>
+      feature.route === normalized ||
+      ('compatibilityRoutes' in feature &&
+        feature.compatibilityRoutes.some((route) => route === normalized))
+  );
+}
+
+export function destinationForPath(pathname: string) {
+  const feature = featureForPath(pathname);
+  if (!feature) return undefined;
+  return destinations.find((destination) => destination.id === feature.destination);
+}
 
 export function getCompatibilityRouteTargets() {
   return featureRegistry.flatMap((feature) => {

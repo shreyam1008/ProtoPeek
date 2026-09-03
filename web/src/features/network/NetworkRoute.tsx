@@ -1,5 +1,5 @@
 import { Link, useBlocker, useLocation } from '@tanstack/react-router';
-import { Clock3, FolderOpen, Map as MapIcon, Radar, Route, Save } from 'lucide-react';
+import { Clock3, FolderOpen, Map as MapIcon, Network, Radar, Route, Save } from 'lucide-react';
 import { lazy, Suspense, useRef } from 'react';
 
 import { NetworkPathPanel } from '@/console/NetworkPathPanel';
@@ -17,7 +17,14 @@ const LazyLocalNetworkPanel = lazy(async () => {
 type NetworkSection = 'path' | 'local' | 'map' | 'history';
 
 function isNetworkWorkbenchPath(pathname: string) {
-  return pathname === '/network' || pathname.startsWith('/network/');
+  const normalized = pathname.replace(/\/+$/, '');
+  return (
+    normalized === '/network' ||
+    normalized === '/network/path' ||
+    normalized === '/network/local' ||
+    normalized === '/network/map' ||
+    normalized === '/network/history'
+  );
 }
 
 function sectionFromPath(pathname: string): NetworkSection {
@@ -67,6 +74,20 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
           <strong className="pp-network-title">Network workbench</strong>
         </div>
         <nav aria-label="Network workbench sections">
+          <Link
+            to="/this-pc"
+            className="pp-network-nav-link"
+            activeProps={{ className: 'is-active' }}
+          >
+            <Network aria-hidden="true" /> This Device
+          </Link>
+          <Link
+            to="/network/route"
+            className="pp-network-nav-link"
+            activeProps={{ className: 'is-active' }}
+          >
+            <Route aria-hidden="true" /> Next hop
+          </Link>
           <Link
             to="/network/path"
             className="pp-network-nav-link"

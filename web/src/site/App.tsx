@@ -44,9 +44,10 @@ const productQuestions = [
     href: publicPagePath('security'),
   },
   {
-    question: 'What is happening on this computer?',
-    answer: 'Current-source preview: listeners, connections, IPs, and bounded speed evidence.',
-    action: 'Preview This PC',
+    question: 'What is happening on this device?',
+    answer:
+      'Current-source Network workspace: listeners, connections, IPs, and bounded speed evidence.',
+    action: 'Preview This Device',
     href: publicPagePath('this-pc'),
   },
   {

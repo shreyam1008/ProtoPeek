@@ -462,7 +462,7 @@ Each ingress rule should offer:
 
 - **Open in HTTP** for HTTP/HTTPS origins;
 - **Open in gRPC** for gRPC origins;
-- **Inspect local listener** in This PC;
+- **Inspect local listener** in This Device;
 - **Inspect route** in Network.
 
 The handoff populates the existing workbench but never sends a request automatically. This is the
@@ -486,7 +486,7 @@ the UI cannot mistake a remote configuration for an applied local configuration.
 
 ### Dependency injection
 
-Follow the existing Downloader and This PC pattern:
+Follow the existing Downloader and This Device pattern:
 
 - add <code>WithTunnelService</code> to handler options;
 - construct the service at CLI startup;
@@ -934,7 +934,7 @@ Keep PRs reviewable and ordered:
 13. Elevated helper protocol for bounded config/token files.
 14. Config apply, verify, automatic rollback, and receipts.
 15. Metrics/log snapshots.
-16. HTTP/gRPC/Network/This PC handoffs.
+16. HTTP/gRPC/Network/This Device handoffs.
 17. API credential session and remote read.
 18. Remote config plan/apply.
 19. Windows file/config mutation parity.

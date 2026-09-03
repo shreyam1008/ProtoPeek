@@ -43,18 +43,18 @@ describe('public site', () => {
       'Can I reach this service?',
       'Why is this request slow?',
       'What can I verify about this public website?',
-      'What is happening on this computer?',
+      'What is happening on this device?',
       'Can I manage this download locally?',
     ]);
     expect(within(product).getByRole('link', { name: /meet downloader/i })).toHaveAttribute(
       'href',
       '/downloader/'
     );
-    expect(within(product).getByRole('link', { name: /preview this pc/i })).toHaveAttribute(
+    expect(within(product).getByRole('link', { name: /preview this device/i })).toHaveAttribute(
       'href',
       '/this-pc/'
     );
-    expect(within(product).getByText(/current-source preview/i)).toBeVisible();
+    expect(within(product).getByText(/current-source network workspace/i)).toBeVisible();
     expect(within(product).getByRole('link', { name: /choose grpc or http/i })).toHaveAttribute(
       'href',
       '/docs/#protocols'

@@ -13,8 +13,7 @@ import {
 import type { ScanResult } from './api';
 import {
   commandDestinationFeatures,
-  currentPrimaryNavigation,
-  currentSecondaryNavigation,
+  destinations,
   type FeatureRoute,
 } from './app/feature-registry';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
@@ -266,18 +265,15 @@ export function ProtocolFrame() {
   return (
     <ProtocolShellContext.Provider value={contextValue}>
       <DesktopShell
-        primaryNavigation={currentPrimaryNavigation}
-        secondaryNavigation={currentSecondaryNavigation}
+        destinations={destinations}
         modifier={modifier}
         resolvedTheme={resolvedAppearance.theme}
         navigationOpen={navigationOpen}
-        helpOpen={helpOpen}
         skipRouteFocusRef={skipRouteFocusRef}
         onInspect={() => openScan()}
         onOpenNavigation={openNavigation}
         onCloseNavigation={() => setNavigationOpen(false)}
         onOpenCommand={openCommand}
-        onOpenHelp={openHelp}
         onToggleTheme={() =>
           setAppearance({
             ...appearance,

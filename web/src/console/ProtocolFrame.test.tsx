@@ -34,7 +34,7 @@ describe('ProtocolFrame', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     const view = render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
     expect(document.documentElement).toHaveAttribute('data-theme-mode', 'system');
@@ -50,34 +50,73 @@ describe('ProtocolFrame', () => {
     expect(media.removeEventListener).toHaveBeenCalledWith('change', changeListener);
   });
 
-  it('keeps eight exact primary destinations and Roadmap secondary', async () => {
+  it('renders only the six permanent destinations in product order', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
-    const primary = screen.getByRole('navigation', { name: 'Primary' });
-    expect(
-      within(primary)
-        .getAllByRole('link')
-        .map((link) => link.textContent?.trim())
-    ).toEqual([
-      'Overview',
-      'APIs',
+    const primary = screen.getByRole('navigation', { name: 'Destinations' });
+    const links = within(primary).getAllByRole('link');
+    expect(links.map((link) => link.textContent?.trim())).toEqual([
+      'Home',
+      'Inspect',
       'Network',
-      'This PC',
-      'Tunnels',
-      'Downloader',
-      'Security',
+      'Publish',
+      'Files',
       'Settings',
     ]);
-    expect(within(primary).queryByText('Roadmap')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open Roadmap' })).toBeVisible();
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/',
+      '/protocols',
+      '/network',
+      '/tunnels',
+      '/downloader',
+      '/settings',
+    ]);
+    expect(within(primary).getAllByRole('link', { current: 'page' })).toEqual([
+      within(primary).getByRole('link', { name: 'Open Inspect' }),
+    ]);
+    expect(screen.queryByRole('link', { name: /Roadmap/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open ProtoPeek help' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open ProtoPeek Home' })).toBeVisible();
+  });
+
+  it('marks the owning destination instead of relying on route prefixes', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    const navigation = screen.getByRole('navigation', { name: 'Destinations' });
+
+    for (const [route, label] of [
+      ['/security', 'Inspect'],
+      ['/this-pc', 'Network'],
+      ['/tunnels', 'Publish'],
+      ['/downloader', 'Files'],
+      ['/roadmap', 'Settings'],
+    ] as const) {
+      await act(async () => {
+        await router.navigate({ to: route });
+      });
+      await waitFor(() =>
+        expect(within(navigation).getAllByRole('link', { current: 'page' })).toEqual([
+          within(navigation).getByRole('link', { name: `Open ${label}` }),
+        ])
+      );
+    }
+  });
+
+  it('does not claim a destination for an unmatched route', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/networking'] }));
+    render(<RouterProvider router={router} />);
+
+    const navigation = await screen.findByRole('navigation', { name: 'Destinations' });
+    expect(within(navigation).queryAllByRole('link', { current: 'page' })).toHaveLength(0);
   });
 
   it('uses registered route labels and keywords in the command menu', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
     const trigger = screen.getByRole('button', { name: 'Open global command menu' });
     trigger.focus();
@@ -87,6 +126,8 @@ describe('ProtocolFrame', () => {
     expect(
       within(commands).getByRole('option', { name: 'Open Cloudflare tunnel operations' })
     ).toBeVisible();
+    expect(within(commands).getByRole('option', { name: 'Open product roadmap' })).toBeVisible();
+    expect(within(commands).getByRole('option', { name: 'Open protocol checklist' })).toBeVisible();
 
     fireEvent.change(within(commands).getByRole('combobox', { name: 'Search commands' }), {
       target: { value: 'trailers' },
@@ -109,7 +150,7 @@ describe('ProtocolFrame', () => {
     });
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
     const menu = screen.getByRole('button', { name: 'Open navigation menu' });
     menu.focus();
@@ -118,8 +159,19 @@ describe('ProtocolFrame', () => {
     const close = within(drawer).getByRole('button', { name: 'Close navigation menu' });
     await waitFor(() => expect(close).toHaveFocus());
 
+    const mobileDestinations = within(drawer).getByRole('navigation', {
+      name: 'Mobile destinations',
+    });
+    expect(
+      within(mobileDestinations)
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim())
+    ).toEqual(['Home', 'Inspect', 'Network', 'Publish', 'Files', 'Settings']);
+    expect(within(drawer).queryByText('Roadmap')).not.toBeInTheDocument();
+    expect(within(drawer).queryByRole('button', { name: 'Help' })).not.toBeInTheDocument();
+
     fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-    expect(within(drawer).getByRole('button', { name: 'Help' })).toHaveFocus();
+    expect(within(drawer).getByRole('button', { name: 'Inspect target' })).toHaveFocus();
     fireEvent.keyDown(window, { key: 'Tab' });
     expect(close).toHaveFocus();
 
@@ -144,18 +196,18 @@ describe('ProtocolFrame', () => {
     });
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
     const sessions = screen.getByRole('tablist', { name: 'Open workbench sessions' });
     expect(within(sessions).getAllByRole('tab')).toHaveLength(1);
-    expect(within(sessions).getByRole('tab', { name: 'APIs' })).toHaveAttribute(
+    expect(within(sessions).getByRole('tab', { name: 'Inspect' })).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(within(sessions).queryByRole('tab', { name: 'Overview' })).toBeNull();
+    expect(within(sessions).queryByRole('tab', { name: 'Home' })).toBeNull();
 
     fireEvent.click(
-      within(screen.getByRole('navigation', { name: 'Primary' })).getByRole('link', {
+      within(screen.getByRole('navigation', { name: 'Destinations' })).getByRole('link', {
         name: 'Open Settings',
       })
     );
@@ -165,20 +217,20 @@ describe('ProtocolFrame', () => {
     await waitFor(() => expect(settingsHeading).toHaveFocus());
     expect(within(sessions).getAllByRole('tab')).toHaveLength(2);
 
-    fireEvent.click(within(sessions).getByRole('tab', { name: 'APIs' }));
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    fireEvent.click(within(sessions).getByRole('tab', { name: 'Inspect' }));
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
     await waitFor(() =>
-      expect(within(sessions).getByRole('tab', { name: 'APIs' })).toHaveAttribute(
+      expect(within(sessions).getByRole('tab', { name: 'Inspect' })).toHaveAttribute(
         'aria-selected',
         'true'
       )
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Close APIs session' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close Inspect session' }));
     expect(
       await screen.findByRole('heading', { name: "Shape this browser's console." })
     ).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
-    expect(within(sessions).queryByRole('tab', { name: 'APIs' })).toBeNull();
+    expect(within(sessions).queryByRole('tab', { name: 'Inspect' })).toBeNull();
   });
 
   it('keeps only one global modal focus owner open at a time', async () => {
@@ -188,7 +240,7 @@ describe('ProtocolFrame', () => {
     });
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: 'Choose the API workbench.' });
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
     expect(await screen.findByRole('dialog', { name: 'ProtoPeek' })).toBeVisible();

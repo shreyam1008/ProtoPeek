@@ -7,7 +7,7 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NetworkWorkbench } from './NetworkWorkbench';
@@ -340,10 +340,22 @@ function createTestRouter(store: NetworkStore, initialEntry = '/network/map') {
     path: '/networking',
     component: () => <h1>Similar route outside the workbench</h1>,
   });
+  const thisDeviceRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/this-pc',
+    component: () => <h1>This Device destination</h1>,
+  });
+  const nextHopRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/network/route',
+    component: () => <h1>Next hop evidence</h1>,
+  });
   const routeTree = rootRoute.addChildren([
     networkRoute.addChildren(networkChildren),
     outsideRoute,
     similarPrefixRoute,
+    thisDeviceRoute,
+    nextHopRoute,
   ]);
   return createRouter({
     routeTree,
@@ -620,6 +632,46 @@ describe('NetworkWorkbench persistence protections', () => {
     expect(
       screen.queryByRole('heading', { name: 'Similar route outside the workbench' })
     ).not.toBeInTheDocument();
+  });
+
+  it('orders all Network tools and guards the sibling This Device and Next hop routes', async () => {
+    const { store } = await seededStore();
+    const router = await renderWorkbench(store);
+    const navigation = screen.getByRole('navigation', { name: 'Network workbench sections' });
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map((link) => link.textContent?.trim())
+    ).toEqual(['This Device', 'Next hop', 'Path', 'Local scan', 'Map', 'History']);
+    expect(
+      within(navigation)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual([
+      '/this-pc',
+      '/network/route',
+      '/network/path',
+      '/network/local',
+      '/network/map',
+      '/network/history',
+    ]);
+
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Unsaved before destination navigation' },
+    });
+    for (const label of ['Next hop', 'This Device']) {
+      fireEvent.click(within(navigation).getByRole('link', { name: label }));
+      const dialog = await screen.findByRole('alertdialog', {
+        name: 'Leave with unsaved map edits?',
+      });
+      expect(router.state.location.pathname).toBe('/network/map');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Stay' }));
+      await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    }
+
+    expect(screen.getByLabelText('Workspace name')).toHaveValue(
+      'Unsaved before destination navigation'
+    );
   });
 
   it('ignores a late workspace selection after the current map is edited', async () => {

@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   commandDestinationFeatures,
-  currentPrimaryNavigation,
-  currentSecondaryNavigation,
+  destinationForPath,
   destinations,
+  featureForPath,
   featureRegistry,
   getCompatibilityRouteTargets,
   homeEntryFeatures,
-  protocolChoiceFeatures,
+  inspectEntryFeatures,
 } from './feature-registry';
 import { handoffKinds } from './handoff-types';
 import {
@@ -31,7 +31,7 @@ const publicDocsSlugs = new Set([
 ]);
 
 describe('feature registry', () => {
-  it('owns six deterministic destination groups without activating the future navigation yet', () => {
+  it('owns the six permanent destinations in deterministic product order', () => {
     expect(destinations.map((destination) => destination.id)).toEqual([
       'home',
       'inspect',
@@ -49,18 +49,36 @@ describe('feature registry', () => {
       '/downloader',
       '/settings',
     ]);
-
-    expect(currentPrimaryNavigation.map((feature) => feature.label)).toEqual([
-      'Overview',
-      'APIs',
+    expect(destinations.map(({ label }) => label)).toEqual([
+      'Home',
+      'Inspect',
       'Network',
-      'This PC',
-      'Tunnels',
-      'Downloader',
-      'Security',
+      'Publish',
+      'Files',
       'Settings',
     ]);
-    expect(currentSecondaryNavigation.map((feature) => feature.id)).toEqual(['roadmap']);
+  });
+
+  it('maps every canonical feature, alias, and trailing slash to exactly one owner', () => {
+    for (const feature of featureRegistry) {
+      for (const pathname of [feature.route, `${feature.route}/`]) {
+        expect(featureForPath(pathname)?.id).toBe(feature.id);
+        expect(destinationForPath(pathname)?.id).toBe(feature.destination);
+      }
+      if ('compatibilityRoutes' in feature) {
+        for (const alias of feature.compatibilityRoutes) {
+          for (const pathname of [alias, `${alias}/`]) {
+            expect(featureForPath(pathname)?.id).toBe(feature.id);
+            expect(destinationForPath(pathname)?.id).toBe(feature.destination);
+          }
+        }
+      }
+    }
+
+    expect(featureForPath('/networking')).toBeUndefined();
+    expect(featureForPath('/protocols-extra')).toBeUndefined();
+    expect(featureForPath('/network/path/extra')).toBeUndefined();
+    expect(destinationForPath('/not-a-route')).toBeUndefined();
   });
 
   it('keeps feature IDs, canonical paths, aliases, and ordering unique', () => {
@@ -104,27 +122,21 @@ describe('feature registry', () => {
     }
   });
 
-  it('derives navigation, commands, Home entries, and protocol choices from registry entries', () => {
-    for (const surface of [
-      currentPrimaryNavigation,
-      currentSecondaryNavigation,
-      commandDestinationFeatures,
-      homeEntryFeatures,
-      protocolChoiceFeatures,
-    ]) {
+  it('derives commands, Home entries, and Inspect entries from registry entries', () => {
+    for (const surface of [commandDestinationFeatures, homeEntryFeatures, inspectEntryFeatures]) {
       expect(surface.every((feature) => featureRegistry.includes(feature))).toBe(true);
     }
 
     expect(commandDestinationFeatures.map((feature) => feature.command.label)).toEqual([
-      'Open ProtoPeek overview',
-      'Open API workbenches',
+      'Open Home',
+      'Open Inspect',
       'Open gRPC workbench',
       'Open HTTP workbench',
       'Open next-hop route evidence',
       'Trace a measured network path',
       'Discover an authorized local network',
       'Open the network evidence map',
-      'Open This PC',
+      'Open This Device',
       'Open Downloader',
       'Open Cloudflare tunnel operations',
       'Open Security evidence',
@@ -134,12 +146,17 @@ describe('feature registry', () => {
     expect(homeEntryFeatures.map((feature) => feature.homeEntry.label)).toEqual([
       'Send an API request',
       'Trace a network path',
-      'Check this computer',
+      'Check this device',
       'Inspect Cloudflare tunnels',
       'Download a file',
       'Check a public website',
     ]);
-    expect(protocolChoiceFeatures.map((feature) => feature.label)).toEqual(['gRPC', 'HTTP']);
+    expect(inspectEntryFeatures.map((feature) => feature.label)).toEqual([
+      'gRPC',
+      'HTTP',
+      'Security',
+    ]);
+    expect(featureRegistry.every((feature) => !('navigation' in feature))).toBe(true);
   });
 
   it('cannot promote planned entries into stable or current-source capability claims', () => {

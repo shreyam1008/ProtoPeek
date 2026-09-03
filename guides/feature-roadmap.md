@@ -40,30 +40,31 @@ A proposed feature belongs in ProtoPeek only when all five conditions hold:
 If a feature fails a condition, prefer an integration link, a separate product, or rejection.
 Provider popularity alone is not an admission reason.
 
-## Release truth and the v0.6 destination target
+## Release truth and the v0.6 current-source destinations
 
 Keep these layers separate:
 
 - Stable v0.5.0 shipped Overview, Protocols, Network, Downloader, Security, and Settings.
-- Current source after v0.5.0 additionally has separate This PC and Cloudflare Tunnel routes plus
-  the source-only refinements named below.
-- v0.6 targets one shell with Home, Inspect, Network, Publish, Files, and Settings. That regrouping
-  is not live until its implementation and verification gates pass.
+- Current source after v0.5.0 implements one shell with exactly Home, Inspect, Network, Publish,
+  Files, and Settings while retaining the existing canonical and compatibility routes.
+- This Device is grouped under Network, Security under Inspect, Cloudflare Tunnel under Publish,
+  and Downloader under Files. Roadmap and Help remain command/About destinations without persistent
+  navigation entries.
 - Private Access, Tailscale, Headscale-backed client workflows, and NetBird remain planned. They are
   not current-source or stable-release capabilities.
 
-| v0.6 destination | Purpose and current-source surfaces to regroup | Retained current paths | Existing compatibility redirects | Planned later, not current source |
+| v0.6 destination | Current-source responsibility | Retained current paths | Existing compatibility redirects | Planned later, not current source |
 | --- | --- | --- | --- | --- |
 | **Home** | Overview and bounded discovery entry | `/` | None | Cross-domain recent sessions and receipts are v0.7 work |
 | **Inspect** | Protocols, gRPC, HTTP, Security, and public-web/TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security` | `/grpc` -> `/protocols/grpc`; `/http` -> `/protocols/http` | Additional protocol adapters remain gated |
-| **Network** | This PC, next hop, path, authorized local discovery, map, and history | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
+| **Network** | This Device, next hop, path, authorized local discovery, map, and history | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
 | **Publish** | Current Cloudflare host observation, explicit release check, guarded canonical-service actions, and browser-only route drafts | `/tunnels` | None | Shared audience selection, config/account mutation, Cloudflare Quick Tunnel, Tailscale Serve/Funnel, and NetBird Expose |
 | **Files** | Downloader and its host settings | `/downloader` | `/downloads` -> `/downloader` | Taildrop remains separately gated |
-| **Settings** | Appearance, local dependencies, host policy, About, and documentation; Roadmap remains secondary | `/settings`, `/roadmap` | None | No provider setup surface is implied |
+| **Settings** | Appearance, local dependencies, host policy, About, and documentation; Roadmap remains command-accessible at its retained route | `/settings`, `/roadmap` | None | No provider setup surface is implied |
 
-These paths describe the current route tree exactly. The v0.6 information architecture may regroup
-their presentation, but it must not break saved URLs or deep links. Help has no standalone current
-route and remains a command/About surface.
+These paths describe the current route tree exactly. The v0.6 information architecture groups their
+presentation without breaking saved URLs or deep links. Help has no standalone current route and
+remains a command/About surface.
 
 ## Stable v0.5.0 workbench: six shipped areas
 
@@ -189,16 +190,18 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 ### Available in current source after v0.5.0
 
-- A seventh, route-lazy **This PC** area separates device, interface, local-exposure, and Internet
-  evidence. Initial render reads only local capabilities and a bounded process-perspective system
-  snapshot. Linux can explicitly inspect bounded socket tables with same-user PID/name attribution
+- The route-lazy **This Device** workspace at `/this-pc` sits under Network and separates device,
+  interface, local-exposure, and Internet evidence. Initial render reads only local capabilities and
+  a bounded process-perspective system snapshot. Linux can explicitly inspect bounded socket tables
+  with same-user PID/name attribution
   and sample aggregate interface counters once; macOS and Windows render honest capability gaps
   rather than shelling out or elevating. Public IPv4/IPv6 plus provider-reported BGP origin and the
   data-bounded Cloudflare quality plan have separate disclosures and actions. See the
-  [This PC boundary](/this-pc/) for exact providers, limits, platform support, and non-goals.
-- An eighth, route-lazy **Cloudflare Tunnel** area adds a manual, real-host local-operations
-  foundation. One explicit inspection observes `cloudflared`, the canonical Windows SCM,
-  systemd, or launchd service, documented config candidates, effective-versus-competing YAML,
+  [This Device boundary](/this-pc/) for exact providers, limits, platform support, and non-goals.
+- The route-lazy **Cloudflare Tunnel** workspace at `/tunnels` remains a domain-native Publish
+  surface for manual, real-host local operations. One explicit inspection observes `cloudflared`,
+  the canonical Windows SCM, systemd, or launchd service, documented config candidates,
+  effective-versus-competing YAML,
   ingress routes, catch-all coverage, and optional Wrangler/Docker CLI availability. An empty host
   stays empty rather than receiving fixture data. A separate user-triggered request compares the
   installed version with Cloudflare’s official latest release and links to official downloads.
@@ -501,7 +504,7 @@ are: shared entry 320 KiB / 105 KiB gzip; lazy gRPC workspace 116 KiB / 32 KiB; 
 56 KiB / 17 KiB; lazy scan dialog 15 KiB / 5 KiB; shared CSS 141 KiB / 27 KiB; network shell 64 KiB /
 20 KiB, aggregate network JavaScript 132 KiB / 40 KiB, and network CSS 34 KiB / 6 KiB; Downloader
 24 KiB / 8 KiB JavaScript, 16 KiB / 4 KiB base CSS, and 4 KiB / 2 KiB lazy advanced CSS; Security
-36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This PC 58 KiB / 16 KiB JavaScript,
+36 KiB / 10 KiB JavaScript and 22 KiB / 5 KiB CSS; This Device 58 KiB / 16 KiB JavaScript,
 64 KiB / 18 KiB benchmark-engine JavaScript, and 24 KiB / 5 KiB CSS; Cloudflare Tunnel 58 KiB /
 16 KiB JavaScript, 8 KiB / 3 KiB lazy route-planner JavaScript, 3 KiB / 2 KiB
 shared route-model JavaScript, and 48 KiB / 8 KiB CSS; suite shell pages CSS

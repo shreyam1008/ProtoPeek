@@ -1,4 +1,4 @@
-import { type DestinationId, type FeatureRoute, featureRegistry } from '../app/feature-registry';
+import { type DestinationId, type FeatureRoute, featureForPath } from '../app/feature-registry';
 
 export const maximumSessionReferences = 8;
 
@@ -26,27 +26,11 @@ export const emptySessionState: SessionState = {
   announcement: '',
 };
 
-const compatibilityTargets = new Map<string, FeatureRoute>(
-  featureRegistry.flatMap((feature) =>
-    'compatibilityRoutes' in feature
-      ? feature.compatibilityRoutes.map((route) => [route, feature.route] as const)
-      : []
-  )
-);
-
-function normalizePath(pathname: string) {
-  if (pathname === '/') return pathname;
-  return pathname.replace(/\/+$/, '');
-}
-
 export function sessionReferenceForPath(
   pathname: string
 ): Omit<SessionReference, 'lastFocused' | 'dirty' | 'running'> | null {
-  const normalized = normalizePath(pathname);
-  const canonical = compatibilityTargets.get(normalized) ?? normalized;
-  if (canonical === '/') return null;
-  const feature = featureRegistry.find((candidate) => candidate.route === canonical);
-  if (!feature) return null;
+  const feature = featureForPath(pathname);
+  if (!feature || feature.route === '/') return null;
   return {
     id: `${feature.destination}:${feature.route}`,
     destination: feature.destination,

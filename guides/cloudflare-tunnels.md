@@ -5,7 +5,7 @@ creating another repository, daemon, or dashboard. It reads the real Cloudflare 
 on that host—`cloudflared`, the canonical operating-system service, and documented YAML
 locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, network, and machine
 tools: the [HTTP workbench](/http-workbench/), [gRPC workbench](/grpc-workbench/),
-[network workbench](/network-workbench/), and [This PC](/this-pc/).
+[network workbench](/network-workbench/), and [This Device](/this-pc/).
 
 This page describes the current-source foundation after v0.5.0. It is not included in the published
 v0.5.0 packages, is not affiliated with or endorsed by Cloudflare, Inc., and does not make claims
@@ -13,10 +13,11 @@ about Cloudflare pricing or plan limits.
 
 ## What works now
 
-Open **Cloudflare Tunnel** from the ProtoPeek sidebar or the Overview task list, then choose
-**Inspect this host**. No host inspection, Internet release check, service action, or background
-poll begins on page load. The product path always uses the running host adapter; it does not
-substitute demo deployments or fixture data. Test-only fakes remain isolated to automated tests.
+Open **Publish** and enter the domain-native **Cloudflare Tunnel** workspace, or choose its task on
+Home, then select **Inspect this host**. No host inspection, Internet release check, service action,
+or background poll begins on page load. The product path always uses the running host adapter; it
+does not substitute demo deployments or fixture data. Test-only fakes remain isolated to automated
+tests.
 
 One explicit inspection can show:
 

@@ -119,10 +119,11 @@ Repository: ${repoRootURL}
 
 ## Current source after v0.5.0
 
-- Current source adds a seventh route-lazy area, This PC. It is not part of the published v0.5.0 packages.
-- This PC reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
-- Current source also adds an eighth route-lazy area, Cloudflare Tunnel. It is not part of the published v0.5.0 packages.
+- Current source implements exactly six permanent destinations: Home, Inspect, Network, Publish, Files, and Settings. This shell is not part of the published v0.5.0 packages.
+- This Device remains route-lazy at /this-pc under Network. It reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
+- Cloudflare Tunnel remains route-lazy at /tunnels under Publish and keeps its domain-native evidence. It is not part of the published v0.5.0 packages.
 - Cloudflare Tunnel starts only from explicit local actions. It inspects the real host, compares cloudflared with the official release on request, and confirms, stale-guards, and verifies canonical OS service control. Route drafts remain browser-only; config/account writes, password capture, automatic installation or update, Docker-daemon access, and background polling stay unavailable.
+- Security is grouped under Inspect, Downloader remains its domain-native workspace under Files, and Roadmap and Help remain command/About destinations without persistent navigation entries.
 - Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
 - Private Access and Tailscale, Headscale, and NetBird workflows remain planned; none ships in the stable release or current source.
 

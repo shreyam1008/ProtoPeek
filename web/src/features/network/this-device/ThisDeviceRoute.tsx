@@ -54,7 +54,7 @@ function DeviceSectionTabs({
 
   if (mobile) {
     return (
-      <nav className="this-pc-bottom-tabs" aria-label="This PC mobile sections">
+      <nav className="this-pc-bottom-tabs" aria-label="This Device mobile sections">
         {sectionViews.map((section) => (
           <button
             key={section.id}
@@ -71,7 +71,7 @@ function DeviceSectionTabs({
     );
   }
   return (
-    <div className="this-pc-tabs" role="tablist" aria-label="This PC sections">
+    <div className="this-pc-tabs" role="tablist" aria-label="This Device sections">
       {sectionViews.map((section, index) => (
         <button
           key={section.id}
@@ -141,7 +141,7 @@ export function ThisDeviceRoute() {
       <div className="this-pc-page-inner">
         <header className="this-pc-hero">
           <div>
-            <h1>This PC</h1>
+            <h1>This Device</h1>
             <p>See what this machine exposes — and how it reaches the internet.</p>
           </div>
           <div>
@@ -178,7 +178,7 @@ export function ThisDeviceRoute() {
           >
             <CircleAlert aria-hidden="true" />
             <div>
-              <h2 id="this-pc-unavailable-title">This PC is unavailable in this runtime</h2>
+              <h2 id="this-pc-unavailable-title">This Device is unavailable in this runtime</h2>
               <p>{capabilities.error}</p>
               <small>
                 ProtoPeek will not offer a browser-only benchmark here because it could be mistaken

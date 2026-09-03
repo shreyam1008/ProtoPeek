@@ -1,11 +1,11 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Braces, Globe2, Radar, RadioTower, Server } from 'lucide-react';
+import { ArrowRight, Braces, Globe2, Radar, RadioTower, Server, ShieldCheck } from 'lucide-react';
 
-import { protocolChoiceFeatures } from './app/feature-registry';
+import { inspectEntryFeatures } from './app/feature-registry';
 import { useProtocolShell } from './ProtocolShellContext';
 import './suite-pages.css';
 
-const protocolIcons = { grpc: Server, http: Globe2 } as const;
+const inspectIcons = { grpc: Server, http: Globe2, security: ShieldCheck } as const;
 
 const futureProtocols = [
   {
@@ -30,10 +30,11 @@ export function Protocols() {
     <div className="pp-suite-page pp-protocols-page">
       <header className="pp-suite-page-heading">
         <div>
-          <span className="pp-kicker">APIs</span>
-          <h1>Choose the API workbench.</h1>
+          <span className="pp-kicker">Inspect</span>
+          <h1>Choose an inspection workbench.</h1>
           <p>
-            REST and gRPC stay related here, while each keeps its native vocabulary and evidence.
+            HTTP, gRPC, and public website security stay related here, while each keeps its native
+            evidence.
           </p>
         </div>
         <button type="button" className="pp-suite-page-action" onClick={() => openScan()}>
@@ -50,20 +51,20 @@ export function Protocols() {
         <header>
           <div>
             <span className="pp-kicker">Available now</span>
-            <h2 id="available-protocols-title">API-native consoles</h2>
+            <h2 id="available-protocols-title">Native inspection tools</h2>
           </div>
           <span>Local session</span>
         </header>
         <div className="pp-protocol-choice-list">
-          {protocolChoiceFeatures.map((feature) => {
-            const Icon = protocolIcons[feature.id];
+          {inspectEntryFeatures.map((feature) => {
+            const Icon = inspectIcons[feature.id];
             return (
               <Link key={feature.id} to={feature.route} className="pp-protocol-choice">
                 <Icon aria-hidden="true" />
                 <span>
-                  <small>Stable</small>
+                  <small>Available</small>
                   <strong>{feature.label}</strong>
-                  <p>{feature.protocolChoice.detail}</p>
+                  <p>{feature.inspectEntry.detail}</p>
                 </span>
                 <ArrowRight aria-hidden="true" />
               </Link>

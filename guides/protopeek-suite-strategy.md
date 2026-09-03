@@ -1,10 +1,11 @@
 # ProtoPeek suite strategy
 
-Status: product decision, selected redesign contract, and staged delivery plan. The six-destination
-shell is the v0.6 target and is not the current shell. This document does not claim that the
-TailScout migration or any private-network provider integration is shipped.
+Status: product decision, selected redesign contract, and staged delivery plan. Current source
+implements the v0.6 six-destination shell; the published v0.5.0 release retains its historical
+six-area workbench. This document does not claim that the TailScout migration or any private-network
+provider integration is shipped.
 
-Last reviewed: 2026-09-02.
+Last reviewed: 2026-09-03.
 
 ## Decision in one page
 
@@ -29,8 +30,9 @@ find a service -> understand how it is reached -> inspect its protocol
                -> share it with a chosen audience -> verify the result
 ```
 
-The current product is already functionally broad, but its mental model is fragmented. The next
-milestone is therefore a product and code reset, not another provider page.
+The current product is already functionally broad, and current source now establishes the v0.6
+product and code reset before another provider page. The remaining reset work should be completed
+and verified before the next domain begins.
 
 ## Portfolio boundary
 
@@ -69,20 +71,20 @@ Provider popularity alone is not an admission reason.
 
 ## Why the reset comes before Tailscale
 
-The repository exposes several kinds of drift:
+The pre-reset repository audit exposed several kinds of drift:
 
 - Contributor, README, product-metadata, website, and roadmap language previously described the
   product at different scopes; the v0.6 reset keeps those contracts aligned without rewriting
   historical release claims.
-- The current shell presents eight primary areas plus persistent Roadmap and Help destinations.
+- The pre-reset shell presented eight primary areas plus persistent Roadmap and Help destinations.
 - Routes, navigation, dashboard tasks, command-palette actions, public feature pages, and roadmap
   status are separate hand-maintained catalogs.
-- Several route components are too large for a one-person product: `App.tsx` is about 4,300 lines,
+- Several route components were too large for a one-person product: `App.tsx` was about 4,300 lines,
   `Tunnels.tsx` about 2,100, `ThisPC.tsx` about 1,750, and `NetworkWorkbench.tsx` about 1,000.
 - The shared stylesheet is about 6,150 lines and contains several generations of route overrides;
   the current built shared CSS is about 144 kB before compression.
-- At a 1280 x 720 viewport, the eight-item rail already scrolls and can hide later destinations.
-- The current visual language is coherent at the token level, but the experience alternates
+- At a 1280 x 720 viewport, the eight-item rail scrolled and could hide later destinations.
+- The pre-reset visual language was coherent at the token level, but the experience alternated
   between a calm overview, dense card inventories, duplicated shell chrome, and IDE-like
   workbenches.
 
@@ -109,23 +111,23 @@ HTTP or gRPC draft, route evidence, or the Publish flow. In the planned private-
 Tailscale peer can open a provider-native ping, route evidence, HTTP, or gRPC. No handoff sends
 traffic or changes state automatically.
 
-### v0.6 target: six permanent destinations
+### v0.6 current source: six permanent destinations
 
 The released v0.5.0 shell still uses Overview, Protocols, Network, Downloader, Security, and
-Settings. Current source after v0.5.0 adds separate This PC and Cloudflare Tunnel areas. The table
-below is the target grouping for v0.6; it does not describe the current shell as already reset.
+Settings. Current source after v0.5.0 implements the six-destination grouping below while retaining
+the existing canonical and compatibility paths.
 
-| Destination | Purpose and current-source surfaces to regroup in v0.6 | Retained current paths | Existing compatibility redirects | Planned later, not current source |
+| Destination | Current-source responsibility | Retained current paths | Existing compatibility redirects | Planned later, not current source |
 | --- | --- | --- | --- | --- |
 | **Home** | Resume the current local task and enter bounded discovery from Overview | `/` | None | Cross-domain recent sessions and receipts are v0.7 work |
-| **Inspect** | Preserve protocol-native gRPC, HTTP, public-web, and TLS evidence; Security moves here | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security` | `/grpc` -> `/protocols/grpc`; `/http` -> `/protocols/http` | Additional protocol adapters remain gated by native evidence and size review |
-| **Network** | Explain how a service is reached; This PC becomes This Device beside next-hop, path, authorized discovery, map, and history | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
-| **Publish** | Regroup the current `/tunnels` Cloudflare host observation, explicit release check, guarded canonical-service actions, and browser-only route drafts | `/tunnels` | None | The audience-first shared publishing flow, config/account mutation, Cloudflare Quick Tunnel, Tailscale Serve/Funnel, and NetBird Expose |
+| **Inspect** | Preserve protocol-native gRPC, HTTP, public-web, and TLS evidence; Security is grouped here | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security` | `/grpc` -> `/protocols/grpc`; `/http` -> `/protocols/http` | Additional protocol adapters remain gated by native evidence and size review |
+| **Network** | Explain how a service is reached; This Device, next hop, path, authorized discovery, map, and history are grouped here | `/network`, `/network/path`, `/network/local`, `/network/map`, `/network/history`, `/network/route`, `/this-pc` | `/routes` -> `/network/route` | Private Access, Tailscale, Headscale-backed clients, and NetBird |
+| **Publish** | Keep the current `/tunnels` Cloudflare host observation, explicit release check, guarded canonical-service actions, and browser-only route drafts domain-native | `/tunnels` | None | The audience-first shared publishing flow, config/account mutation, Cloudflare Quick Tunnel, Tailscale Serve/Funnel, and NetBird Expose |
 | **Files** | Acquire and verify related artifacts through Downloader | `/downloader` | `/downloads` -> `/downloader` | Taildrop remains a separate demand and security decision |
-| **Settings** | Own appearance, local dependencies, host policy, About, and documentation; Roadmap stays secondary | `/settings`, `/roadmap` | None | No provider setup surface is implied |
+| **Settings** | Own appearance, local dependencies, host policy, About, and documentation; Roadmap remains command-accessible at its retained route | `/settings`, `/roadmap` | None | No provider setup surface is implied |
 
 Roadmap and Help remain available from the command menu and an About/documentation surface. They
-do not consume permanent primary-navigation space.
+do not consume persistent navigation space.
 
 These paths are exact for the current route tree. New destination labels do not authorize deleting,
 repurposing, or silently changing an existing deep link. Help has no standalone current route; it
@@ -288,8 +290,8 @@ the same experience, not pretending every operating system offers the same capab
 
 ## Connected workflows
 
-These are target journeys, not one current capability claim. The existing HTTP, gRPC, network,
-Downloader, This PC, Security, and Cloudflare host-operation steps keep their documented release
+These are connected journey contracts, not one capability claim. The existing HTTP, gRPC, network,
+Downloader, This Device, Security, and Cloudflare host-operation steps keep their documented release
 status. Any step involving a private peer, Tailscale, a Headscale-backed client, NetBird, shared
 audience selection, or temporary exposure remains planned.
 
@@ -359,7 +361,7 @@ Scope:
 5. Split `App.tsx`, `Tunnels.tsx`, `ThisPC.tsx`, and `NetworkWorkbench.tsx` without changing their
    contracts.
 6. Unify tokens, focus, status, empty states, operation banners, tables, drawers, and inspectors.
-7. Move This PC under Network, Security under Inspect, and Tunnels under Publish while preserving
+7. Place This Device under Network, Security under Inspect, and Tunnels under Publish while preserving
    old routes.
 8. Align `AGENTS.md`, README, `product.json`, website language, screenshots, and release metadata.
 

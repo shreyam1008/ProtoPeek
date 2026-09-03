@@ -178,12 +178,6 @@ body:has(.pp-workbench-shell) {
   padding: 0;
 }
 
-.pp-app-icon-action.is-active {
-  border-color: var(--pp-color-selection-border);
-  background: var(--pp-color-selection);
-  color: var(--pp-color-selection-text);
-}
-
 .pp-app-bar-menu,
 .pp-app-current {
   display: none;
@@ -554,16 +548,15 @@ body:has(.pp-workbench-shell) {
   display: none;
 }
 
-@media (max-width: 1119px) {
+@media (min-width: 761px) and (max-width: 1119px) {
   .pp-app-brand strong,
-  .pp-app-navigation-link span,
   .pp-app-inspect span,
   .pp-app-command span,
   .pp-app-command kbd {
     display: none;
   }
 
-  .pp-app-navigation-link,
+  .pp-app-inspect,
   .pp-app-command {
     width: var(--pp-control-height);
     padding: 0;
@@ -597,6 +590,12 @@ body:has(.pp-workbench-shell) {
     padding: 0 var(--pp-space-1);
   }
 
+  .pp-app-brand strong,
+  .pp-app-command span,
+  .pp-app-command kbd {
+    display: none;
+  }
+
   .pp-app-current {
     display: block;
     min-width: 0;
@@ -611,9 +610,7 @@ body:has(.pp-workbench-shell) {
   }
 
   .pp-app-navigation,
-  .pp-app-inspect,
-  .pp-app-secondary,
-  .pp-app-help {
+  .pp-app-inspect {
     display: none;
   }
 
@@ -625,6 +622,11 @@ body:has(.pp-workbench-shell) {
   .pp-app-theme {
     width: var(--pp-narrow-touch-height);
     height: var(--pp-narrow-touch-height);
+  }
+
+  .pp-app-command {
+    justify-content: center;
+    padding: 0;
   }
 
   .pp-session-tabs {

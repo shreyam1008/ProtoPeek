@@ -133,9 +133,7 @@ describe('protocol routes', () => {
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     const dialogs = screen.getAllByRole('dialog', { name: 'ProtoPeek commands' });
     expect(dialogs).toHaveLength(1);
-    expect(
-      within(dialogs[0]).getByRole('option', { name: 'Open ProtoPeek overview' })
-    ).toBeVisible();
+    expect(within(dialogs[0]).getByRole('option', { name: 'Open Home' })).toBeVisible();
     expect(within(dialogs[0]).queryByRole('option', { name: /Invoke current method/ })).toBeNull();
 
     fireEvent.keyDown(window, { key: 'Escape' });
@@ -170,7 +168,7 @@ describe('protocol routes', () => {
     expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
     expect(screen.getByText('Local discovery')).toBeInTheDocument();
     expect(screen.getByText('Ask first')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Check this computer/ })).toBeVisible();
+    expect(screen.getByRole('link', { name: /^Check this device\b/ })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
     expect(
@@ -182,6 +180,15 @@ describe('protocol routes', () => {
       await screen.findByRole('dialog', { name: 'Scan target' }, { timeout: 5000 })
     ).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
+
+    await act(async () => {
+      await router.navigate({ to: '/security' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Security' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Inspect' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
 
     await act(async () => {
       await router.navigate({ to: '/network' });
@@ -203,21 +210,35 @@ describe('protocol routes', () => {
     await act(async () => {
       await router.navigate({ to: '/this-pc' });
     });
-    expect(await screen.findByRole('heading', { name: 'This PC' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'This Device' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/this-pc');
-    expect(screen.getByRole('link', { name: 'Open This PC' })).toHaveClass('is-active');
+    expect(screen.getByRole('link', { name: 'Open Network' })).toHaveClass('is-active');
+    expect(screen.getByRole('link', { name: 'Open Network' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
 
     await act(async () => {
       await router.navigate({ to: '/tunnels' });
     });
     expect(await screen.findByRole('heading', { name: 'Tunnel operations' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/tunnels');
-    expect(screen.getByRole('link', { name: 'Open Tunnels' })).toHaveClass('is-active');
+    expect(screen.getByRole('link', { name: 'Open Publish' })).toHaveClass('is-active');
+
+    await act(async () => {
+      await router.navigate({ to: '/downloader' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Downloader' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Files' })).toHaveClass('is-active');
 
     await act(async () => {
       await router.navigate({ to: '/roadmap' });
     });
     expect(await screen.findByRole('heading', { name: 'Product roadmap' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open Settings' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
     expect(screen.getByText('Owned package channels')).toBeInTheDocument();
     expect(
       screen.getByText(/install checksum-pinned v0\.5\.0 archives, declare aria2/)

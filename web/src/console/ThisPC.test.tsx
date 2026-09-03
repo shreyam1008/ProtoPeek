@@ -228,6 +228,7 @@ describe('This PC workspace', () => {
 
     render(<ThisPC />);
     await waitForSnapshot();
+    expect(screen.getByRole('heading', { name: 'This Device' })).toBeVisible();
     fireEvent.click(screen.getByRole('tab', { name: 'Benchmark' }));
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -372,7 +373,7 @@ describe('This PC workspace', () => {
         { status: 404 }
       )
     );
-    expect(await screen.findByText('This PC is unavailable in this runtime')).toBeVisible();
+    expect(await screen.findByText('This Device is unavailable in this runtime')).toBeVisible();
     expect(screen.getByText(/will not offer a browser-only benchmark/i)).toBeVisible();
     expect(speedtestMock.instances).toHaveLength(0);
   });

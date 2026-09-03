@@ -11,21 +11,25 @@ afterEach(() => {
   document.documentElement.removeAttribute('data-theme');
 });
 
-describe('Protocols chooser', () => {
-  it('opens shipped API-native workbenches and truthfully gates future research', async () => {
+describe('Inspect landing', () => {
+  it('opens shipped native inspection tools and truthfully gates future research', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
 
-    expect(await screen.findByRole('heading', { name: 'Choose the API workbench.' })).toBeVisible();
-    const available = screen.getByRole('region', { name: 'API-native consoles' });
+    expect(
+      await screen.findByRole('heading', { name: 'Choose an inspection workbench.' })
+    ).toBeVisible();
+    const available = screen.getByRole('region', { name: 'Native inspection tools' });
     expect(within(available).getByRole('link', { name: /gRPC/i })).toHaveAttribute(
       'href',
       '/protocols/grpc'
     );
-    expect(within(available).getByRole('link', { name: /HTTP/i })).toHaveAttribute(
-      'href',
-      '/protocols/http'
-    );
+    expect(within(available).getByText('Security')).toBeVisible();
+    expect(
+      within(available)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual(['/protocols/grpc', '/protocols/http', '/security']);
 
     const future = screen.getByRole('region', { name: 'Future protocol research' });
     expect(within(future).getByText("Cap'n Proto")).toBeVisible();
