@@ -379,7 +379,7 @@ describe('Tunnels', () => {
 
   it('creates an in-view route draft without issuing a mutation request', async () => {
     const request = stubTunnelAPI();
-    const shell = renderTunnels();
+    renderTunnels();
     await inspectLocalHost();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
@@ -417,6 +417,33 @@ describe('Tunnels', () => {
     expect(screen.getByRole('tab', { name: 'Routes' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Draft origin · not observed')).toBeVisible();
     expect(screen.getByText(/No file, service, or Cloudflare account was changed/)).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('does not hand a browser-only route draft to a protocol workbench', async () => {
+    const request = stubTunnelAPI();
+    const shell = renderTunnels();
+    await inspectLocalHost();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
+    const toolbar = screen.getByRole('toolbar', { name: 'Tunnel controls' });
+    fireEvent.click(within(toolbar).getByRole('button', { name: 'Draft ingress route' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Draft ingress route' });
+    fireEvent.change(within(dialog).getByLabelText('Public hostname'), {
+      target: { value: 'draft.example.test' },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Origin service'), {
+      target: { value: 'http://localhost:9090' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: /Review plan/ }));
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: /Keep as draft/,
+      })
+    );
+
+    expect(await screen.findByText('Draft origin · not observed')).toBeVisible();
     const httpHandoff = screen.getByRole('button', { name: 'Open in HTTP' });
     const grpcHandoff = screen.getByRole('button', { name: 'Open in gRPC' });
     expect(httpHandoff).toBeDisabled();
@@ -434,7 +461,6 @@ describe('Tunnels', () => {
     expect(shell.openHTTPDiscovery).not.toHaveBeenCalled();
     expect(shell.openGRPCDiscovery).not.toHaveBeenCalled();
     expect(request).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(trigger).toHaveFocus());
   });
 
   it('hands an observed HTTP origin to the existing HTTP workbench contract', async () => {

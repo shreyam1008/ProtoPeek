@@ -43,21 +43,23 @@ describe('tunnel route plan model', () => {
     expect(routeSupportsWorkbench(route, 'grpc')).toBe(true);
     expect(routeSupportsWorkbench(route, 'http')).toBe(false);
     expect(routeSupportsWorkbench({ ...route, catchAll: true }, 'grpc')).toBe(false);
-  });
-
-  it('never converts a browser-only route plan into observed workbench evidence', () => {
-    const route: PlannedTunnelRoute = {
-      id: 'planned-http',
-      hostname: 'api.example.test',
-      path: '',
-      service: 'http://localhost:8080',
-      protocol: 'http',
-      catchAll: false,
+    const plannedRoute: PlannedTunnelRoute = {
+      ...route,
       planned: true,
     };
-    expect(routeSupportsWorkbench(route, 'http')).toBe(false);
-    expect(routeSupportsWorkbench({ ...route, protocol: 'h2c' }, 'grpc')).toBe(false);
-    expect(scanResultFromTunnelRoute(route, 'http')).toBeNull();
-    expect(scanResultFromTunnelRoute({ ...route, protocol: 'h2c' }, 'grpc')).toBeNull();
+    expect(routeSupportsWorkbench(plannedRoute, 'grpc')).toBe(false);
+    expect(
+      routeSupportsWorkbench(
+        { ...plannedRoute, service: 'http://localhost:8080', protocol: 'http' },
+        'http'
+      )
+    ).toBe(false);
+    expect(scanResultFromTunnelRoute(plannedRoute, 'grpc')).toBeNull();
+    expect(
+      scanResultFromTunnelRoute(
+        { ...plannedRoute, service: 'http://localhost:8080', protocol: 'http' },
+        'http'
+      )
+    ).toBeNull();
   });
 });
