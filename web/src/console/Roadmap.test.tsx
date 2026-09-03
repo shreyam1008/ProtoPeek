@@ -15,6 +15,8 @@ describe('Roadmap', () => {
     expect(next).not.toBeNull();
     if (!available || !next) return;
 
+    expect(within(available).getByRole('heading', { name: 'Workbench + themes' })).toBeVisible();
+    expect(within(available).queryByText('Dashboard + themes')).not.toBeInTheDocument();
     expect(within(available).getByText(/bounded.*credential-redacted cURL export/i)).toBeVisible();
     expect(within(next).getByRole('heading', { name: 'cURL import' })).toBeVisible();
     expect(within(next).queryByText(/cURL import\/export/i)).not.toBeInTheDocument();

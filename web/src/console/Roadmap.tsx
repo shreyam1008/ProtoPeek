@@ -6,7 +6,7 @@ const roadmap = [
     slug: 'available',
     icon: CheckCircle2,
     items: [
-      ['Dashboard + themes', 'Local dashboard, light/dark preference, recent bounded discoveries.'],
+      ['Workbench + themes', 'Local workbench, paired themes, and recent bounded discoveries.'],
       [
         'gRPC workbench',
         'Reflection, proto/protoset schemas, all stream modes, deadlines, headers, messages, trailers, and status.',
