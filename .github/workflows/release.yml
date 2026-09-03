@@ -63,7 +63,9 @@ jobs:
           bun run test
           bun run build
           go test ./...
-          test -z "$(git status --porcelain -- docs internal/resources/app/dist)"
+          # The app was rebuilt above, but the locked native web toolchain emits different hashes
+          # across Windows and Linux. Windows CI owns its exact freshness check; site output is stable.
+          test -z "$(git status --porcelain -- docs)"
 
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:

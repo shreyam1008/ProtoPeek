@@ -18,4 +18,5 @@
 !web/src/vite-env.d.ts
 !web/tsconfig.json
 !web/vite.console.config.ts
+!web/vite.console-chunks.ts
 !web/vite.shared.ts
