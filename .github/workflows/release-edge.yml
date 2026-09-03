@@ -44,6 +44,16 @@ jobs:
           go test ./...
           test -z "$(git status --porcelain -- docs internal/resources/app/dist)"
 
+      - name: Capture Vite 8.0.16 Linux assets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-8.0.16-linux-assets
+          path: |
+            docs
+            internal/resources/app/dist
+          if-no-files-found: error
+
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           syft-version: v1.51.0
