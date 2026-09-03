@@ -50,10 +50,16 @@ const LazyLocalNetworkPanel = lazy(async () => {
 });
 
 type NetworkSection = 'path' | 'local' | 'map' | 'history';
+type ControllerOperation = { generation: number; editRevision: number };
 
 const defaultNetworkStore = new NetworkStore();
 
+function isNetworkWorkbenchPath(pathname: string) {
+  return pathname === '/network' || pathname.startsWith('/network/');
+}
+
 function sectionFromPath(pathname: string): NetworkSection {
+  if (!isNetworkWorkbenchPath(pathname)) return 'path';
   const candidate = pathname.split('/').filter(Boolean).at(-1);
   return candidate === 'local' || candidate === 'map' || candidate === 'history'
     ? candidate
@@ -78,23 +84,63 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
   const dirtyRef = useRef(false);
   const persistedWorkspaceRef = useRef<NetworkWorkspaceV1 | null>(null);
   const editRevisionRef = useRef(0);
-  const loadGenerationRef = useRef(0);
+  const operationGenerationRef = useRef(0);
+  const controllerOperationRef = useRef<ControllerOperation | null>(null);
+  const mountedRef = useRef(false);
   const navigationBlocker = useBlocker({
-    shouldBlockFn: ({ next }) => dirty && !next.pathname.startsWith('/network'),
+    shouldBlockFn: ({ next }) => dirty && !isNetworkWorkbenchPath(next.pathname),
     enableBeforeUnload: dirty,
     withResolver: true,
   });
 
+  const claimControllerOperation = useCallback(() => {
+    const operation = {
+      generation: operationGenerationRef.current + 1,
+      editRevision: editRevisionRef.current,
+    };
+    operationGenerationRef.current = operation.generation;
+    controllerOperationRef.current = operation;
+    return operation;
+  }, []);
+
+  const operationOwnsController = useCallback(
+    (operation: ControllerOperation) =>
+      mountedRef.current &&
+      controllerOperationRef.current === operation &&
+      operationGenerationRef.current === operation.generation,
+    []
+  );
+
+  const operationIsCurrent = useCallback(
+    (operation: ControllerOperation) =>
+      operationOwnsController(operation) && editRevisionRef.current === operation.editRevision,
+    [operationOwnsController]
+  );
+
+  const operationHasNewerEdit = useCallback(
+    (operation: ControllerOperation) =>
+      operationOwnsController(operation) && editRevisionRef.current !== operation.editRevision,
+    [operationOwnsController]
+  );
+
   const commitWorkspaceView = useCallback(
-    (nextWorkspace: NetworkWorkspaceV1 | null, nextActiveID: string, nextDirty: boolean) => {
+    (
+      operation: ControllerOperation,
+      nextWorkspace: NetworkWorkspaceV1 | null,
+      nextActiveID: string,
+      nextDirty: boolean
+    ) => {
+      if (!operationIsCurrent(operation)) return false;
       activeIDRef.current = nextActiveID;
       dirtyRef.current = nextDirty;
       if (!nextDirty) persistedWorkspaceRef.current = nextWorkspace;
       setWorkspace(nextWorkspace);
       setActiveID(nextActiveID);
       setDirty(nextDirty);
+      setLoadingStore(false);
+      return true;
     },
-    []
+    [operationIsCurrent]
   );
 
   function editWorkspace(next: NetworkWorkspaceV1) {
@@ -105,61 +151,47 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
   }
 
   useEffect(() => {
-    let mounted = true;
+    let effectMounted = true;
+    mountedRef.current = true;
+    const operation = claimControllerOperation();
     void (async () => {
-      const initialized = await store.initialize();
-      const listed = await store.list();
-      if (!mounted) return;
-      setHealth(initialized.mode === 'session-only' ? initialized : listed.health);
-      if (listed.error !== null) {
-        setNotice(listed.error.message);
-        setLoadingStore(false);
-        return;
-      }
-      setWorkspaces(listed.value);
-      const first = listed.value[0];
-      if (first) {
-        const loaded = await store.get(first.id);
-        if (!mounted) return;
-        if (loaded.error !== null) setNotice(loaded.error.message);
-        else if (loaded.value) {
-          commitWorkspaceView(loaded.value, first.id, false);
-        } else {
-          setNotice(`Saved workspace ${first.id} was not found.`);
+      try {
+        const initialized = await store.initialize();
+        if (!operationIsCurrent(operation)) return;
+        const listed = await store.list();
+        if (!operationIsCurrent(operation)) return;
+        setHealth(initialized.mode === 'session-only' ? initialized : listed.health);
+        if (listed.error !== null) {
+          setNotice(listed.error.message);
+          return;
         }
+        setWorkspaces(listed.value);
+        const first = listed.value[0];
+        if (first) {
+          const loaded = await store.get(first.id);
+          if (!operationIsCurrent(operation)) return;
+          if (loaded.error !== null) setNotice(loaded.error.message);
+          else if (loaded.value) {
+            commitWorkspaceView(operation, loaded.value, first.id, false);
+          } else {
+            setNotice(`Saved workspace ${first.id} was not found.`);
+          }
+        }
+      } finally {
+        if (effectMounted) setLoadingStore(false);
       }
-      setLoadingStore(false);
     })();
     return () => {
-      mounted = false;
+      effectMounted = false;
+      mountedRef.current = false;
+      operationGenerationRef.current += 1;
+      controllerOperationRef.current = null;
     };
-  }, [store, commitWorkspaceView]);
+  }, [store, claimControllerOperation, commitWorkspaceView, operationIsCurrent]);
 
-  async function refreshMetadata(preferredID = activeIDRef.current) {
-    const listed = await store.list();
-    setHealth(listed.health);
-    if (listed.error !== null) {
-      setNotice(listed.error.message);
-      return;
-    }
-    setWorkspaces(listed.value);
-    if (preferredID && listed.value.some(({ id }) => id === preferredID)) return;
-    const first = listed.value[0];
-    if (!first) {
-      commitWorkspaceView(null, '', false);
-      return;
-    }
-    await selectWorkspace(first.id);
-  }
-
-  async function selectWorkspace(id: string, force = false) {
-    if (!force && dirtyRef.current && id !== activeIDRef.current) {
-      setNotice('Save or discard the current map edits before switching workspaces.');
-      return false;
-    }
-    const generation = ++loadGenerationRef.current;
+  async function loadWorkspace(operation: ControllerOperation, id: string) {
     const loaded = await store.get(id);
-    if (generation !== loadGenerationRef.current) return false;
+    if (!operationIsCurrent(operation)) return false;
     setHealth(loaded.health);
     if (loaded.error !== null) {
       setNotice(loaded.error.message);
@@ -169,52 +201,100 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       setNotice(`Saved workspace ${id} was not found.`);
       return false;
     }
-    commitWorkspaceView(loaded.value, id, false);
+    commitWorkspaceView(operation, loaded.value, id, false);
     setDeleteConfirmation('');
     setRestoreConfirmation('');
     return true;
   }
 
+  async function refreshMetadata(
+    operation: ControllerOperation,
+    preferredID = activeIDRef.current
+  ) {
+    const listed = await store.list();
+    if (!operationIsCurrent(operation)) return false;
+    setHealth(listed.health);
+    if (listed.error !== null) {
+      setNotice(listed.error.message);
+      return false;
+    }
+    setWorkspaces(listed.value);
+    if (preferredID && listed.value.some(({ id }) => id === preferredID)) return true;
+    const first = listed.value[0];
+    if (!first) {
+      commitWorkspaceView(operation, null, '', false);
+      return true;
+    }
+    return loadWorkspace(operation, first.id);
+  }
+
+  async function selectWorkspace(id: string, force = false) {
+    if (!force && dirtyRef.current && id !== activeIDRef.current) {
+      setNotice('Save or discard the current map edits before switching workspaces.');
+      return false;
+    }
+    const operation = claimControllerOperation();
+    return loadWorkspace(operation, id);
+  }
+
   async function persistWorkspace(
     next: NetworkWorkspaceV1,
     successMessage: string,
+    operation: ControllerOperation,
     options: {
       expectedPrevious: NetworkWorkspaceV1 | null;
       protectConcurrentEdits?: boolean;
     }
   ) {
-    const generation = ++loadGenerationRef.current;
-    const revision = editRevisionRef.current;
     const startingActiveID = activeIDRef.current;
+    const hasNewerSameWorkspaceEdit = () =>
+      options.protectConcurrentEdits &&
+      next.id === startingActiveID &&
+      activeIDRef.current === startingActiveID &&
+      operationHasNewerEdit(operation);
     const saved = await store.put(next, { expectedPrevious: options.expectedPrevious });
+    if (!operationOwnsController(operation)) return false;
     setHealth(saved.health);
     if (saved.error !== null) {
-      setNotice(saved.error.message);
+      if (operationHasNewerEdit(operation)) {
+        setNotice(`${saved.error.message} Newer edits remain unsaved.`);
+      } else {
+        setNotice(saved.error.message);
+      }
       return false;
     }
-    persistedWorkspaceRef.current = next;
-    const concurrentEdit =
-      options.protectConcurrentEdits &&
-      (editRevisionRef.current !== revision || activeIDRef.current !== startingActiveID);
-    if (generation === loadGenerationRef.current && !concurrentEdit) {
-      commitWorkspaceView(next, next.id, false);
-    }
-    await refreshMetadata(next.id);
-    if (concurrentEdit) {
+    if (hasNewerSameWorkspaceEdit()) {
+      persistedWorkspaceRef.current = next;
       setNotice(`${successMessage} Newer edits remain unsaved.`);
       return false;
     }
+    if (operationHasNewerEdit(operation)) {
+      setNotice(`${successMessage} Newer edits remain unsaved.`);
+      return false;
+    }
+    if (!operationIsCurrent(operation)) return false;
+    if (!commitWorkspaceView(operation, next, next.id, false)) return false;
+    if (!(await refreshMetadata(operation, next.id))) {
+      if (operationHasNewerEdit(operation)) {
+        setNotice(`${successMessage} Newer edits remain unsaved.`);
+      }
+      return false;
+    }
+    if (!operationIsCurrent(operation)) return false;
     setNotice(successMessage);
     return true;
   }
 
   async function findWorkspace(
+    operation: ControllerOperation,
     predicate: (candidate: NetworkWorkspaceV1) => boolean
   ): Promise<NetworkWorkspaceV1 | null> {
+    if (!operationIsCurrent(operation)) return null;
     if (workspace && predicate(workspace)) return workspace;
     for (const candidate of workspaces) {
       if (candidate.id === workspace?.id) continue;
       const loaded = await store.get(candidate.id);
+      if (!operationIsCurrent(operation)) return null;
       if (loaded.error === null && loaded.value && predicate(loaded.value)) return loaded.value;
     }
     return null;
@@ -225,20 +305,25 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       setNotice('Save or discard the current map edits before saving a new path observation.');
       return false;
     }
+    const operation = claimControllerOperation();
     try {
       const observation = pathTraceToNetworkWorkspace(trace, { tags: ['path-trace'] });
       const current = await findWorkspace(
+        operation,
         (candidate) => candidate.tags.includes('path-trace') && candidate.name === observation.name
       );
+      if (!operationIsCurrent(operation)) return false;
       const next = current ? appendNetworkObservation(current, observation) : observation;
       return await persistWorkspace(
         next,
         current
           ? `Appended a new immutable path snapshot to ${next.name}.`
           : `Saved ${next.name} as a network workspace.`,
+        operation,
         { expectedPrevious: current }
       );
     } catch (error) {
+      if (!operationIsCurrent(operation)) return false;
       setNotice(error instanceof Error ? error.message : 'Path evidence could not be saved.');
       return false;
     }
@@ -249,25 +334,30 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       setNotice('Save or discard the current map edits before saving a new network snapshot.');
       return false;
     }
+    const operation = claimControllerOperation();
     try {
       const observation = createWorkspaceFromSnapshot(snapshot);
       const scope = snapshot.groups.find((group) => group.kind === 'subnet')?.cidr ?? '';
       const current = scope
         ? await findWorkspace(
+            operation,
             (candidate) =>
               candidate.tags.includes('local-network') &&
               candidate.groups.some((group) => group.kind === 'subnet' && group.cidr === scope)
           )
         : null;
+      if (!operationIsCurrent(operation)) return false;
       const next = current ? appendNetworkObservation(current, observation) : observation;
       return await persistWorkspace(
         next,
         current
           ? `Appended a new immutable ${scope} snapshot.`
           : `Saved ${snapshot.label} as a network workspace.`,
+        operation,
         { expectedPrevious: current }
       );
     } catch (error) {
+      if (!operationIsCurrent(operation)) return false;
       setNotice(error instanceof Error ? error.message : 'Network snapshot could not be saved.');
       return false;
     }
@@ -275,7 +365,8 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
 
   async function saveEdits() {
     if (!workspace) return;
-    return persistWorkspace(workspace, `Saved edits to ${workspace.name}.`, {
+    const operation = claimControllerOperation();
+    return persistWorkspace(workspace, `Saved edits to ${workspace.name}.`, operation, {
       expectedPrevious: persistedWorkspaceRef.current,
       protectConcurrentEdits: true,
     });
@@ -284,7 +375,10 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
   async function discardEdits() {
     const id = activeIDRef.current;
     if (!id) return;
-    if (await selectWorkspace(id, true)) setNotice('Discarded unsaved map edits.');
+    const operation = claimControllerOperation();
+    if ((await loadWorkspace(operation, id)) && operationIsCurrent(operation)) {
+      setNotice('Discarded unsaved map edits.');
+    }
   }
 
   async function restoreSnapshot(snapshotID: string) {
@@ -300,17 +394,19 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       );
       return;
     }
+    const operation = claimControllerOperation();
     setRestoreConfirmation('');
     try {
       const restored = restoreNetworkSnapshot(workspace, snapshotID);
       if (
-        await persistWorkspace(restored, 'Restored the snapshot as the current map.', {
+        await persistWorkspace(restored, 'Restored the snapshot as the current map.', operation, {
           expectedPrevious: workspace,
         })
       ) {
-        void navigate({ to: '/network/map' });
+        if (operationIsCurrent(operation)) void navigate({ to: '/network/map' });
       }
     } catch (error) {
+      if (!operationIsCurrent(operation)) return;
       setNotice(error instanceof Error ? error.message : 'Snapshot could not be restored.');
     }
   }
@@ -327,17 +423,38 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       );
       return;
     }
+    const operation = claimControllerOperation();
     const deleted = await store.delete(id);
+    if (!operationOwnsController(operation)) return;
     setHealth(deleted.health);
+    if (operationHasNewerEdit(operation)) {
+      if (deleted.error === null) {
+        setDeleteConfirmation('');
+        setNotice(
+          'Workspace removed from this browser profile. This cannot be undone here. Newer edits remain unsaved.'
+        );
+      } else {
+        setNotice(`${deleted.error.message} Newer edits remain unsaved.`);
+      }
+      return;
+    }
     if (deleted.error !== null) {
       setNotice(deleted.error.message);
       return;
     }
     setDeleteConfirmation('');
     if (activeIDRef.current === id) {
-      commitWorkspaceView(null, '', false);
+      commitWorkspaceView(operation, null, '', false);
     }
-    await refreshMetadata('');
+    if (!(await refreshMetadata(operation, ''))) {
+      if (operationHasNewerEdit(operation)) {
+        setNotice(
+          'Workspace removed from this browser profile. This cannot be undone here. Newer edits remain unsaved.'
+        );
+      }
+      return;
+    }
+    if (!operationIsCurrent(operation)) return;
     setNotice('Workspace removed from this browser profile. This cannot be undone here.');
   }
 
@@ -353,8 +470,10 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
       setNotice('Network import exceeds the 4 MiB limit.');
       return;
     }
+    const operation = claimControllerOperation();
     try {
       const content = await file.text();
+      if (!operationIsCurrent(operation)) return;
       const graphML = /\.graphml$|\.xml$/i.test(file.name) || /^\s*</.test(content);
       const imported = graphML ? importNetworkGraphML(content) : parseNetworkWorkspaceJSON(content);
       const graphMLLosses = graphML
@@ -375,10 +494,12 @@ export function NetworkWorkbench({ store = defaultNetworkStore }: { store?: Netw
         graphML
           ? `Imported GraphML with declared losses: ${graphMLLosses.join(' ')}`
           : `Imported lossless ${imported.value.format} v${imported.value.version} JSON.`,
+        operation,
         { expectedPrevious: null }
       );
-      if (saved) void navigate({ to: '/network/map' });
+      if (saved && operationIsCurrent(operation)) void navigate({ to: '/network/map' });
     } catch (error) {
+      if (!operationIsCurrent(operation)) return;
       setNotice(error instanceof Error ? error.message : 'Network import failed.');
     }
   }

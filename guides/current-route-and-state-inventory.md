@@ -169,8 +169,8 @@ below are additional owners.
 - States: store loading/ready/failure/session-only; workspace empty/ready/dirty/saved/stale;
   validation failure; topology lazy-loading/ready; node selected/unselected/unknown; import success/
   partial/loss-warning/oversize/invalid/failure; export ready/failure.
-- Handoffs: saved Path/Local/Nmap evidence in; selected targets to Inspect/Network actions; immutable
-  workspace exchange out.
+- Handoffs: saved Path/Local evidence in; selected targets to Inspect/Network actions; lossless JSON
+  and declared-loss GraphML workspace exchange out.
 - Layout/duplication: canvas and inspector stack below `980px`; workspace chrome, dialogs, notices,
   and status repeat shell responsibilities.
 

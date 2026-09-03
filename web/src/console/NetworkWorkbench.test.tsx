@@ -11,7 +11,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NetworkWorkbench } from './NetworkWorkbench';
-import type { NetworkWorkspaceV1 } from './network-model';
+import { type NetworkWorkspaceV1, serializeNetworkWorkspace } from './network-model';
 import {
   NetworkStore,
   type NetworkStoreConfiguration,
@@ -113,6 +113,72 @@ const trace = {
   durationMs: 20,
 };
 
+const localCapabilities = {
+  perspective: 'protopeek-process',
+  activeProbe: false,
+  profiles: [
+    {
+      id: 'quick',
+      label: 'Quick services',
+      description: 'HTTP, HTTPS, gRPC, and a common local API port.',
+      ports: [80, 443, 50051, 8080],
+      applicationProbePorts: [80, 443, 50051, 8080],
+    },
+  ],
+  limits: {
+    minimumPrefix: 24,
+    maxPorts: 18,
+    maxAttempts: 4572,
+    maxWorkers: 32,
+    deadlineMs: 15000,
+  },
+  interfaces: [
+    {
+      index: 4,
+      name: 'en0',
+      address: '192.168.44.19',
+      interfaceCidr: '192.168.0.0/16',
+      suggestedCidr: '192.168.44.0/24',
+    },
+  ],
+  warnings: ['Loading capabilities does not send network probes.'],
+};
+
+const localDiscovery = {
+  perspective: 'protopeek-process',
+  observedAt,
+  cidr: '192.168.44.0/24',
+  profile: localCapabilities.profiles[0],
+  hostCount: 254,
+  attemptsPlanned: 1016,
+  attemptsCompleted: 1016,
+  complete: true,
+  hosts: [
+    {
+      address: '192.168.44.1',
+      ports: [
+        {
+          port: 50051,
+          state: 'open',
+          provenance: 'observed',
+          protocols: ['tcp', 'grpc'],
+          grpc: true,
+          http: false,
+          reflection: 'available',
+          services: ['catalog.v1.Catalog'],
+          httpProtocol: '',
+          httpStatus: '',
+          httpServer: '',
+          probeDurationMs: 3,
+          evidenceNotes: ['gRPC reflection listed one service'],
+        },
+      ],
+      hints: [],
+    },
+  ],
+  warnings: ['An absent host is not evidence that the device is offline.'],
+};
+
 function workspace(id: string, name: string, updatedAt: string): NetworkWorkspaceV1 {
   return {
     format: 'protopeek-network',
@@ -138,19 +204,76 @@ function deferred() {
   return { promise, resolve };
 }
 
+function deferredValue<T>() {
+  let resolve: (value: T) => void = () => {};
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+function restorableWorkspace(): NetworkWorkspaceV1 {
+  const provenance = [
+    {
+      kind: 'observed' as const,
+      source: 'protopeek-probe' as const,
+      observedAt,
+      detail: 'Bounded local-network observation.',
+    },
+  ];
+  const historicalNode = {
+    id: 'host:192.168.1.20',
+    label: 'Original observed host',
+    tags: [] as string[],
+    notes: '',
+    deviceType: 'server',
+    firstSeen: observedAt,
+    lastSeen: observedAt,
+    identities: [{ kind: 'ipv4' as const, value: '192.168.1.20', provenance }],
+    ports: [],
+    groupIds: [],
+    position: { x: 0, y: 0, pinned: false },
+    provenance,
+  };
+  return {
+    ...workspace('alpha', 'Alpha network', '2026-08-21T05:00:00.000Z'),
+    nodes: [{ ...historicalNode, label: 'Current annotated host' }],
+    snapshots: [
+      {
+        id: 'snapshot-original',
+        label: 'Original scan',
+        tags: ['local-network'],
+        notes: '',
+        observedAt,
+        nodes: [historicalNode],
+        edges: [],
+        groups: [],
+        provenance,
+      },
+    ],
+  };
+}
+
 class ControlledPersistence implements NetworkStorePersistence {
   readonly records = new Map<string, unknown>();
+  openBarrier: Promise<void> | null = null;
   putBarrier: Promise<void> | null = null;
+  deleteBarrier: Promise<void> | null = null;
+  deleteError: Error | null = null;
+  onPut: (() => void) | null = null;
+  onDelete: (() => void) | null = null;
 
   async open(
     _configuration: NetworkStoreConfiguration
   ): Promise<NetworkStorePersistenceConnection> {
+    await this.openBarrier;
     return {
       read: async (maxRecords) => ({
         values: structuredClone([...this.records.values()].slice(0, maxRecords)),
         overflow: this.records.size > maxRecords,
       }),
       put: async (value, expectedWorkspaceJSON) => {
+        this.onPut?.();
         await this.putBarrier;
         const id = (value as { id: string }).id;
         const current = this.records.get(id) as { workspaceJSON?: unknown } | undefined;
@@ -164,6 +287,9 @@ class ControlledPersistence implements NetworkStorePersistence {
         return true;
       },
       delete: async (id, expectedWorkspaceJSON) => {
+        this.onDelete?.();
+        await this.deleteBarrier;
+        if (this.deleteError) throw this.deleteError;
         const current = this.records.get(id) as { workspaceJSON?: unknown } | undefined;
         if (current?.workspaceJSON !== expectedWorkspaceJSON) return false;
         this.records.delete(id);
@@ -186,6 +312,7 @@ function createTestRouter(store: NetworkStore, initialEntry = '/network/map') {
     return (
       <>
         <Link to={'/outside' as never}>Leave workbench</Link>
+        <Link to={'/networking' as never}>Similar route prefix</Link>
         <Outlet />
       </>
     );
@@ -208,9 +335,15 @@ function createTestRouter(store: NetworkStore, initialEntry = '/network/map') {
     path: '/outside',
     component: () => <h1>Outside the workbench</h1>,
   });
+  const similarPrefixRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/networking',
+    component: () => <h1>Similar route outside the workbench</h1>,
+  });
   const routeTree = rootRoute.addChildren([
     networkRoute.addChildren(networkChildren),
     outsideRoute,
+    similarPrefixRoute,
   ]);
   return createRouter({
     routeTree,
@@ -221,8 +354,30 @@ function createTestRouter(store: NetworkStore, initialEntry = '/network/map') {
 async function renderWorkbench(store: NetworkStore, initialEntry = '/network/map') {
   const router = createTestRouter(store, initialEntry);
   render(<RouterProvider router={router} />);
-  await screen.findByDisplayValue('Alpha network');
+  if (initialEntry === '/network/history') {
+    await screen.findByRole('region', { name: 'Alpha network snapshots' });
+  } else {
+    await screen.findByDisplayValue('Alpha network');
+  }
   return router;
+}
+
+function deferNextWorkspaceGet(store: NetworkStore, id: string) {
+  const started = deferred();
+  const barrier = deferred();
+  const finished = deferred();
+  const originalGet = store.get.bind(store);
+  let block = true;
+  vi.spyOn(store, 'get').mockImplementation(async (candidateID) => {
+    if (!block || candidateID !== id) return originalGet(candidateID);
+    block = false;
+    started.resolve();
+    await barrier.promise;
+    const result = await originalGet(candidateID);
+    finished.resolve();
+    return result;
+  });
+  return { started, barrier, finished };
 }
 
 beforeEach(() => {
@@ -230,6 +385,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
   document.cookie = '_protopeek_csrf_token=; Max-Age=0; path=/';
@@ -329,6 +485,90 @@ describe('NetworkWorkbench persistence protections', () => {
     expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Save edits' })).toBeEnabled();
     expect((await store.get('alpha')).value).toMatchObject({ name: 'First edit' });
+
+    persistence.putBarrier = null;
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+
+    expect(await screen.findByText('Saved edits to Newer unsaved edit.')).toBeVisible();
+    await waitFor(() =>
+      expect(screen.queryByText(/Unsaved map edits stay in this tab/i)).not.toBeInTheDocument()
+    );
+    expect((await store.get('alpha')).value).toMatchObject({ name: 'Newer unsaved edit' });
+  });
+
+  it('reports a delayed failed save without advancing the local edit base', async () => {
+    const { persistence, store } = await seededStore();
+    await renderWorkbench(store);
+    const writeStarted = deferred();
+    const writeBarrier = deferred();
+    persistence.onPut = writeStarted.resolve;
+    persistence.putBarrier = writeBarrier.promise;
+    const putSpy = vi.spyOn(store, 'put');
+    const name = screen.getByLabelText('Workspace name');
+
+    fireEvent.change(name, { target: { value: 'Failed save draft' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    await writeStarted.promise;
+    fireEvent.change(name, { target: { value: 'Newer edit after failed save' } });
+    persistence.records.delete('alpha');
+    await act(async () => {
+      writeBarrier.resolve();
+      await store.list();
+      await Promise.resolve();
+    });
+
+    expect(
+      await screen.findByText(
+        /Workspace alpha changed before this operation completed.*Newer edits remain unsaved/i
+      )
+    ).toBeVisible();
+    expect(name).toHaveValue('Newer edit after failed save');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect((await store.get('alpha')).value).toMatchObject({ name: 'Alpha network' });
+
+    persistence.putBarrier = null;
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(2));
+    expect(putSpy.mock.calls[1]?.[1]?.expectedPrevious).toMatchObject({ name: 'Alpha network' });
+  });
+
+  it('keeps the committed save base when a newer edit arrives during metadata refresh', async () => {
+    const { store } = await seededStore();
+    await renderWorkbench(store);
+    const listStarted = deferred();
+    const listBarrier = deferred();
+    const listFinished = deferred();
+    const originalList = store.list.bind(store);
+    let blockNextList = true;
+    vi.spyOn(store, 'list').mockImplementation(async () => {
+      if (!blockNextList) return originalList();
+      blockNextList = false;
+      listStarted.resolve();
+      await listBarrier.promise;
+      const result = await originalList();
+      listFinished.resolve();
+      return result;
+    });
+    const name = screen.getByLabelText('Workspace name');
+
+    fireEvent.change(name, { target: { value: 'Committed edit' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    await listStarted.promise;
+    fireEvent.change(name, { target: { value: 'Edited during refresh' } });
+    await act(async () => {
+      listBarrier.resolve();
+      await listFinished.promise;
+    });
+
+    expect(
+      await screen.findByText('Saved edits to Committed edit. Newer edits remain unsaved.')
+    ).toBeVisible();
+    expect(name).toHaveValue('Edited during refresh');
+    expect((await store.get('alpha')).value).toMatchObject({ name: 'Committed edit' });
+
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    expect(await screen.findByText('Saved edits to Edited during refresh.')).toBeVisible();
+    expect((await store.get('alpha')).value).toMatchObject({ name: 'Edited during refresh' });
   });
 
   it('blocks routes outside the workbench until the user stays or explicitly leaves', async () => {
@@ -357,48 +597,183 @@ describe('NetworkWorkbench persistence protections', () => {
     expect((await store.get('alpha')).value).toMatchObject({ name: 'Alpha network' });
   });
 
+  it('allows true network child routes but blocks a similar outside prefix while dirty', async () => {
+    const { store } = await seededStore();
+    const router = await renderWorkbench(store);
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Unsaved internal navigation' },
+    });
+
+    await act(async () => {
+      await router.navigate({ to: '/network/history' });
+    });
+    expect(await screen.findByRole('heading', { name: 'Network history' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/network/history');
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Similar route prefix' }));
+
+    expect(
+      await screen.findByRole('alertdialog', { name: 'Leave with unsaved map edits?' })
+    ).toBeVisible();
+    expect(router.state.location.pathname).toBe('/network/history');
+    expect(
+      screen.queryByRole('heading', { name: 'Similar route outside the workbench' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('ignores a late workspace selection after the current map is edited', async () => {
+    const { store } = await seededStore();
+    await renderWorkbench(store);
+    const pendingGet = deferNextWorkspaceGet(store, 'beta');
+
+    fireEvent.change(screen.getByLabelText('Current workspace'), {
+      target: { value: 'beta' },
+    });
+    await pendingGet.started.promise;
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local alpha edit' },
+    });
+    await act(async () => {
+      pendingGet.barrier.resolve();
+      await pendingGet.finished.promise;
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local alpha edit');
+    expect(screen.getByLabelText('Current workspace')).toHaveValue('alpha');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect(screen.queryByText(/Saved workspace beta was not found/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores a deferred file import after the current map is edited', async () => {
+    const { store } = await seededStore();
+    const router = await renderWorkbench(store);
+    const content = deferredValue<string>();
+    const file = new File([], 'gamma.protopeek-network.json', { type: 'application/json' });
+    const readText = vi.fn(() => content.promise);
+    const putSpy = vi.spyOn(store, 'put');
+    Object.defineProperty(file, 'text', { value: readText });
+
+    fireEvent.change(screen.getByLabelText('Import network workspace'), {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(readText).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit during import' },
+    });
+    await act(async () => {
+      content.resolve(
+        serializeNetworkWorkspace(workspace('gamma', 'Gamma imported', '2026-08-21T06:00:00.000Z'))
+      );
+      await content.promise;
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit during import');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect((await store.get('gamma')).value).toBeNull();
+    expect(putSpy).not.toHaveBeenCalled();
+    expect(router.state.location.pathname).toBe('/network/map');
+    expect(screen.queryByText(/Imported lossless/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores a late Path workspace lookup after the current map is edited', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=workbench-token; path=/';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(
+          new URL(String(input)).pathname.endsWith('/capabilities') ? capabilities : trace
+        )
+      )
+    );
+    const { store } = await seededStore();
+    const router = await renderWorkbench(store);
+    const pendingGet = deferNextWorkspaceGet(store, 'beta');
+    const putSpy = vi.spyOn(store, 'put');
+
+    await act(async () => {
+      await router.navigate({ to: '/network/path' });
+    });
+    fireEvent.click(await screen.findByLabelText(/authorize these active UDP path probes/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save trace' }));
+    await pendingGet.started.promise;
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit during path lookup' },
+    });
+    await act(async () => {
+      pendingGet.barrier.resolve();
+      await pendingGet.finished.promise;
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit during path lookup');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect((await store.list()).value).toHaveLength(2);
+    expect(putSpy).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Saved .* as a network workspace/i)).not.toBeInTheDocument();
+  });
+
+  it('ignores a late Local workspace lookup after the current map is edited', async () => {
+    // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
+    document.cookie = '_protopeek_csrf_token=workbench-token; path=/';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(
+          new URL(String(input)).pathname.endsWith('/capabilities')
+            ? localCapabilities
+            : localDiscovery
+        )
+      )
+    );
+    const { store } = await seededStore();
+    const router = await renderWorkbench(store);
+    const pendingGet = deferNextWorkspaceGet(store, 'beta');
+    const putSpy = vi.spyOn(store, 'put');
+
+    await act(async () => {
+      await router.navigate({ to: '/network/local' });
+    });
+    fireEvent.click(
+      await screen.findByRole('checkbox', {
+        name: /I am authorized to probe this private CIDR/i,
+      })
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save snapshot' }));
+    await pendingGet.started.promise;
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit during snapshot lookup' },
+    });
+    await act(async () => {
+      pendingGet.barrier.resolve();
+      await pendingGet.finished.promise;
+      await Promise.resolve();
+    });
+
+    expect(screen.getByLabelText('Workspace name')).toHaveValue(
+      'Local edit during snapshot lookup'
+    );
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect((await store.list()).value).toHaveLength(2);
+    expect(putSpy).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Saved .* as a network workspace/i)).not.toBeInTheDocument();
+  });
+
   it('requires a second explicit action before replacing the current map from history', async () => {
     const persistence = new ControlledPersistence();
     const store = new NetworkStore(persistence);
-    const provenance = [
-      {
-        kind: 'observed' as const,
-        source: 'protopeek-probe' as const,
-        observedAt,
-        detail: 'Bounded local-network observation.',
-      },
-    ];
-    const historicalNode = {
-      id: 'host:192.168.1.20',
-      label: 'Original observed host',
-      tags: [] as string[],
-      notes: '',
-      deviceType: 'server',
-      firstSeen: observedAt,
-      lastSeen: observedAt,
-      identities: [{ kind: 'ipv4' as const, value: '192.168.1.20', provenance }],
-      ports: [],
-      groupIds: [],
-      position: { x: 0, y: 0, pinned: false },
-      provenance,
-    };
-    const current = {
-      ...workspace('alpha', 'Alpha network', '2026-08-21T05:00:00.000Z'),
-      nodes: [{ ...historicalNode, label: 'Current annotated host' }],
-      snapshots: [
-        {
-          id: 'snapshot-original',
-          label: 'Original scan',
-          tags: ['local-network'],
-          notes: '',
-          observedAt,
-          nodes: [historicalNode],
-          edges: [],
-          groups: [],
-          provenance,
-        },
-      ],
-    } satisfies NetworkWorkspaceV1;
+    const current = restorableWorkspace();
     await store.put(current);
     const router = createTestRouter(store, '/network/history');
     render(<RouterProvider router={router} />);
@@ -423,6 +798,236 @@ describe('NetworkWorkbench persistence protections', () => {
     expect(restored?.nodes[0]?.label).toBe('Original observed host');
     expect(restored?.snapshots).toHaveLength(1);
     expect(restored?.snapshots[0]?.nodes[0]?.label).toBe('Original observed host');
+  });
+
+  it('keeps a newer local edit when a confirmed restore write finishes late', async () => {
+    const persistence = new ControlledPersistence();
+    const store = new NetworkStore(persistence);
+    await store.put(restorableWorkspace());
+    const router = createTestRouter(store, '/network/history');
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByText('Original scan')).toBeVisible();
+    const writeStarted = deferred();
+    const writeBarrier = deferred();
+    persistence.onPut = writeStarted.resolve;
+    persistence.putBarrier = writeBarrier.promise;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use as current map' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm restore current map' }));
+    await writeStarted.promise;
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit after restore began' },
+    });
+    await act(async () => {
+      writeBarrier.resolve();
+      await store.get('alpha');
+      await Promise.resolve();
+    });
+    const restored = (await store.get('alpha')).value;
+
+    expect(restored?.nodes[0]?.label).toBe('Original observed host');
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit after restore began');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect(router.state.location.pathname).toBe('/network/map');
+    expect(
+      screen.getByText('Restored the snapshot as the current map. Newer edits remain unsaved.')
+    ).toBeVisible();
+
+    persistence.putBarrier = null;
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    expect(
+      await screen.findByText(/Workspace alpha changed before this operation completed/)
+    ).toBeVisible();
+    expect((await store.get('alpha')).value?.nodes[0]?.label).toBe('Original observed host');
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit after restore began');
+  });
+
+  it('keeps a newer workspace selection when a confirmed restore write finishes late', async () => {
+    const persistence = new ControlledPersistence();
+    const store = new NetworkStore(persistence);
+    await store.put(restorableWorkspace());
+    await store.put(workspace('beta', 'Beta network', '2026-08-21T04:00:00.000Z'));
+    const router = createTestRouter(store, '/network/history');
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByText('Original scan')).toBeVisible();
+    const writeStarted = deferred();
+    const writeBarrier = deferred();
+    persistence.onPut = writeStarted.resolve;
+    persistence.putBarrier = writeBarrier.promise;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use as current map' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm restore current map' }));
+    await writeStarted.promise;
+    const beta = screen.getByRole('button', { name: /Beta network.*0 nodes/i });
+    fireEvent.click(beta);
+    await act(async () => {
+      writeBarrier.resolve();
+      await store.get('alpha');
+    });
+
+    await waitFor(() => expect(beta).toHaveClass('is-active'));
+    expect(screen.getByRole('region', { name: 'Beta network snapshots' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/network/history');
+    expect((await store.get('alpha')).value?.nodes[0]?.label).toBe('Original observed host');
+    expect(screen.queryByText('Restored the snapshot as the current map.')).not.toBeInTheDocument();
+  });
+
+  it('does not let a late delete clear or replace a newer dirty view', async () => {
+    const { persistence, store } = await seededStore();
+    const router = await renderWorkbench(store, '/network/history');
+    const deleteStarted = deferred();
+    const deleteBarrier = deferred();
+    persistence.onDelete = deleteStarted.resolve;
+    persistence.deleteBarrier = deleteBarrier.promise;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await deleteStarted.promise;
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit after delete began' },
+    });
+    await act(async () => {
+      deleteBarrier.resolve();
+      await store.get('alpha');
+      await Promise.resolve();
+    });
+
+    expect((await store.get('alpha')).value).toBeNull();
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit after delete began');
+    expect(screen.getByLabelText('Current workspace')).toHaveValue('alpha');
+    expect(screen.getByText(/Unsaved map edits stay in this tab/i)).toBeVisible();
+    expect(
+      screen.getByText(
+        'Workspace removed from this browser profile. This cannot be undone here. Newer edits remain unsaved.'
+      )
+    ).toBeVisible();
+    expect(
+      screen.queryByText('Workspace removed from this browser profile. This cannot be undone here.')
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate({ to: '/network/history' });
+    });
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    persistence.deleteBarrier = null;
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
+    expect(
+      await screen.findByText(/Workspace alpha changed before this operation completed/)
+    ).toBeVisible();
+  });
+
+  it('does not report a failed stale delete as a successful removal', async () => {
+    const { persistence, store } = await seededStore();
+    const router = await renderWorkbench(store, '/network/history');
+    const deleteStarted = deferred();
+    const deleteBarrier = deferred();
+    persistence.onDelete = deleteStarted.resolve;
+    persistence.deleteBarrier = deleteBarrier.promise;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }));
+    await deleteStarted.promise;
+    await act(async () => {
+      await router.navigate({ to: '/network/map' });
+    });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local edit during failed delete' },
+    });
+    persistence.deleteError = new Error('Injected delete failure.');
+    await act(async () => {
+      deleteBarrier.resolve();
+      await store.list();
+      await Promise.resolve();
+    });
+
+    expect(
+      await screen.findByText(
+        /Workspace alpha was not deleted because browser storage failed.*Newer edits remain unsaved/i
+      )
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Workspace removed from this browser profile/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Local edit during failed delete');
+    expect((await store.get('alpha')).value).toMatchObject({ name: 'Alpha network' });
+    expect(
+      screen.getByText(
+        /Network workspaces are session-only because browser storage is unavailable/i
+      )
+    ).toBeVisible();
+    await act(async () => {
+      await router.navigate({ to: '/network/history' });
+    });
+    expect(screen.getByRole('button', { name: 'Confirm delete' })).toBeDisabled();
+  });
+
+  it('lets a Gamma import supersede late initialization without leaving the view loading', async () => {
+    const persistence = new ControlledPersistence();
+    const seedStore = new NetworkStore(persistence);
+    await seedStore.put(workspace('alpha', 'Alpha network', '2026-08-21T05:00:00.000Z'));
+    const openBarrier = deferred();
+    persistence.openBarrier = openBarrier.promise;
+    const store = new NetworkStore(persistence);
+    const openSpy = vi.spyOn(persistence, 'open');
+    const router = createTestRouter(store);
+    render(<RouterProvider router={router} />);
+    await waitFor(() => expect(openSpy).toHaveBeenCalledOnce());
+    const gamma = workspace('gamma', 'Gamma imported', '2026-08-21T03:00:00.000Z');
+    const file = new File([], 'gamma.protopeek-network.json', { type: 'application/json' });
+    const readText = vi.fn(async () => serializeNetworkWorkspace(gamma));
+    Object.defineProperty(file, 'text', { value: readText });
+
+    fireEvent.change(screen.getByLabelText('Import network workspace'), {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(readText).toHaveBeenCalledOnce());
+    await act(async () => {
+      openBarrier.resolve();
+      await store.get('gamma');
+    });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Workspace name')).toHaveValue('Gamma imported')
+    );
+    expect(screen.getByLabelText('Workspace name')).toBeEnabled();
+    expect(screen.getByLabelText('Current workspace')).toHaveValue('gamma');
+    expect(screen.queryByText(/Loading saved workspaces/i)).not.toBeInTheDocument();
+    expect((await store.get('gamma')).value).toMatchObject({ name: 'Gamma imported' });
+    expect(router.state.location.pathname).toBe('/network/map');
+  });
+
+  it('clears initialization loading after an invalid import supersedes it', async () => {
+    const persistence = new ControlledPersistence();
+    const openBarrier = deferred();
+    persistence.openBarrier = openBarrier.promise;
+    const store = new NetworkStore(persistence);
+    const openSpy = vi.spyOn(persistence, 'open');
+    const router = createTestRouter(store);
+    render(<RouterProvider router={router} />);
+    await waitFor(() => expect(openSpy).toHaveBeenCalledOnce());
+    const file = new File([], 'invalid.json', { type: 'application/json' });
+    Object.defineProperty(file, 'text', { value: vi.fn(async () => '{invalid') });
+
+    fireEvent.change(screen.getByLabelText('Import network workspace'), {
+      target: { files: [file] },
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent(/JSON is malformed/i);
+    await act(async () => {
+      openBarrier.resolve();
+      await store.initialize();
+    });
+
+    expect(await screen.findByRole('heading', { name: 'No saved network evidence' })).toBeVisible();
+    expect(screen.queryByText(/Loading saved workspaces/i)).not.toBeInTheDocument();
   });
 
   it('accepts an explicit CIDR but rejects malformed CIDR and out-of-range VLAN groups', async () => {
