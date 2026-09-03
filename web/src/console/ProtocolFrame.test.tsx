@@ -245,7 +245,7 @@ describe('ProtocolFrame', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
     expect(await screen.findByRole('dialog', { name: 'ProtoPeek' })).toBeVisible();
 
-    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    fireEvent.keyDown(window, { key: 'k', metaKey: true });
     const palette = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).toBeNull();
     expect(screen.getAllByRole('dialog')).toEqual([palette]);

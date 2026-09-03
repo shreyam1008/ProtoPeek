@@ -110,19 +110,19 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 5 * kibibyte,
   },
   {
-    label: 'This PC workspace JavaScript',
+    label: 'This Device workspace JavaScript',
     pattern: /^ThisPC-.+\.js$/,
     maxRawBytes: 58 * kibibyte,
     maxGzipBytes: 16 * kibibyte,
   },
   {
-    label: 'This PC benchmark engine JavaScript',
+    label: 'This Device benchmark engine JavaScript',
     pattern: /^speedtest-.+\.js$/,
     maxRawBytes: 64 * kibibyte,
     maxGzipBytes: 18 * kibibyte,
   },
   {
-    label: 'This PC workspace CSS',
+    label: 'This Device workspace CSS',
     pattern: /^ThisPC-.+\.css$/,
     maxRawBytes: 24 * kibibyte,
     maxGzipBytes: 5 * kibibyte,

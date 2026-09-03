@@ -106,10 +106,16 @@ func TestRootUsageListsEveryDevelopmentSubcommand(t *testing.T) {
 		"pp migrate-gobarry [flags]",
 		`pp download --help`,
 		`pp migrate-gobarry --help`,
+		"opens Home",
+		"/protocols/grpc",
+		"/protocols/http",
 	} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("root usage omitted %q: %q", expected, output)
 		}
+	}
+	if strings.Contains(output, "activity rail") {
+		t.Fatalf("root usage retained removed navigation: %q", output)
 	}
 }
 

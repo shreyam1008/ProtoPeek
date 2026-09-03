@@ -104,10 +104,10 @@ go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 ## Usage
 
 ```sh
-pp                                # Protocol Peek dashboard
-pp localhost                      # dashboard + bounded probe of localhost:50051 and :443
-pp https://api.example.test       # dashboard + probe of the stated/default verified-TLS port
-pp -plaintext localhost:50051     # exact direct mode at the gRPC workbench
+pp                                # Home workbench
+pp localhost                      # Home + bounded inspection of localhost:50051 and :443
+pp https://api.example.test       # Home + inspection of the stated/default verified-TLS port
+pp -plaintext localhost:50051     # exact direct mode in gRPC under Inspect
 ```
 
 In stable v0.5.0, the dashboard opens at `/` with exactly six primary areas: Overview, Protocols,
@@ -391,9 +391,9 @@ included yet.
 ## Protocol direction
 
 ProtoPeek is intentionally broader than a gRPC-only brand, but intentionally narrower than a
-generic cloud API platform. The shared shell owns local target selection, request editing, response
-evidence, history, and session lifecycle. Each adapter owns discovery, schema, invocation,
-cancellation, and its native inspector.
+generic cloud API platform. The desktop shell owns navigation, session/context chrome, appearance,
+and bounded action entry. Each domain workbench owns its target and evidence workflow, while each
+adapter owns discovery, schema, invocation, cancellation, and its native inspector.
 
 | Adapter | Status | First useful slice |
 |---|---|---|

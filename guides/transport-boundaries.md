@@ -1,15 +1,17 @@
 # Transport boundaries
 
-ProtoPeek is Protocol Peek: a local protocol console, not a general collaboration client. Its
-durable product advantage is the short path from a real target to an explainable request, response,
-and transport story.
+ProtoPeek is a local service workbench, not a general collaboration client. Its durable product
+advantage is the short path from a real target to explainable request, response, route, and
+transport evidence.
 
 ## Product contract
 
 - `pp host:port` and `protopeek host:port` keep their direct gRPC-compatible CLI meaning and open
-  the `/grpc` workbench. With no target the browser opens the Protocol Peek dashboard at `/`. A
-  bare host or HTTP(S) authority opens the dashboard scan dialog with that one target prefilled and
-  visibly probed. The activity rail selects either the gRPC or HTTP adapter explicitly.
+  gRPC under Inspect through `/grpc`, which redirects to `/protocols/grpc`. With no target the
+  browser opens Home at `/`. A bare host or HTTP(S) authority opens the bounded **Inspect target**
+  flow with that one target prefilled and visibly probed. gRPC and HTTP are selected explicitly
+  under Inspect at `/protocols/grpc` and `/protocols/http`; `/http` remains a compatibility
+  redirect.
 - Every session runs locally, without an account, remote sync, or external database.
 - The native listener binds to loopback. A container may use `-allow-non-loopback-bind` only when
   its outer host port is published on loopback; that mode retains loopback request Host and Origin
@@ -98,8 +100,9 @@ and transport story.
 
 ## Architecture
 
-The console shell owns target selection, the split request/response workspace, local history, and
-session lifecycle. A transport adapter owns discovery, schema loading, request validation,
+The desktop shell owns six-destination navigation, session/context chrome, appearance, and bounded
+action entry. A transport workbench owns its target selection, request/response workspace, local
+history, and session lifecycle. Its adapter owns discovery, schema loading, request validation,
 invocation, cancellation, and transport events.
 
 ```text

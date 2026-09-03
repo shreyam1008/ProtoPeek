@@ -5,7 +5,7 @@ version source of truth.
 
 ## Unreleased
 
-- Added the route-lazy This PC workspace for process-perspective identity and interfaces, explicit
+- Added the route-lazy This Device workspace for process-perspective identity and interfaces, explicit
   bounded Linux listener/connection ownership and one-shot interface load, separately consented
   public IPv4/IPv6 plus provider-reported BGP origin, and a small opt-in Cloudflare connection-
   quality plan. Nothing external or process-intensive runs on mount, and no result is labelled an
