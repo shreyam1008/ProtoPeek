@@ -88,14 +88,6 @@ export function Downloader() {
   }, [refresh]);
 
   useEffect(() => {
-    if (!snapshot?.health.ready) return;
-    const interval = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && !busy) void refresh();
-    }, 1_500);
-    return () => window.clearInterval(interval);
-  }, [busy, refresh, snapshot?.health.ready]);
-
-  useEffect(() => {
     if (advancedOpen) void import('./downloader-advanced.css');
   }, [advancedOpen]);
 

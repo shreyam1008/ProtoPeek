@@ -17,8 +17,9 @@ not the target information architecture. The selected target contract is in
 - **Partial** means useful bounded evidence exists even though the requested scope did not complete.
 - **Unknown** means source authority has not established a fact; it is never treated as success.
 
-No route except Downloader performs recurring background refresh. Downloader's ready-state interval
-is a documented pre-reset exception, not a pattern to copy.
+No route performs recurring background refresh. Downloader's pre-reset ready-state interval was
+removed in Phase 9; its snapshot now refreshes on the initial local read, after mutations, or when
+the user explicitly requests it.
 
 ## Shared pre-reset shell
 
@@ -244,15 +245,14 @@ below are additional owners.
 ### `/downloader` — local transfer queue
 
 - Source/styles: `Downloader.tsx`, `downloader.css`, and lazy `downloader-advanced.css`.
-- Data and mount work: one `GET api/transfers/snapshot`. If the returned engine is ready, current
-  source starts a `1,500ms` interval and refreshes while the document is visible and no mutation is
-  busy. This is the only recurring default work in the route tree.
+- Data and mount work: one `GET api/transfers/snapshot`. No interval or recurring background work is
+  scheduled when the engine is ready.
 - Explicit work: start engine; add one job or a batch of at most 32; pause/resume/retry/cancel a job;
   pause/resume the queue; refresh; copy; and reveal advanced request fields. Endpoints are the
   bounded `api/transfers/*` family.
 - Persistence/cancellation: browser stores no queue or credentials. The host owns private job state,
-  queue durability, files, and config. The initial read is abort-bound; later interval reads use
-  mounted-state suppression. Mutations use CSRF and direct-loopback policy.
+  queue durability, files, and config. The initial read is abort-bound; explicit and post-mutation
+  refreshes use mounted-state suppression. Mutations use CSRF and direct-loopback policy.
 - States: snapshot loading/ready/failure; engine stopped/starting/running/stopping/binary-missing/
   locked/unavailable/failed/unknown; queue empty/filter-empty/ready; job queued/downloading/paused/
   completed/failed/cancelled; verification pending/verifying/verified/mismatch/unavailable;
@@ -341,7 +341,7 @@ cannot complete; every operational state belongs to the canonical destination.
 | `/network/local` | IndexedDB initialization plus one local network-capability GET |
 | `/network/map`, `/network/history` | IndexedDB initialization/load only |
 | `/this-pc` | exactly two local GETs: capabilities and snapshot |
-| `/downloader` | one snapshot GET, then the documented visible/ready 1.5-second refresh exception |
+| `/downloader` | one local snapshot GET |
 | `/settings` | one local transfer snapshot GET |
 
 No other target probe, active trace, private-range scan, tunnel inspection, release lookup, public
@@ -352,7 +352,7 @@ identity lookup, quality run, website request, or mutation starts merely because
 Phase 2 locks:
 
 - all four frontend compatibility redirects;
-- Downloader's current visible/ready interval and cleanup;
+- Downloader's single mount read, explicit refresh, and post-mutation refresh;
 - existing manual-only Tunnels inspection;
 - exactly two This PC mount reads and no storage write;
 - existing Network dirty/concurrency guards and route-level state suites; and
@@ -365,6 +365,4 @@ Useful gaps remain for the implementation phases, but none blocks this inventory
   unsupported evidence, and top-level failure;
 - add browser-level `320px` horizontal-overflow evidence because jsdom cannot measure real layout;
 - test Dashboard bootstrap failure and CLI automatic-scan entry;
-- deepen Network session-only/quarantine/import/history route integration coverage; and
-- remove Downloader's default interval in the phase that introduces an explicit refresh/activity
-  contract, updating the characterization test in that same coherent change.
+- deepen Network session-only/quarantine/import/history route integration coverage.
