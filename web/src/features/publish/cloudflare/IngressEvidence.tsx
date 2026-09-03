@@ -11,6 +11,7 @@ export function IngressEvidence({
   configSources,
   onSelectRoute,
   onAdd,
+  addDisabled = false,
   onRemoveDraft,
   onNotice,
 }: {
@@ -20,6 +21,7 @@ export function IngressEvidence({
   configSources: TunnelConfigSource[];
   onSelectRoute: (value: string) => void;
   onAdd: () => void;
+  addDisabled?: boolean;
   onRemoveDraft: (value: string) => void;
   onNotice: (value: string) => void;
 }) {
@@ -31,7 +33,12 @@ export function IngressEvidence({
           <span className="pp-tunnel-section-label">Ingress</span>
           <h3>{routeCountLabel(routes)}</h3>
         </div>
-        <button type="button" className="pp-tunnel-text-action" onClick={onAdd}>
+        <button
+          type="button"
+          className="pp-tunnel-text-action"
+          disabled={addDisabled}
+          onClick={onAdd}
+        >
           <Plus aria-hidden="true" /> Draft ingress route
         </button>
       </div>
@@ -123,7 +130,7 @@ export function IngressEvidence({
                 : 'This deployment has no readable ingress list.'}
             </p>
           </div>
-          <button type="button" onClick={onAdd}>
+          <button type="button" disabled={addDisabled} onClick={onAdd}>
             Draft the first route
           </button>
         </div>

@@ -787,6 +787,16 @@
   overflow-x: auto;
 }
 
+.this-pc-handoff-guidance {
+  margin: 0;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.55rem 0.75rem;
+  background: color-mix(in srgb, var(--pp-accent-signal) 5%, var(--pp-surface));
+  color: var(--pp-text-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
 .this-pc-table {
   width: 100%;
   border-collapse: collapse;
@@ -816,6 +826,71 @@
 .this-pc-table th:last-child,
 .this-pc-table td:last-child {
   border-right: 0;
+}
+
+.this-pc-handoff-menu {
+  min-width: 7rem;
+}
+
+.this-pc-handoff-menu summary {
+  display: inline-flex;
+  min-height: 1.7rem;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--pp-stroke-strong);
+  border-radius: 0.3rem;
+  padding: 0.22rem 0.45rem;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  font-size: 0.65rem;
+  font-weight: 650;
+}
+
+.this-pc-handoff-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.this-pc-handoff-menu summary svg {
+  width: 0.72rem;
+  height: 0.72rem;
+}
+
+.this-pc-handoff-menu[open] summary {
+  border-color: var(--pp-accent-signal);
+  color: var(--pp-accent-signal);
+}
+
+.this-pc-handoff-menu > fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.4rem 0 0;
+  border: 0;
+  padding: 0;
+}
+
+.this-pc-handoff-menu button {
+  min-height: 1.65rem;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.28rem;
+  padding: 0.2rem 0.35rem;
+  background: var(--pp-surface-sunken);
+  color: var(--pp-text-muted);
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.this-pc-handoff-menu button:hover,
+.this-pc-handoff-menu button:focus-visible {
+  border-color: var(--pp-accent-signal);
+  color: var(--pp-accent-signal);
+}
+
+.this-pc-handoff-unavailable {
+  color: var(--pp-text-faint);
+  font-size: 0.62rem;
 }
 
 .this-pc-show-more {

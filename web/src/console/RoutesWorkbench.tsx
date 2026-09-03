@@ -1,42 +1,79 @@
 import { AlertTriangle, ArrowRight, LoaderCircle, Network, Route, Square } from 'lucide-react';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { classNames } from '@/shared/runtime';
 
 import { lookupRoute, type RouteLookupResponse, type RouteResult } from './api';
+import { handoffEvidence } from './app/handoff-display';
+import { type ConsumedHandoffFor, consumePendingHandoff } from './app/handoff-store';
 import { StatusFact } from './evidence/StatusFact';
+import { protocolShellEvents } from './ProtocolShellContext';
 
 export function RoutesWorkbench() {
+  const [handoff, setHandoff] = useState<ConsumedHandoffFor<'next-hop-target-draft'> | null>(null);
   const [destination, setDestination] = useState('');
   const [family, setFamily] = useState<'auto' | 'ipv4' | 'ipv6'>('auto');
   const [response, setResponse] = useState<RouteLookupResponse | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const destinationRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const requestGenerationRef = useRef(0);
 
-  useEffect(
-    () => () => {
+  function invalidateLookup() {
+    requestGenerationRef.current++;
+    const active = abortRef.current;
+    abortRef.current = null;
+    active?.abort();
+    setLoading(false);
+  }
+
+  const applyPendingHandoff = useEffectEvent(() => {
+    const pending = consumePendingHandoff('next-hop-target-draft');
+    if (!pending) return;
+    invalidateLookup();
+    setError('');
+    setResponse(null);
+    setFamily('auto');
+    setDestination(pending.draft.target.target);
+    setHandoff(pending);
+    destinationRef.current?.focus();
+  });
+
+  useEffect(() => {
+    applyPendingHandoff();
+    window.addEventListener(protocolShellEvents.pendingHandoff, applyPendingHandoff);
+    return () => {
+      requestGenerationRef.current++;
       abortRef.current?.abort();
-    },
-    []
-  );
+      abortRef.current = null;
+      window.removeEventListener(protocolShellEvents.pendingHandoff, applyPendingHandoff);
+    };
+  }, []);
 
   async function handleLookup(event: FormEvent) {
     event.preventDefault();
     if (loading) {
-      abortRef.current?.abort();
+      invalidateLookup();
+      setError('Route lookup cancelled.');
       return;
     }
     const target = destination.trim();
     if (!target) return;
     const controller = new AbortController();
+    const generation = requestGenerationRef.current + 1;
+    requestGenerationRef.current = generation;
     abortRef.current = controller;
     setLoading(true);
+    setHandoff(null);
     setError('');
     setResponse(null);
     try {
-      setResponse(await lookupRoute(target, family, controller.signal));
+      const next = await lookupRoute(target, family, controller.signal);
+      if (requestGenerationRef.current !== generation || abortRef.current !== controller) return;
+      setResponse(next);
     } catch (reason) {
+      if (requestGenerationRef.current !== generation || abortRef.current !== controller) return;
       setError(
         controller.signal.aborted
           ? 'Route lookup cancelled.'
@@ -45,8 +82,10 @@ export function RoutesWorkbench() {
             : 'Route lookup failed.'
       );
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setLoading(false);
+      if (requestGenerationRef.current === generation && abortRef.current === controller) {
+        abortRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -69,12 +108,19 @@ export function RoutesWorkbench() {
         <label>
           <span>Destination</span>
           <input
+            ref={destinationRef}
             className="pp-input"
             value={destination}
             maxLength={253}
             placeholder="api.example.test or 2001:db8::10"
             aria-label="Route destination"
-            onChange={(event) => setDestination(event.target.value)}
+            onChange={(event) => {
+              invalidateLookup();
+              setDestination(event.target.value);
+              setHandoff(null);
+              setResponse(null);
+              setError('');
+            }}
           />
         </label>
         <label>
@@ -82,7 +128,13 @@ export function RoutesWorkbench() {
           <select
             value={family}
             aria-label="Resolution family"
-            onChange={(event) => setFamily(event.target.value as typeof family)}
+            onChange={(event) => {
+              invalidateLookup();
+              setFamily(event.target.value as typeof family);
+              setHandoff(null);
+              setResponse(null);
+              setError('');
+            }}
           >
             <option value="auto">Auto</option>
             <option value="ipv4">IPv4</option>
@@ -97,6 +149,16 @@ export function RoutesWorkbench() {
           {loading ? 'Cancel lookup' : 'Look up route'}
         </button>
       </form>
+
+      {handoff ? (
+        <aside className="pp-route-uncertainty" role="status">
+          <Route aria-hidden="true" />
+          <p>
+            {handoffEvidence(handoff.provenance, handoff.storage === 'memory')}. The destination was
+            filled in; no DNS resolution or route lookup was started.
+          </p>
+        </aside>
+      ) : null}
 
       <aside className="pp-route-uncertainty">
         <AlertTriangle aria-hidden="true" />

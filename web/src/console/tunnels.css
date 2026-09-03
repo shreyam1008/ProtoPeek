@@ -109,6 +109,40 @@
   color: var(--pp-warning-signal);
 }
 
+.pp-tunnel-origin-handoff {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0.75rem 1rem 0;
+  border: 1px solid color-mix(in srgb, var(--pp-accent-signal) 32%, var(--pp-stroke));
+  border-radius: 0.42rem;
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--pp-accent-signal) 6%, var(--pp-surface));
+}
+
+.pp-tunnel-origin-handoff > svg {
+  width: 0.9rem;
+  color: var(--pp-accent-signal);
+}
+
+.pp-tunnel-origin-handoff strong {
+  color: var(--pp-text);
+  font-size: 0.7rem;
+}
+
+.pp-tunnel-origin-handoff p {
+  margin-top: 0.16rem;
+  color: var(--pp-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.pp-tunnel-origin-handoff-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 .pp-tunnel-toolbar {
   display: grid;
   min-height: 4.4rem;
@@ -2477,13 +2511,13 @@
     display: none;
   }
 
-  .pp-tunnel-button {
+  .pp-tunnel-toolbar > .pp-tunnel-button {
     width: 2.35rem;
     padding: 0;
     font-size: 0;
   }
 
-  .pp-tunnel-button-primary {
+  .pp-tunnel-toolbar > .pp-tunnel-button-primary {
     width: auto;
     padding: 0 0.65rem;
     font-size: 0.58rem;
@@ -2519,6 +2553,21 @@
 }
 
 @media (max-width: 640px) {
+  .pp-tunnel-origin-handoff {
+    grid-template-columns: auto minmax(0, 1fr);
+    margin: 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+  }
+
+  .pp-tunnel-origin-handoff-actions {
+    grid-column: 1 / -1;
+  }
+
+  .pp-tunnel-origin-handoff-actions .pp-tunnel-button {
+    flex: 1;
+  }
+
   .pp-tunnels {
     min-height: calc(100dvh - var(--pp-suite-header-height));
   }
@@ -2547,7 +2596,7 @@
     display: grid;
   }
 
-  .pp-tunnel-button-primary {
+  .pp-tunnel-toolbar > .pp-tunnel-button-primary {
     width: 2.35rem;
     padding: 0;
     font-size: 0;

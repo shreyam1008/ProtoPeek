@@ -25,6 +25,18 @@ describe('This Device current-source guide', () => {
     expect(guide).toContain('canonical `/this-pc` route');
     expect(guide).toContain('`/api/this-pc/*` endpoints');
     expect(guide).toContain('A local listener is not proof that the port is reachable');
+    expect(guide).toContain(
+      'native Windows v1 backend reads the IP Helper owner-PID tables for TCP4, TCP6, UDP4, and UDP6'
+    );
+    expect(guide).toMatch(/macOS reports activity as\s+unsupported/);
+    expect(guide).toContain('cooperative processing budget on Windows');
+    expect(guide).toContain('reports the measured interval');
+    expect(guide).toMatch(/two partial reads have no interface in\s+common/);
+    expect(guide).toMatch(/evidence is no more than five\s+minutes old/);
+    expect(guide).toContain('performs no DNS resolution, probe, connection');
+    expect(guide).toContain('active-hop probing remains Linux-only');
+    expect(guide).not.toContain('macOS and Windows report listeners');
+    expect(guide).not.toContain('for the planned native Windows backend');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');
     expect(generator).toContain('Current source implements exactly six permanent destinations');
     expect(generator).not.toContain('Current source adds a seventh route-lazy area, This PC');
@@ -33,7 +45,15 @@ describe('This Device current-source guide', () => {
 
   it('keeps the source registry and crawlable compatibility path aligned', () => {
     const registry = JSON.parse(readRepositoryFile('web/src/site/public-pages.json')) as {
-      pages: Array<{ id: string; path: string; title: string; documentTitle: string }>;
+      pages: Array<{
+        id: string;
+        path: string;
+        title: string;
+        documentTitle: string;
+        description?: string;
+        lastModified?: string;
+        keywords?: string[];
+      }>;
     };
     const sourcePage = registry.pages.find((candidate) => candidate.id === 'this-pc');
     const page = parseHtml('docs/this-pc/index.html');
@@ -44,7 +64,18 @@ describe('This Device current-source guide', () => {
       path: '/this-pc/',
       title: 'This Device evidence',
       documentTitle: 'This Device: Ports, Public IP & Speed Evidence | ProtoPeek',
+      description:
+        'Current source inspects bounded Linux and native Windows sockets, owners, and interface counters, plus public IP/BGP and opt-in Cloudflare quality in Network.',
+      lastModified: '2026-09-03',
     });
+    expect(sourcePage?.keywords).toEqual(
+      expect.arrayContaining([
+        'Windows socket ownership',
+        'Windows TCP UDP ports',
+        'Linux socket inspection',
+        'local interface counters',
+      ])
+    );
     expect(page.title).toBe('This Device: Ports, Public IP & Speed Evidence | ProtoPeek');
     expect(page.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(
       'https://protopeek.shreyam1008.com.np/this-pc/'

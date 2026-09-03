@@ -27,6 +27,28 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 105 * kibibyte,
   },
   {
+    label: 'console framework core JavaScript',
+    pattern: /^console-core-.+\.js$/,
+    // React, Router, Lucide's factory, and the tiny shared runtime are already required at start.
+    maxRawBytes: 268 * kibibyte,
+    maxGzipBytes: 87 * kibibyte,
+  },
+  {
+    label: 'shared route icons JavaScript',
+    pattern: /^console-icons-.+\.js$/,
+    // Reused route icons share one lazy request; feature-only icons remain in their route chunks.
+    maxRawBytes: 6 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'initial console JavaScript',
+    pattern: /^(?:index|console-core|rolldown-runtime)-.+\.js$/,
+    mode: 'aggregate',
+    // Bound the actual startup graph as well as each named chunk above.
+    maxRawBytes: 340 * kibibyte,
+    maxGzipBytes: 108 * kibibyte,
+  },
+  {
     label: 'gRPC workspace JavaScript',
     pattern: /^App-.+\.js$/,
     maxRawBytes: 116 * kibibyte,
@@ -182,9 +204,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    // The state-aware Tunnels suite, including its independently bounded lazy
-    // planner/model chunks, measures 939,206 raw / 288,943 gzip bytes. Keep
-    // only a few KiB of aggregate headroom so split chunks cannot hide growth.
+    // The connected-workbench suite, including its independently bounded lazy
+    // routes and shared chunks, measures 941,827 raw / 287,399 gzip bytes. Keep
+    // tight aggregate headroom so split chunks cannot hide growth.
     maxRawBytes: 920 * kibibyte,
     maxGzipBytes: 284 * kibibyte,
   },

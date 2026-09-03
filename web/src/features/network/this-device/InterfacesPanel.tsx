@@ -40,7 +40,7 @@ function InterfaceRow({ item }: { item: ThisPCInterface }) {
       <div className="this-pc-interface-meta">
         <span>
           <b>MTU</b>
-          <code>{item.mtu}</code>
+          <code>{item.mtu === -1 ? 'Not reported' : item.mtu}</code>
         </span>
         {item.traffic ? (
           <span>

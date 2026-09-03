@@ -192,12 +192,19 @@ show timing consistently, but the inspector must say “gRPC trailers”, “Cap
 
 - The route-lazy **This Device** workspace at `/this-pc` sits under Network and separates device,
   interface, local-exposure, and Internet evidence. Initial render reads only local capabilities and
-  a bounded process-perspective system snapshot. Linux can explicitly inspect bounded socket tables
-  with same-user PID/name attribution
-  and sample aggregate interface counters once; macOS and Windows render honest capability gaps
-  rather than shelling out or elevating. Public IPv4/IPv6 plus provider-reported BGP origin and the
-  data-bounded Cloudflare quality plan have separate disclosures and actions. See the
+  a bounded process-perspective system snapshot. Linux and Windows can explicitly inspect bounded
+  socket tables and sample aggregate interface counters once. Windows uses native owner-PID tables
+  and interface counters; executable basenames are best-effort and may be access-restricted. It does
+  not shell out or elevate. macOS retains an honest socket/counter capability gap. Public IPv4/IPv6
+  plus provider-reported BGP origin and the data-bounded Cloudflare quality plan have separate
+  disclosures and actions. See the
   [This Device boundary](/this-pc/) for exact providers, limits, platform support, and non-goals.
+- The unreleased v0.7 current-source slice adds one versioned typed handoff broker and a
+  listener-to-draft vertical slice. Evidence must be no more than five minutes old when the envelope
+  is created; consumption is once-only and never starts network or publishing work. A scoped IPv6
+  listener can prefill unsent gRPC or next-hop drafts, but not a browser HTTP URL or Publish origin.
+  See the [Connected Workbench integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/connected-workbench-integration-plan.md) for the
+  remaining phases and release gates.
 - The route-lazy **Cloudflare Tunnel** workspace at `/tunnels` remains a domain-native Publish
   surface for manual, real-host local operations. One explicit inspection observes `cloudflared`,
   the canonical Windows SCM, systemd, or launchd service, documented config candidates,
@@ -519,6 +526,7 @@ route budgets preserve the lighter v0.3 architecture.
 ## Research trail
 
 - [ProtoPeek suite product, redesign, and migration strategy](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/protopeek-suite-strategy.md)
+- [Connected Workbench v0.7 implementation contract](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/connected-workbench-integration-plan.md)
 - [Private-network and TailScout consolidation plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/private-network-integration-plan.md)
 - [Cloudflare Tunnel workspace guide](/cloudflare-tunnels/)
 - [Cloudflare Tunnel integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/cloudflare-tunnel-integration-plan.md)

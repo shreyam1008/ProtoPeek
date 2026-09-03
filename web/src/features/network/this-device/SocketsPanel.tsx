@@ -5,6 +5,14 @@ import type { ThisPCActivity, ThisPCCapabilities, ThisPCSocket } from '@/console
 
 import { ConsentPrompt } from './ConsentPrompt';
 import type { IdleResource, Resource } from './device-state';
+import { type ListenerHandoffKind, listenerIPv6ScopeMissing } from './listener-handoff';
+
+const handoffActions = [
+  ['http-url-draft', 'HTTP'],
+  ['grpc-target-draft', 'gRPC'],
+  ['next-hop-target-draft', 'Route'],
+  ['publish-origin-draft', 'Publish'],
+] as const satisfies readonly [ListenerHandoffKind, string][];
 
 function formatEndpoint(endpoint: ThisPCSocket['local']) {
   const address = endpoint.address || (endpoint.wildcard ? '*' : 'not reported');
@@ -35,9 +43,11 @@ function listenerExposure(socket: ThisPCSocket) {
 function SocketTable({
   sockets,
   kind,
+  onHandoff,
 }: {
   sockets: ThisPCSocket[];
   kind: 'listeners' | 'connections';
+  onHandoff?: (socket: ThisPCSocket, kind: ListenerHandoffKind) => void;
 }) {
   const [query, setQuery] = useState('');
   const [shown, setShown] = useState(50);
@@ -103,6 +113,7 @@ function SocketTable({
               <th>State</th>
               <th>Process</th>
               {kind === 'listeners' ? <th>Bind scope</th> : null}
+              {kind === 'listeners' && onHandoff ? <th>Use in</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -123,6 +134,37 @@ function SocketTable({
                 <td data-label="Process">{processLabel(socket)}</td>
                 {kind === 'listeners' ? (
                   <td data-label="Bind scope">{listenerExposure(socket)}</td>
+                ) : null}
+                {kind === 'listeners' && onHandoff ? (
+                  <td data-label="Use in">
+                    {listenerIPv6ScopeMissing(socket) ? (
+                      <span className="this-pc-handoff-unavailable">IPv6 scope missing</span>
+                    ) : socket.protocol === 'tcp4' || socket.protocol === 'tcp6' ? (
+                      <details className="this-pc-handoff-menu">
+                        <summary>
+                          {socket.local.address.includes('%')
+                            ? 'Open gRPC / Route draft'
+                            : 'Open draft'}
+                        </summary>
+                        <fieldset aria-label={`Use ${formatEndpoint(socket.local)}`}>
+                          {(socket.local.address.includes('%')
+                            ? handoffActions.slice(1, 3)
+                            : handoffActions
+                          ).map(([draft, label]) => (
+                            <button
+                              type="button"
+                              key={draft}
+                              onClick={() => onHandoff(socket, draft)}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </fieldset>
+                      </details>
+                    ) : (
+                      <span className="this-pc-handoff-unavailable">UDP evidence only</span>
+                    )}
+                  </td>
                 ) : null}
               </tr>
             ))}
@@ -152,8 +194,8 @@ function ActivityNotes({ activity }: { activity: ThisPCActivity }) {
       </p>
       {activity.truncated ? (
         <p>
-          Results reached a local bound: at most {activity.limits.maxSockets} sockets within{' '}
-          {activity.limits.wallTimeMs} ms.
+          Bounded to {activity.limits.maxSockets} sockets under a {activity.limits.wallTimeMs} ms
+          processing budget.
         </p>
       ) : null}
       {activity.notes.map((note) => (
@@ -169,20 +211,24 @@ export function SocketsPanel({
   activity,
   consentOpen,
   acknowledged,
+  handoffError,
   onOpen,
   onAcknowledged,
   onConfirm,
   onCancel,
+  onHandoff,
 }: {
   kind: 'listeners' | 'connections';
   capabilities: Resource<ThisPCCapabilities>;
   activity: IdleResource<ThisPCActivity>;
   consentOpen: boolean;
   acknowledged: boolean;
+  handoffError?: string;
   onOpen: () => void;
   onAcknowledged: (value: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  onHandoff?: (socket: ThisPCSocket, kind: ListenerHandoffKind) => void;
 }) {
   const listeners = kind === 'listeners';
   const capability = capabilities.status === 'ready' ? capabilities.value.activity : null;
@@ -239,10 +285,21 @@ export function SocketsPanel({
         </ConsentPrompt>
       ) : activity.status === 'ready' ? (
         <>
+          {listeners && onHandoff ? (
+            <p className="this-pc-handoff-guidance">
+              TCP binds can prefill drafts. Protocol and TLS remain inferred until run.
+            </p>
+          ) : null}
+          {handoffError ? (
+            <p className="this-pc-inline-error" role="alert">
+              {handoffError}
+            </p>
+          ) : null}
           <SocketTable
             key={`${kind}-${activity.value.observedAt}`}
             sockets={listeners ? activity.value.listeners : activity.value.connections}
             kind={kind}
+            onHandoff={listeners ? onHandoff : undefined}
           />
           <ActivityNotes activity={activity.value} />
           {listeners ? (

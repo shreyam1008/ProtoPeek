@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { ProtocolShellContext, type ProtocolShellValue } from './ProtocolShellContext';
 import { Tunnels } from './Tunnels';
 
@@ -304,7 +306,7 @@ const remoteManagedSnapshot = {
   ],
 };
 
-function renderTunnels() {
+function renderTunnels(strict = false) {
   const shell: ProtocolShellValue = {
     appearance: { version: 2, mode: 'light', palette: 'graphite' },
     resolvedAppearance: { version: 2, mode: 'light', palette: 'graphite', theme: 'light' },
@@ -313,14 +315,16 @@ function renderTunnels() {
     setInterfacePreferences: vi.fn(),
     discoveries: [],
     openScan: vi.fn(),
+    openHandoff: vi.fn(),
     openGRPCDiscovery: vi.fn(),
     openHTTPDiscovery: vi.fn(),
   };
-  render(
+  const view = (
     <ProtocolShellContext.Provider value={shell}>
       <Tunnels />
     </ProtocolShellContext.Provider>
   );
+  render(strict ? <StrictMode>{view}</StrictMode> : view);
   return shell;
 }
 
@@ -353,9 +357,63 @@ async function inspectLocalHost() {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  clearPendingHandoff();
+  window.sessionStorage.clear();
 });
 
 describe('Tunnels', () => {
+  it('keeps a listener origin as a non-executing draft until a deployment is selected', async () => {
+    const request = stubTunnelAPI();
+    const observedAt = new Date(Date.now() - 1_000).toISOString();
+    expect(
+      storePendingHandoff({
+        provenance: {
+          source: 'this-device',
+          quality: 'inferred',
+          observedAt,
+          path: '/this-pc',
+        },
+        draft: {
+          kind: 'publish-origin-draft',
+          origin: {
+            kind: 'local-service',
+            perspective: 'process-network-namespace',
+            network: 'tcp',
+            bind: { address: '0.0.0.0', wildcard: true },
+            exposure: 'all-interfaces',
+            protocol: 'tcp',
+            host: '127.0.0.1',
+            port: 8080,
+          },
+        },
+      }).ok
+    ).toBe(true);
+
+    renderTunnels(true);
+
+    expect(screen.getByText('Local origin draft ready')).toBeVisible();
+    expect(screen.getByText(/wildcard reachability was not assumed/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Inspect host first' })).toBeDisabled();
+    expect(request).not.toHaveBeenCalled();
+
+    await inspectLocalHost();
+    const continueDraft = screen.getByRole('button', { name: 'Continue draft' });
+    continueDraft.focus();
+    fireEvent.click(continueDraft);
+    const dialog = await screen.findByRole('dialog', { name: 'Draft ingress route' });
+
+    expect(within(dialog).getByLabelText('Public hostname')).toHaveValue('');
+    expect(within(dialog).getByLabelText('Origin service')).toHaveValue('tcp://127.0.0.1:8080');
+    expect(within(dialog).getByText('Prefilled local origin')).toBeVisible();
+    expect(within(dialog).getByText(/nothing has been applied/i)).toBeVisible();
+    expect(screen.getByText('Local origin draft ready')).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(2);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close route planner' }));
+    await waitFor(() => expect(continueDraft).toHaveFocus());
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.getByRole('heading', { name: 'Tunnel operations' })).toHaveFocus();
+  });
+
   it('renders selected split-console evidence and filters deployments', async () => {
     const request = stubTunnelAPI();
     renderTunnels();
@@ -471,10 +529,28 @@ describe('Tunnels', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open in HTTP' }));
     await waitFor(() => expect(shell.openHTTPDiscovery).toHaveBeenCalledTimes(1));
     expect(vi.mocked(shell.openHTTPDiscovery).mock.calls[0][0]).toMatchObject({
+      discoveredAt: snapshot.observedAt,
       address: 'localhost:8080',
       http: true,
       httpTransport: 'plaintext',
     });
+  });
+
+  it('shows a rejected observed-origin handoff instead of failing silently', async () => {
+    stubTunnelAPI();
+    const shell = renderTunnels();
+    vi.mocked(shell.openHTTPDiscovery).mockReturnValue({
+      ok: false,
+      error: 'The handoff evidence is stale. Inspect again before opening a draft.',
+    });
+    await inspectLocalHost();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open in HTTP' }));
+
+    expect(await screen.findByText(/handoff evidence is stale/i)).toBeVisible();
+    expect(shell.openHTTPDiscovery).toHaveBeenCalledWith(
+      expect.objectContaining({ discoveredAt: snapshot.observedAt })
+    );
   });
 
   it('shows completed real-host checks and useful setup when cloudflared is unavailable', async () => {

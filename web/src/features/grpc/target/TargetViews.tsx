@@ -149,6 +149,7 @@ export function WorkspaceView({
 
 export function LauncherView({
   bootstrap,
+  discoveryAutoStart,
   notices,
   targets,
   activeTargetId,
@@ -168,6 +169,7 @@ export function LauncherView({
   onOpenDiscovered,
 }: TargetViewProps & {
   bootstrap: BootstrapResponse;
+  discoveryAutoStart: boolean;
   notices?: ReactNode;
 }) {
   const protocolShell = useContext(ProtocolShellContext);
@@ -224,7 +226,7 @@ export function LauncherView({
         </section>
 
         <DiscoveryPanel
-          autoStart
+          autoStart={discoveryAutoStart}
           initialTarget={bootstrap.initialScanTarget}
           onOpenGRPC={onOpenDiscovered}
           onOpenHTTP={protocolShell?.openHTTPDiscovery}

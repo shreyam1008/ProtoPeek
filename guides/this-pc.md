@@ -2,6 +2,11 @@
 
 Status: **available under Network in current source after v0.5.0; not part of the published v0.5.0 release**.
 
+The current-source v0.7 foundation adds native Windows activity/counters and typed listener drafts;
+it is not a completed or shipped v0.7 claim. The versioned handoff, freshness, and no-automatic-I/O
+rules are defined in the
+[Connected Workbench integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/connected-workbench-integration-plan.md).
+
 **This Device** is ProtoPeek's device-centred Network workspace. Its canonical `/this-pc` route and
 `/api/this-pc/*` endpoints retain their technical names for compatibility. The broader **Network**
 workspace starts with a target and asks how this ProtoPeek process can reach it. This Device starts
@@ -24,7 +29,7 @@ The page keeps four perspectives visibly separate:
 |---|---|---|
 | Device | Hostname, operating system, architecture, and logical CPUs visible to this ProtoPeek process | Physical-machine identity, ownership, serial number, username, or host evidence outside a container |
 | Interfaces | Local addresses, prefix, flags, MTU, and available operating-system counters | A unique physical link, Wi-Fi identity, Internet reachability, or exact traffic after VPN/bridge/container double counting |
-| Exposure | Local socket tables and best-effort same-user process attribution | Firewall permission, router/NAT state, public reachability, application safety, or who initiated an established connection |
+| Exposure | Local socket tables and best-effort process attribution within platform permissions | Firewall permission, router/NAT state, public reachability, application safety, or who initiated an established connection |
 | Internet | Public address, provider-reported BGP origin, and bounded Cloudflare measurements | A verified retail ISP, geography, line-rate maximum, packet loss, or performance to every destination |
 
 Local snapshot, activity, traffic-sample, and public-identity results are timestamped and labelled
@@ -69,16 +74,46 @@ best-effort same-effective-user attribution through socket inode references. It 
 the bounded process `comm` name. Access restrictions remain visible as partial evidence rather than
 becoming an empty success.
 
-One operation is limited to 4,096 sockets, 512 processes, 16,384 file descriptors, and a two-second
-wall. It never requests root. macOS and Windows report listeners, connections, and process
-attribution as unavailable until reviewed native backends exist; ProtoPeek does not fall back to
-`lsof`, `netstat`, PowerShell, or another executable.
+The native Windows v1 backend reads the IP Helper owner-PID tables for TCP4, TCP6, UDP4, and UDP6.
+It uses limited process-query rights to resolve at most a bounded executable basename; executable
+paths are not returned. A protected process can remain access-restricted and a process that exits
+during observation can remain unattributed. Windows UDP rows report bound local endpoints only: a
+socket can be send-only, so a row is not proof that an application receives datagrams.
+
+One activity operation retains at most 4,096 sockets and resolves at most 512 owner PIDs; Linux inode
+attribution also examines at most 16,384 file descriptors. The reported 2,000 ms limit is a
+cooperative processing budget on Windows, not a hard interruption boundary around synchronous IP
+Helper or process-query calls; cancellation and expiry are checked between native calls and partial
+evidence remains labelled. Neither backend requests elevation. macOS reports activity as
+unsupported, and ProtoPeek never falls back to `lsof`, `netstat`, PowerShell, WMI, or another
+executable.
+
+In the unreleased v0.7 foundation, an eligible TCP listener whose evidence is no more than five
+minutes old and whose selected host is unscoped can create typed HTTP, gRPC, next-hop, and Publish
+drafts. A wildcard bind derives a same-family loopback host as an explicitly inferred draft. UDP
+rows never become service drafts. A scoped IPv6 listener remains visible evidence and may produce
+gRPC or next-hop drafts, but the current contract rejects browser HTTP URL and Publish-origin forms.
+Link-local IPv6 evidence with no observed interface zone produces no draft because ProtoPeek will
+not guess the missing scope.
+Creating, navigating to, or consuming any draft performs no DNS resolution, probe, connection,
+request, service control, config write, or publishing action; the destination action remains
+explicit.
 
 ## One-shot interface load
 
-`POST /api/this-pc/traffic/sample` compares two local interface-counter snapshots over exactly
-500, 1,000, or 2,000 milliseconds. It does not keep a monitor running. Counter rollback, interface
-removal, and unavailable counters remain warnings; they never become negative or invented rates.
+`POST /api/this-pc/traffic/sample` accepts exactly a 500, 1,000, or 2,000 ms wait between two local
+interface-counter reads. Linux uses `/proc/net/dev`; Windows reads each enumerated interface through
+native `GetIfEntry2`; macOS reports the operation as unsupported. The result timestamps the midpoint
+of each counter read and reports the measured interval between those representative observations,
+which can differ from the selected wait. Displayed rates use that measured interval. No monitor is
+left running.
+
+Complete reads preserve interface-appeared, interface-disappeared, and counter-reset states. If a
+platform read returns usable counters plus an error, ProtoPeek compares only interface names present
+in both reads, omits lifecycle-only rows that partial evidence cannot classify safely, and returns
+bounded notes. If either read has no usable counters, or two partial reads have no interface in
+common, the operation fails rather than inventing deltas. Counter rollback and unavailable values
+never become negative or fabricated rates.
 
 The displayed receive/transmit rate is aggregate interface activity during that interval. It is not
 per-process bandwidth, and adding traffic from physical, VPN, bridge, container, and loopback
@@ -109,8 +144,12 @@ GeoIP. A prefix may be multi-origin or belong to a transit, hosting, enterprise,
 network rather than the retail provider on a bill. The configured DNS resolver can observe that
 lookup. Origin lookup failure preserves the public-IP result and adds a warning.
 
-ProtoPeek does not persist the hostname, public addresses, process/PID evidence, socket table,
-remote endpoints, origin result, or benchmark result in browser storage.
+ProtoPeek does not persist the full hostname/interface snapshot, public addresses, process/PID
+evidence, socket table, remote endpoints, origin result, or benchmark result in browser storage.
+When the user explicitly opens a listener draft, its selected address/port and bounded provenance
+may be mirrored as the one pending handoff in same-tab `sessionStorage`. It is removed when consumed,
+cancelled, replaced, or expired (five minutes by default, never more than fifteen); process owners,
+remote endpoints, headers, credentials, and request bodies are never included.
 
 ## Bounded Cloudflare connection-quality run
 
@@ -162,25 +201,27 @@ loss, a universal quality score, and destination-independent performance are not
 | Identity and interface addresses | Available | Available | Available |
 | Public IPv4/IPv6 and BGP-origin lookup | Explicit external action | Explicit external action | Explicit external action |
 | Bounded Cloudflare quality run | Explicit browser action | Explicit browser action | Explicit browser action |
-| Interface counters and one-shot load | `/proc/net/dev` | Unavailable | Unavailable |
-| Local listeners and connections | `/proc/net/{tcp,tcp6,udp,udp6}` | Unavailable | Unavailable |
-| Same-user PID/process attribution | Best effort | Unavailable | Unavailable |
+| Interface counters and one-shot load | `/proc/net/dev` | Unavailable | Native `GetIfEntry2` |
+| Local listeners and connections | `/proc/net/{tcp,tcp6,udp,udp6}` | Unavailable | Native IP Helper TCP4/TCP6/UDP4/UDP6 owner-PID tables |
+| PID/process attribution | Best effort, same effective user | Unavailable | Best-effort basename with limited query rights |
 | Elevation or shell fallback | Never | Never | Never |
 
-Phase 2 can add Windows IP Helper tables and native interface counters, plus Darwin interface
-counters, only after the same capability, permission, truncation, and cross-build tests pass.
-macOS process ownership remains outside the stable contract until a durable public native API is
-verified.
+The Windows backend and its cross-build/synthetic contracts are current-source additions, not part
+of stable v0.5.0. Real-host Windows release QA remains required before v0.7 can ship. macOS activity,
+interface counters, and process ownership remain outside the current contract until durable native
+implementations pass the same capability, permission, truncation, and real-host tests. This matrix
+does not change Network Path parity: active-hop probing remains Linux-only.
 
 ## Deliberate next slices
 
-1. **Native platform parity:** add reviewed Windows IP Helper and Darwin interface/socket adapters
-   without shelling out, then prove each on its operating system before changing capability copy.
-2. **Short-window load view:** add an explicitly started, visibly timed interface sampler with Stop
-   and a fixed memory/point budget. It can graph aggregate deltas but must still avoid a
-   per-process-byte claim.
-3. **Route hand-off:** link one selected local/public address into the existing Network route and
-   path tools rather than duplicating gateway, DNS, or hop logic inside This Device.
+1. **Native platform completion:** finish real-host Windows release QA and add reviewed Darwin
+   interface/socket adapters without shelling out before changing macOS capability copy.
+2. **Connected-workbench completion:** keep the listener flow as the typed reference, add only
+   provenance-backed address/discovery producers with real consumers, and finish bounded recents and
+   receipts under the v0.7 contract.
+3. **Optional load timeline:** consider a visibly timed, explicitly started bounded graph only after
+   the current one-shot sampler is proven on real hosts. It must keep a fixed memory/point budget and
+   avoid a per-process-byte claim.
 4. **Optional ownership helper:** consider eBPF, ETW, or a macOS Network Extension only as a
    separately installed, permissioned component with preview, teardown, and redaction contracts.
    The core binary remains useful without it.
@@ -208,16 +249,19 @@ request budget, and result label.
 
 Backend tests must prove that construction, capabilities, and the initial snapshot perform no
 external request; local enumeration and provider responses remain bounded; malformed socket and
-counter evidence degrades safely; permissions produce partial attribution; public observations
-require acknowledgement and fixed providers; one address-family failure retains the other; and
-remote-browser mode never exposes machine/process APIs. Linux, Darwin, and Windows builds must keep
-their explicit capability truth.
+counter evidence degrades safely; Windows exercises all four owner-PID table shapes, limited process
+query, interface-counter mapping, partial reads, and cooperative cancellation; permissions produce
+partial attribution; public observations require acknowledgement and fixed providers; one
+address-family failure retains the other; and remote-browser mode never exposes machine/process
+APIs. Linux, Darwin, and Windows builds must keep their explicit capability truth.
 
 Frontend tests must prove that first render calls only local GET endpoints; every activity,
 identity, and benchmark operation requires a visible action and disclosure; upload is off by
 default; the maximum data amount is visible; no sensitive result reaches localStorage or
-IndexedDB; unsupported/restricted states remain useful; and the route remains keyboard-accessible,
-dark/light compatible, responsive, and within its independent bundle budgets.
+IndexedDB; unsupported/restricted states remain useful; fresh unscoped TCP listener drafts are
+consume-once and perform no automatic action; stale, UDP, and scoped URL/Publish cases are refused;
+and the route remains keyboard-accessible, dark/light compatible, responsive, and within its
+independent bundle budgets.
 
 ## Primary references
 
@@ -235,5 +279,5 @@ dark/light compatible, responsive, and within its independent bundle budgets.
   measurement, logging, loaded-latency, pause, and packet-loss contracts.
 - [Windows `GetExtendedTcpTable`](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedtcptable),
   [`GetExtendedUdpTable`](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedudptable),
-  and [`GetIfTable2`](https://learn.microsoft.com/en-us/windows-hardware/drivers/network/getiftable2)
-  for the planned native Windows backend.
+  and [`GetIfEntry2`](https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getifentry2)
+  for the current-source native Windows backend.

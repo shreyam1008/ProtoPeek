@@ -3,6 +3,8 @@ import { createContext, useContext } from 'react';
 import type { AppearancePreference, ResolvedAppearance } from '@/shared/theme';
 
 import type { ScanResult } from './api';
+import type { HandoffWriteResult } from './app/handoff-store';
+import type { PendingHandoffInput } from './app/handoff-types';
 import type { InterfacePreferences } from './interface-preferences';
 
 export type RecentDiscovery = ScanResult & { discoveredAt: string };
@@ -13,8 +15,7 @@ export type ScanDialogRequest = {
 };
 
 export const protocolShellEvents = {
-  openGRPCDiscovery: 'protopeek:open-grpc-discovery',
-  openHTTPDiscovery: 'protopeek:open-http-discovery',
+  pendingHandoff: 'protopeek:pending-handoff',
 } as const;
 
 export type ProtocolShellValue = {
@@ -25,8 +26,9 @@ export type ProtocolShellValue = {
   setInterfacePreferences: (preferences: InterfacePreferences) => void;
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
-  openGRPCDiscovery: (result: ScanResult) => void;
-  openHTTPDiscovery: (result: ScanResult) => void;
+  openHandoff: (handoff: PendingHandoffInput) => HandoffWriteResult;
+  openGRPCDiscovery: (result: ScanResult) => HandoffWriteResult;
+  openHTTPDiscovery: (result: ScanResult) => HandoffWriteResult;
 };
 
 export const ProtocolShellContext = createContext<ProtocolShellValue | null>(null);

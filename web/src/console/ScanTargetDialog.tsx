@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import type { ScanResult } from './api';
+import type { HandoffWriteResult } from './app/handoff-store';
 import { DiscoveryScanner } from './DiscoveryScanner';
 import { NmapImportPanel } from './NmapImportPanel';
 
@@ -20,8 +21,8 @@ export function ScanTargetDialog({
   autoStart?: boolean;
   onClose: () => void;
   onResults: (results: ScanResult[]) => void;
-  onOpenGRPC: (result: ScanResult) => void;
-  onOpenHTTP: (result: ScanResult) => void;
+  onOpenGRPC: (result: ScanResult) => HandoffWriteResult;
+  onOpenHTTP: (result: ScanResult) => HandoffWriteResult;
 }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);

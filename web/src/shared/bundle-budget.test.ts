@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type BundleAsset,
   type BundleBudget,
+  consoleBundleBudgets,
   evaluateBundleBudgets,
   measureBundleDirectory,
   runBundleBudgetCheck,
@@ -23,6 +24,27 @@ const budgets: BundleBudget[] = [
 ];
 
 describe('bundle budget contract', () => {
+  it('keeps deliberate console split chunks under explicit budgets', () => {
+    const byLabel = (label: string) => {
+      const budget = consoleBundleBudgets.find((candidate) => candidate.label === label);
+      expect(budget).toBeDefined();
+      return budget as BundleBudget;
+    };
+
+    expect(byLabel('console framework core JavaScript').pattern.test('console-core-hash.js')).toBe(
+      true
+    );
+    expect(byLabel('shared route icons JavaScript').pattern.test('console-icons-hash.js')).toBe(
+      true
+    );
+    const initial = byLabel('initial console JavaScript');
+    expect(initial.mode).toBe('aggregate');
+    for (const asset of ['index-hash.js', 'console-core-hash.js', 'rolldown-runtime-hash.js']) {
+      expect(initial.pattern.test(asset)).toBe(true);
+    }
+    expect(initial.pattern.test('console-icons-hash.js')).toBe(false);
+  });
+
   it('accepts an exact-boundary asset', () => {
     const assets: BundleAsset[] = [{ name: 'index-hash.js', rawBytes: 100, gzipBytes: 50 }];
 

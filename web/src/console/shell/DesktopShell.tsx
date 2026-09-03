@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, useRouterState } from '@tanstack/react-router';
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import type { DestinationDefinition, FeatureRoute } from '../app/feature-registry';
+import type { DestinationDefinition } from '../app/feature-registry';
 import { destinationForPath } from '../app/feature-registry';
 import { AppBar } from './AppBar';
 import { SessionTabs } from './SessionTabs';
@@ -19,7 +19,6 @@ export type DesktopShellProps = {
   modifier: string;
   resolvedTheme: 'light' | 'dark';
   navigationOpen: boolean;
-  skipRouteFocusRef: RefObject<FeatureRoute | null>;
   onInspect: () => void;
   onOpenNavigation: () => void;
   onCloseNavigation: () => void;
@@ -33,7 +32,6 @@ export function DesktopShell({
   modifier,
   resolvedTheme,
   navigationOpen,
-  skipRouteFocusRef,
   onInspect,
   onOpenNavigation,
   onCloseNavigation,
@@ -65,20 +63,25 @@ export function DesktopShell({
     if (routeLoading) return;
     if (previousPathRef.current === pathname) return;
     previousPathRef.current = pathname;
-    if (skipRouteFocusRef.current === pathname) {
-      skipRouteFocusRef.current = null;
-      return;
-    }
-    skipRouteFocusRef.current = null;
     const frame = requestAnimationFrame(() => {
-      const heading = canvasRef.current?.querySelector<HTMLElement>('h1');
-      const focusTarget = heading ?? canvasRef.current;
+      const canvas = canvasRef.current;
+      const active = document.activeElement;
+      if (
+        canvas &&
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        canvas.contains(active)
+      ) {
+        return;
+      }
+      const heading = canvas?.querySelector<HTMLElement>('h1');
+      const focusTarget = heading ?? canvas;
       if (!focusTarget) return;
       focusTarget.tabIndex = -1;
       focusTarget.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
-  }, [pathname, routeLoading, skipRouteFocusRef]);
+  }, [pathname, routeLoading]);
 
   return (
     <div className="pp-workbench-shell">

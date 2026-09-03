@@ -10,6 +10,7 @@ import {
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { clearPendingHandoff, peekPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { NetworkWorkbench } from './NetworkWorkbench';
 import { type NetworkWorkspaceV1, serializeNetworkWorkspace } from './network-model';
 import {
@@ -399,6 +400,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  clearPendingHandoff();
+  window.sessionStorage.clear();
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
   document.cookie = '_protopeek_csrf_token=; Max-Age=0; path=/';
 });
@@ -589,6 +592,19 @@ describe('NetworkWorkbench persistence protections', () => {
     fireEvent.change(screen.getByLabelText('Workspace name'), {
       target: { value: 'Unsaved before leaving' },
     });
+    expect(
+      storePendingHandoff({
+        provenance: {
+          source: 'this-device',
+          quality: 'inferred',
+          observedAt: new Date().toISOString(),
+        },
+        draft: {
+          kind: 'http-url-draft',
+          target: { kind: 'http-url', url: 'http://127.0.0.1:8080/' },
+        },
+      }).ok
+    ).toBe(true);
 
     fireEvent.click(screen.getByRole('link', { name: 'Leave workbench' }));
     const firstDialog = await screen.findByRole('alertdialog', {
@@ -598,6 +614,7 @@ describe('NetworkWorkbench persistence protections', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stay' }));
     await waitFor(() => expect(firstDialog).not.toBeInTheDocument());
     expect(router.state.location.pathname).toBe('/network/map');
+    expect(peekPendingHandoff('http-url-draft')).toBeNull();
     expect(screen.getByLabelText('Workspace name')).toHaveValue('Unsaved before leaving');
 
     fireEvent.click(screen.getByRole('link', { name: 'Leave workbench' }));

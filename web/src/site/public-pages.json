@@ -282,17 +282,25 @@
       "group": "network",
       "title": "This Device evidence",
       "documentTitle": "This Device: Ports, Public IP & Speed Evidence | ProtoPeek",
-      "description": "Current source provides local identity/interfaces, Linux sockets, public IPv4/IPv6, BGP-origin context, and a bounded Cloudflare quality run under Network.",
+      "description": "Current source inspects bounded Linux and native Windows sockets, owners, and interface counters, plus public IP/BGP and opt-in Cloudflare quality in Network.",
       "question": "What is happening on this device?",
       "section": "Current-source feature",
       "sourcePath": "guides/this-pc.md",
+      "lastModified": "2026-09-03",
+      "keywords": [
+        "Windows socket ownership",
+        "Windows TCP UDP ports",
+        "Linux socket inspection",
+        "local interface counters",
+        "public IP BGP origin"
+      ],
       "status": {
         "label": "Current source · after v0.5.0",
         "tone": "current",
         "detail": "This route-lazy Network workspace is not included in published v0.5.0 packages."
       },
       "highlights": [
-        "Local listeners and connections",
+        "Linux and Windows sockets",
         "Public IPv4 and IPv6",
         "Bounded connection quality"
       ],
@@ -507,7 +515,7 @@
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
-      "lastModified": "2026-09-02",
+      "lastModified": "2026-09-03",
       "status": {
         "label": "Living roadmap",
         "tone": "guide",

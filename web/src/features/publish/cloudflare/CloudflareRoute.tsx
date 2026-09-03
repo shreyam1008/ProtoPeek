@@ -22,12 +22,20 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
 } from 'react';
 
-import { useProtocolShell } from '@/console/ProtocolShellContext';
+import { handoffEvidence } from '@/console/app/handoff-display';
+import {
+  type ConsumedHandoffFor,
+  consumePendingHandoff,
+  formatHostPort,
+} from '@/console/app/handoff-store';
+import type { LocalServiceRef } from '@/console/app/handoff-types';
+import { protocolShellEvents, useProtocolShell } from '@/console/ProtocolShellContext';
 import { type PlannedTunnelRoute, scanResultFromTunnelRoute } from '@/console/tunnels/route-plan';
 import {
   fetchTunnelRelease,
@@ -58,6 +66,7 @@ type DeploymentFilter = 'all' | 'running' | 'stopped';
 type MobilePane = 'deployments' | 'details';
 type PlannedRoute = PlannedTunnelRoute;
 type PlanEvent = { id: string; deployment: string; summary: string; createdAt: string };
+type PublishOriginHandoff = ConsumedHandoffFor<'publish-origin-draft'>;
 
 const tunnelTabs = [
   { id: 'overview', label: 'Overview', icon: Gauge },
@@ -73,6 +82,21 @@ const filters = [
 ] as const;
 const RoutePlanner = lazy(() => import('@/console/tunnels/RoutePlanner'));
 
+function localOriginURL(origin: LocalServiceRef) {
+  const scheme =
+    origin.protocol === 'grpc' || origin.protocol === 'grpcs' ? 'tcp' : origin.protocol;
+  return `${scheme}://${formatHostPort(origin.host, origin.port)}`;
+}
+
+function localOriginContext(handoff: PublishOriginHandoff) {
+  const origin = handoff.draft.origin;
+  const bind = origin.bind.wildcard ? `${origin.bind.address} (wildcard)` : origin.bind.address;
+  const inferred = origin.bind.wildcard
+    ? ` The local draft uses ${origin.host}; wildcard reachability was not assumed.`
+    : '';
+  return `${handoffEvidence(handoff.provenance, handoff.storage === 'memory')}. TCP bind ${bind}, ${origin.exposure}.${inferred} The public hostname remains empty and nothing has been applied.`;
+}
+
 export function CloudflareRoute() {
   const shell = useProtocolShell();
   const [selectedRouteID, setSelectedRouteID] = useState('');
@@ -80,7 +104,9 @@ export function CloudflareRoute() {
   const [activeTab, setActiveTab] = useState<TunnelTab>('routes');
   const [mobilePane, setMobilePane] = useState<MobilePane>('details');
   const [notice, setNotice] = useState('');
+  const [pendingOrigin, setPendingOrigin] = useState<PublishOriginHandoff | null>(null);
   const [plannerOpen, setPlannerOpen] = useState(false);
+  const [plannerOrigin, setPlannerOrigin] = useState<PublishOriginHandoff | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [release, setRelease] = useState<TunnelRelease | null>(null);
   const [releaseLoading, setReleaseLoading] = useState(false);
@@ -99,6 +125,7 @@ export function CloudflareRoute() {
   const actionRequestRef = useRef<AbortController | null>(null);
   const actionGenerationRef = useRef(0);
   const plannerReturnFocusRef = useRef<HTMLElement | null>(null);
+  const plannerDeploymentRef = useRef('');
 
   const handleSelectionReconciled = useCallback(() => {
     actionGenerationRef.current++;
@@ -117,16 +144,40 @@ export function CloudflareRoute() {
     snapshot,
   } = useCloudflareObservation(handleSelectionReconciled);
 
-  const openPlanner = useCallback(() => {
-    plannerReturnFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setPlannerOpen(true);
-  }, []);
+  const openPlanner = useCallback(
+    (origin: PublishOriginHandoff | null = null) => {
+      const active = document.activeElement;
+      plannerReturnFocusRef.current =
+        active instanceof HTMLElement && active !== document.body
+          ? active
+          : document.getElementById('tunnels-title');
+      plannerDeploymentRef.current = selectedID;
+      setPlannerOrigin(origin);
+      setPlannerOpen(true);
+    },
+    [selectedID]
+  );
 
   const closePlanner = useCallback(() => {
     setPlannerOpen(false);
-    requestAnimationFrame(() => plannerReturnFocusRef.current?.focus());
+    setPlannerOrigin(null);
+    plannerDeploymentRef.current = '';
   }, []);
+
+  useEffect(() => {
+    const previous = plannerReturnFocusRef.current;
+    if (plannerOpen || !previous) return;
+    plannerReturnFocusRef.current = null;
+    (previous.isConnected ? previous : document.getElementById('tunnels-title'))?.focus();
+  }, [plannerOpen]);
+
+  const applyPendingOrigin = useEffectEvent(() => {
+    const handoff = consumePendingHandoff('publish-origin-draft');
+    if (!handoff) return;
+    setPlannerOpen(false);
+    setPlannerOrigin(null);
+    setPendingOrigin(handoff);
+  });
 
   const checkRelease = useCallback(async () => {
     releaseRequestRef.current?.abort();
@@ -212,10 +263,13 @@ export function CloudflareRoute() {
 
   useEffect(() => {
     mountedRef.current = true;
+    applyPendingOrigin();
+    window.addEventListener(protocolShellEvents.pendingHandoff, applyPendingOrigin);
     return () => {
       mountedRef.current = false;
       releaseRequestRef.current?.abort();
       actionRequestRef.current?.abort();
+      window.removeEventListener(protocolShellEvents.pendingHandoff, applyPendingOrigin);
     };
   }, []);
 
@@ -256,6 +310,10 @@ export function CloudflareRoute() {
       : null;
 
   useEffect(() => {
+    if (plannerOpen && (!selected || selected.id !== plannerDeploymentRef.current)) closePlanner();
+  }, [closePlanner, plannerOpen, selected]);
+
+  useEffect(() => {
     if (selectedRoute && selectedRoute.id !== selectedRouteID) setSelectedRouteID(selectedRoute.id);
     if (!selectedRoute && selectedRouteID) setSelectedRouteID('');
   }, [selectedRoute, selectedRouteID]);
@@ -272,6 +330,7 @@ export function CloudflareRoute() {
 
   function addPlannedRoute(route: PlannedRoute) {
     if (!selected) return;
+    if (plannerOrigin) setPendingOrigin(null);
     setPlannedRoutes((current) => ({
       ...current,
       [selected.id]: [...(current[selected.id] ?? []), route],
@@ -305,15 +364,16 @@ export function CloudflareRoute() {
 
   function handoffRoute(kind: 'http' | 'grpc') {
     if (!selectedRoute || selectedRoute.catchAll) return;
-    const result = scanResultFromTunnelRoute(selectedRoute, kind);
+    const result = scanResultFromTunnelRoute(selectedRoute, kind, snapshot?.observedAt);
     if (!result) {
       setNotice(
         `This ${selectedRoute.protocol || 'unknown'} origin cannot be opened in the ${kind.toUpperCase()} workbench.`
       );
       return;
     }
-    if (kind === 'http') shell.openHTTPDiscovery(result);
-    else shell.openGRPCDiscovery(result);
+    const handoff =
+      kind === 'http' ? shell.openHTTPDiscovery(result) : shell.openGRPCDiscovery(result);
+    if (handoff && !handoff.ok) setNotice(handoff.error);
   }
 
   const observedLabel = snapshot ? formatObserved(snapshot.observedAt) : 'Not observed';
@@ -324,7 +384,9 @@ export function CloudflareRoute() {
         <div>
           <span className="pp-tunnel-kicker">Tunnels / local host</span>
           <div className="pp-tunnel-title-row">
-            <h1 id="tunnels-title">Tunnel operations</h1>
+            <h1 id="tunnels-title" tabIndex={-1}>
+              Tunnel operations
+            </h1>
             <span className="pp-tunnel-scope">
               <ShieldCheck aria-hidden="true" /> Local-only control
             </span>
@@ -346,6 +408,36 @@ export function CloudflareRoute() {
           </span>
         </div>
       </header>
+
+      {pendingOrigin ? (
+        <aside className="pp-tunnel-origin-handoff" role="status">
+          <RouteIcon aria-hidden="true" />
+          <div>
+            <strong>Local origin draft ready</strong>
+            <p>{localOriginContext(pendingOrigin)}</p>
+          </div>
+          <div className="pp-tunnel-origin-handoff-actions">
+            <button
+              type="button"
+              className="pp-tunnel-button pp-tunnel-button-primary"
+              disabled={refreshing || !selected || !capabilities?.routePlanPreview.supported}
+              onClick={() => openPlanner(pendingOrigin)}
+            >
+              {selected ? 'Continue draft' : 'Inspect host first'}
+            </button>
+            <button
+              type="button"
+              className="pp-tunnel-button pp-tunnel-button-secondary"
+              onClick={() => {
+                document.getElementById('tunnels-title')?.focus();
+                setPendingOrigin(null);
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </aside>
+      ) : null}
 
       {deployments.length ? (
         <>
@@ -388,8 +480,8 @@ export function CloudflareRoute() {
             <button
               type="button"
               className="pp-tunnel-button pp-tunnel-button-primary"
-              disabled={!selected || !capabilities?.routePlanPreview.supported}
-              onClick={openPlanner}
+              disabled={refreshing || !selected || !capabilities?.routePlanPreview.supported}
+              onClick={() => openPlanner()}
             >
               <Plus aria-hidden="true" /> Draft ingress route
             </button>
@@ -551,7 +643,8 @@ export function CloudflareRoute() {
                         selectedRouteID={selectedRoute?.id ?? ''}
                         configSources={snapshot?.configSources ?? []}
                         onSelectRoute={setSelectedRouteID}
-                        onAdd={openPlanner}
+                        onAdd={() => openPlanner()}
+                        addDisabled={refreshing}
                         onRemoveDraft={removePlannedRoute}
                         onNotice={setNotice}
                       />
@@ -622,8 +715,21 @@ export function CloudflareRoute() {
       </footer>
 
       {plannerOpen && selected ? (
-        <Suspense fallback={null}>
-          <RoutePlanner deployment={selected} onClose={closePlanner} onSave={addPlannedRoute} />
+        <Suspense
+          fallback={
+            <p className="pp-tunnel-inline-empty" role="status">
+              Opening route planner...
+            </p>
+          }
+        >
+          <RoutePlanner
+            key={plannerOrigin?.id ?? 'manual'}
+            deployment={selected}
+            initialService={plannerOrigin ? localOriginURL(plannerOrigin.draft.origin) : undefined}
+            initialContext={plannerOrigin ? localOriginContext(plannerOrigin) : undefined}
+            onClose={closePlanner}
+            onSave={addPlannedRoute}
+          />
         </Suspense>
       ) : null}
       {historyOpen ? (

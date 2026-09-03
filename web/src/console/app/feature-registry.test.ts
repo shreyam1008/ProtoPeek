@@ -10,9 +10,10 @@ import {
   homeEntryFeatures,
   inspectEntryFeatures,
 } from './feature-registry';
-import { handoffKinds } from './handoff-types';
+import { handoffDraftKinds, handoffKinds } from './handoff-types';
 import {
   currentSourceFeatures,
+  handoffDestinationRoutes,
   releaseCapabilities,
   stableReleaseFeatures,
 } from './release-capabilities';
@@ -175,5 +176,23 @@ describe('feature registry', () => {
 
   it('keeps the handoff vocabulary limited to current unsent protocol drafts', () => {
     expect(handoffKinds).toEqual(['grpc-target-draft', 'http-url-draft']);
+  });
+
+  it('routes every typed draft to an accepting owner and records current producers', () => {
+    for (const kind of handoffDraftKinds) {
+      const owner = featureForPath(handoffDestinationRoutes[kind]);
+      const capability = releaseCapabilities.find(({ featureId }) => featureId === owner?.id);
+      expect(owner).toBeDefined();
+      expect(capability && 'accepts' in capability ? capability.accepts : []).toContain(kind);
+    }
+
+    const producedBy = (featureId: string) => {
+      const capability = releaseCapabilities.find((entry) => entry.featureId === featureId);
+      return capability && 'produces' in capability ? capability.produces : [];
+    };
+    expect(producedBy('grpc')).toEqual(['grpc-target-draft', 'http-url-draft']);
+    expect(producedBy('network')).toEqual(['grpc-target-draft', 'http-url-draft']);
+    expect(producedBy('this-pc')).toEqual(handoffDraftKinds);
+    expect(producedBy('tunnels')).toEqual(['grpc-target-draft', 'http-url-draft']);
   });
 });

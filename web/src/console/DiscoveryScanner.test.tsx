@@ -105,6 +105,26 @@ describe('DiscoveryScanner relay evidence limits', () => {
     );
   });
 
+  it('surfaces a rejected workbench handoff beside the evidence', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([scanResult()]))
+    );
+    render(
+      <DiscoveryScanner
+        onOpenGRPC={() => ({
+          ok: false,
+          error: 'The handoff evidence is stale. Inspect again before opening a draft.',
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent(/handoff evidence is stale/i);
+  });
+
   it('discloses truncation inside collapsed routine loopback failures', async () => {
     vi.stubGlobal(
       'fetch',

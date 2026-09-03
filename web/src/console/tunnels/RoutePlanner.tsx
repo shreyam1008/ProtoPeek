@@ -19,16 +19,20 @@ import {
 
 export default function RoutePlanner({
   deployment,
+  initialService = 'http://localhost:8080',
+  initialContext = '',
   onClose,
   onSave,
 }: {
   deployment: TunnelDeployment;
+  initialService?: string;
+  initialContext?: string;
   onClose: () => void;
   onSave: (route: PlannedTunnelRoute) => void;
 }) {
   const [hostname, setHostname] = useState('');
   const [path, setPath] = useState('');
-  const [service, setService] = useState('http://localhost:8080');
+  const [service, setService] = useState(initialService);
   const [stage, setStage] = useState<'edit' | 'review'>('edit');
   const [error, setError] = useState('');
   const firstInputRef = useRef<HTMLInputElement | null>(null);
@@ -105,6 +109,15 @@ export default function RoutePlanner({
         </header>
         {stage === 'edit' ? (
           <form onSubmit={submit}>
+            {initialContext ? (
+              <div className="pp-tunnel-drawer-note is-authority" role="status">
+                <ShieldCheck aria-hidden="true" />
+                <p>
+                  <strong>Prefilled local origin</strong>
+                  <span>{initialContext}</span>
+                </p>
+              </div>
+            ) : null}
             <div className="pp-tunnel-drawer-note">
               <ShieldCheck aria-hidden="true" />
               <p>

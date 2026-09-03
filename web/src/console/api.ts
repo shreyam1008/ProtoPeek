@@ -430,6 +430,7 @@ export async function invokeWorkspaceMethod(
 }
 
 export type ScanResult = {
+  discoveredAt?: string;
   address: string;
   alive: boolean;
   tcp: boolean;

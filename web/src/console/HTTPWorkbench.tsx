@@ -25,13 +25,14 @@ import {
   normalizeHTTPHistory,
   prepareMetadataForReplay,
   prepareURLForReplay,
-  removeStoredValue,
   storeValue,
   toHTTPHistoryEntry,
 } from '@/shared/utils';
 
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
+import { handoffEvidence } from './app/handoff-display';
+import { consumeLegacyHandoff, consumePendingHandoff } from './app/handoff-store';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
 import { buildCurlCommand } from './http-curl';
 import {
@@ -65,11 +66,7 @@ const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
 
 export function HTTPWorkbench() {
   const [method, setMethod] = useState('GET');
-  const [url, setURL] = useState(() => {
-    const pendingURL = loadStoredValue<string>(appStorageKeys.pendingHTTPURL, '');
-    if (pendingURL) removeStoredValue(appStorageKeys.pendingHTTPURL);
-    return pendingURL || 'http://localhost:8080/';
-  });
+  const [url, setURL] = useState('http://localhost:8080/');
   const [params, setParams] = useState<MetadataEntry[]>([]);
   const [headers, setHeaders] = useState<MetadataEntry[]>([]);
   const [authMode, setAuthMode] = useState<AuthMode>('none');
@@ -87,6 +84,7 @@ export function HTTPWorkbench() {
   const [requestFailure, setRequestFailure] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
+  const [handoffNotice, setHandoffNotice] = useState<string | null>(null);
   const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
   const [curlCopyNotice, setCurlCopyNotice] = useState<CurlCopyNotice | null>(null);
   const [openAPIImportOpen, setOpenAPIImportOpen] = useState(false);
@@ -107,7 +105,10 @@ export function HTTPWorkbench() {
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const modifier = modifierKeyLabel();
 
-  function resetRequest(nextURL = 'http://localhost:8080/') {
+  function resetRequest(
+    nextURL = 'http://localhost:8080/',
+    nextHandoffNotice: string | null = null
+  ) {
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
     const active = abortRef.current;
@@ -130,6 +131,7 @@ export function HTTPWorkbench() {
     setResponse(null);
     setValidationError(null);
     setHistoryNotice(null);
+    setHandoffNotice(nextHandoffNotice);
     setCurlCopyNotice(null);
     setRequestTab('params');
     setMobilePane('request');
@@ -220,15 +222,15 @@ export function HTTPWorkbench() {
     }
   }
 
-  const applyDiscoveryURL = useEffectEvent((nextURL: string) => {
-    try {
-      const parsed = new URL(nextURL);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return;
-    } catch {
-      return;
-    }
-    removeStoredValue(appStorageKeys.pendingHTTPURL);
-    resetRequest(nextURL);
+  const applyPendingHTTPHandoff = useEffectEvent((includeLegacy: boolean) => {
+    const pending =
+      consumePendingHandoff('http-url-draft') ??
+      (includeLegacy ? consumeLegacyHandoff('http-url-draft') : null);
+    if (!pending) return;
+    resetRequest(
+      pending.draft.target.url,
+      `${handoffEvidence(pending.provenance, 'storage' in pending && pending.storage === 'memory')}. Review the URL, then choose Send; no request has been sent.`
+    );
   });
 
   useEffect(() => {
@@ -264,13 +266,10 @@ export function HTTPWorkbench() {
   }, [openAPIImportOpen]);
 
   useEffect(() => {
-    function handleDiscovery(event: Event) {
-      const nextURL = (event as CustomEvent<string>).detail;
-      if (!nextURL) return;
-      applyDiscoveryURL(nextURL);
-    }
-    window.addEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
-    return () => window.removeEventListener(protocolShellEvents.openHTTPDiscovery, handleDiscovery);
+    applyPendingHTTPHandoff(true);
+    const handleHandoff = () => applyPendingHTTPHandoff(false);
+    window.addEventListener(protocolShellEvents.pendingHandoff, handleHandoff);
+    return () => window.removeEventListener(protocolShellEvents.pendingHandoff, handleHandoff);
   }, []);
 
   function invalidateCurlCopy() {
@@ -658,6 +657,21 @@ export function HTTPWorkbench() {
           <kbd>{modifier} ↵</kbd>
         </button>
       </div>
+
+      {handoffNotice ? (
+        <div className="pp-http-replay-notice" role="status">
+          <Clock3 className="pp-http-notice-icon" aria-hidden="true" />
+          <span>{handoffNotice}</span>
+          <button
+            type="button"
+            className="pp-http-notice-dismiss"
+            aria-label="Dismiss HTTP handoff notice"
+            onClick={() => setHandoffNotice(null)}
+          >
+            <X className="pp-http-notice-icon" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
 
       {visibleHistoryNotice ? (
         <div className="pp-http-replay-notice" role="status">

@@ -2,10 +2,13 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { createProtoPeekRouter } from './router';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  clearPendingHandoff();
+  window.sessionStorage.clear();
   window.localStorage.clear();
   document.documentElement.removeAttribute('data-density');
   document.documentElement.removeAttribute('data-keyboard-hints');
@@ -231,6 +234,39 @@ describe('ProtocolFrame', () => {
     ).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
     expect(within(sessions).queryByRole('tab', { name: 'Inspect' })).toBeNull();
+  });
+
+  it('preserves focus placed by a destination while applying a route draft', async () => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal('fetch', vi.fn());
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    expect(
+      storePendingHandoff({
+        provenance: {
+          source: 'this-device',
+          quality: 'inferred',
+          observedAt: new Date().toISOString(),
+          path: '/this-pc',
+        },
+        draft: {
+          kind: 'http-url-draft',
+          target: { kind: 'http-url', url: 'http://127.0.0.1:8080/' },
+        },
+      }).ok
+    ).toBe(true);
+
+    await act(async () => {
+      await router.navigate({ to: '/protocols/http' });
+    });
+
+    const url = await screen.findByRole('textbox', { name: 'Request URL' });
+    await waitFor(() => expect(url).toHaveFocus());
+    expect(url).toHaveValue('http://127.0.0.1:8080/');
   });
 
   it('keeps only one global modal focus owner open at a time', async () => {

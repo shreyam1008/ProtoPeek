@@ -9,6 +9,7 @@ export const appStorageKeys = {
   targets: 'protopeek.targets.v1',
   activeTargetId: 'protopeek.activeTargetId.v1',
   discoveries: 'protopeek.discoveries.v1',
+  pendingHandoff: 'protopeek.pendingHandoff.v1',
   pendingGRPCTarget: 'protopeek.pendingGRPCTarget.v1',
   pendingHTTPURL: 'protopeek.pendingHTTPURL.v1',
 } as const;

@@ -147,6 +147,98 @@ func TestSampleTrafficAllowsOnlyExactDurations(t *testing.T) {
 	}
 }
 
+func TestSampleTrafficReportsMeasuredObservationInterval(t *testing.T) {
+	t.Parallel()
+	base := time.Unix(100, 0)
+	times := []time.Time{
+		base,
+		base.Add(200 * time.Millisecond),
+		base.Add(1200 * time.Millisecond),
+		base.Add(1600 * time.Millisecond),
+	}
+	nowIndex := 0
+	reads := 0
+	service := &Service{
+		now: func() time.Time {
+			value := times[nowIndex]
+			nowIndex++
+			return value
+		},
+		wait: func(_ context.Context, duration time.Duration) error {
+			if duration != 500*time.Millisecond {
+				t.Fatalf("wait duration = %s", duration)
+			}
+			return nil
+		},
+		counters: func(context.Context) (map[string]rawCounters, error) {
+			reads++
+			return map[string]rawCounters{"eth0": {receivedBytes: uint64(reads)}}, nil
+		},
+	}
+	result, err := service.SampleTraffic(context.Background(), 500*time.Millisecond)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.DurationMS != 1300 || !result.StartedAt.Equal(base.Add(100*time.Millisecond)) || !result.FinishedAt.Equal(base.Add(1400*time.Millisecond)) {
+		t.Fatalf("measured sample = start %s, finish %s, duration %d", result.StartedAt, result.FinishedAt, result.DurationMS)
+	}
+}
+
+func TestSampleTrafficOmitsLifecycleClaimsWhenCounterReadIsPartial(t *testing.T) {
+	t.Parallel()
+	reads := 0
+	service := &Service{
+		now: func() time.Time {
+			return time.Unix(0, int64(reads)*int64(time.Second))
+		},
+		wait: func(context.Context, time.Duration) error { return nil },
+		counters: func(context.Context) (map[string]rawCounters, error) {
+			reads++
+			if reads == 1 {
+				return map[string]rawCounters{
+					"common":      {receivedBytes: 10},
+					"unconfirmed": {receivedBytes: 20},
+				}, errors.New("one interface counter was unavailable")
+			}
+			return map[string]rawCounters{
+				"common": {receivedBytes: 15},
+				"new":    {receivedBytes: 1},
+			}, nil
+		},
+	}
+	result, err := service.SampleTraffic(context.Background(), time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Interfaces) != 1 || result.Interfaces[0].Name != "common" || result.Interfaces[0].Status != "ok" {
+		t.Fatalf("partial sample interfaces = %#v", result.Interfaces)
+	}
+	if joined := strings.Join(result.Notes, "\n"); !strings.Contains(joined, "2 interface lifecycle entries were omitted") {
+		t.Fatalf("partial sample notes = %v", result.Notes)
+	}
+}
+
+func TestSampleTrafficRejectsPartialReadsWithoutComparableInterfaces(t *testing.T) {
+	t.Parallel()
+	reads := 0
+	service := &Service{
+		now:  func() time.Time { return time.Unix(int64(reads), 0) },
+		wait: func(context.Context, time.Duration) error { return nil },
+		counters: func(context.Context) (map[string]rawCounters, error) {
+			reads++
+			if reads == 1 {
+				return map[string]rawCounters{"Ethernet": {receivedBytes: 10}}, errors.New("one starting interface counter was unavailable")
+			}
+			return map[string]rawCounters{"Wi-Fi": {receivedBytes: 20}}, errors.New("one finishing interface counter was unavailable")
+		},
+	}
+
+	result, err := service.SampleTraffic(context.Background(), time.Second)
+	if !errors.Is(err, ErrTrafficUnavailable) || !strings.Contains(err.Error(), "no interface in common") {
+		t.Fatalf("SampleTraffic() = %#v, %v; want unavailable error", result, err)
+	}
+}
+
 func TestBoundedTextPreservesUTF8Boundary(t *testing.T) {
 	t.Parallel()
 	value := boundedText("श्रेया", 5)

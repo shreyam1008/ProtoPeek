@@ -25,6 +25,12 @@ const speedtestMock = vi.hoisted(() => {
 
 vi.mock('@cloudflare/speedtest', () => ({ default: speedtestMock.FakeSpeedTest }));
 
+import {
+  clearPendingHandoff,
+  consumePendingHandoff,
+  storePendingHandoff,
+} from './app/handoff-store';
+import { ProtocolShellContext, type ProtocolShellValue } from './ProtocolShellContext';
 import { ThisPC } from './ThisPC';
 
 const capabilities = {
@@ -217,9 +223,52 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  clearPendingHandoff();
+  window.sessionStorage.clear();
 });
 
 describe('This PC workspace', () => {
+  it('hands a TCP listener to the shell as a draft without starting destination I/O', async () => {
+    const fetchMock = installFetch({
+      activity: { ...activity, observedAt: new Date().toISOString() },
+    });
+    const shell: ProtocolShellValue = {
+      appearance: { version: 2, mode: 'light', palette: 'graphite' },
+      resolvedAppearance: { version: 2, mode: 'light', palette: 'graphite', theme: 'light' },
+      setAppearance: vi.fn(),
+      interfacePreferences: { density: 'comfortable', showKeyboardHints: true },
+      setInterfacePreferences: vi.fn(),
+      discoveries: [],
+      openScan: vi.fn(),
+      openHandoff: vi.fn((handoff) => storePendingHandoff(handoff)),
+      openGRPCDiscovery: vi.fn(),
+      openHTTPDiscovery: vi.fn(),
+    };
+    render(
+      <ProtocolShellContext.Provider value={shell}>
+        <ThisPC />
+      </ProtocolShellContext.Provider>
+    );
+    await waitForSnapshot();
+    await inspectListeners();
+
+    const menu = (await screen.findByText('Open draft')).closest('details');
+    expect(menu).not.toBeNull();
+    if (!menu) return;
+    fireEvent.click(within(menu).getByText('Open draft'));
+    fireEvent.click(within(menu).getByRole('button', { name: 'HTTP' }));
+
+    expect(shell.openHandoff).toHaveBeenCalledOnce();
+    expect(vi.mocked(shell.openHandoff).mock.results[0]?.value).toMatchObject({ ok: true });
+    expect(consumePendingHandoff('http-url-draft')).toMatchObject({
+      provenance: { source: 'this-device', quality: 'inferred', path: '/this-pc' },
+      draft: {
+        target: { url: 'http://127.0.0.1:8080/' },
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('mounts with only the two local GETs and never writes browser storage', async () => {
     const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
     const indexedDBOpen = vi.fn();
@@ -241,6 +290,22 @@ describe('This PC workspace', () => {
     expect(speedtestMock.instances).toHaveLength(0);
     expect(storageWrite).not.toHaveBeenCalled();
     expect(indexedDBOpen).not.toHaveBeenCalled();
+  });
+
+  it('keeps a Windows snapshot when the operating system reports an unknown MTU', async () => {
+    installFetch({
+      snapshot: {
+        ...snapshot,
+        os: 'windows',
+        interfaces: [{ ...snapshot.interfaces[0], mtu: -1 }],
+      },
+    });
+
+    render(<ThisPC />);
+    await waitForSnapshot();
+    const mtuLabel = screen.getByText('MTU');
+    expect(within(mtuLabel.closest('span') as HTMLElement).getByText('Not reported')).toBeVisible();
+    expect(screen.queryByText(/malformed interface MTU/i)).not.toBeInTheDocument();
   });
 
   it('requires focused acknowledgement before inspecting sockets and preserves bounded evidence', async () => {

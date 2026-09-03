@@ -161,14 +161,16 @@ type InterfaceTrafficSample struct {
 }
 
 type TrafficSample struct {
-	SchemaVersion int                      `json:"schemaVersion"`
-	Scope         string                   `json:"scope"`
-	ScopeNotice   string                   `json:"scopeNotice"`
-	StartedAt     time.Time                `json:"startedAt"`
-	FinishedAt    time.Time                `json:"finishedAt"`
-	DurationMS    int                      `json:"durationMs"`
-	Interfaces    []InterfaceTrafficSample `json:"interfaces"`
-	Notes         []string                 `json:"notes"`
+	SchemaVersion int       `json:"schemaVersion"`
+	Scope         string    `json:"scope"`
+	ScopeNotice   string    `json:"scopeNotice"`
+	StartedAt     time.Time `json:"startedAt"`
+	FinishedAt    time.Time `json:"finishedAt"`
+	// DurationMS is the measured interval between the representative counter
+	// observation times, not merely the requested wait between counter reads.
+	DurationMS int                      `json:"durationMs"`
+	Interfaces []InterfaceTrafficSample `json:"interfaces"`
+	Notes      []string                 `json:"notes"`
 }
 
 type BGPOriginNetwork struct {

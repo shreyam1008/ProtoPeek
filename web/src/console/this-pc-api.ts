@@ -123,7 +123,7 @@ export type ThisPCTrafficSample = {
   scopeNotice: string;
   startedAt: string;
   finishedAt: string;
-  durationMs: 500 | 1000 | 2000;
+  durationMs: number;
   interfaces: ThisPCTrafficInterface[];
   notes: string[];
 };
@@ -415,10 +415,11 @@ function networkInterface(input: unknown): ThisPCInterface {
   if (!Array.isArray(value.addresses) || value.addresses.length > 64) {
     throw new ThisPCAPIError('ProtoPeek returned malformed interface addresses.');
   }
+  const mtu = value.mtu === -1 ? -1 : boundedInteger(value.mtu, 1_000_000_000, 'interface MTU');
   return {
     index: boundedInteger(value.index, 1_000_000, 'interface index'),
     name: boundedString(value.name, 256, 'interface name'),
-    mtu: boundedInteger(value.mtu, 1_000_000_000, 'interface MTU'),
+    mtu,
     flags: stringArray(value.flags, 64, 64, 'interface flag'),
     addresses: value.addresses.map(interfaceAddress),
     ...(value.traffic === undefined
@@ -559,10 +560,7 @@ export function normalizeThisPCActivity(input: unknown): ThisPCActivity {
 
 export function normalizeThisPCTrafficSample(input: unknown): ThisPCTrafficSample {
   const value = record(input, 'This PC traffic sample');
-  const durationMs = boundedInteger(value.durationMs, 2000, 'traffic sample duration', 500);
-  if (!allowedDurations.has(durationMs)) {
-    throw new ThisPCAPIError('ProtoPeek returned an unsupported traffic sample duration.');
-  }
+  const durationMs = boundedInteger(value.durationMs, 60_000, 'traffic sample duration', 1);
   if (!Array.isArray(value.interfaces) || value.interfaces.length > maximumInterfaces) {
     throw new ThisPCAPIError('ProtoPeek returned malformed traffic sample interfaces.');
   }
@@ -599,7 +597,7 @@ export function normalizeThisPCTrafficSample(input: unknown): ThisPCTrafficSampl
     scopeNotice: boundedString(value.scopeNotice, 2048, 'This PC scope notice'),
     startedAt: timestamp(value.startedAt, 'traffic sample start time'),
     finishedAt: timestamp(value.finishedAt, 'traffic sample finish time'),
-    durationMs: durationMs as 500 | 1000 | 2000,
+    durationMs,
     interfaces,
     notes: notes(value.notes),
   };

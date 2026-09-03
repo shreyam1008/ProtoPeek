@@ -18,6 +18,9 @@ import {
   fetchWorkspaceSchema,
   type ScanResult,
 } from '@/console/api';
+import { handoffEvidence } from '@/console/app/handoff-display';
+import { consumeLegacyHandoff, consumePendingHandoff } from '@/console/app/handoff-store';
+import type { GRPCTargetRef, HandoffProvenance } from '@/console/app/handoff-types';
 import type { PaletteAction } from '@/console/CommandPalette';
 import { hasCanonicalHealthDescriptor } from '@/console/health';
 import { protocolShellEvents } from '@/console/ProtocolShellContext';
@@ -39,7 +42,6 @@ import {
   matchesMethodFilter,
   modifierKeyLabel,
   prettyJson,
-  removeStoredValue,
   storeValue,
 } from '@/shared/utils';
 import { useGrpcHealth } from '../operations/useGrpcHealth';
@@ -74,6 +76,7 @@ export function useGrpcWorkbench() {
     null
   );
   const [browserProtoFolderBusy, setBrowserProtoFolderBusy] = useState(false);
+  const [discoveryAutoStart, setDiscoveryAutoStart] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [protoCatalog, setProtoCatalog] = useState<ProtoCatalogResponse | null>(null);
   const [selectedProtoFile, setSelectedProtoFile] = useState('');
@@ -262,10 +265,49 @@ export function useGrpcWorkbench() {
     else setSelectedMethod('');
   }
 
+  function applyGRPCHandoff(
+    target: GRPCTargetRef,
+    provenance: HandoffProvenance,
+    defaults: BootstrapResponse['targetDefaults'],
+    memoryOnly = false
+  ) {
+    if (connectAbortRef.current) cancelConnection();
+    setDiscoveryAutoStart(false);
+    setBrowserProtoFolder(null);
+    setBrowserProtoFolderBusy(false);
+    setWorkspaceError(null);
+    setTargetDraft({
+      ...newTargetDraft(defaults),
+      address: target.address,
+      plaintext: target.plaintext,
+    });
+    setActiveView('workspace');
+    setOperationMessage({
+      tone: 'info',
+      title: 'Target draft opened',
+      description: `${handoffEvidence(provenance, memoryOnly)}. Review the address and transport, then choose Connect; no connection has been attempted.`,
+    });
+  }
+
   const applyBootstrapEffect = useEffectEvent((next: BootstrapResponse) => applyBootstrap(next));
-  const openDiscoveredEffect = useEffectEvent((result: ScanResult) => {
-    removeStoredValue(appStorageKeys.pendingGRPCTarget);
-    void openDiscovered(result);
+  const consumeGRPCHandoffEffect = useEffectEvent(
+    (defaults: BootstrapResponse['targetDefaults'], includeLegacy: boolean) => {
+      const pending =
+        consumePendingHandoff('grpc-target-draft') ??
+        (includeLegacy ? consumeLegacyHandoff('grpc-target-draft') : null);
+      if (!pending) return false;
+      applyGRPCHandoff(
+        pending.draft.target,
+        pending.provenance,
+        defaults,
+        'storage' in pending && pending.storage === 'memory'
+      );
+      return true;
+    }
+  );
+  const consumeNotifiedGRPCHandoff = useEffectEvent(() => {
+    const defaults = rootBootstrap?.targetDefaults ?? bootstrap?.targetDefaults;
+    if (defaults) consumeGRPCHandoffEffect(defaults, false);
   });
 
   useEffect(() => {
@@ -276,18 +318,9 @@ export function useGrpcWorkbench() {
         if (cancelled) return;
         dispatchSession({ type: 'bootstrap.loaded', bootstrap: next });
         applyBootstrapEffect(next);
-        const pendingTarget = loadStoredValue<{ address: string; plaintext: boolean } | null>(
-          appStorageKeys.pendingGRPCTarget,
-          null
-        );
-        if (pendingTarget?.address) {
-          setTargetDraft({
-            ...newTargetDraft(next.targetDefaults),
-            address: pendingTarget.address,
-            plaintext: pendingTarget.plaintext,
-          });
-          removeStoredValue(appStorageKeys.pendingGRPCTarget);
-        } else {
+        const consumedHandoff = consumeGRPCHandoffEffect(next.targetDefaults, true);
+        setDiscoveryAutoStart(!consumedHandoff);
+        if (!consumedHandoff) {
           setTargetDraft(newTargetDraft(next.targetDefaults));
         }
       } catch (error) {
@@ -303,12 +336,9 @@ export function useGrpcWorkbench() {
   }, []);
 
   useEffect(() => {
-    function handleDiscovery(event: Event) {
-      const result = (event as CustomEvent<ScanResult>).detail;
-      if (result?.address) openDiscoveredEffect(result);
-    }
-    window.addEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
-    return () => window.removeEventListener(protocolShellEvents.openGRPCDiscovery, handleDiscovery);
+    const handleHandoff = () => consumeNotifiedGRPCHandoff();
+    window.addEventListener(protocolShellEvents.pendingHandoff, handleHandoff);
+    return () => window.removeEventListener(protocolShellEvents.pendingHandoff, handleHandoff);
   }, []);
 
   useEffect(() => {
@@ -585,19 +615,25 @@ export function useGrpcWorkbench() {
     setTargetDraft(materializeTarget(target));
   }
 
-  async function openDiscovered(result: ScanResult) {
-    const target = reuseExistingTargetID(
-      materializeTarget({
-        ...newTargetDraft(rootBootstrap?.targetDefaults),
+  function openDiscovered(result: ScanResult) {
+    const defaults = rootBootstrap?.targetDefaults ?? bootstrap?.targetDefaults;
+    if (!defaults) {
+      setWorkspaceError('Target defaults are unavailable. Try the discovery again.');
+      return;
+    }
+    applyGRPCHandoff(
+      {
+        kind: 'grpc-target',
         address: result.address,
-        name: result.services?.[0]?.split('.').pop() ?? result.address,
         plaintext: result.transport !== 'tls',
-        insecure: false,
-        schemaSource: 'reflection',
-      }),
-      workspace.targets
+      },
+      {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date().toISOString(),
+      },
+      defaults
     );
-    if (await connectTarget(target)) persistTarget(target);
   }
 
   function deleteTarget(id: string) {
@@ -632,6 +668,7 @@ export function useGrpcWorkbench() {
     setWorkspaceError(null);
     setBrowserProtoFolder(null);
     setBrowserProtoFolderBusy(false);
+    setDiscoveryAutoStart(true);
     if (rootBootstrap) {
       if (sessionId) applyBootstrap(rootBootstrap);
       setTargetDraft(newTargetDraft(rootBootstrap.targetDefaults));
@@ -812,6 +849,7 @@ export function useGrpcWorkbench() {
       browserProtoFolderBusy,
       busy: workspaceBusy,
       draft: targetDraft,
+      discoveryAutoStart,
       error: workspaceError,
       items: workspace.targets,
       rootBootstrap,

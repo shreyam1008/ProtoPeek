@@ -10,13 +10,17 @@ import {
   RefreshCw,
   ShieldCheck,
 } from 'lucide-react';
-import { type KeyboardEvent, useState } from 'react';
+import { type KeyboardEvent, useContext, useState } from 'react';
+
+import { ProtocolShellContext } from '@/console/ProtocolShellContext';
+import type { ThisPCSocket } from '@/console/this-pc-api';
 
 import { DeviceSummary } from './DeviceSummary';
 import { formatObservedAt } from './device-format';
 import type { DeviceView } from './device-state';
 import { InterfaceLoadPanel } from './InterfaceLoadPanel';
 import { InterfacesPanel } from './InterfacesPanel';
+import { createListenerHandoff, type ListenerHandoffKind } from './listener-handoff';
 import { PublicAddressPanel } from './PublicAddressPanel';
 import { EvidenceBoundaries, QualityPlanPanel, QualityPlanSummary } from './QualityPlanPanel';
 import { SocketsPanel } from './SocketsPanel';
@@ -127,7 +131,9 @@ function EvidenceSpine({
 }
 
 export function ThisDeviceRoute() {
+  const shell = useContext(ProtocolShellContext);
   const [view, setView] = useState<DeviceView>('overview');
+  const [handoffError, setHandoffError] = useState('');
   const { capabilities, snapshot, loadSnapshot } = useDeviceCapabilities();
   const actions = useDeviceActions(capabilities);
   const quality = useQualityPlan(() => setView('benchmark'));
@@ -135,6 +141,20 @@ export function ThisDeviceRoute() {
   const exposureReady = actions.activity.status === 'ready';
   const internetReady = actions.publicIdentity.status === 'ready' || quality.stage === 'finished';
   const currentSection = sectionViews.find((section) => section.id === view) ?? sectionViews[0];
+
+  function openListenerHandoff(socket: ThisPCSocket, kind: ListenerHandoffKind) {
+    if (!shell || actions.activity.status !== 'ready') {
+      setHandoffError('This workbench cannot accept the listener draft.');
+      return;
+    }
+    const handoff = createListenerHandoff(socket, actions.activity.value.observedAt, kind);
+    if (!handoff.ok) {
+      setHandoffError(handoff.error);
+      return;
+    }
+    const stored = shell.openHandoff(handoff.value);
+    setHandoffError(stored.ok ? '' : stored.error);
+  }
 
   return (
     <div className="this-pc-page">
@@ -243,10 +263,15 @@ export function ThisDeviceRoute() {
                   activity={actions.activity}
                   consentOpen={actions.activityConsent && actions.activityPurpose === 'listeners'}
                   acknowledged={actions.activityAcknowledged}
-                  onOpen={() => actions.openActivityConsent('listeners')}
+                  handoffError={handoffError}
+                  onOpen={() => {
+                    setHandoffError('');
+                    actions.openActivityConsent('listeners');
+                  }}
                   onAcknowledged={actions.setActivityAcknowledged}
                   onConfirm={actions.inspectActivity}
                   onCancel={() => actions.setActivityConsent(false)}
+                  onHandoff={shell ? openListenerHandoff : undefined}
                 />
               ) : view === 'activity' ? (
                 <div className="this-pc-stack">

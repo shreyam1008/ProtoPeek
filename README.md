@@ -24,6 +24,11 @@ Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://pr
 > installed/latest `cloudflared` comparison, and confirmed, verified start/stop/restart for the one
 > canonical OS service. Route drafts remain browser-only. These source-only additions are not part
 > of the published v0.5.0 packages.
+>
+> The unreleased v0.7 foundation adds native, bounded Windows socket ownership and interface
+> counters alongside Linux support, plus typed consume-once listener handoffs. macOS still reports
+> local activity and counters as unsupported. This is current-source behavior, not a v0.5.0 or
+> completed-v0.7 claim.
 
 ## Product contract
 
@@ -116,11 +121,19 @@ Network, Downloader, Security, and Settings. Legacy `/grpc`, `/http`,
 
 Current source retains `/this-pc` as the canonical deep link for **This Device** under Network. Its
 first render is local-only: it reads capabilities, hostname/OS/architecture, and bounded interface
-evidence from the running ProtoPeek process. Local socket/process inspection, public IPv4/IPv6 and
-BGP-origin lookup, interface-load sampling, and a small Cloudflare quality run each remain separate
-user-triggered operations. A local listener is never presented as an Internet-open port, interface
-counters are never presented as per-process traffic, and provider throughput is never presented as
-the ISP line maximum.
+evidence from the running ProtoPeek process. Linux and native Windows can explicitly inspect bounded
+TCP/UDP socket ownership and sample aggregate interface counters; macOS reports both operations as
+unsupported. Windows process basenames are best-effort and permission-sensitive, and a Windows UDP
+bind is endpoint evidence, not proof that an application receives datagrams. Public IPv4/IPv6 and
+BGP-origin lookup and the small Cloudflare quality run remain separate user-triggered operations.
+An eligible fresh, unscoped TCP listener can open typed unsent HTTP, gRPC, next-hop, or Publish
+drafts, but consuming a handoff performs no DNS, probe, connection, request, or publishing action. A
+traffic rate uses the measured interval between representative counter reads rather than merely the
+selected wait; partial reads compare only interfaces present in both observations and remain
+labelled. A local listener is never presented as an Internet-open port, interface counters are never
+presented as per-process traffic, and provider throughput is never presented as the ISP line maximum.
+See the [This Device boundary](guides/this-pc.md) and
+[Connected Workbench contract](guides/connected-workbench-integration-plan.md).
 
 Current source retains `/tunnels` as the canonical deep link for the domain-native **Cloudflare
 Tunnel** workspace under Publish. It performs no work until **Inspect this host** is chosen, then
@@ -326,7 +339,7 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; import bounded OpenAPI 3.x or Swagger 2.0 JSON into a searchable operation rail; copy the current draft as bounded, credential-redacted cURL |
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
-| **This Device · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux socket/process evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; no ambient monitor or Internet-open-port claim |
+| **This Device · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux or native Windows TCP/UDP socket-owner evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; Windows owner labels are best-effort, macOS activity/counters remain unsupported, and there is no ambient monitor or Internet-open-port claim |
 | **Cloudflare Tunnel · current source after v0.5.0** | Explicitly inspect the real host for `cloudflared`, the canonical Windows SCM/systemd/launchd service, config authority, and parsed routes including catch-all; manually compare the installed version with the official release; confirm and verify canonical-service start/stop/restart with stale-state protection and OS-owned elevation guidance; **Draft ingress route** uses regex paths and stays browser-only, remote-managed drafts have no local YAML destination, and there is no secret/password collection, automatic install/update, config mutation, Docker daemon call, or account/cloud mutation |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
@@ -406,7 +419,7 @@ adapter owns discovery, schema, invocation, cancellation, and its native inspect
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
 | Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
-| This Device | Current source after v0.5.0 | Device-centred identity/interfaces, Linux local socket/process evidence and one-shot interface load, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; no background work, privilege, or public-port verdict |
+| This Device | Current source after v0.5.0 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
 | Cloudflare Tunnel | Current source after v0.5.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
 | Private-network clients | Planned · not implemented | Consolidate TailScout into a route-lazy Network section: Tailscale and Headscale-backed clients first, NetBird only after the real shared boundary exists; peer-to-HTTP/gRPC handoff without a cloud-admin clone or generic provider SDK |
 | Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
@@ -421,6 +434,7 @@ offline Nmap XML import. Wider range expansion and live capture remain gated.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
 [This Device evidence and connection-quality boundary](guides/this-pc.md),
+[Connected Workbench v0.7 implementation contract](guides/connected-workbench-integration-plan.md),
 [suite product, redesign, and migration strategy](guides/protopeek-suite-strategy.md),
 [private-network and TailScout consolidation plan](guides/private-network-integration-plan.md),
 [Cloudflare Tunnel workspace guide](guides/cloudflare-tunnels.md),

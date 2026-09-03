@@ -69,13 +69,15 @@ export function routeSupportsWorkbench(
 
 export function scanResultFromTunnelRoute(
   route: TunnelRoute | PlannedTunnelRoute,
-  kind: 'http' | 'grpc'
+  kind: 'http' | 'grpc',
+  observedAt?: string
 ): ScanResult | null {
   try {
     const parsed = new URL(route.service);
     if (!parsed.host || !routeSupportsWorkbench(route, kind)) return null;
     const tls = route.protocol === 'https' || route.protocol === 'grpcs';
     return {
+      ...(observedAt ? { discoveredAt: observedAt } : {}),
       address: parsed.host,
       alive: true,
       tcp: true,

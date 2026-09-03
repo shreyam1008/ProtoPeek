@@ -11,11 +11,10 @@ import {
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
-import {
-  commandDestinationFeatures,
-  destinations,
-  type FeatureRoute,
-} from './app/feature-registry';
+import { commandDestinationFeatures, destinations } from './app/feature-registry';
+import { storePendingHandoff } from './app/handoff-store';
+import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
+import { handoffDestinationRoutes } from './app/release-capabilities';
 import { CommandPalette, type PaletteAction } from './CommandPalette';
 import { scanResultHTTPURL } from './discovery-url';
 import {
@@ -49,6 +48,21 @@ function systemPrefersDark() {
   }
 }
 
+function discoveryProvenance(result: ScanResult): HandoffProvenance {
+  const cloudflareIngress = result.details?.some((detail) =>
+    detail.toLowerCase().includes('cloudflared ingress route')
+  );
+  const discoveredAt =
+    'discoveredAt' in result && typeof result.discoveredAt === 'string'
+      ? Date.parse(result.discoveredAt)
+      : Number.NaN;
+  return {
+    source: cloudflareIngress ? 'cloudflare-config' : 'bounded-discovery',
+    quality: 'observed',
+    observedAt: new Date(Number.isFinite(discoveredAt) ? discoveredAt : Date.now()).toISOString(),
+  };
+}
+
 export function ProtocolFrame() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
@@ -68,7 +82,6 @@ export function ProtocolFrame() {
     normalizeRecentDiscoveries(loadStoredValue<unknown>(appStorageKeys.discoveries, []))
   );
   const closeHelp = useCallback(() => setHelpOpen(false), []);
-  const skipRouteFocusRef = useRef<FeatureRoute | null>(null);
   const modifier = modifierKeyLabel();
 
   const resolvedAppearance = useMemo(
@@ -158,34 +171,45 @@ export function ProtocolFrame() {
     });
   }, []);
 
-  const openGRPCDiscovery = useCallback(
-    (result: ScanResult) => {
-      storeValue(appStorageKeys.pendingGRPCTarget, {
-        address: result.address,
-        plaintext: result.transport !== 'tls',
-      });
-      window.dispatchEvent(
-        new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
-      );
+  const openHandoff = useCallback(
+    (handoff: PendingHandoffInput) => {
+      const stored = storePendingHandoff(handoff);
+      if (!stored.ok) return stored;
+      const route = handoffDestinationRoutes[stored.value.draft.kind];
       setScanOpen(false);
-      skipRouteFocusRef.current = '/protocols/grpc';
-      void navigate({ to: '/protocols/grpc' });
+      window.dispatchEvent(new Event(protocolShellEvents.pendingHandoff));
+      void navigate({ to: route });
+      return stored;
     },
     [navigate]
+  );
+
+  const openGRPCDiscovery = useCallback(
+    (result: ScanResult) => {
+      return openHandoff({
+        provenance: discoveryProvenance(result),
+        draft: {
+          kind: 'grpc-target-draft',
+          target: {
+            kind: 'grpc-target',
+            address: result.address,
+            plaintext: result.transport !== 'tls',
+          },
+        },
+      });
+    },
+    [openHandoff]
   );
 
   const openHTTPDiscovery = useCallback(
     (result: ScanResult) => {
       const url = scanResultHTTPURL(result);
-      storeValue(appStorageKeys.pendingHTTPURL, url);
-      window.dispatchEvent(
-        new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, { detail: url })
-      );
-      setScanOpen(false);
-      skipRouteFocusRef.current = '/protocols/http';
-      void navigate({ to: '/protocols/http' });
+      return openHandoff({
+        provenance: discoveryProvenance(result),
+        draft: { kind: 'http-url-draft', target: { kind: 'http-url', url } },
+      });
     },
-    [navigate]
+    [openHandoff]
   );
 
   const actions = useMemo<PaletteAction[]>(() => {
@@ -246,6 +270,7 @@ export function ProtocolFrame() {
       setInterfacePreferences,
       discoveries,
       openScan,
+      openHandoff,
       openGRPCDiscovery,
       openHTTPDiscovery,
     }),
@@ -253,6 +278,7 @@ export function ProtocolFrame() {
       discoveries,
       interfacePreferences,
       openGRPCDiscovery,
+      openHandoff,
       openHTTPDiscovery,
       openScan,
       setInterfacePreferences,
@@ -269,7 +295,6 @@ export function ProtocolFrame() {
         modifier={modifier}
         resolvedTheme={resolvedAppearance.theme}
         navigationOpen={navigationOpen}
-        skipRouteFocusRef={skipRouteFocusRef}
         onInspect={() => openScan()}
         onOpenNavigation={openNavigation}
         onCloseNavigation={() => setNavigationOpen(false)}

@@ -42,6 +42,11 @@ describe('tunnel route plan model', () => {
     };
     expect(routeSupportsWorkbench(route, 'grpc')).toBe(true);
     expect(routeSupportsWorkbench(route, 'http')).toBe(false);
+    expect(scanResultFromTunnelRoute(route, 'grpc', '2026-09-03T11:59:00Z')).toMatchObject({
+      discoveredAt: '2026-09-03T11:59:00Z',
+      address: 'localhost:50051',
+      grpc: true,
+    });
     expect(routeSupportsWorkbench({ ...route, catchAll: true }, 'grpc')).toBe(false);
     const plannedRoute: PlannedTunnelRoute = {
       ...route,

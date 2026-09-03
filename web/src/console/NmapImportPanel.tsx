@@ -2,7 +2,6 @@ import { FileUp, LoaderCircle, Play, ShieldCheck, Square, X } from 'lucide-react
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { classNames } from '@/shared/runtime';
-
 import {
   importNmapXML,
   type NmapHostEvidence,
@@ -11,7 +10,7 @@ import {
   type ScanResult,
   scanAddresses,
 } from './api';
-import { ScanResultCard } from './DiscoveryScanner';
+import { type OpenScanResult, ScanResultCard } from './DiscoveryScanner';
 
 const maxNmapUploadBytes = 8 << 20;
 const hostsPerPage = 8;
@@ -25,8 +24,8 @@ export function NmapImportPanel({
 }: {
   active?: boolean;
   onResults: (results: ScanResult[]) => void;
-  onOpenGRPC: (result: ScanResult) => void;
-  onOpenHTTP: (result: ScanResult) => void;
+  onOpenGRPC: OpenScanResult;
+  onOpenHTTP: OpenScanResult;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [inventory, setInventory] = useState<NmapImportResponse | null>(null);
@@ -126,6 +125,11 @@ export function NmapImportPanel({
       if (abortRef.current === controller) abortRef.current = null;
       setActiveEndpoint('');
     }
+  }
+
+  function openResult(result: ScanResult, open: OpenScanResult) {
+    const handoff = open(result);
+    if (handoff && !handoff.ok) setMessage(handoff.error);
   }
 
   return (
@@ -238,8 +242,8 @@ export function NmapImportPanel({
               verified={verified}
               onVerify={verifyEndpoint}
               onCancel={() => abortRef.current?.abort()}
-              onOpenGRPC={onOpenGRPC}
-              onOpenHTTP={onOpenHTTP}
+              onOpenGRPC={(result) => openResult(result, onOpenGRPC)}
+              onOpenHTTP={(result) => openResult(result, onOpenHTTP)}
             />
           ))}
           {hostPageCount > 1 ? (
@@ -285,8 +289,8 @@ function NmapHostCard({
   verified: Record<string, ScanResult[]>;
   onVerify: (endpoint: string) => Promise<void>;
   onCancel: () => void;
-  onOpenGRPC: (result: ScanResult) => void;
-  onOpenHTTP: (result: ScanResult) => void;
+  onOpenGRPC: OpenScanResult;
+  onOpenHTTP: OpenScanResult;
 }) {
   const [portPage, setPortPage] = useState(0);
   const portPageCount = Math.max(1, Math.ceil(host.ports.length / portsPerPage));

@@ -86,6 +86,7 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
     return (
       <LauncherView
         bootstrap={bootstrap}
+        discoveryAutoStart={targets.discoveryAutoStart}
         notices={workspaceNotices}
         targets={targets.items}
         activeTargetId={targets.activeTargetId}

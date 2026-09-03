@@ -5,11 +5,18 @@ version source of truth.
 
 ## Unreleased
 
-- Added the route-lazy This Device workspace for process-perspective identity and interfaces, explicit
-  bounded Linux listener/connection ownership and one-shot interface load, separately consented
-  public IPv4/IPv6 plus provider-reported BGP origin, and a small opt-in Cloudflare connection-
-  quality plan. Nothing external or process-intensive runs on mount, and no result is labelled an
-  Internet-open port, verified ISP, per-process traffic, packet loss, or line-rate maximum.
+- Added the current-source v0.7 typed v1 broker and unscoped TCP-listener drafts backed by evidence
+  no more than five minutes old. HTTP, gRPC, next-hop, and Publish handoffs are bounded,
+  consume-once, and draft-only; they perform no automatic I/O and make no reachability claim.
+- Added native Windows This Device socket activity and interface counters through bounded IP Helper
+  APIs. Process basenames remain best-effort and permission-sensitive, UDP binds do not prove receive
+  behavior or reachability, and ProtoPeek does not shell out or request elevation.
+- Added the route-lazy This Device workspace for process-perspective identity and interfaces,
+  explicit bounded Linux and Windows listener/connection ownership and one-shot interface load,
+  separately consented public IPv4/IPv6 plus provider-reported BGP origin, and a small opt-in
+  Cloudflare connection-quality plan. Nothing external or process-intensive runs on mount, and no
+  result is labelled an Internet-open port, verified ISP, per-process traffic, packet loss, or
+  line-rate maximum.
 - Bound GoBarryGo import approval to one opaque revision of the reviewed source, target, and mapped
   host configuration; changed bytes or executable resolution now require a fresh preview, and
   duplicate or case-aliased preference fields fail closed instead of using last-value-wins.

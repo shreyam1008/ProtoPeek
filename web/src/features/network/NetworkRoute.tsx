@@ -1,7 +1,7 @@
 import { Link, useBlocker, useLocation } from '@tanstack/react-router';
 import { Clock3, FolderOpen, Map as MapIcon, Network, Radar, Route, Save } from 'lucide-react';
 import { lazy, Suspense, useRef } from 'react';
-
+import { clearPendingHandoff } from '@/console/app/handoff-store';
 import { NetworkPathPanel } from '@/console/NetworkPathPanel';
 import type { NetworkStore } from '@/console/network-store';
 import { NetworkHistoryPage } from './history/NetworkHistoryPage';
@@ -188,7 +188,13 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
               <button type="button" onClick={() => navigationBlocker.proceed?.()}>
                 Leave without saving
               </button>
-              <button type="button" onClick={() => navigationBlocker.reset?.()}>
+              <button
+                type="button"
+                onClick={() => {
+                  clearPendingHandoff();
+                  navigationBlocker.reset?.();
+                }}
+              >
                 Stay
               </button>
             </div>

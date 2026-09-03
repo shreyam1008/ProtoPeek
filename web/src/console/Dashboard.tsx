@@ -52,6 +52,7 @@ const safetyBoundaries = [
 export function Dashboard() {
   const { discoveries, openScan, openGRPCDiscovery, openHTTPDiscovery } = useProtocolShell();
   const [version, setVersion] = useState('development');
+  const [handoffError, setHandoffError] = useState('');
   const openInitialScan = useEffectEvent((target: string) => {
     openScan({ initialTarget: target, autoStart: true });
   });
@@ -71,6 +72,11 @@ export function Dashboard() {
       cancelled = true;
     };
   }, []);
+
+  function openRecent(discovery: (typeof discoveries)[number], kind: 'grpc' | 'http') {
+    const result = kind === 'grpc' ? openGRPCDiscovery(discovery) : openHTTPDiscovery(discovery);
+    if (result && !result.ok) setHandoffError(result.error);
+  }
 
   return (
     <div className="pp-dashboard">
@@ -126,6 +132,11 @@ export function Dashboard() {
             </div>
             <span>{discoveries.length}/12</span>
           </header>
+          {handoffError ? (
+            <p className="pp-scan-message" role="alert">
+              {handoffError}
+            </p>
+          ) : null}
           {discoveries.length ? (
             <div className="pp-recent-list">
               {discoveries.map((discovery) => (
@@ -142,12 +153,12 @@ export function Dashboard() {
                   </p>
                   <div>
                     {discovery.grpc ? (
-                      <button type="button" onClick={() => openGRPCDiscovery(discovery)}>
+                      <button type="button" onClick={() => openRecent(discovery, 'grpc')}>
                         gRPC
                       </button>
                     ) : null}
                     {discovery.http ? (
-                      <button type="button" onClick={() => openHTTPDiscovery(discovery)}>
+                      <button type="button" onClick={() => openRecent(discovery, 'http')}>
                         HTTP
                       </button>
                     ) : null}

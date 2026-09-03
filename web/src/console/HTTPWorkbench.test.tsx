@@ -1,9 +1,10 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { HTTPResponse } from '@/shared/types';
 import { appStorageKeys } from '@/shared/utils';
-
+import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { HTTPWorkbench } from './HTTPWorkbench';
 import { protocolShellEvents } from './ProtocolShellContext';
 
@@ -26,10 +27,53 @@ function renderWorkbench() {
   return render(<HTTPWorkbench />);
 }
 
+function stageHTTPHandoff(url: string) {
+  const now = Date.now();
+  const stored = storePendingHandoff(
+    {
+      provenance: {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date(now).toISOString(),
+      },
+      draft: { kind: 'http-url-draft', target: { kind: 'http-url', url } },
+    },
+    { now }
+  );
+  if (!stored.ok) throw new Error(stored.error);
+  return stored.value;
+}
+
+function stageGRPCHandoff(address: string) {
+  const now = Date.now();
+  const stored = storePendingHandoff(
+    {
+      provenance: {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date(now).toISOString(),
+      },
+      draft: {
+        kind: 'grpc-target-draft',
+        target: { kind: 'grpc-target', address, plaintext: true },
+      },
+    },
+    { now }
+  );
+  if (!stored.ok) throw new Error(stored.error);
+  return stored.value;
+}
+
+function notifyPendingHandoff() {
+  fireEvent(window, new Event(protocolShellEvents.pendingHandoff));
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   Reflect.deleteProperty(navigator, 'clipboard');
+  clearPendingHandoff();
+  window.sessionStorage.clear();
   window.localStorage.clear();
 });
 
@@ -787,26 +831,82 @@ describe('HTTPWorkbench', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(/session-only.*Quota exceeded/i);
   });
 
-  it('accepts a discovery handoff while the HTTP workbench is already mounted', () => {
-    window.localStorage.setItem(
-      appStorageKeys.pendingHTTPURL,
-      JSON.stringify('https://127.0.0.1:8443/')
-    );
+  it('accepts a broker handoff while the HTTP workbench is already mounted', () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
     renderWorkbench();
 
-    window.localStorage.setItem(
-      appStorageKeys.pendingHTTPURL,
-      JSON.stringify('http://127.0.0.1:8081/')
-    );
-    fireEvent(
-      window,
-      new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, {
-        detail: 'http://127.0.0.1:8081/',
-      })
-    );
+    stageHTTPHandoff('http://127.0.0.1:8081/');
+    notifyPendingHandoff();
 
     expect(screen.getByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8081/');
+    expect(screen.getByText(/Observed evidence.*no request has been sent/i)).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+  });
+
+  it('consumes a broker handoff on mount without sending automatically', async () => {
+    stageHTTPHandoff('https://mount.test:8443/health');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <StrictMode>
+        <HTTPWorkbench />
+      </StrictMode>
+    );
+
+    expect(await screen.findByLabelText('Request URL')).toHaveValue(
+      'https://mount.test:8443/health'
+    );
+    expect(screen.getByText(/ProtoPeek discovery.*Observed evidence/i)).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+  });
+
+  it('discloses when an in-memory handoff could not survive reload', async () => {
+    const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage unavailable', 'QuotaExceededError');
+    });
+    stageHTTPHandoff('https://memory-only.test/');
+    write.mockRestore();
+
+    renderWorkbench();
+
+    expect(await screen.findByText(/could not survive a reload/i)).toBeVisible();
+  });
+
+  it('reads a valid legacy URL once and removes it without sending', async () => {
+    window.localStorage.setItem(
+      appStorageKeys.pendingHTTPURL,
+      JSON.stringify('https://legacy.test/api')
+    );
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = renderWorkbench();
+    expect(await screen.findByLabelText('Request URL')).toHaveValue('https://legacy.test/api');
+    expect(screen.getByText(/legacy browser handoff/i)).toBeVisible();
     expect(window.localStorage.getItem(appStorageKeys.pendingHTTPURL)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    first.unmount();
+    renderWorkbench();
+    expect(await screen.findByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+  });
+
+  it('leaves another route kind untouched and discards malformed broker storage', async () => {
+    stageGRPCHandoff('wrong-route.test:50051');
+    const first = renderWorkbench();
+    expect(await screen.findByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).not.toBeNull();
+    first.unmount();
+
+    clearPendingHandoff();
+    window.sessionStorage.setItem(appStorageKeys.pendingHandoff, '{"version":1,"draft":');
+    renderWorkbench();
+    expect(await screen.findByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   });
 
   it('treats mounted discovery as a clean origin boundary and ignores prior work', async () => {
@@ -854,16 +954,8 @@ describe('HTTPWorkbench', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     const oldSignal = fetchMock.mock.calls[0]?.[1]?.signal as AbortSignal;
 
-    window.localStorage.setItem(
-      appStorageKeys.pendingHTTPURL,
-      JSON.stringify('http://127.0.0.1:8082/new')
-    );
-    fireEvent(
-      window,
-      new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, {
-        detail: 'http://127.0.0.1:8082/new',
-      })
-    );
+    stageHTTPHandoff('http://127.0.0.1:8082/new');
+    notifyPendingHandoff();
 
     expect(oldSignal.aborted).toBe(true);
     expect(screen.getByLabelText('HTTP method')).toHaveValue('GET');
@@ -928,12 +1020,9 @@ describe('HTTPWorkbench', () => {
     renderWorkbench();
     expect(await screen.findByText(/HTTP history is session-only.*Quota exceeded/i)).toBeVisible();
 
-    fireEvent(
-      window,
-      new CustomEvent<string>(protocolShellEvents.openHTTPDiscovery, {
-        detail: 'http://127.0.0.1:8083/new',
-      })
-    );
+    stageHTTPHandoff('http://127.0.0.1:8083/new');
+    notifyPendingHandoff();
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8083/new');
     expect(screen.getByText(/HTTP history is session-only.*Quota exceeded/i)).toBeVisible();
     expect(screen.queryByLabelText('Dismiss HTTP history notice')).not.toBeInTheDocument();
   });

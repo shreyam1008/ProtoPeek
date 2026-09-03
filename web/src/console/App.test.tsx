@@ -1,11 +1,12 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { BootstrapResponse, SavedCollection, WorkspaceTargetProfile } from '@/shared/types';
 import { appStorageKeys, workspaceImportMaxBytes } from '@/shared/utils';
 
 import { App } from './App';
-import type { ScanResult } from './api';
+import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { protocolShellEvents } from './ProtocolShellContext';
 
 const launcherBootstrap: BootstrapResponse = {
@@ -70,6 +71,47 @@ function response(body: unknown, ok = true) {
     json: async () => body,
     text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   } as Response;
+}
+
+function stageGRPCHandoff(address: string, plaintext = true) {
+  const now = Date.now();
+  const stored = storePendingHandoff(
+    {
+      provenance: {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date(now).toISOString(),
+      },
+      draft: {
+        kind: 'grpc-target-draft',
+        target: { kind: 'grpc-target', address, plaintext },
+      },
+    },
+    { now }
+  );
+  if (!stored.ok) throw new Error(stored.error);
+  return stored.value;
+}
+
+function stageHTTPHandoff(url: string) {
+  const now = Date.now();
+  const stored = storePendingHandoff(
+    {
+      provenance: {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date(now).toISOString(),
+      },
+      draft: { kind: 'http-url-draft', target: { kind: 'http-url', url } },
+    },
+    { now }
+  );
+  if (!stored.ok) throw new Error(stored.error);
+  return stored.value;
+}
+
+function notifyPendingHandoff() {
+  fireEvent(window, new Event(protocolShellEvents.pendingHandoff));
 }
 
 function installLauncherFetch({
@@ -154,35 +196,6 @@ function savedTarget(
     importPaths: [],
     protosets: [],
     ...overrides,
-  };
-}
-
-function reflectedTarget(address: string): ScanResult {
-  return {
-    address,
-    alive: true,
-    tcp: true,
-    grpc: true,
-    http: false,
-    protocols: ['tcp', 'grpc'],
-    reflection: 'available',
-    transport: 'plaintext',
-    services: ['demo.Echo'],
-    servicesTruncated: false,
-    httpTransport: '',
-    httpProtocol: '',
-    httpProtocolTruncated: false,
-    httpStatus: '',
-    httpStatusTruncated: false,
-    httpStatusCode: 0,
-    httpServer: '',
-    httpServerTruncated: false,
-    failure: '',
-    error: '',
-    errorTruncated: false,
-    details: ['gRPC plaintext: reflection available'],
-    detailsTruncated: false,
-    latencyMs: 2,
   };
 }
 
@@ -272,6 +285,8 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  clearPendingHandoff();
+  window.sessionStorage.clear();
   window.localStorage.clear();
 });
 
@@ -665,7 +680,7 @@ describe('gRPC launcher recents', () => {
     expect(stored.map((target) => target.id)).toEqual(full.map((target) => target.id));
   });
 
-  it('opens a reflected plaintext discovery result and persists it after success', async () => {
+  it('opens a reflected plaintext discovery result as a draft and persists it after explicit connect', async () => {
     const fetchMock = installLauncherFetch({
       connectOK: true,
       scanResults: [
@@ -684,6 +699,18 @@ describe('gRPC launcher recents', () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
+    const address = await screen.findByLabelText('Address');
+    expect(address).toHaveValue('127.0.0.1:50051');
+    expect(screen.getByText('Target draft opened')).toBeVisible();
+    expect(screen.getByText(/no connection has been attempted/i)).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+
+    const connectPanel = address.closest('section');
+    expect(connectPanel).not.toBeNull();
+    if (!connectPanel) return;
+    fireEvent.click(within(connectPanel).getByRole('button', { name: 'Connect' }));
     await screen.findByText('1 recent');
 
     const connectCall = fetchMock.mock.calls.find(([input]) =>
@@ -727,26 +754,33 @@ describe('gRPC launcher recents', () => {
         },
       ])
     );
-    vi.stubGlobal(
-      'fetch',
-      installLauncherFetch({
-        connectOK: true,
-        scanResults: [
-          {
-            address: '127.0.0.1:50051',
-            alive: true,
-            grpc: true,
-            reflection: 'available',
-            transport: 'plaintext',
-            services: ['demo.Echo'],
-            latencyMs: 2,
-          },
-        ],
-      })
-    );
+    const fetchMock = installLauncherFetch({
+      connectOK: true,
+      scanResults: [
+        {
+          address: '127.0.0.1:50051',
+          alive: true,
+          grpc: true,
+          reflection: 'available',
+          transport: 'plaintext',
+          services: ['demo.Echo'],
+          latencyMs: 2,
+        },
+      ],
+    });
+    vi.stubGlobal('fetch', fetchMock);
     render(<App />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
+    const address = await screen.findByLabelText('Address');
+    expect(address).toHaveValue('127.0.0.1:50051');
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+    const connectPanel = address.closest('section');
+    expect(connectPanel).not.toBeNull();
+    if (!connectPanel) return;
+    fireEvent.click(within(connectPanel).getByRole('button', { name: 'Connect' }));
 
     await waitFor(() => {
       const stored = JSON.parse(
@@ -757,58 +791,128 @@ describe('gRPC launcher recents', () => {
     });
   });
 
-  it('accepts a discovery handoff while the gRPC workbench is already mounted', async () => {
+  it('accepts a broker handoff while mounted without connecting automatically', async () => {
     const fetchMock = installLauncherFetch({ connectOK: true });
     vi.stubGlobal('fetch', fetchMock);
     render(<App />);
     await screen.findByRole('heading', { name: 'Open a gRPC target.' });
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
+      ).toHaveLength(1)
+    );
 
-    const result: ScanResult = {
-      address: '127.0.0.1:50052',
-      alive: true,
-      tcp: true,
-      grpc: true,
-      http: false,
-      protocols: ['tcp', 'grpc'],
-      reflection: 'available',
-      transport: 'plaintext',
-      services: ['demo.Echo'],
-      servicesTruncated: false,
-      httpTransport: '',
-      httpProtocol: '',
-      httpProtocolTruncated: false,
-      httpStatus: '',
-      httpStatusTruncated: false,
-      httpStatusCode: 0,
-      httpServer: '',
-      httpServerTruncated: false,
-      failure: '',
-      error: '',
-      errorTruncated: false,
-      details: ['gRPC plaintext: reflection available'],
-      detailsTruncated: false,
-      latencyMs: 2,
-    };
+    stageGRPCHandoff('127.0.0.1:50052');
+    notifyPendingHandoff();
+
+    await waitFor(() => expect(screen.getByLabelText('Address')).toHaveValue('127.0.0.1:50052'));
+    expect(screen.getByText(/Observed evidence.*no connection has been attempted/i)).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
+    ).toHaveLength(1);
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+  });
+
+  it('consumes a broker handoff on mount without connecting automatically', async () => {
+    stageGRPCHandoff('mount.test:50051', false);
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
+
+    expect(await screen.findByLabelText('Address')).toHaveValue('mount.test:50051');
+    expect(screen.getByRole('checkbox', { name: 'TLS' })).not.toBeChecked();
+    expect(screen.getByText('Target draft opened')).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/scan'))).toBe(false);
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+  });
+
+  it('consumes a handoff signalled before bootstrap without probing or connecting', async () => {
+    let resolveBootstrap: ((value: Response) => void) | undefined;
+    const pendingBootstrap = new Promise<Response>((resolve) => {
+      resolveBootstrap = resolve;
+    });
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/bootstrap')) return pendingBootstrap;
+      if (path.endsWith('/examples')) return Promise.resolve(response([]));
+      if (path.endsWith('/api/scan')) return Promise.resolve(response([]));
+      if (path.endsWith('/api/workspace/connect')) return Promise.resolve(response(null));
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname === '/api/bootstrap')
+      ).toBe(true)
+    );
+
+    stageGRPCHandoff('deferred.test:50051', false);
+    notifyPendingHandoff();
+    await act(async () => {
+      resolveBootstrap?.(response(launcherBootstrap));
+      await pendingBootstrap;
+    });
+
+    expect(await screen.findByLabelText('Address')).toHaveValue('deferred.test:50051');
+    expect(screen.getByRole('checkbox', { name: 'TLS' })).not.toBeChecked();
+    expect(screen.getByText(/no connection has been attempted/i)).toBeVisible();
+    for (const endpoint of ['/api/scan', '/api/workspace/connect']) {
+      expect(
+        fetchMock.mock.calls.filter(([input]) => new URL(String(input)).pathname === endpoint)
+      ).toHaveLength(0);
+    }
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+  });
+
+  it('reads a valid legacy target once, removes it, and never connects automatically', async () => {
     window.localStorage.setItem(
       appStorageKeys.pendingGRPCTarget,
-      JSON.stringify({ address: result.address, plaintext: true })
+      JSON.stringify({ address: 'legacy.test:50051', plaintext: true })
     );
-    fireEvent(
-      window,
-      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, { detail: result })
-    );
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
 
-    await waitFor(() => {
-      const connectCall = fetchMock.mock.calls.find(([input]) =>
-        String(input).includes('/api/workspace/connect')
-      );
-      expect(connectCall).toBeTruthy();
-      const sent = JSON.parse(String(connectCall?.[1]?.body)) as {
-        target: { address: string };
-      };
-      expect(sent.target.address).toBe('127.0.0.1:50052');
-    });
+    const first = render(<App />);
+    expect(await screen.findByLabelText('Address')).toHaveValue('legacy.test:50051');
+    expect(screen.getByText(/legacy browser handoff/i)).toBeVisible();
     expect(window.localStorage.getItem(appStorageKeys.pendingGRPCTarget)).toBeNull();
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toBe(false);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/scan'))).toBe(false);
+
+    first.unmount();
+    render(<App />);
+    expect(await screen.findByLabelText('Address')).toHaveValue('localhost:50051');
+  });
+
+  it('leaves a valid handoff for another route untouched and discards malformed storage', async () => {
+    stageHTTPHandoff('https://wrong-route.test/');
+    const fetchMock = installLauncherFetch({ connectOK: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const first = render(<App />);
+
+    expect(await screen.findByLabelText('Address')).toHaveValue('localhost:50051');
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).not.toBeNull();
+    first.unmount();
+
+    clearPendingHandoff();
+    window.sessionStorage.setItem(appStorageKeys.pendingHandoff, '{"version":1,"draft":');
+    render(<App />);
+    expect(await screen.findByLabelText('Address')).toHaveValue('localhost:50051');
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   });
 });
 
@@ -877,16 +981,11 @@ describe('gRPC workspace context routing', () => {
     expect(signal.aborted).toBe(false);
   });
 
-  it('ignores a stale direct schema after discovery changes the active session context', async () => {
+  it('keeps a broker draft unsent while the current direct schema is still loading', async () => {
     let resolveDirectSchema: ((value: Response) => void) | undefined;
     const pendingDirectSchema = new Promise<Response>((resolve) => {
       resolveDirectSchema = resolve;
     });
-    const connectedSchema = {
-      ...directSchema,
-      requestType: 'demo.ConnectedRequest',
-      messageTypes: { 'demo.ConnectedRequest': [] },
-    };
     const staleSchema = {
       ...directSchema,
       requestType: 'demo.StaleRequest',
@@ -896,20 +995,6 @@ describe('gRPC workspace context routing', () => {
       const pathname = new URL(String(input)).pathname;
       if (pathname.endsWith('/api/bootstrap')) return Promise.resolve(response(directBootstrap));
       if (pathname.endsWith('/examples')) return Promise.resolve(response([]));
-      if (pathname.endsWith('/api/workspace/connect')) {
-        return Promise.resolve(
-          response({
-            sessionId: 'session-context',
-            bootstrap: { ...directBootstrap, target: 'context.test:50051' },
-          })
-        );
-      }
-      if (pathname.endsWith('/api/workspace/metadata')) {
-        return Promise.resolve(response(connectedSchema));
-      }
-      if (pathname.endsWith('/api/workspace/protos')) {
-        return Promise.resolve(response({ files: [] }));
-      }
       if (pathname.endsWith('/api/protos')) return Promise.resolve(response({ files: [] }));
       if (pathname.endsWith('/metadata')) return pendingDirectSchema;
       if (pathname.endsWith('/api/workspace/session') && init?.method === 'DELETE') {
@@ -927,20 +1012,26 @@ describe('gRPC workspace context routing', () => {
       ).toBe(true)
     );
 
-    fireEvent(
-      window,
-      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, {
-        detail: reflectedTarget('context.test:50051'),
-      })
-    );
-    expect(await screen.findByText('demo.ConnectedRequest')).toBeVisible();
+    stageGRPCHandoff('context.test:50051');
+    notifyPendingHandoff();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        new URL(String(input)).pathname.endsWith('/api/workspace/connect')
+      )
+    ).toBe(false);
 
     await act(async () => {
       resolveDirectSchema?.(response(staleSchema));
       await pendingDirectSchema;
     });
-    expect(screen.getByText('demo.ConnectedRequest')).toBeVisible();
-    expect(screen.queryByText('demo.StaleRequest')).not.toBeInTheDocument();
+    const address = await screen.findByLabelText('Address');
+    expect(address).toHaveValue('context.test:50051');
+    expect(screen.getByText(/no connection has been attempted/i)).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        new URL(String(input)).pathname.endsWith('/api/workspace/connect')
+      )
+    ).toBe(false);
   });
 });
 
@@ -1378,12 +1469,11 @@ describe('workspace import boundaries', () => {
     );
     expect(pendingFile.read).toHaveBeenCalledOnce();
 
-    fireEvent(
-      window,
-      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, {
-        detail: reflectedTarget('late-connect.test:50051'),
-      })
-    );
+    stageGRPCHandoff('late-connect.test:50051');
+    notifyPendingHandoff();
+    const draftAddress = await screen.findByLabelText('Address');
+    expect(draftAddress).toHaveValue('late-connect.test:50051');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     await waitFor(() =>
       expect(
         connection.fetchMock.mock.calls.some(([request]) =>
@@ -1413,7 +1503,7 @@ describe('workspace import boundaries', () => {
     ) as WorkspaceTargetProfile[];
     expect(storedTargets).toHaveLength(1);
     expect(storedTargets[0]?.address).toBe(importedAddress);
-    expect(screen.getByRole('region', { name: 'Echo call workspace' })).toBeVisible();
+    expect(await screen.findByLabelText('Address')).toBeVisible();
   });
 
   it('disconnects a session that finishes while an imported target set is still being read', async () => {
@@ -1421,12 +1511,11 @@ describe('workspace import boundaries', () => {
     vi.stubGlobal('fetch', connection.fetchMock);
     const { container } = render(<App />);
     await screen.findByRole('region', { name: 'Echo call workspace' });
-    fireEvent(
-      window,
-      new CustomEvent<ScanResult>(protocolShellEvents.openGRPCDiscovery, {
-        detail: reflectedTarget('during-read.test:50051'),
-      })
-    );
+    stageGRPCHandoff('during-read.test:50051');
+    notifyPendingHandoff();
+    const draftAddress = await screen.findByLabelText('Address');
+    expect(draftAddress).toHaveValue('during-read.test:50051');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Connect' })[0]);
     await waitFor(() =>
       expect(
         connection.fetchMock.mock.calls.some(([request]) =>
@@ -1456,7 +1545,6 @@ describe('workspace import boundaries', () => {
     );
     await act(async () => pendingFile.resolve());
     expect(await screen.findByText('Workspace imported')).toBeVisible();
-    await screen.findByRole('region', { name: 'Echo call workspace' });
     await waitFor(() =>
       expect(
         connection.fetchMock.mock.calls.some(

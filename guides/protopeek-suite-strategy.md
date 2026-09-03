@@ -295,6 +295,9 @@ Downloader, This Device, Security, and Cloudflare host-operation steps keep thei
 status. Any step involving a private peer, Tailscale, a Headscale-backed client, NetBird, shared
 audience selection, or temporary exposure remains planned.
 
+The exact v0.7 broker, evidence-freshness, endpoint-eligibility, and phased delivery contract is in
+the [Connected Workbench integration plan](connected-workbench-integration-plan.md).
+
 ### Inspect a discovered service
 
 ```text
@@ -376,6 +379,10 @@ Exit gate:
 ### v0.7 — Connected workbench
 
 Goal: make existing features feel like one product before adding a provider.
+
+Current-source status: the versioned typed broker and listener-to-draft vertical slice are
+implemented as unreleased candidates. Recent target/session state, receipts, remaining producer
+migrations, and the combined v0.7 verification gates are not complete.
 
 Scope:
 
@@ -653,14 +660,11 @@ Migration success:
 
 ## Immediate checkpoint
 
-The next implementation checkpoint is intentionally narrow:
-
-1. choose one of the three visual directions;
-2. turn it into a desktop and narrow shell specification;
-3. inventory current screen states and route compatibility;
-4. introduce the feature registry;
-5. split the oversized current components without behaviour change; and
-6. verify the current suite before adding Tailscale code.
+The v0.6 reset is implemented in current source. The next checkpoint is intentionally narrow: finish
+the remaining v0.7 producer migrations and bounded recents, then complete receipts, real-host
+cross-platform QA, and the combined verification gates. Do not begin Tailscale code before that
+checkpoint passes. The exact sequence is in the
+[Connected Workbench integration plan](connected-workbench-integration-plan.md).
 
 The detailed provider mechanics and retirement gates remain in
 [Private networking inside ProtoPeek](private-network-integration-plan.md). The Cloudflare-specific

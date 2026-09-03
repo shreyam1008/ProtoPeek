@@ -4,6 +4,11 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { classNames } from '@/shared/runtime';
 
 import { type ScanResult, scanAddresses } from './api';
+import type { HandoffWriteResult } from './app/handoff-store';
+
+// Some in-workbench consumers apply evidence directly and intentionally return nothing.
+// biome-ignore lint/suspicious/noConfusingVoidType: navigation handoffs return a result; local consumers return void.
+export type OpenScanResult = (result: ScanResult) => HandoffWriteResult | void;
 
 export const ambientScanAddresses = [
   'localhost:50051',
@@ -22,8 +27,8 @@ export function DiscoveryPanel({
 }: {
   initialTarget?: string;
   autoStart?: boolean;
-  onOpenGRPC: (result: ScanResult) => void;
-  onOpenHTTP?: (result: ScanResult) => void;
+  onOpenGRPC: OpenScanResult;
+  onOpenHTTP?: OpenScanResult;
 }) {
   return (
     <section className="pp-panel pp-discovery-panel" aria-labelledby="grpc-discovery-title">
@@ -58,8 +63,8 @@ export function DiscoveryScanner({
   autoStart?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
   onResults?: (results: ScanResult[]) => void;
-  onOpenGRPC?: (result: ScanResult) => void;
-  onOpenHTTP?: (result: ScanResult) => void;
+  onOpenGRPC?: OpenScanResult;
+  onOpenHTTP?: OpenScanResult;
 }) {
   const [scanInput, setScanInput] = useState(initialTarget);
   const [scanning, setScanning] = useState(false);
@@ -160,6 +165,10 @@ export function DiscoveryScanner({
   const visibleResults = lastScanWasExplicit
     ? results
     : results.filter((result) => result.alive || result.failure !== 'unreachable');
+  const openResult = (result: ScanResult, open: OpenScanResult) => {
+    const handoff = open(result);
+    if (handoff && !handoff.ok) setScanMessage(handoff.error);
+  };
 
   return (
     <div className="pp-discovery-scanner">
@@ -214,8 +223,8 @@ export function DiscoveryScanner({
             <ScanResultCard
               key={`${result.address}-${result.transport}-${result.httpTransport}`}
               result={result}
-              onOpenGRPC={onOpenGRPC}
-              onOpenHTTP={onOpenHTTP}
+              onOpenGRPC={onOpenGRPC ? (result) => openResult(result, onOpenGRPC) : undefined}
+              onOpenHTTP={onOpenHTTP ? (result) => openResult(result, onOpenHTTP) : undefined}
             />
           ))}
         </div>
@@ -278,8 +287,8 @@ export function ScanResultCard({
   onOpenHTTP,
 }: {
   result: ScanResult;
-  onOpenGRPC?: (result: ScanResult) => void;
-  onOpenHTTP?: (result: ScanResult) => void;
+  onOpenGRPC?: OpenScanResult;
+  onOpenHTTP?: OpenScanResult;
 }) {
   return (
     <article

@@ -111,7 +111,7 @@ const traffic = {
   scopeNotice: 'Visible to this ProtoPeek process/network namespace.',
   startedAt: '2026-08-24T03:30:01Z',
   finishedAt: '2026-08-24T03:30:02Z',
-  durationMs: 1000,
+  durationMs: 1300,
   interfaces: [{ name: 'eth0', status: 'ok', ...counters }],
   notes: [],
 };
@@ -218,6 +218,29 @@ describe('This PC response normalization', () => {
         ],
       })
     ).toThrow(/received bytes/i);
+  });
+
+  it('accepts the Windows unknown-MTU sentinel without accepting other negative values', () => {
+    const unknownMTU = {
+      ...snapshot,
+      interfaces: [{ ...snapshot.interfaces[0], mtu: -1 }],
+    };
+
+    expect(normalizeThisPCSnapshot(unknownMTU).interfaces[0]?.mtu).toBe(-1);
+    expect(() =>
+      normalizeThisPCSnapshot({
+        ...snapshot,
+        interfaces: [{ ...snapshot.interfaces[0], mtu: -2 }],
+      })
+    ).toThrow(/interface MTU/i);
+  });
+
+  it('accepts an honest bounded traffic observation interval', () => {
+    expect(normalizeThisPCTrafficSample(traffic).durationMs).toBe(1300);
+    expect(() => normalizeThisPCTrafficSample({ ...traffic, durationMs: 0 })).toThrow(/duration/i);
+    expect(() => normalizeThisPCTrafficSample({ ...traffic, durationMs: 60_001 })).toThrow(
+      /duration/i
+    );
   });
 
   it('preserves multiple owners and authoritative exposure without inferring reachability', () => {

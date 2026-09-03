@@ -20,6 +20,7 @@ var (
 	ErrActivityUnsupported = errors.New("local socket activity is unsupported on this operating system")
 	ErrActivityUnavailable = errors.New("local socket activity is unavailable")
 	ErrTrafficUnsupported  = errors.New("traffic counters are unsupported on this operating system")
+	ErrTrafficUnavailable  = errors.New("traffic counters are unavailable")
 	ErrInvalidDuration     = errors.New("traffic sample duration must be exactly 500, 1000, or 2000 milliseconds")
 	ErrInvalidFamily       = errors.New("public identity families must contain ipv4 or ipv6 without duplicates")
 )
@@ -146,7 +147,7 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 	counters, counterErr := service.counters(ctx)
 	if counterErr != nil && !errors.Is(counterErr, ErrTrafficUnsupported) {
 		result.Status = "partial"
-		result.Notes = append(result.Notes, "interface counters unavailable: "+boundedError(counterErr))
+		result.Notes = append(result.Notes, "interface counters incomplete: "+boundedError(counterErr))
 	}
 	interfaces, err := service.interfaces()
 	if err != nil {
@@ -234,19 +235,52 @@ func (service *Service) SampleTraffic(ctx context.Context, duration time.Duratio
 	if duration != 500*time.Millisecond && duration != time.Second && duration != 2*time.Second {
 		return TrafficSample{}, ErrInvalidDuration
 	}
-	started := service.now().UTC()
-	before, err := service.counters(ctx)
-	if err != nil {
+	beforeReadStarted := service.now()
+	before, beforeErr := service.counters(ctx)
+	beforeReadFinished := service.now()
+	if beforeErr != nil && (len(before) == 0 || errors.Is(beforeErr, ErrTrafficUnsupported)) {
+		return TrafficSample{}, beforeErr
+	}
+	if err := ctx.Err(); err != nil {
 		return TrafficSample{}, err
 	}
 	if err := service.wait(ctx, duration); err != nil {
 		return TrafficSample{}, err
 	}
-	after, err := service.counters(ctx)
-	if err != nil {
+	afterReadStarted := service.now()
+	after, afterErr := service.counters(ctx)
+	afterReadFinished := service.now()
+	if afterErr != nil && (len(after) == 0 || errors.Is(afterErr, ErrTrafficUnsupported)) {
+		return TrafficSample{}, afterErr
+	}
+	if err := ctx.Err(); err != nil {
 		return TrafficSample{}, err
 	}
-	return buildTrafficSample(started, service.now().UTC(), duration, before, after), nil
+	started := observationMidpoint(beforeReadStarted, beforeReadFinished)
+	finished := observationMidpoint(afterReadStarted, afterReadFinished)
+	measuredDuration := finished.Sub(started)
+	if measuredDuration <= 0 {
+		return TrafficSample{}, fmt.Errorf("traffic sample measured a non-positive observation interval")
+	}
+	omittedLifecycleEntries := 0
+	if beforeErr != nil || afterErr != nil {
+		before, after, omittedLifecycleEntries = comparableCounterReads(before, after)
+		if len(before) == 0 {
+			return TrafficSample{}, fmt.Errorf("%w: incomplete counter reads had no interface in common", ErrTrafficUnavailable)
+		}
+	}
+	result := buildTrafficSample(started.UTC(), finished.UTC(), measuredDuration, before, after)
+	if beforeErr != nil {
+		result.Notes = append(result.Notes, "starting interface counters incomplete: "+boundedError(beforeErr))
+	}
+	if afterErr != nil {
+		result.Notes = append(result.Notes, "finishing interface counters incomplete: "+boundedError(afterErr))
+	}
+	if omittedLifecycleEntries > 0 {
+		result.Notes = append(result.Notes, fmt.Sprintf("%d interface lifecycle entries were omitted because one or both counter reads were incomplete", omittedLifecycleEntries))
+	}
+	result.Notes = deduplicateBoundedNotes(result.Notes, 64)
+	return result, nil
 }
 
 func (service *Service) PublicIdentity(ctx context.Context, families []string) (PublicIdentity, error) {
@@ -276,7 +310,7 @@ func normalizeFamilies(input []string) ([]string, error) {
 	return result, nil
 }
 
-func buildTrafficSample(started, finished time.Time, duration time.Duration, before, after map[string]rawCounters) TrafficSample {
+func buildTrafficSample(started, finished time.Time, measuredDuration time.Duration, before, after map[string]rawCounters) TrafficSample {
 	names := make(map[string]struct{}, len(before)+len(after))
 	for name := range before {
 		names[name] = struct{}{}
@@ -295,7 +329,7 @@ func buildTrafficSample(started, finished time.Time, duration time.Duration, bef
 		ScopeNotice:   ScopeNotice,
 		StartedAt:     started,
 		FinishedAt:    finished,
-		DurationMS:    int(duration / time.Millisecond),
+		DurationMS:    int(measuredDuration.Round(time.Millisecond) / time.Millisecond),
 		Interfaces:    make([]InterfaceTrafficSample, 0, len(ordered)),
 		Notes:         make([]string, 0),
 	}
@@ -324,6 +358,22 @@ func buildTrafficSample(started, finished time.Time, duration time.Duration, bef
 		result.Interfaces = append(result.Interfaces, item)
 	}
 	return result
+}
+
+func observationMidpoint(started, finished time.Time) time.Time {
+	return started.Add(finished.Sub(started) / 2)
+}
+
+func comparableCounterReads(before, after map[string]rawCounters) (map[string]rawCounters, map[string]rawCounters, int) {
+	comparableBefore := make(map[string]rawCounters, min(len(before), len(after)))
+	comparableAfter := make(map[string]rawCounters, min(len(before), len(after)))
+	for name, first := range before {
+		if second, exists := after[name]; exists {
+			comparableBefore[name] = first
+			comparableAfter[name] = second
+		}
+	}
+	return comparableBefore, comparableAfter, len(before) + len(after) - 2*len(comparableBefore)
 }
 
 func countersReset(before, after rawCounters) bool {

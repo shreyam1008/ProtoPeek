@@ -1,11 +1,11 @@
-//go:build !linux
+//go:build !linux && !windows
 
 package thispc
 
 import "context"
 
 func platformActivityCapability() (bool, string) {
-	return false, "local socket activity currently requires bounded Linux procfs inspection"
+	return false, "local socket activity is currently supported only through native Linux or Windows inspection"
 }
 
 func newActivityReader() activityReader {
