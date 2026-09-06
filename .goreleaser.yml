@@ -66,6 +66,29 @@ archives:
       - src: web/site/public/man/pp.1
         dst: man/pp.1
 
+nfpms:
+  - id: protopeek-deb
+    package_name: protopeek
+    ids: [protopeek, pp]
+    file_name_template: "{{ .ConventionalFileName }}"
+    homepage: https://protopeek.shreyam1008.com.np/
+    maintainer: Shreyam Adhikari <shreyam1008@gmail.com>
+    description: Local-first service inspection workbench with terminal and browser interfaces.
+    license: MIT
+    formats: [deb]
+    bindir: /usr/bin
+    section: net
+    priority: optional
+    contents:
+      - src: LICENSE
+        dst: /usr/share/doc/protopeek/copyright
+      - src: THIRD_PARTY_NOTICES.md
+        dst: /usr/share/doc/protopeek/THIRD_PARTY_NOTICES.md
+      - src: web/site/public/man/protopeek.1
+        dst: /usr/share/man/man1/protopeek.1
+      - src: web/site/public/man/pp.1
+        dst: /usr/share/man/man1/pp.1
+
 checksum:
   name_template: checksums.txt
 
