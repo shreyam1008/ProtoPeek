@@ -4,7 +4,7 @@ Updated: 2026-09-06.
 
 - [x] Prepare GoReleaser Debian packaging for the next stable release, including
   `protopeek`, `pp`, license notices and man pages.
-- [ ] Validate configuration in `Check Linux package configuration`.
+- [x] Configuration validated in `Check Linux package configuration`, run 34028750448.
 - [ ] Build and test next stable `.deb` packages: install, CLI/browser startup,
   upgrade, and removal on Debian/Ubuntu. A configuration check is not a package
   or runtime test.
