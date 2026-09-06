@@ -13,6 +13,7 @@ COPY web/tsconfig.json ./web/tsconfig.json
 COPY web/vite.console.config.ts ./web/vite.console.config.ts
 COPY web/vite.console-chunks.ts ./web/vite.console-chunks.ts
 COPY web/vite.shared.ts ./web/vite.shared.ts
+COPY web/vite.html.ts ./web/vite.html.ts
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 RUN bun run build:app
 

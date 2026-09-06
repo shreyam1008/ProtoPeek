@@ -22,3 +22,4 @@
 !web/vite.console.config.ts
 !web/vite.console-chunks.ts
 !web/vite.shared.ts
+!web/vite.html.ts
