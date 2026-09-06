@@ -222,7 +222,8 @@ function Hero() {
           Find, reach, and inspect services locally.
         </h1>
         <p className="mt-7 max-w-xl text-lg leading-relaxed text-neutral-600 sm:text-xl">
-          Keep gRPC, HTTP, network-path, website, and transfer evidence explicit and bounded.
+          Inspect gRPC and HTTP, trace a network path, or manage a download. A local Go app does the
+          work. Your browser provides the interface.
         </p>
         <div className="mt-9 flex flex-wrap gap-3">
           <a
@@ -353,10 +354,16 @@ function Evidence() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+        <div className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,1.45fr)]">
           {verifiedScreenshots.map((screenshot) => (
             <figure key={screenshot.src} className="min-w-0">
-              <div className="overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl shadow-black/30">
+              <a
+                href={screenshot.src}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open full screenshot: ${screenshot.label}`}
+                className="block overflow-hidden rounded-xl border border-white/15 bg-black shadow-2xl shadow-black/30 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-400"
+              >
                 <img
                   src={screenshot.src}
                   alt={screenshot.alt}
@@ -364,9 +371,9 @@ function Evidence() {
                   height={screenshot.height}
                   loading="lazy"
                   decoding="async"
-                  className="aspect-[16/10] w-full object-cover object-top"
+                  className="mx-auto block h-auto max-h-[38rem] w-auto max-w-full"
                 />
-              </div>
+              </a>
               <figcaption className="mt-3 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-neutral-500">
                 {screenshot.label}
               </figcaption>
@@ -426,7 +433,8 @@ function Install() {
             Ready when you are.
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-neutral-600">
-            One command. One local page.
+            Install once, then run <code className="font-mono text-base text-neutral-900">pp</code>{' '}
+            to open the local workbench in your browser.
           </p>
           <a
             className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
@@ -434,6 +442,13 @@ function Install() {
           >
             Other install options
             <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
+          <a
+            className="mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
+          >
+            Download a release archive
+            <Download className="size-4" aria-hidden="true" />
           </a>
         </div>
 
@@ -515,8 +530,16 @@ function Privacy() {
             Your machine stays yours.
           </h2>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-neutral-600">
-            ProtoPeek opens locally. External checks run only when you ask.
+            ProtoPeek opens locally. External checks run only when you ask. The interface is served
+            by the app on your machine; there is no hosted account to sign into.
           </p>
+          <a
+            className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
+            href="https://shreyam1008.com.np/log/local-web-surfaces/"
+          >
+            Why a Browser User Interface?
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </a>
         </div>
 
         <ul className="border-t border-black/15" aria-label="Privacy boundaries">

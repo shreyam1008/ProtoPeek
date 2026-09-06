@@ -29,7 +29,9 @@ export const emptySessionState: SessionState = {
 export function sessionReferenceForPath(
   pathname: string
 ): Omit<SessionReference, 'lastFocused' | 'dirty' | 'running'> | null {
-  const feature = featureForPath(pathname);
+  // The Network index redirects to Path. Keep the transition from opening a
+  // second, empty session reference before the router resolves that redirect.
+  const feature = featureForPath(/^\/network\/?$/.test(pathname) ? '/network/path' : pathname);
   if (!feature || feature.route === '/') return null;
   return {
     id: `${feature.destination}:${feature.route}`,

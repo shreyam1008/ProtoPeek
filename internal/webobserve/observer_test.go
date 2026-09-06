@@ -20,6 +20,36 @@ import (
 
 type resolverFunc func(context.Context, string, string) ([]netip.Addr, error)
 
+func TestObservationPhasesPreserveCause(t *testing.T) {
+	observer, err := New(Options{Policy: targetguard.PublicOnly, Resolver: resolverFunc(func(context.Context, string, string) ([]netip.Addr, error) {
+		return nil, context.DeadlineExceeded
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = observer.Observe(context.Background(), "https://example.com/")
+	var phase *PhaseError
+	if !errors.As(err, &phase) || phase.Phase != "DNS and address validation" || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("phase/cause lost: %v", err)
+	}
+	trace := newTimingTrace(time.Now, time.Now())
+	callbacks := trace.clientTrace()
+	callbacks.ConnectStart("tcp", "test")
+	if trace.phase() != "connection" {
+		t.Fatal(trace.phase())
+	}
+	callbacks.ConnectDone("tcp", "test", nil)
+	callbacks.TLSHandshakeStart()
+	callbacks.TLSHandshakeDone(tls.ConnectionState{}, errors.New("invalid certificate"))
+	if trace.phase() != "TLS handshake" {
+		t.Fatal(trace.phase())
+	}
+	callbacks.TLSHandshakeDone(tls.ConnectionState{}, nil)
+	if trace.phase() != "HTTP response" {
+		t.Fatal(trace.phase())
+	}
+}
+
 func (function resolverFunc) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	return function(ctx, network, host)
 }

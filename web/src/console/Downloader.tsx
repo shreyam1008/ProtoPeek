@@ -30,6 +30,7 @@ import {
   type TransferJobStatus,
   type TransferRequestHeader,
   type TransferSnapshot,
+  transferHealthLabel,
 } from './transfer-api';
 import './downloader.css';
 
@@ -571,7 +572,7 @@ function EngineState({
     <div className="pp-engine-state" role="status">
       <span className={snapshot?.health.ready ? 'is-ready' : ''}>
         <i className="pp-engine-dot" aria-hidden="true" />{' '}
-        {snapshot?.health.status || (loading ? 'loading' : 'unavailable')}
+        {transferHealthLabel(snapshot?.health.status || (loading ? 'loading' : 'unavailable'))}
       </span>
       <small>{snapshot?.health.message || 'Reading the local transfer service.'}</small>
       <button type="button" onClick={onRefresh} aria-label="Refresh Downloader state">

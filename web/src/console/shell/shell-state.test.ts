@@ -48,6 +48,13 @@ describe('workbench session state', () => {
     expect(state.references.find(({ id }) => id === state.activeId)?.lastFocused).toBe(3);
   });
 
+  it('opens one session across the Network index redirect', () => {
+    let state = visit(emptySessionState, '/network');
+    state = visit(state, '/network/path');
+    expect(state.references).toHaveLength(1);
+    expect(state.references[0].route).toBe('/network/path');
+  });
+
   it('keeps references but clears the selected session when Home is visited', () => {
     const routeState = visit(emptySessionState, '/protocols/http');
     const homeState = visit(routeState, '/');

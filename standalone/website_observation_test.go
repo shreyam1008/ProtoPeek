@@ -3,6 +3,7 @@ package standalone
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +15,19 @@ import (
 )
 
 type websiteObserverFunc func(context.Context, string) (webobserve.Result, error)
+
+func TestWebsiteFailureReportsPhaseWithoutRawTransportDetails(t *testing.T) {
+	for _, phase := range []string{"DNS and address validation", "connection", "TLS handshake", "HTTP response"} {
+		t.Run(phase, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			writeWebsiteObservationError(response, &webobserve.PhaseError{Phase: phase, Err: fmt.Errorf("private diagnostic 10.0.0.8: %w", context.DeadlineExceeded)})
+			body := response.Body.String()
+			if response.Code != http.StatusGatewayTimeout || !strings.Contains(body, "during "+phase) || strings.Contains(body, "10.0.0.8") {
+				t.Fatalf("unsafe or unhelpful response: %d %s", response.Code, body)
+			}
+		})
+	}
+}
 
 func (function websiteObserverFunc) Observe(ctx context.Context, target string) (webobserve.Result, error) {
 	return function(ctx, target)

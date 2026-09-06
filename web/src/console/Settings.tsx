@@ -36,6 +36,7 @@ import {
   type TransferHostConfig,
   type TransferHostConfigPatch,
   type TransferSnapshot,
+  transferHealthLabel,
 } from './transfer-api';
 import './suite-pages.css';
 import './settings.css';
@@ -577,11 +578,11 @@ function HostSettingsPanel({
         <div className="pp-host-settings-state" aria-live="polite">
           <div>
             <span className="pp-kicker">Host/runtime state</span>
-            <strong>{hostStatus}</strong>
+            <strong>{transferHealthLabel(hostStatus)}</strong>
             <small>{snapshot?.health.message || 'Reading the local Downloader state.'}</small>
           </div>
           <span aria-hidden="true" className={snapshot?.health.ready ? 'is-ready' : ''}>
-            {hostStatus}
+            {transferHealthLabel(hostStatus)}
           </span>
         </div>
 

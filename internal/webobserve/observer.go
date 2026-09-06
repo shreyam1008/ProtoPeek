@@ -14,12 +14,23 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/targetguard"
 )
 
 const defaultWallTimeout = 15 * time.Second
+
+// PhaseError keeps failed observations useful without exposing raw resolver or
+// transport errors through the local API. Unwrap preserves cancellation/policy checks.
+type PhaseError struct {
+	Phase string
+	Err   error
+}
+
+func (err *PhaseError) Error() string { return "website " + err.Phase + ": " + err.Err.Error() }
+func (err *PhaseError) Unwrap() error { return err.Err }
 
 type Options struct {
 	Policy   targetguard.Policy
@@ -112,7 +123,7 @@ func (observer *Observer) Observe(parent context.Context, rawURL string) (Result
 		Transport: targetguard.TransportOptions{},
 	})
 	if err != nil {
-		return Result{}, err
+		return Result{}, &PhaseError{Phase: "DNS and address validation", Err: err}
 	}
 	defer session.CloseIdleConnections()
 	resolutionEnded := observer.now()
@@ -128,7 +139,7 @@ func (observer *Observer) Observe(parent context.Context, rawURL string) (Result
 
 	response, err := session.Client().Do(request)
 	if err != nil {
-		return Result{}, fmt.Errorf("observe website: %w", err)
+		return Result{}, &PhaseError{Phase: trace.phase(), Err: err}
 	}
 	_ = response.Body.Close()
 	finished := observer.now()
@@ -163,6 +174,8 @@ func (observer *Observer) Observe(parent context.Context, rawURL string) (Result
 }
 
 type timingTrace struct {
+	mu             sync.Mutex
+	lastPhase      string
 	now            func() time.Time
 	started        time.Time
 	connectStarted time.Time
@@ -173,20 +186,52 @@ type timingTrace struct {
 }
 
 func newTimingTrace(now func() time.Time, started time.Time) *timingTrace {
-	return &timingTrace{now: now, started: started}
+	return &timingTrace{now: now, started: started, lastPhase: "connection"}
+}
+
+func (trace *timingTrace) phase() string {
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
+	return trace.lastPhase
 }
 
 func (trace *timingTrace) clientTrace() *httptrace.ClientTrace {
 	return &httptrace.ClientTrace{
-		ConnectStart:         func(_, _ string) { trace.connectStarted = trace.now() },
-		ConnectDone:          func(_, _ string, _ error) { trace.connectDone = trace.now() },
-		TLSHandshakeStart:    func() { trace.tlsStarted = trace.now() },
-		TLSHandshakeDone:     func(tls.ConnectionState, error) { trace.tlsDone = trace.now() },
-		GotFirstResponseByte: func() { trace.firstByte = trace.now() },
+		ConnectStart: func(_, _ string) {
+			trace.mu.Lock()
+			defer trace.mu.Unlock()
+			trace.connectStarted = trace.now()
+			trace.lastPhase = "connection"
+		},
+		ConnectDone: func(_, _ string, err error) {
+			trace.mu.Lock()
+			defer trace.mu.Unlock()
+			trace.connectDone = trace.now()
+			if err == nil {
+				trace.lastPhase = "HTTP response"
+			}
+		},
+		TLSHandshakeStart: func() {
+			trace.mu.Lock()
+			defer trace.mu.Unlock()
+			trace.tlsStarted = trace.now()
+			trace.lastPhase = "TLS handshake"
+		},
+		TLSHandshakeDone: func(_ tls.ConnectionState, err error) {
+			trace.mu.Lock()
+			defer trace.mu.Unlock()
+			trace.tlsDone = trace.now()
+			if err == nil {
+				trace.lastPhase = "HTTP response"
+			}
+		},
+		GotFirstResponseByte: func() { trace.mu.Lock(); defer trace.mu.Unlock(); trace.firstByte = trace.now() },
 	}
 }
 
 func (trace *timingTrace) result(finished time.Time) TimingEvidence {
+	trace.mu.Lock()
+	defer trace.mu.Unlock()
 	return TimingEvidence{
 		ConnectMS:      durationBetween(trace.connectStarted, trace.connectDone),
 		TLSHandshakeMS: durationBetween(trace.tlsStarted, trace.tlsDone),

@@ -17,6 +17,12 @@ export type TransferJobStatus =
   | 'cancelled'
   | 'unknown';
 
+export function transferHealthLabel(status: TransferHealthStatus | 'loading') {
+  if (status === 'binary_missing') return 'aria2c not found';
+  if (status === 'locked') return 'In use by another process';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export type TransferHealth = {
   ready: boolean;
   status: TransferHealthStatus;

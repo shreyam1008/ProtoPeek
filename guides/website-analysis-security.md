@@ -94,6 +94,17 @@ refused.
 CSRF protects loopback browser mutations, but it is not user authentication and does not weaken the
 destination policy. Nothing runs on page load.
 
+### Current-source failure and response interpretation
+
+The website check is first on the Security page. Unsuccessful observations identify the last
+stage (DNS/address validation, connection, TLS handshake, or HTTP response) without returning raw
+transport errors or private addresses. A timeout does not mean that the website is down. The
+15-second whole-operation limit includes DNS; a slow resolver can leave little time for the server.
+
+Redirects, error/access responses, and servers that reject HEAD have explicit explanatory copy.
+Their headers describe that one response, not the destination page or an authenticated browser GET.
+No automatic retry, GET fallback, redirect following, or relaxed TLS verification was added.
+
 ## Planned, not shipped
 
 The current Security page labels these ideas as planned. None is a current API or product claim:

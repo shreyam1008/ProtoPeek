@@ -198,7 +198,7 @@ describe('Settings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('config write refused');
-    expect(screen.getAllByText('stopped')[0]).toBeVisible();
+    expect(screen.getAllByText('Stopped')[0]).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Reload host settings' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('snapshot unavailable');
@@ -233,7 +233,13 @@ describe('Settings', () => {
     await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
 
     expect(screen.getByRole('button', { name: 'Save host settings' })).toBeDisabled();
-    expect(screen.getAllByText(status)[0]).toBeVisible();
+    expect(
+      screen.getAllByText(
+        status === 'locked'
+          ? 'In use by another process'
+          : status.charAt(0).toUpperCase() + status.slice(1)
+      )[0]
+    ).toBeVisible();
     expect(
       fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname.endsWith('/config'))
     ).toBe(false);
@@ -260,7 +266,9 @@ describe('Settings', () => {
     await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
 
     expect(screen.getByRole('button', { name: 'Save host settings' })).toBeEnabled();
-    expect(screen.getAllByText(status)[0]).toBeVisible();
+    expect(
+      screen.getAllByText(status === 'binary_missing' ? 'aria2c not found' : 'Failed')[0]
+    ).toBeVisible();
     expect(
       fetchMock.mock.calls.some(([input]) => new URL(String(input)).pathname.endsWith('/config'))
     ).toBe(false);

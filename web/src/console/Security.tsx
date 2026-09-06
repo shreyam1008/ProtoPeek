@@ -4,13 +4,9 @@ import {
   ArrowRight,
   CircleAlert,
   Clock3,
-  Globe2,
   KeyRound,
   LoaderCircle,
   LockKeyhole,
-  Network,
-  Radar,
-  Route,
   Search,
   ShieldCheck,
   Square,
@@ -34,31 +30,27 @@ const WebsiteEvidenceReport = lazy(() => import('./WebsiteEvidenceReport'));
 const evidenceTools = [
   {
     title: 'DNS evidence',
-    detail: 'See resolution answers and the address pinned for a measured path run.',
+    detail: 'Resolution and pinned addresses.',
     action: 'Open DNS evidence',
     to: '/network/path' as const,
-    icon: Globe2,
   },
   {
     title: 'Next-hop route',
-    detail: 'Read the kernel-selected source, interface, gateway, prefix, metric, and table.',
+    detail: 'Kernel-selected route and interface.',
     action: 'Open route evidence',
     to: '/network/route' as const,
-    icon: Route,
   },
   {
     title: 'Measured path',
-    detail: 'Run an explicit bounded hop trace with source-to-responder RTT evidence.',
+    detail: 'Bounded hop trace, where supported.',
     action: 'Open network path',
     to: '/network/path' as const,
-    icon: Network,
   },
   {
     title: 'Local discovery',
-    detail: 'Inspect an authorized private /24-or-smaller plan with selected ports only.',
+    detail: 'Authorized private /24-or-smaller scan.',
     action: 'Open local discovery',
     to: '/network/local' as const,
-    icon: Radar,
   },
 ] as const;
 
@@ -162,9 +154,9 @@ export function Security() {
     <div className="pp-security">
       <header className="pp-security-heading">
         <div>
-          <span className="pp-security-kicker">Passive domain intelligence</span>
+          <span className="pp-security-kicker">Website & domain evidence</span>
           <h1>Security</h1>
-          <p>Collect bounded evidence first. ProtoPeek does not invent a vulnerability verdict.</p>
+          <p>Check one response or look up historical names. Neither is a security audit.</p>
         </div>
         <div className="pp-security-local">
           <ShieldCheck aria-hidden="true" />
@@ -174,6 +166,8 @@ export function Security() {
           </span>
         </div>
       </header>
+
+      <WebsiteObservationPanel />
 
       <section className="pp-security-query" aria-labelledby="domain-query-title">
         <header>
@@ -301,8 +295,6 @@ export function Security() {
         </aside>
       </div>
 
-      <WebsiteObservationPanel />
-
       <section className="pp-security-evidence" aria-labelledby="security-evidence-title">
         <header>
           <div className="pp-security-boundary-item">
@@ -313,10 +305,8 @@ export function Security() {
         </header>
         <div className="pp-security-evidence-grid">
           {evidenceTools.map((tool) => {
-            const Icon = tool.icon;
             return (
               <Link key={tool.title} to={tool.to} className="pp-security-evidence-card">
-                <Icon aria-hidden="true" />
                 <span>
                   <strong>{tool.title}</strong>
                   <small>{tool.detail}</small>
@@ -329,30 +319,12 @@ export function Security() {
         </div>
       </section>
 
-      <section className="pp-security-planned" aria-labelledby="security-planned-title">
-        <header>
-          <span>Not in this build</span>
-          <h2 id="security-planned-title">Planned authorized probing</h2>
-        </header>
-        <div className="pp-security-planned-grid">
-          <article>
-            <span>Planned</span>
-            <strong>Consent-bound website probe plans</strong>
-            <p>
-              Multi-request public-site plans with a visible method, count, timeout, and stop
-              control are not shipped. The observer above remains exactly one HEAD request.
-            </p>
-          </article>
-          <article>
-            <span>Planned</span>
-            <strong>Selected-port security handoff</strong>
-            <p>
-              A public-only, user-selected port handoff is not shipped. No login attempts,
-              credential testing, exploit checks, or broad scans run from this screen.
-            </p>
-          </article>
-        </div>
-      </section>
+      <aside className="pp-security-planned" aria-label="Not in this build">
+        <p>
+          <strong>Not in this build:</strong> multi-request website plans, selected-port security
+          handoffs, or active vulnerability scans.
+        </p>
+      </aside>
     </div>
   );
 }
@@ -517,7 +489,13 @@ function WebsiteObservationPanel() {
           {phase === 'error' ? (
             <div className="pp-security-message is-error" role="alert">
               <CircleAlert aria-hidden="true" />
-              <span>{message}</span>
+              <span>
+                {message}
+                <small className="pp-security-recovery">
+                  Review the URL and your connection, then acknowledge a new request to try again.
+                  No retry runs automatically.
+                </small>
+              </span>
             </div>
           ) : null}
           {phase === 'cancelled' ? (
@@ -586,6 +564,16 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
           <small>{observedAtLabel(result.observedAt)}</small>
         </span>
       </div>
+
+      <p className="pp-security-response-context">
+        {result.http.statusCode >= 300 && result.http.statusCode < 400
+          ? 'This is the redirect response, not the destination page. Its headers may differ from the final page; no redirect was followed.'
+          : result.http.statusCode === 405 || result.http.statusCode === 501
+            ? 'The server did not accept HEAD for this resource. This response does not describe what a browser GET would return. ProtoPeek did not retry with another method.'
+            : result.http.statusCode >= 400
+              ? 'The server returned an error or access response to this HEAD request. These headers describe that response, not necessarily the page a signed-in browser sees.'
+              : 'One response from this device, at this time. CDN routing, request method, and server configuration can change the evidence on another run.'}
+      </p>
 
       <div className="pp-security-observation-grid">
         <article>

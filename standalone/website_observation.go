@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"strings"
 
@@ -87,11 +88,20 @@ func setWebsiteObservationHeaders(writer http.ResponseWriter) {
 }
 
 func writeWebsiteObservationError(writer http.ResponseWriter, err error) {
+	var phaseError *webobserve.PhaseError
+	phase := ""
+	if errors.As(err, &phaseError) {
+		switch phaseError.Phase {
+		case "DNS and address validation", "connection", "TLS handshake", "HTTP response":
+			phase = " during " + phaseError.Phase
+		}
+	}
+	var networkError net.Error
 	switch {
 	case errors.Is(err, context.Canceled):
 		http.Error(writer, "Website observation cancelled", 499)
-	case errors.Is(err, context.DeadlineExceeded):
-		http.Error(writer, "Website observation timed out", http.StatusGatewayTimeout)
+	case errors.Is(err, context.DeadlineExceeded), errors.As(err, &networkError) && networkError.Timeout():
+		http.Error(writer, "Website observation timed out"+phase+". No complete HEAD response was retained. This does not establish that the website is down.", http.StatusGatewayTimeout)
 	case errors.Is(err, targetguard.ErrInvalidTarget),
 		errors.Is(err, targetguard.ErrAddressBlocked),
 		errors.Is(err, targetguard.ErrTooManyAddresses):
@@ -101,6 +111,6 @@ func writeWebsiteObservationError(writer http.ResponseWriter, err error) {
 			http.StatusBadRequest,
 		)
 	default:
-		http.Error(writer, "Website observation failed", http.StatusBadGateway)
+		http.Error(writer, "Website observation failed"+phase+". No complete HEAD response was retained; TLS verification and public-address restrictions remain enabled.", http.StatusBadGateway)
 	}
 }

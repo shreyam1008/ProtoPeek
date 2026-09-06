@@ -92,9 +92,9 @@ describe('Security', () => {
     expect(
       screen.getByRole('heading', { name: 'Observe one public website response' })
     ).toBeVisible();
-    expect(screen.getAllByText('Planned')).toHaveLength(2);
-    expect(screen.getByText('Consent-bound website probe plans')).toBeVisible();
-    expect(screen.getByText('Selected-port security handoff')).toBeVisible();
+    expect(screen.getByRole('complementary', { name: 'Not in this build' })).toHaveTextContent(
+      'multi-request website plans, selected-port security handoffs, or active vulnerability scans'
+    );
     expect(screen.getByRole('link', { name: /Open DNS evidence/i })).toHaveAttribute(
       'href',
       '/network/path'
