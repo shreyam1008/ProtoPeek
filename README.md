@@ -1,5 +1,7 @@
 # ProtoPeek
 
+Official downloads and package links: [ProtoPeek distribution tracker](https://shreyam1008.com.np/projects/#distribution-protopeek). Stable release, Homebrew and Scoop links are kept separate from planned distribution channels.
+
 ProtoPeek (Protocol Peek) is the lightweight local workbench for finding, reaching, inspecting, and
 safely exposing services. Its protocol-native gRPC and HTTP surfaces keep transport details visible.
 Its bounded evidence tools add DNS and kernel-route context, Linux-native active hop observations,

@@ -565,6 +565,7 @@ function Privacy() {
 function Footer() {
   return (
     <footer className="border-t border-black/10 bg-white">
+      <p className="mx-auto max-w-7xl px-5 pt-6 text-sm sm:px-8 lg:px-12"><a className="underline" href="https://shreyam1008.com.np/projects/#distribution-protopeek">Install channels and publication status</a></p>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 text-sm text-neutral-500 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
         <p>
           ProtoPeek · Built by{' '}
