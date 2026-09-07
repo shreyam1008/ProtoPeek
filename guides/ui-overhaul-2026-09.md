@@ -52,7 +52,7 @@ fuzzy command search and roadmap filtering were exercised. Opening tools did not
 | Local discovery | Explicit own-device /32, four-port plan completed; no broad network scan |
 | This Device | Real Windows interface and socket-owner observations; bounded socket table |
 | Packets | Uploaded a 75-packet PCAP, filtered to 25 DNS packets and opened decoded packet details |
-| Downloads | Bundled aria2 1.37.0 started on request; 1 MiB transfer completed into a new destination folder; exact file size verified |
+| Downloads | Bundled aria2 1.37.0 started on request; 1 MiB transfer completed into a new destination folder; exact file size verified; saved completion retained after restarting ProtoPeek |
 | Website | One HEAD request to the owner's website returned 200, HTTP/2 and verified TLS 1.3 evidence |
 | Tailscale | Installed client returned real peers through explicit read-only inspection |
 | Cloudflare and Nmap | Missing executables/service reported accurately; unavailable actions remained disabled |
@@ -74,6 +74,7 @@ The built app measures 1,125,024 bytes of JavaScript (370,820 gzip) and 342,940 
 budgets were adjusted for the shared responsive layouts and website evidence styling; startup
 JavaScript ceilings remain unchanged. These are asset sizes, not runtime RAM measurements.
 
-The UI suite passes 775 tests in 88 files. Full Go tests, typechecking, formatting/lint,
-production app/site generation and bundle limits are required before publishing this change.
+The final UI suite passes 776 tests in 88 files. Full Go tests, typechecking, formatting/lint,
+production app/site generation and bundle limits passed before publication. Lint retains
+non-blocking CSS specificity warnings from the shared and legacy route styles.
 Stable v0.6.1 remains separate from the current-source edge build.
