@@ -12,6 +12,7 @@ for (const source of manifest) {
   let data: Uint8Array | undefined;
   try { data = await readFile(path); } catch { /* Fetch a missing source. */ }
   if (!data) {
+    console.log(`Fetching ${source.name} from ${source.url}`);
     data = await fetchSourceArchive(source.url);
   }
   const actualHash = createHash('sha256').update(data).digest('hex');
