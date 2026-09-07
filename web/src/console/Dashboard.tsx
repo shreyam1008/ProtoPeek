@@ -10,6 +10,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import { compactDate, displayBuildVersion } from '@/shared/runtime';
 
@@ -80,7 +81,7 @@ export function Dashboard() {
 
   return (
     <div className="pp-dashboard">
-      <header className="pp-dashboard-hero">
+      <PageHeader className="pp-dashboard-hero">
         <div>
           <span className="pp-kicker">ProtoPeek · {version}</span>
           <h1>What do you need to check?</h1>
@@ -94,7 +95,7 @@ export function Dashboard() {
           </span>
           <ArrowRight aria-hidden="true" />
         </button>
-      </header>
+      </PageHeader>
 
       <div className="pp-dashboard-grid">
         <section className="pp-dashboard-section pp-start-section" aria-labelledby="start-title">

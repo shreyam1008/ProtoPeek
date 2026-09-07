@@ -1,12 +1,12 @@
 import { Plus, Save } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
-
 import {
   type NetworkGroup,
   type NetworkWorkspaceV1,
   networkWorkspaceLimits,
 } from '@/console/network-model';
 import type { NetworkStoreMetadata } from '@/console/network-store';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { ExportActions, NetworkEmptyState } from '../NetworkWorkspaceActions';
 
 export const loadTopologyCanvas = () => import('@/console/TopologyCanvas');
@@ -36,7 +36,7 @@ export function NetworkMapPage({
 }) {
   return (
     <section className="pp-network-map-page" aria-labelledby="network-map-title">
-      <header className="pp-network-page-heading">
+      <PageHeader className="pp-network-page-heading">
         <div>
           <span className="pp-kicker">Infinite drafting surface + accessible inventory</span>
           <h1 id="network-map-title">Network evidence map</h1>
@@ -51,7 +51,7 @@ export function NetworkMapPage({
           dirty={dirty}
           onSelect={onSelect}
         />
-      </header>
+      </PageHeader>
 
       {loading ? <p className="pp-network-loading">Loading saved workspaces…</p> : null}
       {!loading && !workspace ? <NetworkEmptyState /> : null}

@@ -8,8 +8,9 @@ import {
 } from '@tanstack/react-router';
 
 import { ProtocolFrame } from './ProtocolFrame';
+import { RouteError, RouteNotFound, RoutePending } from './shell/RouteState';
 
-const rootRoute = createRootRoute({ component: ProtocolFrame });
+const rootRoute = createRootRoute({ component: ProtocolFrame, notFoundComponent: RouteNotFound });
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
@@ -194,7 +195,15 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function createProtoPeekRouter(history = createHashHistory()) {
-  return createRouter({ routeTree, history, defaultPreload: 'intent' });
+  return createRouter({
+    routeTree,
+    history,
+    defaultPreload: 'intent',
+    defaultPendingMs: 120,
+    defaultPendingMinMs: 160,
+    defaultPendingComponent: RoutePending,
+    defaultErrorComponent: RouteError,
+  });
 }
 
 export const router = createProtoPeekRouter();

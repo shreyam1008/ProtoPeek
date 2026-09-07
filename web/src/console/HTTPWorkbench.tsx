@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import type { HTTPHistoryEntry, HTTPResponse, MetadataEntry } from '@/shared/types';
 import {
@@ -627,7 +628,7 @@ export function HTTPWorkbench() {
 
   return (
     <div className="pp-http-workbench">
-      <header className="pp-http-header">
+      <PageHeader className="pp-http-header">
         <div>
           <i className="pp-http-glyph" aria-hidden="true">
             H
@@ -722,7 +723,7 @@ export function HTTPWorkbench() {
             )}
           </div>
         </details>
-      </header>
+      </PageHeader>
 
       <div className="pp-http-request-line">
         <select

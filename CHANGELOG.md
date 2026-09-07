@@ -5,6 +5,16 @@ version source of truth.
 
 ## Unreleased
 
+- Redesigned every embedded workspace around a permanent destination rail and grouped tool navigator.
+  Destination switches resume the last tool, with validated browser-session route references.
+  Network tools retain their navigation across device, scanner, path, map and history routes.
+- Unified page headers, controls, empty/loading/error states, desktop spacing and responsive layouts.
+  Reworked the gRPC launcher, Home, website evidence, download queue, local discovery, agent setup
+  and roadmap search/status filters. Existing deep links, drafts and evidence workflows remain.
+- Downloads can create a newly selected destination folder before the disk-reserve check.
+  Blocked paths remain rejected; transfer files and host settings retain their existing ownership.
+
+
 - Local AI agent connection: `protopeek mcp` exposes eleven bounded tools and an instruction resource;
   `protopeek agent tools`, `guide` and `call` provide the same workflows through a JSON CLI.
   Agents attach to the running UI's services with explicit local pairing and separate write access.

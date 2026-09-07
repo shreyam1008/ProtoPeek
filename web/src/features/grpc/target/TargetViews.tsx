@@ -4,7 +4,7 @@ import type { ScanResult } from '@/console/api';
 import { DiscoveryPanel } from '@/console/DiscoveryScanner';
 import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
-import { ProtoPeekMark } from '@/console/ProtoPeekMark';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { GrpcStatusBanner } from '@/features/grpc/GrpcViewPrimitives';
 import { TargetForm } from '@/features/grpc/target/TargetForm';
 import type { BrowserProtoFolderSelection } from '@/shared/proto-folder';
@@ -176,33 +176,16 @@ export function LauncherView({
   const protocolShell = useContext(ProtocolShellContext);
   return (
     <div className="pp-launcher">
-      <header className="pp-launcher-header">
-        <div className="pp-wordmark">
-          <span className="pp-wordmark-icon">
-            <ProtoPeekMark />
-          </span>
-          <span>ProtoPeek</span>
-          <span className="pp-version">{displayBuildVersion(bootstrap.version)}</span>
-        </div>
-        <span className="pp-local-indicator">
-          <LockKeyhole aria-hidden="true" /> Local console
-        </span>
-      </header>
-      {notices}
-      <div className="pp-launcher-main">
-        <section className="pp-launcher-intro">
-          <span className="pp-kicker">gRPC workbench</span>
+      <PageHeader>
+        <div>
           <h1>Open a gRPC target.</h1>
           <p>Connect with reflection, a proto folder, or a saved schema.</p>
-          <ProtocolInfo protocol="grpc" />
-          <div className="pp-trust-row">
-            <span>Auto-find loopback services</span>
-            <span>
-              <LockKeyhole aria-hidden="true" /> No account, cloud, or database
-            </span>
-          </div>
-        </section>
-
+        </div>
+        <ProtocolInfo protocol="grpc" />
+        <span className="pp-version">{displayBuildVersion(bootstrap.version)}</span>
+      </PageHeader>
+      {notices}
+      <div className="pp-launcher-main">
         <section className="pp-launcher-card" aria-labelledby="connect-title">
           <div className="pp-card-heading">
             <div>

@@ -451,6 +451,9 @@ func (service *Service) Add(ctx context.Context, request AddRequest) (AddResult,
 	if request.DestinationDirectory != "" {
 		downloadDirectory = request.DestinationDirectory
 	}
+	if err := os.MkdirAll(downloadDirectory, 0o755); err != nil {
+		return AddResult{}, fmt.Errorf("%w: prepare destination directory: %v", ErrInvalidAddRequest, err)
+	}
 	free, err := availableDiskBytes(downloadDirectory)
 	if err != nil {
 		return AddResult{}, fmt.Errorf("inspect free disk space: %w", err)

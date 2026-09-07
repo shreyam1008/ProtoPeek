@@ -43,6 +43,7 @@ const bootstrap: BootstrapResponse = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.clear();
   window.localStorage.clear();
 });
 
@@ -276,7 +277,7 @@ describe('protocol routes', () => {
     );
     expect(screen.getByText('Owned package channels')).toBeInTheDocument();
     expect(
-      screen.getByText(/install checksum-pinned v0\.5\.0 archives, declare aria2/)
+      screen.getByText(/install checksum-pinned v0\.6\.1 archives, declare aria2/)
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Downloader', level: 3 })).toBeInTheDocument();
     expect(

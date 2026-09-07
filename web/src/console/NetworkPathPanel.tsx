@@ -9,6 +9,8 @@ import {
   Square,
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import { classNames, compactDate } from '@/shared/runtime';
 import type { IPAttribution } from './ip-attribution';
@@ -157,7 +159,7 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
 
   return (
     <section className="pp-network-path" aria-labelledby="network-path-title">
-      <header className="pp-network-page-heading">
+      <PageHeader className="pp-network-page-heading">
         <div>
           <h1 id="network-path-title">Network path</h1>
           <p>Measure hops from this PC. Inspect replies, timeouts, and optional provider labels.</p>
@@ -176,7 +178,7 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
             <LoaderCircle aria-hidden="true" /> Checking capability
           </span>
         )}
-      </header>
+      </PageHeader>
 
       <details className="pp-path-target-examples">
         <summary>Example targets · Cloudflare / Google DNS</summary>
@@ -421,15 +423,9 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
 
 function PathEmptyState() {
   return (
-    <div className="pp-path-empty">
-      <Network aria-hidden="true" />
-      <div>
-        <strong>No active trace yet</strong>
-        <p>
-          Choose a target, review the fixed plan, authorize it, then trace. Nothing runs on load.
-        </p>
-      </div>
-    </div>
+    <EmptyState title="No active trace yet">
+      Choose a target, review the fixed plan, authorize it, then trace. Nothing runs on load.
+    </EmptyState>
   );
 }
 

@@ -7,6 +7,8 @@ import {
   useTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { fetchJSON, type NmapImportResponse } from './api';
 import { previewNmapPlan } from './nmap-plan';
 import { ProtocolInfo } from './ProtocolInfo';
@@ -209,10 +211,10 @@ export function NmapScanner() {
   }
   return (
     <section className="pp-ports" aria-label="Nmap scanner">
-      <header>
+      <PageHeader>
         <h1>Nmap</h1>
         <ProtocolInfo protocol="nmap" />
-      </header>
+      </PageHeader>
       <div className="pp-ports-status">
         <span>{checking ? 'Checking installation…' : capability?.message}</span>
         <button type="button" disabled={checking || busy} onClick={() => void check()}>
@@ -299,6 +301,15 @@ export function NmapScanner() {
       <span role="status">{message || 'Ready. No scan has run.'}</span>
       {error ? <p role="alert">{error}</p> : null}
       {storageWarning ? <p role="status">{storageWarning}</p> : null}
+      {!result && (
+        <EmptyState
+          title={busy ? 'Scanning the selected network' : 'Discover hosts and services'}
+          busy={busy}
+        >
+          Choose a target and ports, review the check count, and authorize the scan. Observations
+          and service evidence will appear here.
+        </EmptyState>
+      )}
       {result ? (
         <>
           <div className="pp-ports-status">

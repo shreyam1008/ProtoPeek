@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { Bot, Check, Copy, LoaderCircle, RefreshCw, Square, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { type AgentResult, type AgentState, agentFetch } from './agent-api';
 import { normalizeHTTPResponse } from './api';
 import { featureForPath } from './app/feature-registry';
@@ -165,7 +166,7 @@ export function AgentWorkbench() {
 
   return (
     <div className="pp-agent-workbench">
-      <header className="pp-agent-heading">
+      <PageHeader className="pp-agent-heading">
         <div>
           <Bot aria-hidden="true" />
           <h1>AI agents</h1>
@@ -174,7 +175,7 @@ export function AgentWorkbench() {
         <span className={`pp-agent-status ${snapshot?.enabled ? 'is-enabled' : ''}`}>
           {snapshot ? (snapshot.enabled ? 'Connection enabled' : 'Connection off') : 'Connecting…'}
         </span>
-      </header>
+      </PageHeader>
       {error ? (
         <p className="pp-agent-error" role="alert">
           {error}
@@ -187,26 +188,7 @@ export function AgentWorkbench() {
             Your agent runs the tools. You see the evidence here. ProtoPeek does not run an AI model
             or require an account.
           </p>
-          <ol>
-            <li>
-              <strong>Pair this workbench</strong>
-              <p>
-                Save a private connection file on this machine. Keep ProtoPeek running; pair again
-                after a restart.
-              </p>
-            </li>
-            <li>
-              <strong>Add ProtoPeek to your agent</strong>
-              <p>
-                This MCP entry uses the running binary and its pairing file, so your agent attaches
-                to this workbench.
-              </p>
-            </li>
-            <li>
-              <strong>Ask for a real check</strong>
-              <p>Requests, results and cancellation appear alongside your work.</p>
-            </li>
-          </ol>
+
           <label className="pp-agent-check">
             <input
               type="checkbox"
@@ -248,6 +230,29 @@ export function AgentWorkbench() {
           <figure aria-label="MCP configuration">
             <pre>{setup}</pre>
           </figure>
+          <details>
+            <summary>Connection walkthrough</summary>
+            <ol>
+              <li>
+                <strong>Pair this workbench</strong>
+                <p>
+                  Save a private connection file on this machine. Keep ProtoPeek running; pair again
+                  after a restart.
+                </p>
+              </li>
+              <li>
+                <strong>Add ProtoPeek to your agent</strong>
+                <p>
+                  This MCP entry uses the running binary and its pairing file, so your agent
+                  attaches to this workbench.
+                </p>
+              </li>
+              <li>
+                <strong>Ask for a real check</strong>
+                <p>Requests, results and cancellation appear alongside your work.</p>
+              </li>
+            </ol>
+          </details>
           <details>
             <summary>CLI and agent instructions</summary>
             <p>Agents that use a shell can discover the same tools and JSON schemas:</p>

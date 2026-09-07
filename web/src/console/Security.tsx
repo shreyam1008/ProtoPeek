@@ -11,6 +11,8 @@ import {
   Square,
 } from 'lucide-react';
 import { type FormEvent, lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import {
   type DomainCandidatesResult,
@@ -172,13 +174,13 @@ export function Security() {
 
   return (
     <div className="pp-security">
-      <header className="pp-security-heading">
+      <PageHeader className="pp-security-heading">
         <div>
           <h1>Security</h1>
           <p>Website responses, certificates, paths, and historical subdomains.</p>
         </div>
         <ProtocolInfo protocol="website" />
-      </header>
+      </PageHeader>
 
       <div className="pp-security-layout">
         <AccessibleTabs
@@ -574,11 +576,9 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
       <div className="pp-security-website-workspace" aria-busy={phase === 'loading'}>
         <div className="pp-security-website-result">
           {phase === 'idle' ? (
-            <div className="pp-security-empty">
-              <LockKeyhole aria-hidden="true" />
-              <h3>No website request has run.</h3>
-              <p>Enter a public URL, review the exact contact boundary, then opt in once.</p>
-            </div>
+            <EmptyState title="No website request has run.">
+              Enter a public URL, review the exact contact boundary, then opt in once.
+            </EmptyState>
           ) : null}
           {phase === 'loading' ? (
             <div className="pp-security-empty" role="status" aria-live="polite">

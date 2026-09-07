@@ -574,7 +574,10 @@
         "Visible results and cancellation"
       ],
       "visual": "settings",
-      "sitemap": { "changefreq": "monthly", "priority": "0.8" },
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.8"
+      },
       "lastModified": "2026-09-07"
     },
     {
@@ -726,6 +729,53 @@
         "changefreq": "monthly",
         "priority": "0.5"
       }
+    },
+    {
+      "id": "workspace-ui",
+      "path": "/workspace-ui/",
+      "slug": "workspace-ui",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "getting-started",
+      "title": "Workspace navigation and design",
+      "documentTitle": "ProtoPeek Workspace UI | Navigation, Tools & Local State",
+      "description": "Find every ProtoPeek tool in six consistent destinations, resume the last workspace, and understand the current-source UI review and its limits.",
+      "question": "Where does each tool belong?",
+      "section": "Workspace guide",
+      "sourcePath": "guides/ui-overhaul-2026-09.md",
+      "status": {
+        "label": "Current source",
+        "tone": "current",
+        "detail": "The UI overhaul is on the explicit edge channel; stable remains v0.6.1."
+      },
+      "highlights": [
+        "Persistent tool navigation",
+        "Shared workspace layouts",
+        "Browser-tested workflows"
+      ],
+      "visual": "hub",
+      "flow": [
+        {
+          "verb": "Choose",
+          "title": "Start with a destination",
+          "detail": "Inspect requests, understand the network, publish a service, or transfer files."
+        },
+        {
+          "verb": "Work",
+          "title": "Keep context while switching tools",
+          "detail": "The tool navigator stays in place and each destination resumes its last tool."
+        },
+        {
+          "verb": "Review",
+          "title": "Keep evidence and controls distinct",
+          "detail": "Inspect results, cancel active work and save supported local state explicitly."
+        }
+      ],
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.6"
+      },
+      "lastModified": "2026-09-07"
     }
   ]
 }

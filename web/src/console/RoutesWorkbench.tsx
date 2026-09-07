@@ -1,5 +1,7 @@
 import { AlertTriangle, ArrowRight, LoaderCircle, Network, Route, Square } from 'lucide-react';
 import { type FormEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import { classNames } from '@/shared/runtime';
 
@@ -91,7 +93,7 @@ export function RoutesWorkbench() {
 
   return (
     <div className="pp-evidence-workbench pp-routes-workbench">
-      <header className="pp-evidence-hero">
+      <PageHeader className="pp-evidence-hero">
         <div>
           <span className="pp-kicker">Read-only kernel evidence</span>
           <h1>Next-hop route</h1>
@@ -102,7 +104,7 @@ export function RoutesWorkbench() {
         <span className="pp-local-indicator">
           <Route aria-hidden="true" /> No route probes
         </span>
-      </header>
+      </PageHeader>
 
       <form className="pp-route-controls" onSubmit={handleLookup}>
         <label>
@@ -179,6 +181,12 @@ export function RoutesWorkbench() {
           {error}
         </p>
       ) : null}
+      {!response && !loading && !error && (
+        <EmptyState title="See where your connection will go">
+          Enter a destination to inspect the selected source address, interface and next hop from
+          this machine.
+        </EmptyState>
+      )}
       {response ? (
         <section className="pp-route-results" aria-labelledby="route-results-heading">
           <header>

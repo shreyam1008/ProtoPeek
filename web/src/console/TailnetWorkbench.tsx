@@ -6,6 +6,8 @@ import {
   useTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { fetchJSON } from './api';
 import { DirectoryPicker } from './DirectoryPicker';
 import { ProtocolInfo } from './ProtocolInfo';
@@ -170,7 +172,7 @@ export function TailnetWorkbench() {
   }
   return (
     <section className="pp-tailnet" aria-label="Tailscale workbench">
-      <header>
+      <PageHeader>
         <h1>Tailscale</h1>
         <ProtocolInfo protocol="tailscale" />
         <button type="button" disabled={!!busy} onClick={() => void inspect()}>
@@ -181,7 +183,7 @@ export function TailnetWorkbench() {
             Cancel operation
           </button>
         ) : null}
-      </header>
+      </PageHeader>
       <p role="status">
         {busy || message || 'Read the installed client when needed. No background refresh.'}
       </p>
@@ -193,10 +195,10 @@ export function TailnetWorkbench() {
         </p>
       ))}
       {!snapshot ? (
-        <p>
-          Devices, accounts, exit nodes, connection diagnostics and Taildrop, using this computer’s
-          existing Tailscale client.
-        </p>
+        <EmptyState title="Your private network, in one place">
+          Inspect the installed Tailscale client to see devices, accounts, exit nodes, connection
+          diagnostics and Taildrop.
+        </EmptyState>
       ) : !snapshot.available ? (
         <p>
           <a href="https://tailscale.com/download" target="_blank" rel="noreferrer">

@@ -34,6 +34,7 @@ import { normalizeRecentDiscoveries } from './recent-discovery';
 import { DesktopShell } from './shell/DesktopShell';
 import { useDialogFocus } from './use-dialog-focus';
 import './shell/shell.css';
+import './shell/workbench-ui.css';
 
 const ScanTargetDialog = lazy(async () => {
   const module = await import('./ScanTargetDialog');

@@ -129,8 +129,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'console CSS',
     pattern: /^index-.+\.css$/,
-    maxRawBytes: 141 * kibibyte,
-    maxGzipBytes: 27 * kibibyte,
+    // Shared navigation, responsive workspace grammar and recoverable route states.
+    // September UI review: 156,669 raw / 28,912 gzip; see guides/ui-overhaul-2026-09.md.
+    maxRawBytes: 155 * kibibyte,
+    maxGzipBytes: 29 * kibibyte,
   },
   // Network diagnostics stay dependency-free and route-lazy. Budget every lazy stage together so
   // moving code between the shell, local scan, topology canvas, and shared model cannot hide growth.
@@ -281,9 +283,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Native settings sections and truthful gRPC clipboard results: 1,106,550 raw / 350,226 gzip.
     // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
     // No model runtime, polling in other routes, or additional startup dependency.
-    maxRawBytes: 1098 * kibibyte,
+    // Navigation resume and searchable roadmap: 1,125,024 raw / 370,820 gzip.
+    maxRawBytes: 1104 * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 362 * kibibyte,
+    maxGzipBytes: 364 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -293,8 +296,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // aggregate includes every route-lazy feature stylesheet. The Tunnels
     // slice moves the measured suite baseline to 298,722 raw / 53,806 gzip
     // bytes; keep small explicit headroom without hiding route growth.
-    maxRawBytes: 310 * kibibyte,
-    maxGzipBytes: 63 * kibibyte,
+    // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
+    // No dependency added; startup JS limits remain unchanged.
+    maxRawBytes: 336 * kibibyte,
+    maxGzipBytes: 67 * kibibyte,
   },
 ];
 

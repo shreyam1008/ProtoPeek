@@ -1,7 +1,7 @@
 import { Trash2 } from 'lucide-react';
-
 import type { NetworkWorkspaceV1 } from '@/console/network-model';
 import type { NetworkStoreMetadata } from '@/console/network-store';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { ExportActions, NetworkEmptyState } from '../NetworkWorkspaceActions';
 
 export function NetworkHistoryPage({
@@ -31,7 +31,7 @@ export function NetworkHistoryPage({
 }) {
   return (
     <section className="pp-network-history" aria-labelledby="network-history-title">
-      <header className="pp-network-page-heading">
+      <PageHeader className="pp-network-page-heading">
         <div>
           <span className="pp-kicker">Browser-local, bounded, exportable</span>
           <h1 id="network-history-title">Network history</h1>
@@ -41,7 +41,7 @@ export function NetworkHistoryPage({
           </p>
         </div>
         {workspace ? <ExportActions onExport={onExport} /> : null}
-      </header>
+      </PageHeader>
       {loading ? <p className="pp-network-loading">Loading saved workspaces…</p> : null}
       {dirty ? (
         <p className="pp-network-loading">Save or discard map edits before changing history.</p>

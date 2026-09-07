@@ -1,0 +1,1281 @@
+/* Shared workbench grammar. Route styles only own domain-specific evidence. */
+.pp-workbench-shell {
+  --pp-workspace-gutter: 24px;
+  grid-template-columns: 264px minmax(0, 1fr);
+  font-size: 13px;
+  background: var(--pp-color-canvas);
+}
+.pp-workbench-shell .pp-app-bar {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--pp-color-chrome);
+}
+.pp-destination-rail {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  border-right: 1px solid var(--pp-color-stroke);
+  padding: 10px 6px;
+  background: var(--pp-color-surface-sunken);
+}
+.pp-workbench-shell .pp-app-brand {
+  justify-content: center;
+  flex: none;
+  height: 40px;
+  padding: 0;
+}
+.pp-workbench-shell .pp-app-brand strong {
+  display: none;
+}
+.pp-workbench-shell .pp-app-brand svg {
+  width: 24px;
+  height: 24px;
+}
+.pp-workbench-shell .pp-app-navigation {
+  gap: 8px;
+  margin-top: 18px;
+  padding: 0;
+}
+.pp-workbench-shell .pp-app-navigation-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  min-height: 52px;
+  padding: 6px 2px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 550;
+  color: var(--pp-color-text-muted);
+  box-shadow: none;
+}
+.pp-workbench-shell .pp-app-navigation-link::after {
+  display: none;
+}
+.pp-workbench-shell .pp-app-navigation-link svg {
+  width: 19px;
+  height: 19px;
+}
+.pp-workbench-shell .pp-app-navigation-link.is-active {
+  color: var(--pp-color-accent-strong);
+  border-color: color-mix(in srgb, var(--pp-color-accent) 25%, transparent);
+  background: var(--pp-color-accent-soft);
+}
+.pp-rail-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+.pp-tool-sidebar {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+.pp-tool-sidebar-heading {
+  display: grid;
+  gap: 4px;
+  padding: 23px 16px 18px;
+}
+.pp-tool-sidebar-heading strong {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.pp-tool-sidebar-heading > span {
+  color: var(--pp-color-text-faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pp-workbench-shell .pp-tool-sidebar > .pp-app-command {
+  width: auto;
+  flex: none;
+  margin: 0 12px 12px;
+  height: 32px;
+  font-size: 11px;
+  font-weight: 400;
+  background: var(--pp-color-surface);
+}
+.pp-tool-sidebar-content {
+  min-height: 0;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+.pp-tool-navigation {
+  display: grid;
+  gap: 20px;
+  padding: 8px 12px 20px;
+}
+.pp-tool-group {
+  display: grid;
+  gap: 3px;
+}
+.pp-tool-group-label {
+  padding: 0 8px 7px;
+  color: var(--pp-color-text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+}
+.pp-tool-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 33px;
+  min-width: 0;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  color: var(--pp-color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+.pp-tool-link:hover {
+  color: var(--pp-color-text);
+  background: var(--pp-color-hover);
+}
+.pp-tool-link.is-active {
+  color: var(--pp-color-accent-strong);
+  background: var(--pp-color-accent-soft);
+  border-color: color-mix(in srgb, var(--pp-color-accent) 18%, transparent);
+  font-weight: 600;
+}
+.pp-tool-link svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.pp-recent-workspaces {
+  margin: 8px 12px 16px;
+  border-top: 1px solid var(--pp-color-stroke);
+  padding-top: 12px;
+}
+.pp-recent-workspaces > summary {
+  color: var(--pp-color-text-faint);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 6px;
+}
+.pp-recent-workspaces .pp-session-strip {
+  border: 0;
+  margin: 4px 0 0;
+  min-height: 0;
+  max-height: 240px;
+}
+.pp-recent-workspaces .pp-session-heading {
+  display: none;
+}
+.pp-recent-workspaces .pp-session-item {
+  border-color: transparent;
+  background: transparent;
+}
+.pp-workbench-shell .pp-tool-sidebar .pp-app-actions {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid var(--pp-color-stroke);
+  margin: 0;
+}
+.pp-workbench-shell .pp-app-inspect {
+  height: 34px;
+  font-size: 11px;
+  background: var(--pp-color-surface);
+}
+.pp-sidebar-local {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--pp-color-text-faint);
+}
+.pp-sidebar-local svg {
+  height: 12px;
+  width: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas {
+  background: var(--pp-color-canvas);
+}
+.pp-workbench-shell .pp-status-rail {
+  background: var(--pp-color-surface);
+  border-top-color: var(--pp-color-stroke);
+  font-size: 10px;
+}
+
+/* A shared header component retains each tool's own actions and protocol info. */
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  flex: none;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  min-height: 72px;
+  height: auto;
+  margin: 0;
+  padding: 15px var(--pp-workspace-gutter);
+  border: 0;
+  border-bottom: 1px solid var(--pp-color-stroke);
+  border-radius: 0;
+  background: var(--pp-color-surface);
+  box-shadow: none;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header > div:first-child {
+  min-width: 0;
+  margin-right: auto;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header > h1 {
+  margin-right: auto;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header :is(h1, h2) {
+  margin: 0;
+  color: var(--pp-color-text);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.35;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--pp-color-text-muted);
+  line-height: 1.5;
+  max-width: 75ch;
+}
+.pp-workbench-shell
+  .pp-workbench-canvas
+  .pp-page-header
+  :is(.pp-kicker, .pp-tunnel-kicker, .pp-http-glyph, .pp-http-header > div > span) {
+  display: none;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header :is(button, summary) {
+  font-size: 11px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--pp-color-text-muted);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-page-header .pp-protocol-info {
+  margin-left: 0;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-http-header > div:first-child {
+  display: block;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-workbench-header {
+  min-height: 60px;
+  height: auto;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--pp-color-stroke);
+}
+
+/* Consistent form surfaces, focus, action colors and readable data. */
+.pp-workbench-shell .pp-workbench-canvas
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+    select
+  ) {
+  min-height: 32px;
+  border-radius: 6px;
+  border-color: var(--pp-color-stroke-strong);
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(textarea) {
+  border-radius: 6px;
+  border-color: var(--pp-color-stroke-strong);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-workbench-shell :where(button, a, summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--pp-color-accent);
+  outline-offset: 2px;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(button:not([role="tab"])) {
+  border-radius: 6px;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(button:disabled) {
+  cursor: not-allowed;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(th) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--pp-color-surface-sunken);
+  color: var(--pp-color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(td) {
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas :where(tbody tr:hover) {
+  background: var(--pp-color-hover);
+}
+.pp-workbench-shell .pp-workbench-canvas :where([role="alert"]) {
+  border-radius: 6px;
+  line-height: 1.55;
+}
+.pp-workbench-shell .pp-workbench-canvas :where([role="tab"][aria-selected="true"]) {
+  color: var(--pp-color-accent-strong);
+}
+
+/* Tool roots use the same edge-to-edge header and 24px working gutter. */
+.pp-workbench-shell .pp-workbench-canvas
+  :is(
+    .pp-ports,
+    .pp-events,
+    .pp-evidence-workbench,
+    .pp-suite-page,
+    .pp-dashboard,
+    .pp-security,
+    .pp-downloader,
+    .pp-tunnels
+  ) {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+.pp-workbench-shell .pp-workbench-canvas :is(.pp-ports, .pp-events) {
+  gap: 16px;
+  padding-bottom: 16px;
+}
+.pp-workbench-shell .pp-workbench-canvas :is(.pp-ports, .pp-events) > :not(.pp-page-header) {
+  margin-inline: var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-ports form {
+  padding: 16px;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-ports-table {
+  background: var(--pp-color-surface);
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-ports form button[type="submit"],
+.pp-workbench-shell .pp-workbench-canvas .pp-events-connect button[type="submit"] {
+  background: var(--pp-color-accent);
+  color: var(--pp-color-text-inverse);
+  border-color: var(--pp-color-accent);
+  font-weight: 600;
+}
+.pp-workbench-shell .pp-workbench-canvas .this-pc-page-inner {
+  padding: 0;
+  max-width: none;
+}
+.pp-workbench-shell .pp-workbench-canvas .this-pc-page-inner > :not(.pp-page-header) {
+  margin: 20px var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-workbench-canvas .this-pc-hero > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-network-workbench {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-network-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.pp-workbench-shell
+  .pp-workbench-canvas
+  :is(.pp-network-path, .pp-network-map-page, .pp-network-history, .pp-network-local-page) {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.pp-workbench-shell
+  .pp-workbench-canvas
+  :is(.pp-network-path, .pp-network-map-page, .pp-network-history)
+  > :not(.pp-page-header) {
+  margin-inline: var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-local-network-panel {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-local-network-panel > :not(.pp-page-header) {
+  margin-inline: var(--pp-workspace-gutter);
+}
+.pp-network-filebar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 24px;
+  border-top: 1px solid var(--pp-color-stroke);
+  color: var(--pp-color-text-faint);
+  background: var(--pp-color-surface);
+  font-size: 10px;
+}
+.pp-network-filebar .pp-network-file-actions button {
+  min-height: 25px;
+  padding: 2px 8px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-routes-workbench > :not(.pp-page-header) {
+  margin: 18px var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-suite-page > :not(.pp-page-header),
+.pp-workbench-shell .pp-workbench-canvas .pp-dashboard > :not(.pp-page-header) {
+  margin: 22px var(--pp-workspace-gutter);
+  max-width: none;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-suite-section {
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice {
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 120px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice:hover {
+  border-color: var(--pp-color-accent);
+  background: var(--pp-color-accent-soft);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice p {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice strong {
+  font-size: 14px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-grid {
+  gap: 20px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-card {
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-download-composer {
+  margin: 16px 24px;
+  padding: 16px;
+  background: var(--pp-color-surface);
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-download-observation {
+  padding: 10px 24px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-security > :not(.pp-page-header),
+.pp-workbench-shell .pp-workbench-canvas .pp-tunnels > :not(.pp-page-header) {
+  margin-inline: var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-tunnel-title-row {
+  gap: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-settings-layout {
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-agent-heading > div:first-child {
+  gap: 10px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-agent-primary {
+  background: var(--pp-color-accent-soft);
+  color: var(--pp-color-accent-strong);
+  border-color: color-mix(in srgb, var(--pp-color-accent) 35%, var(--pp-color-stroke));
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-agent-records button[aria-pressed="true"] {
+  background: var(--pp-color-accent-soft);
+  border-left-color: var(--pp-color-accent);
+}
+
+.pp-route-state {
+  display: grid;
+  min-height: 240px;
+  height: 100%;
+  place-content: center;
+  justify-items: start;
+  gap: 12px;
+  padding: 32px;
+  color: var(--pp-color-text-muted);
+}
+.pp-route-state h1 {
+  font-size: 18px;
+  color: var(--pp-color-text);
+}
+.pp-route-state p {
+  font-size: 13px;
+  max-width: 55ch;
+  line-height: 1.6;
+}
+.pp-route-state button {
+  padding: 8px 14px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 6px;
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+}
+.pp-route-state svg {
+  width: 22px;
+  height: 22px;
+}
+.pp-route-state [data-loading] {
+  animation: pp-route-spin 1s linear infinite;
+}
+@keyframes pp-route-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-route-state [data-loading] {
+    animation: none;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1150px) {
+  .pp-workbench-shell {
+    grid-template-columns: 232px minmax(0, 1fr);
+    --pp-workspace-gutter: 18px;
+  }
+  .pp-workbench-shell .pp-app-bar {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+  .pp-tool-sidebar-heading {
+    padding-inline: 12px;
+  }
+  .pp-tool-navigation {
+    padding-inline: 8px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-page-header {
+    gap: 8px;
+  }
+}
+@media (max-width: 760px) {
+  .pp-workbench-shell {
+    grid-template-columns: minmax(0, 1fr);
+    --pp-workspace-gutter: 16px;
+  }
+  .pp-workbench-shell .pp-app-bar {
+    display: flex;
+    padding: 0 8px;
+  }
+  .pp-destination-rail {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+  }
+  .pp-workbench-shell .pp-app-navigation,
+  .pp-tool-sidebar {
+    display: none;
+  }
+  .pp-workbench-shell .pp-app-brand {
+    height: 36px;
+  }
+  .pp-workbench-shell .pp-app-current {
+    display: block;
+  }
+  .pp-rail-actions {
+    margin: 0 0 0 auto;
+    padding: 0;
+  }
+  .pp-navigation-drawer .pp-tool-navigation {
+    border-top: 1px solid var(--pp-color-stroke);
+    margin-top: 12px;
+    padding-top: 16px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-page-header {
+    min-height: 64px;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-page-header :is(h1, h2) {
+    font-size: 17px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice {
+    min-height: 90px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-download-composer {
+    margin: 14px 16px;
+  }
+  .pp-workbench-shell .pp-workbench-canvas .pp-page-header .pp-connection-fact {
+    display: none;
+  }
+}
+
+.pp-app-command svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.pp-empty-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 220px;
+  padding: 32px;
+  text-align: center;
+  border: 1px dashed var(--pp-color-stroke-strong);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-empty-state-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--pp-color-accent-soft);
+  color: var(--pp-color-accent-strong);
+}
+.pp-empty-state-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.pp-empty-state h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pp-empty-state p {
+  margin: 0;
+  max-width: 55ch;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--pp-color-text-muted);
+}
+.pp-empty-state [data-loading] {
+  animation: pp-route-spin 1s linear infinite;
+}
+.pp-workbench-shell .this-pc-summary dl > div {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+.this-pc-view {
+  container-type: inline-size;
+}
+@container (max-width: 900px) {
+  .pp-workbench-shell .this-pc-overview-grid,
+  .pp-workbench-shell .this-pc-benchmark-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-empty-state [data-loading] {
+    animation: none;
+  }
+}
+
+/* Inspectors take space only when there is evidence to inspect. */
+.pp-workbench-shell .pp-downloader-workspace:not(:has(.pp-transfer-inspector:not(.is-empty))) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pp-workbench-shell .pp-transfer-inspector.is-empty {
+  display: none;
+}
+.pp-workbench-shell .pp-downloader-workspace {
+  padding: 8px var(--pp-workspace-gutter) 16px;
+  gap: 16px;
+}
+.pp-workbench-shell .pp-transfer-notice {
+  min-height: min(180px, 100%);
+  height: 100%;
+}
+.pp-workbench-shell .pp-transfer-notice p {
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-http-request-settings {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 14px;
+}
+.pp-workbench-shell .pp-http-request-settings > span {
+  white-space: nowrap;
+  font-size: 10px;
+}
+.pp-workbench-shell .pp-http-request-settings label {
+  white-space: nowrap;
+}
+.pp-workbench-shell .pp-http-request-line {
+  padding: 12px var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-http-header {
+  gap: 10px;
+}
+.pp-workbench-shell .pp-capnp-main {
+  container-type: inline-size;
+}
+@container (max-width: 650px) {
+  .pp-workbench-shell .pp-capnp-editors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.pp-workbench-shell .pp-packet-results > .pp-empty-state {
+  margin: 20px;
+}
+.pp-workbench-shell .pp-settings-content {
+  container-type: inline-size;
+}
+
+.pp-workbench-shell
+  .pp-workbench-canvas
+  :is(.pp-suite-page, .pp-dashboard, .pp-security, .pp-tunnels, .pp-routes-workbench)
+  > :not(.pp-page-header) {
+  width: auto;
+  max-width: calc(100% - 2 * var(--pp-workspace-gutter));
+}
+.pp-workbench-shell .pp-settings-content {
+  padding: 16px;
+}
+.pp-workbench-shell .pp-settings-section .pp-settings-panel {
+  padding: 16px;
+  border: 0;
+  background: transparent;
+}
+.pp-workbench-shell .pp-settings-section .pp-settings-panel > header {
+  padding: 0 0 16px;
+}
+.pp-workbench-shell .pp-settings-section .pp-settings-choice-group {
+  margin-top: 18px;
+  padding-top: 8px;
+  gap: 10px;
+}
+.pp-workbench-shell .pp-settings-choice-group button {
+  text-align: left;
+}
+.pp-workbench-shell .pp-settings-choice-group button > span:last-child {
+  font-size: 11px;
+  line-height: 1.55;
+}
+@container (max-width: 620px) {
+  .pp-workbench-shell .pp-settings-section .pp-settings-choice-group {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 400px) {
+  .pp-workbench-shell .pp-settings-section .pp-settings-choice-group,
+  .pp-workbench-shell .pp-settings-section .pp-settings-choice-group:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.pp-workbench-shell .pp-tunnel-setup {
+  justify-items: stretch;
+  place-content: start stretch;
+  max-width: none;
+  margin-block: 20px;
+  padding: 0;
+  text-align: left;
+}
+.pp-workbench-shell .pp-tunnel-setup:not(.is-inspected) .pp-tunnel-setup-heading {
+  max-width: none;
+}
+.pp-workbench-shell .pp-tunnel-inspection-scope {
+  width: 100%;
+  margin-top: 20px;
+}
+.pp-workbench-shell .pp-tunnel-setup-heading p {
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-agent-setup {
+  padding: 20px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-agent-setup > p {
+  margin: 10px 0 16px;
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-agent-setup .pp-agent-primary {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+}
+.pp-workbench-shell .pp-agent-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.pp-workbench-shell .pp-agent-activity {
+  background: var(--pp-color-canvas);
+}
+
+.pp-workbench-shell .pp-roadmap-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.pp-workbench-shell .pp-roadmap-layout {
+  display: grid;
+  grid-template-columns: 156px minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px var(--pp-workspace-gutter);
+  min-height: 0;
+  flex: 1;
+}
+.pp-workbench-shell .pp-roadmap-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pp-workbench-shell .pp-roadmap-filters button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  color: var(--pp-color-text-muted);
+  font-size: 12px;
+  text-align: left;
+}
+.pp-workbench-shell .pp-roadmap-filters button[aria-pressed="true"] {
+  background: var(--pp-color-accent-soft);
+  color: var(--pp-color-accent-strong);
+}
+.pp-workbench-shell .pp-roadmap-filters button span {
+  color: var(--pp-color-text-faint);
+  font-size: 11px;
+}
+.pp-workbench-shell .pp-roadmap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+.pp-workbench-shell .pp-roadmap-group {
+  flex: none;
+}
+.pp-workbench-shell .pp-roadmap-group > header {
+  padding: 14px 18px;
+}
+.pp-workbench-shell .pp-roadmap-group > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pp-workbench-shell .pp-roadmap-group article {
+  padding: 16px 18px;
+}
+.pp-workbench-shell .pp-roadmap-group h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pp-workbench-shell .pp-roadmap-group p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+@media (max-width: 1000px) {
+  .pp-workbench-shell .pp-roadmap-group > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .pp-workbench-shell .pp-roadmap-layout {
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+  .pp-workbench-shell .pp-roadmap-filters button {
+    font-size: 11px;
+    padding: 8px 5px;
+  }
+}
+
+.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pp-workbench-shell .pp-start-section {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.pp-workbench-shell .pp-start-section > header {
+  border: 0;
+  padding: 0 0 14px;
+}
+.pp-workbench-shell .pp-start-section .pp-kicker {
+  display: none;
+}
+.pp-workbench-shell .pp-start-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.pp-workbench-shell .pp-start-link {
+  min-height: 94px;
+  padding: 18px;
+  gap: 14px;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-start-link > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--pp-color-accent-strong);
+}
+.pp-workbench-shell .pp-start-link strong {
+  font-size: 13px;
+}
+.pp-workbench-shell .pp-start-link p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.pp-workbench-shell .pp-start-link:hover {
+  background: var(--pp-color-accent-soft);
+  border-color: var(--pp-color-accent);
+}
+.pp-workbench-shell .pp-recent-discoveries > header {
+  border: 0;
+  padding-bottom: 8px;
+}
+.pp-workbench-shell .pp-recent-empty {
+  width: 100%;
+  min-height: 64px;
+}
+@media (max-width: 760px) {
+  .pp-workbench-shell .pp-start-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pp-workbench-shell .pp-tool-navigation {
+  gap: 16px;
+  padding-bottom: 12px;
+}
+.pp-workbench-shell .pp-network-filebar > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pp-workbench-shell .pp-workbench-canvas :is(.pp-network-map-page, .pp-network-history) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.pp-workbench-shell .pp-network-map-page > :not(.pp-topology-workspace),
+.pp-workbench-shell .pp-network-history > :not(.pp-history-layout) {
+  flex-shrink: 0;
+}
+.pp-workbench-shell .pp-topology-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  flex: 1;
+  margin-bottom: 16px;
+}
+.pp-workbench-shell .pp-topology-toolbar {
+  flex: none;
+}
+.pp-workbench-shell .pp-topology-layout {
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+.pp-workbench-shell .pp-topology-surface {
+  min-height: 0;
+}
+.pp-workbench-shell .pp-node-inspector {
+  min-height: 0;
+  overflow: auto;
+}
+.pp-workbench-shell .pp-inventory-layout {
+  min-height: 0;
+  overflow: auto;
+}
+.pp-workbench-shell .pp-history-layout {
+  min-height: 200px;
+  flex: 1;
+  margin-bottom: 16px;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .pp-workbench-shell .pp-topology-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 1fr) auto;
+    overflow: auto;
+  }
+  .pp-workbench-shell .pp-node-inspector {
+    max-height: 220px;
+  }
+  .pp-workbench-shell .pp-node-inspector.is-empty {
+    display: none;
+  }
+  .pp-workbench-shell .pp-history-layout {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .pp-workbench-shell .pp-history-layout {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .pp-workbench-shell .pp-history-layout > nav {
+    max-height: 130px;
+    flex-shrink: 0;
+  }
+}
+
+.pp-workbench-shell .pp-workbench-canvas .pp-local-network-panel {
+  width: 100%;
+}
+.pp-workbench-shell .pp-local-scope {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-local-scope-field {
+  min-width: 0;
+}
+.pp-workbench-shell .pp-local-scope .pp-label {
+  margin: 0 0 6px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-local-scope .pp-input {
+  width: 100%;
+}
+.pp-workbench-shell .pp-local-network-panel > .pp-scan-policy {
+  margin-block: 14px;
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-local-network-panel .pp-status-grid {
+  padding: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--pp-color-surface);
+  border: 1px solid var(--pp-color-stroke);
+}
+.pp-workbench-shell .pp-local-network-panel .pp-status-grid > div {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 6px;
+  padding: 14px;
+}
+.pp-workbench-shell .pp-local-network-panel .pp-status-grid strong {
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-local-network-panel > button {
+  width: auto;
+  min-width: 140px;
+  margin-block: 12px;
+}
+.pp-workbench-shell .pp-local-network-panel > :not(.pp-page-header) {
+  max-width: calc(100% - 2 * var(--pp-workspace-gutter));
+}
+.pp-workbench-shell .pp-route-uncertainty {
+  background: var(--pp-color-surface);
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 6px;
+  font-size: 12px;
+}
+@media (max-width: 1000px) {
+  .pp-workbench-shell .pp-local-scope {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pp-workbench-shell .pp-local-network-panel .pp-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 500px) {
+  .pp-workbench-shell .pp-local-network-panel .pp-status-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pp-workbench-shell .pp-workbench-canvas :is(.pp-tailnet, .pp-packets) {
+  padding: 0;
+  width: 100%;
+}
+.pp-workbench-shell .pp-tailnet > :not(.pp-page-header) {
+  margin-inline: var(--pp-workspace-gutter);
+}
+.pp-workbench-shell .pp-tailnet > .pp-empty-state {
+  margin-top: 20px;
+}
+.pp-workbench-shell .pp-tailnet-body {
+  padding-bottom: 20px;
+}
+.pp-workbench-shell .pp-tailnet-devices aside {
+  background: var(--pp-color-surface);
+  padding: 14px;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-tailnet-table {
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-tailnet td button {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: var(--pp-color-accent-strong);
+  text-align: left;
+}
+.pp-workbench-shell .pp-packets {
+  gap: 0;
+}
+.pp-workbench-shell .pp-packet-controls {
+  padding: 16px;
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-packet-results {
+  padding: 0;
+}
+.pp-workbench-shell .pp-events-timeline > .pp-empty-state {
+  margin: 16px;
+  border: 0;
+  background: transparent;
+}
+.pp-workbench-shell .pp-tailnet > [role="status"] {
+  display: block;
+  margin-block: 12px;
+  font-size: 12px;
+  color: var(--pp-color-text-muted);
+}
+
+.pp-workbench-shell .pp-launcher-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.75fr);
+  width: auto;
+  margin: 0;
+  padding: 20px var(--pp-workspace-gutter);
+  gap: 20px;
+  align-items: start;
+}
+.pp-workbench-shell .pp-launcher-main > .pp-launcher-card {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 100%;
+  margin: 0;
+  padding: 20px;
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-launcher-main > .pp-discovery-panel {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  margin: 0;
+}
+.pp-workbench-shell .pp-launcher-main > .pp-saved-targets {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+  margin: 0;
+  padding: 20px;
+  border-radius: 8px;
+}
+.pp-workbench-shell .pp-launcher-main .pp-kicker {
+  display: none;
+}
+.pp-workbench-shell .pp-launcher .pp-card-heading :is(h2, h3) {
+  font-size: 14px;
+}
+.pp-workbench-shell .pp-launcher-footer {
+  padding: 12px var(--pp-workspace-gutter);
+  font-size: 11px;
+}
+.pp-workbench-shell .pp-capnp-sidebar {
+  background: var(--pp-color-surface);
+  padding: 16px;
+}
+.pp-workbench-shell .pp-capnp-main > .pp-empty-state {
+  margin-top: 20px;
+}
+@media (max-width: 1100px) {
+  .pp-workbench-shell .pp-launcher-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pp-workbench-shell
+    .pp-launcher-main
+    > :is(.pp-launcher-card, .pp-discovery-panel, .pp-saved-targets) {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+.pp-workbench-shell .pp-response-summary {
+  flex-wrap: wrap;
+  gap: 8px;
+  height: auto;
+  min-height: 44px;
+  padding: 10px 14px;
+}
+.pp-workbench-shell .pp-response-summary > span {
+  white-space: nowrap;
+}
+.pp-workbench-shell .pp-response-filter {
+  flex: 1 1 130px;
+  min-width: 100px;
+  max-width: 220px;
+}
+.pp-workbench-shell .pp-response-filter input {
+  width: 100%;
+  min-width: 0;
+}
+.pp-workbench-shell .pp-response-action {
+  flex-shrink: 0;
+}
+.pp-workbench-shell .pp-workbench-header {
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-service-brand {
+  background: var(--pp-color-surface);
+}
+.pp-workbench-shell .pp-launcher .pp-discovery-controls {
+  flex-wrap: wrap;
+}
+.pp-workbench-shell .pp-launcher .pp-discovery-controls input {
+  min-width: 0;
+  flex: 1 1 180px;
+}
+.pp-workbench-shell .pp-launcher .pp-label {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}

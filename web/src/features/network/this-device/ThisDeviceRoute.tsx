@@ -2,6 +2,7 @@ import { Activity, CircleAlert, Gauge, Monitor, Radio, RefreshCw, Timer } from '
 import { type KeyboardEvent, useContext, useState } from 'react';
 import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
+import { PageHeader } from '@/console/shell/PageHeader';
 import type { ThisPCSocket } from '@/console/this-pc-api';
 
 import { DeviceSummary } from './DeviceSummary';
@@ -124,7 +125,7 @@ export function ThisDeviceRoute() {
   return (
     <div className="this-pc-page">
       <div className="this-pc-page-inner">
-        <header className="this-pc-hero">
+        <PageHeader className="this-pc-hero">
           <div>
             <h1>This Device</h1>
             <ProtocolInfo protocol="device" />
@@ -140,7 +141,7 @@ export function ThisDeviceRoute() {
               {snapshot.status === 'loading' ? 'Reading local snapshot…' : 'Refresh local snapshot'}
             </button>
           </div>
-        </header>
+        </PageHeader>
 
         {capabilities.status === 'error' ? (
           <section

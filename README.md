@@ -22,6 +22,10 @@ restores recoverable queue state for explicit resume.
 See the [release notes](CHANGELOG.md), [feature roadmap](guides/feature-roadmap.md) and
 [acceptance record](guides/workbench-overhaul-2026-09.md) for measured behavior and limitations.
 
+The [current-source UI overhaul](guides/ui-overhaul-2026-09.md) adds a persistent tool navigator,
+last-tool destination resume, shared headers and loading states, compact connection flows,
+and a searchable roadmap. It is available on the explicit edge channel; stable remains v0.6.1.
+
 ## Product contract
 
 **New in current source:** [local AI agents](guides/ai-agents.md) attach through `protopeek mcp`

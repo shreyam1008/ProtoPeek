@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -144,15 +143,13 @@ func TestServiceAddChecksThePerJobDestinationReserve(t *testing.T) {
 	if _, err := service.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	missing := filepath.Join(t.TempDir(), "missing")
-	if _, err := service.Add(context.Background(), AddRequest{
-		Sources:              []string{"https://example.com/file"},
-		DestinationDirectory: missing,
-	}); err == nil || !strings.Contains(err.Error(), "free disk space") {
-		t.Fatalf("missing per-job destination error = %v", err)
-	}
-	if _, err := os.Stat(missing); !os.IsNotExist(err) {
-		t.Fatalf("per-job destination was unexpectedly created: %v", err)
+	defer service.Shutdown(context.Background())
+	service.mu.Lock()
+	service.config.MinimumFreeDiskBytes = 1 << 62
+	service.mu.Unlock()
+	destination := filepath.Join(t.TempDir(), "new-downloads")
+	if _, err := service.Add(context.Background(), AddRequest{Sources: []string{"https://example.com/file"}, DestinationDirectory: destination}); !errors.Is(err, ErrInsufficientDisk) {
+		t.Fatalf("destination reserve error = %v", err)
 	}
 }
 

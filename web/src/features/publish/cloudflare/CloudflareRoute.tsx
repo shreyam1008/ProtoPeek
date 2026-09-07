@@ -27,7 +27,6 @@ import {
   useRef,
   useState,
 } from 'react';
-
 import { handoffEvidence } from '@/console/app/handoff-display';
 import {
   type ConsumedHandoffFor,
@@ -37,6 +36,7 @@ import {
 import type { LocalServiceRef } from '@/console/app/handoff-types';
 import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { protocolShellEvents, useProtocolShell } from '@/console/ProtocolShellContext';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { type PlannedTunnelRoute, scanResultFromTunnelRoute } from '@/console/tunnels/route-plan';
 import {
   fetchTunnelRelease,
@@ -381,7 +381,7 @@ export function CloudflareRoute() {
 
   return (
     <section className="pp-tunnels" aria-labelledby="tunnels-title">
-      <header className="pp-tunnel-page-heading">
+      <PageHeader className="pp-tunnel-page-heading">
         <div>
           <span className="pp-tunnel-kicker">Tunnels / local host</span>
           <div className="pp-tunnel-title-row">
@@ -409,7 +409,7 @@ export function CloudflareRoute() {
                   : 'Awaiting inspection'}
           </span>
         </div>
-      </header>
+      </PageHeader>
 
       {pendingOrigin ? (
         <aside className="pp-tunnel-origin-handoff" role="status">

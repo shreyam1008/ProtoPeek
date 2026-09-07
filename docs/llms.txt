@@ -41,6 +41,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide
 - Competitive workflow decisions: https://protopeek.shreyam1008.com.np/competitive-landscape/ — Research record
 - VS Code and Open VSX spec: https://protopeek.shreyam1008.com.np/vscode-extension-spec/ — Planned · not shipped
+- Workspace navigation and design: https://protopeek.shreyam1008.com.np/workspace-ui/ — Current source
 
 ## Stable install
 

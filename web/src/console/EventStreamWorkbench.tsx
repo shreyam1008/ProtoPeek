@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import {
   connectEventStream,
   type EventProtocol,
@@ -151,10 +153,10 @@ export function EventStreamWorkbench() {
 
   return (
     <section className="pp-events" aria-label="Event stream workbench">
-      <header>
+      <PageHeader>
         <h1>Event streams</h1>
         <ProtocolInfo protocol={protocol} />
-      </header>
+      </PageHeader>
       <form
         className="pp-events-connect"
         onSubmit={(event) => {
@@ -275,7 +277,9 @@ export function EventStreamWorkbench() {
       <div className="pp-events-results">
         <section className="pp-events-timeline" aria-label="Stream events">
           {!events.length ? (
-            <p>Connect to receive events. Nothing is sent until you connect.</p>
+            <EmptyState title="Follow a live stream">
+              Connect to receive events. Nothing is sent until you connect.
+            </EmptyState>
           ) : (
             <table>
               <thead>

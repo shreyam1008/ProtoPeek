@@ -13,8 +13,8 @@
   --pp-attached-panel-height: 240px;
   --pp-attached-panel-min-height: 144px;
   --pp-attached-panel-max-height: min(48dvh, 480px);
-  --pp-control-height: 28px;
-  --pp-primary-control-height: 32px;
+  --pp-control-height: 32px;
+  --pp-primary-control-height: 34px;
   --pp-narrow-touch-height: 36px;
 
   --pp-space-1: 2px;
@@ -25,8 +25,8 @@
   --pp-space-6: 12px;
   --pp-space-8: 16px;
   --pp-space-10: 20px;
-  --pp-radius-control: 4px;
-  --pp-radius-panel: 4px;
+  --pp-radius-control: 6px;
+  --pp-radius-panel: 8px;
   --pp-radius-raised: 8px;
   --pp-stroke-width: 1px;
   --pp-focus-width: 2px;
@@ -87,7 +87,7 @@
   --pp-muted: var(--pp-color-text-muted);
   --pp-brand: var(--pp-color-accent);
   --pp-brand-strong: var(--pp-color-accent-strong);
-  --pp-accent: var(--pp-color-warning);
+  --pp-accent: var(--pp-color-accent);
   --pp-danger: var(--pp-color-danger);
   --pp-ok: var(--pp-color-success);
 }

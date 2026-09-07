@@ -7,6 +7,8 @@ import {
   useTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
 import {
@@ -133,10 +135,10 @@ export function PortScanner() {
   const openCount = result?.results.filter((row) => row.state === 'open').length ?? 0;
   return (
     <section className="pp-ports" aria-label="Port scanner">
-      <header>
+      <PageHeader>
         <h1>Port scanner</h1>
         <ProtocolInfo protocol="tcp" />
-      </header>
+      </PageHeader>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -232,6 +234,15 @@ export function PortScanner() {
       </div>
       {error && <p role="alert">{error}</p>}
       {storageNotice && <p role="status">{storageNotice}</p>}
+      {!result && (
+        <EmptyState
+          title={busy ? 'Checking the selected ports' : 'Find an open service'}
+          busy={busy}
+        >
+          Choose a host and a port preset, then scan. Results will show open ports, connection times
+          and service inspection actions.
+        </EmptyState>
+      )}
       {result && observedAt && <small>Observed {new Date(observedAt).toLocaleString()}</small>}
       {result && (
         <>

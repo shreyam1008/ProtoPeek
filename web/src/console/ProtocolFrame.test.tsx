@@ -84,6 +84,39 @@ describe('ProtocolFrame', () => {
     expect(screen.getByRole('link', { name: 'Open ProtoPeek Home' })).toBeVisible();
   });
 
+  it('keeps Network tools present across sibling routes and resumes the last tool', async () => {
+    const router = createProtoPeekRouter(
+      createMemoryHistory({ initialEntries: ['/network/path'] })
+    );
+    render(<RouterProvider router={router} />);
+    const tools = await screen.findByRole('navigation', { name: 'Network tools' });
+    const hrefs = within(tools)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    await act(async () => {
+      await router.navigate({ to: '/network/ports' });
+    });
+    await waitFor(() =>
+      expect(within(tools).getByRole('link', { name: 'Port scanner' })).toHaveAttribute(
+        'aria-current',
+        'page'
+      )
+    );
+    expect(
+      within(tools)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual(hrefs);
+    await act(async () => {
+      await router.navigate({ to: '/protocols' });
+    });
+    const resume = screen.getByRole('link', { name: 'Open Network' });
+    expect(resume).toHaveAttribute('href', '/network/ports');
+    fireEvent.click(resume);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/network/ports'));
+    expect(await screen.findByRole('navigation', { name: 'Network tools' })).toBeInTheDocument();
+  });
+
   it('marks the owning destination instead of relying on route prefixes', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);

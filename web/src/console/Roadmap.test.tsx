@@ -1,9 +1,22 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { Roadmap } from './Roadmap';
 
 describe('Roadmap', () => {
+  it('filters by capability and status without losing the search', () => {
+    render(<Roadmap />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search roadmap' }), {
+      target: { value: 'cURL' },
+    });
+    expect(screen.getByRole('heading', { name: 'HTTP workbench' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /^Next/ }));
+    expect(screen.queryByRole('heading', { name: 'HTTP workbench' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'cURL import' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /^Gated/ }));
+    expect(screen.getByRole('heading', { name: 'No matching capabilities' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Search roadmap' })).toHaveValue('cURL');
+  });
   it('lists bounded cURL export as shipped and only cURL import as Next', () => {
     render(<Roadmap />);
 
@@ -66,7 +79,7 @@ describe('Roadmap', () => {
       within(next).getByRole('heading', { name: 'Tunnel validation + runtime evidence' })
     ).toBeVisible();
     expect(
-      within(gated).getByRole('heading', { name: 'Tunnel service and config mutation' })
+      within(gated).getByRole('heading', { name: 'Tunnel configuration writes' })
     ).toBeVisible();
   });
 });

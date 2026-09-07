@@ -220,6 +220,182 @@
   }
 }
 
+/* Website setup and returned evidence share the workbench surface hierarchy. */
+.pp-security-content {
+  container-type: inline-size;
+}
+.pp-security-website {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+  background: var(--pp-surface);
+}
+.pp-security-website > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.pp-security-website > header p {
+  margin-top: 6px;
+  max-width: 60ch;
+  color: var(--pp-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-security-website > header > span {
+  flex-shrink: 0;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--pp-surface-sunken);
+  color: var(--pp-text-muted);
+  font-size: 11px;
+}
+.pp-security-website form > label:first-child {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pp-security-website .pp-security-disclosure {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--pp-surface-sunken);
+}
+.pp-security-website .pp-security-remember {
+  padding: 12px 0;
+}
+.pp-security-website-workspace {
+  margin-top: 8px;
+}
+.pp-security-empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px 18px;
+  min-height: 180px;
+  text-align: center;
+}
+.pp-security-empty > svg {
+  width: 22px;
+  height: 22px;
+  color: var(--pp-text-muted);
+}
+.pp-security-empty h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pp-security-empty p {
+  max-width: 52ch;
+  font-size: 12px;
+  color: var(--pp-text-muted);
+  line-height: 1.6;
+}
+.pp-security-website-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 1px solid var(--pp-stroke);
+}
+.pp-security-website-summary :is(code, small) {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--pp-text-muted);
+  overflow-wrap: anywhere;
+}
+.pp-security-status-code {
+  font-size: 24px;
+  font-weight: 650;
+}
+.pp-security-response-context {
+  padding-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--pp-text-muted);
+}
+.pp-security-observation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.pp-security-observation-grid article {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.pp-security-observation-grid article :is(span, small, p) {
+  color: var(--pp-text-muted);
+  font-size: 12px;
+}
+.pp-security-addresses {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+}
+.pp-security-timing {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.pp-security :is(.pp-security-tls-detail, .pp-security-header-detail) {
+  padding: 14px 0;
+  border-top: 1px solid var(--pp-stroke);
+  font-size: 12px;
+}
+.pp-security :is(.pp-security-tls-detail, .pp-security-header-detail) summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.pp-security :is(.pp-security-tls-detail, .pp-security-header-detail) dl > div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+  overflow-wrap: anywhere;
+}
+.pp-security-message {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-security-message > svg {
+  flex-shrink: 0;
+  width: 18px;
+}
+.pp-security-message.is-error {
+  color: var(--pp-danger-signal);
+}
+@container (max-width: 580px) {
+  .pp-security-website > header {
+    flex-direction: column;
+  }
+  .pp-security-query-row,
+  .pp-security-observation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pp-security-query-row button {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 1050px) {
   .pp-security-observation-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

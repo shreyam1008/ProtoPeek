@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import {
   type CapnpResult,
   type CapnpSchema,
@@ -185,10 +187,10 @@ export function CapnpWorkbench() {
   }
   return (
     <div className="pp-capnp">
-      <header className="pp-capnp-heading">
+      <PageHeader className="pp-capnp-heading">
         <h1>Cap’n Proto</h1>
         <ProtocolInfo protocol="capnp" />
-      </header>
+      </PageHeader>
       <aside className="pp-capnp-sidebar" aria-label="Cap’n Proto schema and methods">
         <details open={sourceOpen} onToggle={(event) => setSourceOpen(event.currentTarget.open)}>
           <summary>Schema {schema ? `· ${schema.nodeCount} nodes` : '· not loaded'}</summary>
@@ -297,7 +299,7 @@ export function CapnpWorkbench() {
                     setMessage('');
                   }}
                 >
-                  <small>{item.interfaceName}</small>
+                  <small title={item.interfaceName}>{item.interfaceName.split(':').pop()}</small>
                   <strong>{item.name}</strong>
                 </button>
               ))}
@@ -475,17 +477,10 @@ export function CapnpWorkbench() {
             </section>
           </div>
         ) : (
-          <div className="pp-capnp-empty">
-            <h2>Load your service schema</h2>
-            <p>
-              Choose .capnp source files or a compiled schema, select a method, then call your local
-              or remote endpoint.
-            </p>
-            <p>
-              This client invokes a method on the connection’s bootstrap capability. Returned
-              capabilities and generic interfaces need a later workflow.
-            </p>
-          </div>
+          <EmptyState title="Load your service schema">
+            Choose .capnp source files or a compiled schema, select a method, then call your local
+            or remote endpoint. This client calls the connection’s bootstrap capability.
+          </EmptyState>
         )}
       </section>
     </div>

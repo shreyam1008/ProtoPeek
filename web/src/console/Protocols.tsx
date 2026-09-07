@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, Globe2, Radar, Radio, Server, ShieldCheck } from 'lucide-react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import { inspectEntryFeatures } from './app/feature-registry';
 import { useProtocolShell } from './ProtocolShellContext';
@@ -18,7 +19,7 @@ export function Protocols() {
 
   return (
     <div className="pp-suite-page pp-protocols-page">
-      <header className="pp-suite-page-heading">
+      <PageHeader className="pp-suite-page-heading">
         <div>
           <span className="pp-kicker">Inspect</span>
           <h1>Choose an inspection workbench.</h1>
@@ -32,7 +33,7 @@ export function Protocols() {
           </span>
           <ArrowRight aria-hidden="true" />
         </button>
-      </header>
+      </PageHeader>
 
       <section className="pp-suite-section" aria-labelledby="available-protocols-title">
         <header>

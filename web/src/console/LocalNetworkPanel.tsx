@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import {
   buildLocalNetworkPlanPreview,
@@ -184,13 +185,13 @@ export function LocalNetworkPanel({
       aria-labelledby="local-network-heading"
       aria-busy={loading || scanning}
     >
-      <header className="pp-card-heading">
+      <PageHeader className="pp-card-heading">
         <div>
           <span className="pp-kicker">Bounded discovery</span>
-          <h2 id="local-network-heading">Local network</h2>
+          <h1 id="local-network-heading">Local network</h1>
         </div>
         <span className="pp-reflection-chip">ProtoPeek process view</span>
-      </header>
+      </PageHeader>
 
       <p className="pp-scan-policy">
         Suggestions are read-only interface metadata. A scan starts only after you review the exact
@@ -205,63 +206,72 @@ export function LocalNetworkPanel({
 
       {capabilities ? (
         <>
-          <label className="pp-label" htmlFor="local-network-interface">
-            Interface suggestion
-          </label>
-          <select
-            id="local-network-interface"
-            className="pp-input"
-            disabled={scanning}
-            value={capabilities.interfaces.some((item) => item.suggestedCidr === cidr) ? cidr : ''}
-            onChange={(event) => {
-              if (event.target.value) updateScope(event.target.value);
-            }}
-          >
-            {capabilities.interfaces.length === 0 ? (
-              <option value="">No private interface suggestion</option>
-            ) : (
-              <>
-                <option value="">Custom scope</option>
-                {capabilities.interfaces.map((item) => (
-                  <option key={`${item.index}:${item.address}`} value={item.suggestedCidr}>
-                    {item.name} · {item.address} · {item.suggestedCidr}
+          <div className="pp-local-scope">
+            <div className="pp-local-scope-field">
+              <label className="pp-label" htmlFor="local-network-interface">
+                Interface suggestion
+              </label>
+              <select
+                id="local-network-interface"
+                className="pp-input"
+                disabled={scanning}
+                value={
+                  capabilities.interfaces.some((item) => item.suggestedCidr === cidr) ? cidr : ''
+                }
+                onChange={(event) => {
+                  if (event.target.value) updateScope(event.target.value);
+                }}
+              >
+                {capabilities.interfaces.length === 0 ? (
+                  <option value="">No private interface suggestion</option>
+                ) : (
+                  <>
+                    <option value="">Custom scope</option>
+                    {capabilities.interfaces.map((item) => (
+                      <option key={`${item.index}:${item.address}`} value={item.suggestedCidr}>
+                        {item.name} · {item.address} · {item.suggestedCidr}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+
+            <div className="pp-local-scope-field">
+              <label className="pp-label" htmlFor="local-network-cidr">
+                Private IPv4 CIDR
+              </label>
+              <input
+                id="local-network-cidr"
+                className="pp-input"
+                value={cidr}
+                disabled={scanning}
+                placeholder="192.168.1.0/24"
+                spellCheck={false}
+                autoComplete="off"
+                onChange={(event) => updateScope(event.target.value)}
+              />
+            </div>
+
+            <div className="pp-local-scope-field">
+              <label className="pp-label" htmlFor="local-network-profile">
+                Scan profile
+              </label>
+              <select
+                id="local-network-profile"
+                className="pp-input"
+                value={profileID}
+                disabled={scanning}
+                onChange={(event) => updateProfile(event.target.value)}
+              >
+                {capabilities.profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.label}
                   </option>
                 ))}
-              </>
-            )}
-          </select>
-
-          <label className="pp-label" htmlFor="local-network-cidr">
-            Private IPv4 CIDR
-          </label>
-          <input
-            id="local-network-cidr"
-            className="pp-input"
-            value={cidr}
-            disabled={scanning}
-            placeholder="192.168.1.0/24"
-            spellCheck={false}
-            autoComplete="off"
-            onChange={(event) => updateScope(event.target.value)}
-          />
-
-          <label className="pp-label" htmlFor="local-network-profile">
-            Scan profile
-          </label>
-          <select
-            id="local-network-profile"
-            className="pp-input"
-            value={profileID}
-            disabled={scanning}
-            onChange={(event) => updateProfile(event.target.value)}
-          >
-            {capabilities.profiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.label}
-              </option>
-            ))}
-          </select>
-
+              </select>
+            </div>
+          </div>
           {previewState.plan ? <PlanPreview plan={previewState.plan} /> : null}
           {previewState.error ? (
             <p className="pp-scan-message" role="alert">

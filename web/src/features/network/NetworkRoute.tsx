@@ -1,10 +1,10 @@
-import { Link, useBlocker, useLocation } from '@tanstack/react-router';
-import { Clock3, FolderOpen, Map as MapIcon, Network, Radar, Route, Save } from 'lucide-react';
+import { useBlocker, useLocation } from '@tanstack/react-router';
+import { FolderOpen, Save } from 'lucide-react';
 import { lazy, Suspense, useRef } from 'react';
 import { clearPendingHandoff } from '@/console/app/handoff-store';
 import type { NetworkStore } from '@/console/network-store';
 import { NetworkHistoryPage } from './history/NetworkHistoryPage';
-import { loadTopologyCanvas, NetworkMapPage } from './topology/NetworkMapPage';
+import { NetworkMapPage } from './topology/NetworkMapPage';
 import { useNetworkWorkspace } from './useNetworkWorkspace';
 
 const loadLocalNetworkPanel = () => import('@/console/LocalNetworkPanel');
@@ -71,100 +71,11 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
 
   return (
     <div className="pp-network-workbench">
-      <header className="pp-network-masthead">
-        <div>
-          <strong className="pp-network-title">Network tools</strong>
-        </div>
-        <nav aria-label="Network workbench sections">
-          <Link
-            to="/this-pc"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-          >
-            <Network aria-hidden="true" /> This Device
-          </Link>
-          <Link
-            to="/network/route"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-          >
-            <Route aria-hidden="true" /> Next hop
-          </Link>
-          <Link
-            to="/network/path"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-          >
-            <Route aria-hidden="true" /> Path
-          </Link>
-          <Link
-            to="/network/local"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-            onFocus={() => void loadLocalNetworkPanel()}
-            onMouseEnter={() => void loadLocalNetworkPanel()}
-          >
-            <Radar aria-hidden="true" /> Local scan
-          </Link>
-          <Link
-            to="/network/map"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-            onFocus={() => void loadTopologyCanvas()}
-            onMouseEnter={() => void loadTopologyCanvas()}
-          >
-            <MapIcon aria-hidden="true" /> Map
-          </Link>
-          <Link
-            to="/network/history"
-            className="pp-network-nav-link"
-            activeProps={{ className: 'is-active' }}
-          >
-            <Clock3 aria-hidden="true" /> History
-          </Link>
-          <Link to="/network/ports" className="pp-network-nav-link">
-            Port scanner
-          </Link>
-          <Link to="/network/nmap" className="pp-network-nav-link">
-            Nmap
-          </Link>
-          <Link to="/network/tailnet" className="pp-network-nav-link">
-            Tailscale
-          </Link>
-          <Link to="/network/packets" className="pp-network-nav-link">
-            Packets
-          </Link>
-        </nav>
-        <div className="pp-network-file-actions">
-          <input
-            ref={importRef}
-            type="file"
-            disabled={dirty}
-            accept=".json,.graphml,.xml,application/json,application/graphml+xml"
-            aria-label="Import network workspace"
-            onChange={(event) => void importWorkspace(event)}
-          />
-          <button
-            type="button"
-            disabled={dirty}
-            title={dirty ? 'Save or discard map edits before importing.' : undefined}
-            onClick={() => importRef.current?.click()}
-          >
-            <FolderOpen aria-hidden="true" /> Import
-          </button>
-          <span>{workspaces.length}/20 saved</span>
-        </div>
-      </header>
       <div className="pp-network-content">
         {health?.mode === 'session-only' && health.error ? (
           <aside className="pp-network-storage-warning" role="status">
             {health.error}
           </aside>
-        ) : null}
-        {notice ? (
-          <p className="pp-network-notice" role="status">
-            {notice}
-          </p>
         ) : null}
         {dirty ? (
           <aside className="pp-network-dirty" role="status">
@@ -255,6 +166,28 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
             onExport={exportWorkspace}
           />
         ) : null}
+      </div>
+      <div className="pp-network-filebar">
+        <span role={notice ? 'status' : undefined}>{notice || 'Network workspace'}</span>
+        <div className="pp-network-file-actions">
+          <input
+            ref={importRef}
+            type="file"
+            disabled={dirty}
+            accept=".json,.graphml,.xml,application/json,application/graphml+xml"
+            aria-label="Import network workspace"
+            onChange={(event) => void importWorkspace(event)}
+          />
+          <button
+            type="button"
+            disabled={dirty}
+            title={dirty ? 'Save or discard map edits before importing.' : undefined}
+            onClick={() => importRef.current?.click()}
+          >
+            <FolderOpen aria-hidden="true" /> Import
+          </button>
+          <span>{workspaces.length}/20 saved</span>
+        </div>
       </div>
     </div>
   );

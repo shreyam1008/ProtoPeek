@@ -975,3 +975,30 @@ func pathExists(path string) (bool, error) {
 	}
 	return false, err
 }
+
+func TestAddCreatesNewDestinationBeforeCheckingDisk(t *testing.T) {
+	t.Parallel()
+	engine := &fakeEngine{addID: "aabbccdd"}
+	service, _, _, _, _ := testService(t, engine)
+	if _, err := service.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer service.Shutdown(context.Background())
+	destination := filepath.Join(t.TempDir(), "new", "downloads")
+	result, err := service.Add(context.Background(), AddRequest{Sources: []string{"https://example.com/file"}, DestinationDirectory: destination})
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(destination)
+	if err != nil || !info.IsDir() || result.ID != "aabbccdd" {
+		t.Fatalf("destination=%v result=%+v error=%v", info, result, err)
+	}
+	blocked := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(blocked, []byte("preserve"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.Add(context.Background(), AddRequest{Sources: []string{"https://example.com/file"}, DestinationDirectory: filepath.Join(blocked, "downloads")})
+	if !errors.Is(err, ErrInvalidAddRequest) {
+		t.Fatalf("expected invalid destination, got %v", err)
+	}
+}

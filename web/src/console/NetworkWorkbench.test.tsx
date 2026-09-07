@@ -9,7 +9,6 @@ import {
 } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { clearPendingHandoff, peekPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { NetworkWorkbench } from './NetworkWorkbench';
 import { type NetworkWorkspaceV1, serializeNetworkWorkspace } from './network-model';
@@ -19,6 +18,7 @@ import {
   type NetworkStorePersistence,
   type NetworkStorePersistenceConnection,
 } from './network-store';
+import { ToolNavigation } from './shell/ToolNavigation';
 
 const observedAt = '2026-08-20T12:00:00.000Z';
 
@@ -314,6 +314,7 @@ function createTestRouter(store: NetworkStore, initialEntry = '/network/map') {
       <>
         <Link to={'/outside' as never}>Leave workbench</Link>
         <Link to={'/networking' as never}>Similar route prefix</Link>
+        <ToolNavigation destination="network" />
         <Outlet />
       </>
     );
@@ -654,22 +655,22 @@ describe('NetworkWorkbench persistence protections', () => {
   it('orders all Network tools and guards the sibling This Device and Next hop routes', async () => {
     const { store } = await seededStore();
     const router = await renderWorkbench(store);
-    const navigation = screen.getByRole('navigation', { name: 'Network workbench sections' });
+    const navigation = screen.getByRole('navigation', { name: 'Network tools' });
     expect(
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
     ).toEqual([
       'This Device',
-      'Next hop',
-      'Path',
-      'Local scan',
-      'Map',
-      'History',
       'Port scanner',
-      'Nmap',
       'Tailscale',
+      'Next hop',
+      'Network path',
+      'Local discovery',
+      'Nmap',
       'Packets',
+      'Network evidence map',
+      'Network history',
     ]);
     expect(
       within(navigation)
@@ -677,15 +678,15 @@ describe('NetworkWorkbench persistence protections', () => {
         .map((link) => link.getAttribute('href'))
     ).toEqual([
       '/this-pc',
+      '/network/ports',
+      '/network/tailnet',
       '/network/route',
       '/network/path',
       '/network/local',
+      '/network/nmap',
+      '/network/packets',
       '/network/map',
       '/network/history',
-      '/network/ports',
-      '/network/nmap',
-      '/network/tailnet',
-      '/network/packets',
     ]);
 
     fireEvent.change(screen.getByLabelText('Workspace name'), {

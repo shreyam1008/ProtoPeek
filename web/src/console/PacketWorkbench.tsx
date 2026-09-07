@@ -7,6 +7,8 @@ import {
   useTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState } from '@/console/shell/EmptyState';
+import { PageHeader } from '@/console/shell/PageHeader';
 import { ProtocolInfo } from './ProtocolInfo';
 import {
   type CaptureInterface,
@@ -185,11 +187,11 @@ export function PacketWorkbench() {
   }
   return (
     <div className="pp-packets">
-      <header>
+      <PageHeader>
         <h1>Packet inspection</h1>
         <ProtocolInfo protocol="packets" />
         <Link to="/network/local">Network tools</Link>
-      </header>
+      </PageHeader>
       <aside className="pp-packet-controls" aria-label="Packet inspection controls">
         <nav aria-label="Packet sources">
           <button
@@ -517,13 +519,10 @@ export function PacketWorkbench() {
             </footer>
           </>
         ) : (
-          <div className="pp-packet-empty">
-            <h2>See what crossed a network interface</h2>
-            <p>
-              Open an existing capture, or explicitly capture one IP or port on this host. Choose a
-              packet to inspect its decoded details.
-            </p>
-          </div>
+          <EmptyState title="See what crossed a network interface">
+            Open an existing capture, or explicitly capture one IP or port on this host. Choose a
+            packet to inspect its decoded details.
+          </EmptyState>
         )}
       </section>
     </div>

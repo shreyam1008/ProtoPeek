@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import { StatusFact } from './evidence/StatusFact';
 import { ProtocolInfo } from './ProtocolInfo';
@@ -288,13 +289,13 @@ export function Downloader() {
 
   return (
     <div className="pp-downloader">
-      <header className="pp-downloader-heading">
+      <PageHeader className="pp-downloader-heading">
         <div>
           <h1>Downloader</h1>
         </div>
         <ProtocolInfo protocol="download" />
         <EngineState snapshot={snapshot} loading={loading} onRefresh={() => void refresh()} />
-      </header>
+      </PageHeader>
 
       <div className="pp-download-observation">
         {snapshot && !snapshot.health.ready && (

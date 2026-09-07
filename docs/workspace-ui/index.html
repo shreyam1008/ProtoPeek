@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProtoPeek Workspace UI | Navigation, Tools &amp; Local State</title>
+    <meta name="description" content="Find every ProtoPeek tool in six consistent destinations, resume the last workspace, and understand the current-source UI review and its limits." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/workspace-ui/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="ProtoPeek Workspace UI | Navigation, Tools &amp; Local State" />
+    <meta property="og:description" content="Find every ProtoPeek tool in six consistent destinations, resume the last workspace, and understand the current-source UI review and its limits." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/workspace-ui/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ProtoPeek Workspace UI | Navigation, Tools &amp; Local State" />
+    <meta name="twitter:description" content="Find every ProtoPeek tool in six consistent destinations, resume the last workspace, and understand the current-source UI review and its limits." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Workspace navigation and design","description":"Find every ProtoPeek tool in six consistent destinations, resume the last workspace, and understand the current-source UI review and its limits.","url":"https://protopeek.shreyam1008.com.np/workspace-ui/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/workspace-ui/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ui-overhaul-2026-09.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Workspace navigation and design","item":"https://protopeek.shreyam1008.com.np/workspace-ui/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Workspace navigation and design</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Workspace navigation and design</h1>
+              <p>Where does each tool belong?</p>
+
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Current source
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Persistent tool navigation</li><li>Shared workspace layouts</li><li>Browser-tested workflows</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-hub">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>Where does each tool belong?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-workspace-ui-title visual-workspace-ui-description">
+        <title id="visual-workspace-ui-title">Workspace navigation and design evidence path</title>
+        <desc id="visual-workspace-ui-description">Request to Path to Machine to Transfer</desc>
+        <path class="pp-visual-link" d="M 96 94 H 122" /><path class="pp-visual-link" d="M 198 94 H 224" /><path class="pp-visual-link" d="M 300 94 H 326" />
+
+        <g class="pp-visual-node">
+          <rect x="14" y="56" width="88" height="76" rx="10" />
+          <circle cx="32" cy="75" r="5" />
+          <text x="28" y="108">Request</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="116" y="56" width="88" height="76" rx="10" />
+          <circle cx="134" cy="75" r="5" />
+          <text x="130" y="108">Path</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="218" y="56" width="88" height="76" rx="10" />
+          <circle cx="236" cy="75" r="5" />
+          <text x="232" y="108">Machine</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="320" y="56" width="88" height="76" rx="10" />
+          <circle cx="338" cy="75" r="5" />
+          <text x="334" y="108">Transfer</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Choose</span>
+              <h2>Start with a destination</h2>
+              <p>Inspect requests, understand the network, publish a service, or transfer files.</p>
+            </article>
+
+            <article>
+              <span>02 · Work</span>
+              <h2>Keep context while switching tools</h2>
+              <p>The tool navigator stays in place and each destination resumes its last tool.</p>
+            </article>
+
+            <article>
+              <span>03 · Review</span>
+              <h2>Keep evidence and controls distinct</h2>
+              <p>Inspect results, cancel active work and save supported local state explicitly.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Current source after the local agent adapter. Scope: the complete embedded workbench UI.</p>
+<h2 id="design-contract">Design contract</h2>
+<ul><li>A permanent destination rail and tool navigator own navigation on every route. A Network tool never replaces or removes Network navigation. Direct links and browser history work.</li><li>Destination links resume the last visited tool in that destination, using validated, browser-local route references. No live request or secret is persisted by navigation.</li><li>One shared page header, typography, control scale, focus treatment and surface hierarchy. Controls remain distinct from observations; tables and editors use the available width.</li><li>Primary navigation and evidence tabs stay vertical on desktop. Small screens use the same tool hierarchy in an accessible drawer. No operation is triggered by opening a tool.</li><li>Protocol-specific evidence and existing cancellation, consent, drafts and persistence remain part of the workflows. Navigation references are not promises of background execution.</li><li>Route loading and failures have visible, recoverable states in the stable shell.</li></ul>
+<h2 id="feature-placement-and-review-checklist">Feature placement and review checklist</h2>
+<table><thead><tr><th>Destination</th><th>Tools to review</th></tr></thead><tbody><tr><td>Home</td><td>Start actions, recent targets, empty state</td></tr><tr><td>Inspect</td><td>Overview, gRPC, HTTP, WebSocket/SSE, Cap&#39;n Proto, website security</td></tr><tr><td>Network</td><td>This Device, ports, next hop, path, local discovery, Nmap, packets, Tailscale, map, history</td></tr><tr><td>Publish</td><td>Cloudflare host, configuration, ingress, service actions, route planner</td></tr><tr><td>Files</td><td>Add download, queue, history, destination, engine controls</td></tr><tr><td>Settings</td><td>Appearance, preferences, download policy, migration, AI agents, roadmap</td></tr></tbody></table>
+<h2 id="execution">Execution</h2>
+<ol><li><div class="pp-doc-list-title">Replace route-owned navigation with a shared navigator and test context/history/resume.</div></li><li><div class="pp-doc-list-title">Migrate page headers and shared visual primitives across all feature families.</div></li><li><div class="pp-doc-list-title">Normalize workspace spacing, form/response layouts, empty/error/loading states and overflow.</div></li><li><div class="pp-doc-list-title">Run browser checks on every destination and representative tool workflows in both themes;</div><p>inspect narrow layout, keyboard navigation and preserved evidence controls.</p></li><li><div class="pp-doc-list-title">Run frontend checks, production builds/budgets and Go checks; record acceptance and publish.</div></li></ol>
+<h2 id="browser-acceptance-7-september-2026">Browser acceptance — 7 September 2026</h2>
+<p>Reviewed the embedded Go-served production app in an actual browser at 1280×720, 1024×768 and 390×844. Light and dark modes, destination resume, the small-screen drawer, fuzzy command search and roadmap filtering were exercised. Opening tools did not start scans.</p>
+<table><thead><tr><th>Workflow</th><th>Observed result</th></tr></thead><tbody><tr><td>HTTP</td><td>Local 200 response, intentional 500 response, and cancellation of a delayed request; draft restored unsent after navigation</td></tr><tr><td>gRPC</td><td>Reflected a local 36-method fixture, invoked Ping successfully, and reconnected from saved target history</td></tr><tr><td>WebSocket and SSE</td><td>Real echo message, explicit disconnect, and five SSE ticks followed by server completion</td></tr><tr><td>Cap’n Proto</td><td>Uploaded a compiled schema, selected a method and received typed echo data including exact 64-bit values</td></tr><tr><td>Ports and routes</td><td>One open fixture port; native loopback next-hop lookup and one-hop ICMP trace; trace saved into map/history</td></tr><tr><td>Local discovery</td><td>Explicit own-device /32, four-port plan completed; no broad network scan</td></tr><tr><td>This Device</td><td>Real Windows interface and socket-owner observations; bounded socket table</td></tr><tr><td>Packets</td><td>Uploaded a 75-packet PCAP, filtered to 25 DNS packets and opened decoded packet details</td></tr><tr><td>Downloads</td><td>Bundled aria2 1.37.0 started on request; 1 MiB transfer completed into a new destination folder; exact file size verified</td></tr><tr><td>Website</td><td>One HEAD request to the owner&#39;s website returned 200, HTTP/2 and verified TLS 1.3 evidence</td></tr><tr><td>Tailscale</td><td>Installed client returned real peers through explicit read-only inspection</td></tr><tr><td>Cloudflare and Nmap</td><td>Missing executables/service reported accurately; unavailable actions remained disabled</td></tr><tr><td>Settings and agents</td><td>Theme persisted through reload; engine stop preserved state; MCP setup and activity surface reviewed</td></tr></tbody></table>
+<p>Nmap execution, privileged live capture, native OS dialogs and disruptive account/service changes were not exercised in this browser pass. Headscale, NetBird, tunnel config writes and other roadmap items remain future work. The local AI adapter has a separate <a href="agent-acceptance-2026-09.md">acceptance record</a>.</p>
+<h2 id="implementation-and-size">Implementation and size</h2>
+<p>The shared shell owns destination/tool navigation; feature routes own their evidence. PageHeader, EmptyState and route recovery components provide the common UI contract. Route loading, tool navigation, corrupt/unavailable session storage and roadmap filters have regression coverage. No frontend dependency, model runtime, database or background polling was added.</p>
+<p>The built app measures 1,125,024 bytes of JavaScript (370,820 gzip) and 342,940 bytes of CSS (67,296 gzip) across all lazy routes. The shared CSS is 156,669 bytes (28,912 gzip). Explicit budgets were adjusted for the shared responsive layouts and website evidence styling; startup JavaScript ceilings remain unchanged. These are asset sizes, not runtime RAM measurements.</p>
+<p>The UI suite passes 775 tests in 88 files. Full Go tests, typechecking, formatting/lint, production app/site generation and bundle limits are required before publishing this change. Stable v0.6.1 remains separate from the current-source edge build.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#design-contract">Design contract</a><a class="level-2" href="#feature-placement-and-review-checklist">Feature placement and review checklist</a><a class="level-2" href="#execution">Execution</a><a class="level-2" href="#browser-acceptance-7-september-2026">Browser acceptance — 7 September 2026</a><a class="level-2" href="#implementation-and-size">Implementation and size</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/ui-overhaul-2026-09.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ui-overhaul-2026-09.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>The UI overhaul is on the explicit edge channel; stable remains v0.6.1.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/vscode-extension-spec/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>VS Code and Open VSX spec</strong>
+      </a>
+      <a href="/install/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Install ProtoPeek</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

@@ -17,6 +17,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PageHeader } from '@/console/shell/PageHeader';
 
 import {
   type AppearanceMode,
@@ -342,7 +343,7 @@ export function Settings() {
 
   return (
     <div className="pp-suite-page pp-settings-page">
-      <header className="pp-suite-page-heading">
+      <PageHeader className="pp-suite-page-heading">
         <div>
           <h1>Settings</h1>
           <p>Interface preferences in this browser. Download settings on this machine.</p>
@@ -351,7 +352,7 @@ export function Settings() {
         <span className="pp-settings-local">
           <LockKeyhole aria-hidden="true" /> Local + explicit
         </span>
-      </header>
+      </PageHeader>
 
       {preferenceStorageError ? (
         <p className="pp-settings-storage-error" role="alert">

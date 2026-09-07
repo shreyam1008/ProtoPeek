@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useRouterState } from '@tanstack/react-router
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { DestinationDefinition } from '../app/feature-registry';
-import { destinationForPath } from '../app/feature-registry';
+import { destinationForPath, featureForPath } from '../app/feature-registry';
 import { AppBar } from './AppBar';
 import { SessionTabs } from './SessionTabs';
 import { StatusRail } from './StatusRail';
@@ -12,6 +12,7 @@ import {
   sessionReferenceForPath,
   visitSession,
 } from './shell-state';
+import { readDestinationRoutes, saveDestinationRoutes } from './tool-navigation';
 
 export type DesktopShellProps = {
   children: ReactNode;
@@ -48,8 +49,21 @@ export function DesktopShell({
     visitSession(emptySessionState, sessionReferenceForPath(pathname))
   );
   const currentReference = sessionReferenceForPath(pathname);
+  const [destinationRoutes, setDestinationRoutes] = useState(readDestinationRoutes);
   const activeDestination = destinationForPath(pathname);
   const currentLabel = currentReference?.label ?? activeDestination?.label ?? 'Home';
+
+  useEffect(() => {
+    if (routeLoading) return;
+    const feature = featureForPath(pathname);
+    if (!feature || feature.id === 'network') return;
+    setDestinationRoutes((current) => {
+      if (current[feature.destination] === feature.route) return current;
+      const next = { ...current, [feature.destination]: feature.route };
+      saveDestinationRoutes(next);
+      return next;
+    });
+  }, [pathname, routeLoading]);
 
   useEffect(() => {
     if (sessionPathRef.current === pathname) return;
@@ -87,6 +101,7 @@ export function DesktopShell({
     <div className="pp-workbench-shell">
       <AppBar
         destinations={destinations}
+        destinationRoutes={destinationRoutes}
         activeDestinationId={activeDestination?.id}
         activeLabel={currentLabel}
         modifier={modifier}
@@ -118,6 +133,8 @@ export function DesktopShell({
         className="pp-protocol-surface pp-workbench-canvas"
         tabIndex={-1}
         aria-label={`${currentLabel} workspace`}
+        data-destination={activeDestination?.id}
+        data-feature={featureForPath(pathname)?.id}
       >
         {children}
       </main>
