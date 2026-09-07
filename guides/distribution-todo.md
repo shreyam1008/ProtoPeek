@@ -1,15 +1,16 @@
 # Linux publication gates
 
-Updated: 2026-09-06.
+Updated: 2026-09-07.
 
 - [x] Prepare GoReleaser Debian packaging for the next stable release, including
   `protopeek`, `pp`, license notices and man pages.
 - [x] Configuration validated in `Check Linux package configuration`, run 34028750448.
-- [ ] Build and test next stable `.deb` packages: install, CLI/browser startup,
+- [x] Build checksummed v0.6.1 `.deb` packages for amd64, arm64 and i386.
+- [ ] Test native `.deb` package lifecycle: install, CLI/browser startup,
   upgrade, and removal on Debian/Ubuntu. A configuration check is not a package
   or runtime test.
-- [ ] Publish those checksummed packages with the next stable release. Do not
-  relabel current unreleased work as v0.5.0 or silently replace stable assets.
+- [x] Publish checksummed packages with v0.6.1 and GitHub provenance. Existing
+  stable assets and tags were not rewritten.
 - [ ] Establish a persistent APT signing key and signed repository, preserving
   it across website deployments; test anonymous HTTPS installation.
 - [ ] Only then advertise APT in the portfolio control plane.

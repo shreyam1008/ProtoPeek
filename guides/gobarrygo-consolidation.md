@@ -1,5 +1,8 @@
 # GoBarryGo consolidation
 
+Current release: **v0.6.1**, including bundled aria2 on Windows x64. The original v0.5.0 migration
+design and product-area names below are retained as historical context; see the [current roadmap](feature-roadmap.md).
+
 Status: the transfer, migration, crawlable documentation, public deployment, and owned-package
 slices ship in ProtoPeek v0.5.0; Search indexing evidence, the GoBarryGo redirect, and repository
 retirement remain separately gated.
@@ -7,12 +10,12 @@ retirement remain separately gated.
 ProtoPeek v0.5.0 contains a local transfer service, the canonical
 `/downloader` UI, explicit `download` and `migrate-gobarry` CLI subcommands, and a read-first
 GoBarryGo state bridge with guarded rollback. The crawlable `/downloader/` landing page is live, and
-the owned Homebrew and Scoop channels install v0.5.0 with aria2 declared as an external dependency.
+the owned Homebrew and Scoop channels install v0.6.1 with aria2 declared as an external dependency.
 GoBarryGo remains an independent live product and repository. No public redirect or repository
 archive has happened. This document separates the shipped v0.5.0 capability from the still-gated
 public cutover.
 
-## Product boundary
+## Historical v0.5.0 product boundary
 
 ProtoPeek is one local systems workbench with six primary areas:
 

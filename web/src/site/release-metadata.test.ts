@@ -21,14 +21,14 @@ describe('release metadata', () => {
       url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1',
     });
     expect(packageVersions['GitHub Releases']).toBe('0.6.1');
-    expect(packageVersions['Homebrew Tap']).toBe('0.5.0');
-    expect(packageVersions['Scoop Bucket']).toBe('0.5.0');
+    expect(packageVersions['Homebrew Tap']).toBe('0.6.1');
+    expect(packageVersions['Scoop Bucket']).toBe('0.6.1');
     expect(
       product.distributions.find((channel) => channel.channel === 'Homebrew Tap')?.verifiedAt
-    ).toBe('2026-08-24');
+    ).toBe('2026-09-07');
     expect(
       product.distributions.find((channel) => channel.channel === 'Scoop Bucket')?.verifiedAt
-    ).toBe('2026-08-24');
+    ).toBe('2026-09-07');
   });
 
   it('aligns public discovery metadata and packaged manual headers', () => {
@@ -98,7 +98,7 @@ describe('release metadata', () => {
     const security = readRepositoryFile('guides/website-analysis-security.md');
 
     expect(consolidation).toContain('No public redirect or repository\narchive has happened');
-    expect(consolidation).toContain('Homebrew and Scoop channels install v0.5.0');
+    expect(consolidation).toContain('Homebrew and Scoop channels install v0.6.1');
     expect(consolidation).toContain('GoBarryGo PR `#3` merged as `144c725c`');
     expect(consolidation).toContain('The permanent redirect remains disabled');
     expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');

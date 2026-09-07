@@ -1,5 +1,36 @@
 # ProtoPeek distribution log
 
+## Current release — 7 September 2026
+
+**v0.6.1 is the latest stable release.** It supersedes the v0.6.0 candidate without rewriting
+that tag. The candidate was returned to draft after publication checks caught an edge-tag collision.
+Stable and edge publishers now select their exact tags; release binaries use patched Go 1.26.8.
+
+| Channel | Version | Verified evidence |
+| --- | --- | --- |
+| GitHub Releases | v0.6.1 | [Release run 34100713350, attempt 2](https://github.com/shreyam1008/ProtoPeek/actions/runs/34100713350/attempts/2) passed at `89acab77d2d6fbff1533b4315f3920c4cb7d17a9`; public release has 23 assets. |
+| Source CI | v0.6.1 | All ten [CI jobs 34100702952](https://github.com/shreyam1008/ProtoPeek/actions/runs/34100702952) passed: Windows/Linux/macOS Go checks, web, installers, container and package contracts. Follow-up [CI 34101191909](https://github.com/shreyam1008/ProtoPeek/actions/runs/34101191909) passed after fixing the HTTP persistence test wait. |
+| Product website | v0.6.1 | [Pages 34100701482](https://github.com/shreyam1008/ProtoPeek/actions/runs/34100701482) passed; current install copy, manuals and feature roadmap identify v0.6.1. |
+| Windows resolver | v0.6.1 | The public `irm .../master/install.ps1 | iex` command passed from System32 in Windows PowerShell 5.1.26100.9168 and PowerShell 7.6.5, with paths containing spaces. Installed executables match the accepted archive. |
+| Homebrew | v0.6.1 | Commit `9fe2d4e9a8023bc0a6d9ac57bd5a9cace7c43865`; [CI 34102349839](https://github.com/shreyam1008/homebrew-tap/actions/runs/34102349839) passed audit/style/readall, installation, runtime, linkage and manuals on macOS and Ubuntu. |
+| Scoop | v0.6.1 | Commit `70c3fdb1dc6e6a7a147f2634e744712dcf9f0150`; [CI 34102346356](https://github.com/shreyam1008/scoop-bucket/actions/runs/34102346356) passed manifest validation, installation/update/removal and all three architecture autoupdate checks. |
+| Edge | v0.0.0-edge | [Edge 34100702842](https://github.com/shreyam1008/ProtoPeek/actions/runs/34100702842) passed and publishes only edge-named archives. It is never the stable installer fallback. |
+
+The release contains eight platform archives, eight SPDX SBOMs, three Debian packages, checksums,
+two installers and the aria2 source companion. All 19 checksum entries match verified GitHub
+stable-workflow provenance. Windows x64 ZIP SHA-256:
+`b048abd632e62a453c257c053a401d5a2fc0cdebf399850589e710745894e887`.
+The 29,054,809-byte ZIP contains a 39,041,536-byte canonical executable, manuals and notices.
+The source companion's seven archives match the repository's pinned manifest and checksums.
+
+Windows x64 embeds aria2; other targets use an installed engine. Package managers still supply
+aria2 as a dependency. Native capture, browser file-picker automation on the review host, native
+macOS/Linux interactive acceptance, signed APT, WinGet and community launch moderation remain
+separate gates. See the [acceptance record](workbench-overhaul-2026-09.md) and
+[portfolio tracker](https://shreyam1008.com.np/projects/#distribution-protopeek).
+
+## Historical checkpoint — 24 August 2026
+
 Canonical product URL: <https://protopeek.shreyam1008.com.np/>  
 Repository: <https://github.com/shreyam1008/ProtoPeek>  
 Last externally checked: 24 August 2026
