@@ -189,6 +189,17 @@ function MobileNavigationDrawer(props: AppBarProps) {
             <X aria-hidden="true" />
           </button>
         </header>
+        <button
+          type="button"
+          className="pp-navigation-link"
+          onClick={() => {
+            props.onCloseNavigation();
+            props.onOpenCommand();
+          }}
+        >
+          <Search aria-hidden="true" />
+          Find commands
+        </button>
         <nav aria-label="Mobile destinations">
           {props.destinations.map((item) => {
             const Icon = destinationIcons[item.icon];

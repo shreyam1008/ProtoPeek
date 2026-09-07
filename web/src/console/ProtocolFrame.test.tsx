@@ -221,6 +221,10 @@ describe('ProtocolFrame', () => {
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).not.toBeInTheDocument();
+    fireEvent.click(menu);
+    fireEvent.click(screen.getByRole('button', { name: 'Find commands' }));
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).not.toBeInTheDocument();
   });
 
   it('tracks bounded route sessions, keeps Home out, and focuses ordinary destination headings', async () => {
