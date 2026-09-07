@@ -359,4 +359,5 @@ jobs:
           done
           test "$archive_count" -gt 0
           test -s .local/aria2-1.37.0-companion-sources.tar.gz
-          tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz | grep -Eq '(^|/)SOURCES.json$'
+          source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"
+          grep -Eq '(^|/)SOURCES.json$' <<<"$source_contents"
