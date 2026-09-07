@@ -5,6 +5,13 @@ version source of truth.
 
 ## Unreleased
 
+- Local AI agent connection: `protopeek mcp` exposes eleven bounded tools and an instruction resource;
+  `protopeek agent tools`, `guide` and `call` provide the same workflows through a JSON CLI.
+  Agents attach to the running UI's services with explicit local pairing and separate write access.
+- AI agents activity shows live calls, retained results, native HTTP evidence, cancellation,
+  copyable setup and a practical example prompt. Results stay bounded and in memory; disabling
+  access revokes tokens and cancels active calls. The official Go MCP SDK adds no model runtime.
+
 ## v0.6.1 — 2026-09-07
 
 - Supersedes the v0.6.1 release candidate with Go 1.26.8, including the upstream Windows runtime

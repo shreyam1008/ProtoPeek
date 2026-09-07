@@ -40,6 +40,9 @@ func dispatchSubcommand(arguments []string) (int, bool) {
 	if len(arguments) == 0 {
 		return 0, false
 	}
+	if arguments[0] == "mcp" || arguments[0] == "agent" {
+		return dispatchAgentCommand(arguments), true
+	}
 	if arguments[0] == "migrate-gobarry" {
 		return runGoBarryMigrationCommand(arguments[1:], os.Stdout, os.Stderr, newConfiguredGoBarryMigrationService), true
 	}

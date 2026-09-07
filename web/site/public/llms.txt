@@ -35,6 +35,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable · v0.6.1
 - Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.1
 - Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable · v0.6.1
+- Local AI agents: https://protopeek.shreyam1008.com.np/ai-agents/ — Current source · after v0.6.1
 - Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.1
 - Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Stable · v0.6.1
 - Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide

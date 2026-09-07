@@ -199,6 +199,26 @@ Copy compatible preferences and session after reviewing the preview:
 .TP
 Guardedly restore a recorded pre-import state:
 .B protopeek migrate-gobarry --rollback RECEIPT_ID
+.SH LOCAL AI AGENTS (CURRENT SOURCE)
+This addition is available in source after v0.6.1, not in v0.6.1 stable binaries.
+Pair the running workbench from Settings > AI agents, then configure an MCP
+stdio server with command protopeek and argument mcp. No model is bundled.
+.PP
+.B protopeek agent tools
+prints tool names and JSON input schemas.
+.B protopeek agent guide
+prints workflow instructions.
+.B protopeek agent call NAME
+reads one JSON arguments object from stdin and returns a JSON result and receipt.
+Calls share the running UI services and appear in its activity view.
+.PP
+HTTP write methods and download controls require explicit write access.
+At most two calls run concurrently, with a 60-second deadline. Ctrl+C or MCP
+cancellation stops a call. Disabling the UI connection revokes access and
+cancels active calls; it does not undo upstream mutations or delete files.
+Re-pair after restarting ProtoPeek. The private connection file lives beneath
+the OS user configuration directory in protopeek/agent-connection.json.
+PROTOPEEK_AGENT_CONNECTION selects an absolute alternative pairing-file path.
 .SH STATE
 Saved targets, requests, and workspace settings are stored in the local browser
 profile. Automatic history and default exports redact known credential fields,

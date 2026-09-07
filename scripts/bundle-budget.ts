@@ -24,6 +24,18 @@ const kibibyte = 1024;
 
 export const consoleBundleBudgets: BundleBudget[] = [
   {
+    label: 'AI agent workspace JavaScript',
+    pattern: /^AgentWorkbench-.+\.js$/,
+    maxRawBytes: 14 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'AI agent workspace CSS',
+    pattern: /^AgentWorkbench-.+\.css$/,
+    maxRawBytes: 6 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
     label: 'Saved HTTP request library JavaScript',
     pattern: /^HTTPRequestLibrary-.+\.js$/,
     maxRawBytes: 7 * kibibyte,
@@ -267,9 +279,11 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Measured all-route total: 1,079,728 raw / 340,349 gzip; startup caps unchanged.
     // Includes the lazy packet reader UI (~13 KiB raw / 4.5 KiB gzip).
     // Native settings sections and truthful gRPC clipboard results: 1,106,550 raw / 350,226 gzip.
-    maxRawBytes: 1082 * kibibyte,
+    // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
+    // No model runtime, polling in other routes, or additional startup dependency.
+    maxRawBytes: 1098 * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 356 * kibibyte,
+    maxGzipBytes: 362 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -279,8 +293,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // aggregate includes every route-lazy feature stylesheet. The Tunnels
     // slice moves the measured suite baseline to 298,722 raw / 53,806 gzip
     // bytes; keep small explicit headroom without hiding route growth.
-    maxRawBytes: 304 * kibibyte,
-    maxGzipBytes: 61 * kibibyte,
+    maxRawBytes: 310 * kibibyte,
+    maxGzipBytes: 63 * kibibyte,
   },
 ];
 

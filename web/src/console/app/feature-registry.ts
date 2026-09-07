@@ -294,6 +294,17 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'agents',
+    destination: 'settings',
+    label: 'AI agents',
+    route: '/agents',
+    order: 155,
+    command: {
+      label: 'Connect an AI agent',
+      keywords: 'mcp ai agent assistant automation cli tools activity',
+    },
+  },
+  {
     id: 'roadmap',
     destination: 'settings',
     label: 'Roadmap',

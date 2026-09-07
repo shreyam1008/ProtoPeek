@@ -24,6 +24,11 @@ See the [release notes](CHANGELOG.md), [feature roadmap](guides/feature-roadmap.
 
 ## Product contract
 
+**New in current source:** [local AI agents](guides/ai-agents.md) attach through `protopeek mcp`
+or the JSON CLI. Pair from **Settings → AI agents** to share HTTP, listener, port/route, Tailscale
+inspection and download tools with visible results and cancellation. This addition is not in
+the v0.6.1 stable binaries. It uses your agent's model; ProtoPeek itself runs no model.
+
 v0.6.1 has six permanent destinations:
 
 | Destination | Responsibility | Current and compatibility paths retained |

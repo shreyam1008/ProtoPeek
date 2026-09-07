@@ -75,6 +75,7 @@ export const releaseCapabilities = [
   { featureId: 'network-packets', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'security', releaseStatus: 'stable', docsSlug: 'security' },
   { featureId: 'settings', releaseStatus: 'stable', docsSlug: 'settings' },
+  { featureId: 'agents', releaseStatus: 'source', docsSlug: 'ai-agents' },
   { featureId: 'roadmap', releaseStatus: 'stable', docsSlug: 'feature-roadmap' },
 ] as const satisfies readonly ReleaseCapability[];
 

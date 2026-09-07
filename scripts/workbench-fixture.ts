@@ -3,6 +3,8 @@
 const server = Bun.serve({
   hostname: '127.0.0.1',
   port: 43111,
+  // Keep /slow alive long enough to test the workbench's own timeout/cancellation.
+  idleTimeout: 70,
   maxRequestBodySize: 1024 * 1024,
   async fetch(request, server) {
     const url = new URL(request.url);

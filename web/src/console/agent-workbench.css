@@ -1,0 +1,324 @@
+.pp-agent-workbench {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--pp-text);
+  background: var(--pp-surface);
+  font-size: 0.78rem;
+}
+.pp-agent-heading,
+.pp-agent-heading > div,
+.pp-agent-toolbar,
+.pp-agent-code-title,
+.pp-agent-result-title,
+.pp-agent-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.pp-agent-heading {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pp-agent-heading h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+.pp-agent-heading span,
+.pp-agent-caption {
+  color: var(--pp-text-muted);
+  font-size: 0.7rem;
+}
+.pp-agent-workbench svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  vertical-align: middle;
+}
+.pp-agent-workbench button,
+.pp-agent-workbench a {
+  color: var(--pp-text);
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.3rem;
+  background: var(--pp-surface-raised);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+}
+.pp-agent-workbench button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-agent-workbench button:focus-visible,
+.pp-agent-workbench a:focus-visible,
+.pp-agent-workbench pre:focus-visible {
+  outline: 2px solid var(--pp-accent);
+  outline-offset: 2px;
+}
+.pp-agent-status {
+  border: 1px solid var(--pp-stroke);
+  padding: 0.35rem 0.65rem;
+  border-radius: 2rem;
+}
+.pp-agent-status.is-enabled {
+  color: var(--pp-success-signal);
+}
+.pp-agent-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.pp-agent-setup {
+  padding: 1rem;
+  overflow: auto;
+  border-right: 1px solid var(--pp-stroke);
+}
+.pp-agent-setup h2 {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+}
+.pp-agent-setup p {
+  line-height: 1.6;
+  color: var(--pp-text-muted);
+}
+.pp-agent-setup ol {
+  padding-left: 1.25rem;
+}
+.pp-agent-setup li {
+  padding: 0.35rem 0;
+}
+.pp-agent-setup li p {
+  margin: 0.25rem 0;
+}
+.pp-agent-check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+.pp-agent-workbench .pp-agent-primary {
+  width: 100%;
+  padding: 0.65rem;
+  color: var(--pp-accent);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pp-agent-code-title {
+  justify-content: space-between;
+  margin-top: 1.25rem;
+}
+.pp-agent-workbench pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+.pp-agent-setup pre {
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.35rem;
+  padding: 0.7rem;
+  background: var(--pp-surface-raised);
+}
+.pp-agent-setup details {
+  border-top: 1px solid var(--pp-stroke);
+  padding: 0.8rem 0;
+}
+.pp-agent-setup summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.pp-agent-tool {
+  margin-top: 0.8rem;
+}
+.pp-agent-tool strong {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+.pp-agent-activity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.pp-agent-toolbar {
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--pp-stroke);
+  flex-wrap: wrap;
+}
+.pp-agent-toolbar h2 {
+  font-size: 0.8rem;
+  margin: 0 auto 0 0;
+}
+.pp-agent-toolbar h2 span {
+  color: var(--pp-text-muted);
+  font-size: 0.7rem;
+}
+.pp-agent-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+}
+.pp-agent-evidence {
+  display: grid;
+  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.pp-agent-records {
+  overflow: auto;
+  border-right: 1px solid var(--pp-stroke);
+}
+.pp-agent-records > li {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--pp-stroke);
+}
+.pp-agent-records > li.is-selected {
+  background: color-mix(in srgb, var(--pp-accent) 10%, transparent);
+  border-left: 3px solid var(--pp-accent);
+}
+.pp-agent-records > li > button:first-child {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.pp-agent-records span {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.pp-agent-records span:not(:first-child),
+.pp-agent-records small {
+  color: var(--pp-text-muted);
+  font-size: 0.65rem;
+}
+.pp-agent-records strong {
+  overflow-wrap: anywhere;
+  font-size: 0.7rem;
+}
+.pp-agent-result {
+  overflow: auto;
+  min-width: 0;
+  padding: 1rem;
+}
+.pp-agent-result-title {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pp-agent-result-title h3 {
+  margin: 0;
+  font: 600 0.8rem var(--font-mono);
+}
+.pp-agent-result > pre {
+  margin-top: 1rem;
+}
+.pp-agent-empty {
+  margin: auto;
+  padding: 2rem;
+  max-width: 38rem;
+  text-align: center;
+  color: var(--pp-text-muted);
+  line-height: 1.6;
+}
+.pp-agent-empty > svg {
+  width: 2rem;
+  height: 2rem;
+}
+.pp-agent-empty h3 {
+  color: var(--pp-text);
+}
+.pp-agent-empty code {
+  font-size: 0.7rem;
+}
+.pp-agent-footer {
+  justify-content: space-between;
+  padding: 0.45rem 0.8rem;
+  border-top: 1px solid var(--pp-stroke);
+  font-size: 0.65rem;
+  color: var(--pp-text-muted);
+  flex-wrap: wrap;
+}
+.pp-agent-error {
+  padding: 0.6rem 1rem;
+  margin: 0;
+  color: var(--pp-error-signal);
+  border-bottom: 1px solid var(--pp-stroke);
+}
+.pp-agent-spin {
+  animation: pp-agent-spin 1s linear infinite;
+}
+@keyframes pp-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-agent-spin {
+    animation: none;
+  }
+}
+@media (max-width: 1000px) {
+  .pp-agent-evidence {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(120px, 32%) minmax(0, 1fr);
+  }
+  .pp-agent-records {
+    border-bottom: 1px solid var(--pp-stroke);
+  }
+}
+@media (max-width: 680px) {
+  .pp-agent-workbench {
+    height: auto;
+    min-height: 100%;
+  }
+  .pp-agent-layout {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+  .pp-agent-setup {
+    border-right: 0;
+    border-bottom: 1px solid var(--pp-stroke);
+    max-height: 55vh;
+  }
+  .pp-agent-activity {
+    min-height: 60vh;
+  }
+  .pp-agent-evidence {
+    height: 70vh;
+    flex: auto;
+  }
+  .pp-agent-heading > div {
+    flex-wrap: wrap;
+  }
+}
+
+.pp-agent-workbench figure {
+  margin: 0;
+}
+.pp-agent-http-result {
+  height: calc(100% - 4rem);
+  min-height: 300px;
+  margin-top: 1rem;
+  border: 1px solid var(--pp-stroke);
+}
+.pp-agent-records {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

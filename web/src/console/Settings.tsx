@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import {
   ArchiveRestore,
   CheckCircle2,
@@ -345,6 +346,7 @@ export function Settings() {
         <div>
           <h1>Settings</h1>
           <p>Interface preferences in this browser. Download settings on this machine.</p>
+          <Link to="/agents">AI agents · connection and activity</Link>
         </div>
         <span className="pp-settings-local">
           <LockKeyhole aria-hidden="true" /> Local + explicit

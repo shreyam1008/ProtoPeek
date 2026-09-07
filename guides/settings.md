@@ -55,7 +55,11 @@ Explicit retry retains the chosen output name and partial-download behavior.
 
 ## Go deeper
 
+Current source after v0.6.1 also includes **AI agents**, a secondary workspace for pairing a
+local MCP/CLI agent and watching its actual calls. Access starts off; write actions are a separate
+choice. The private pairing file belongs to the host and activity results stay in memory.
+See the [local AI agent guide](/ai-agents/). This is not included in v0.6.1 stable binaries.
+
 - [Use Downloader and inspect its external aria2 boundary](/downloader/).
 - [Read the GoBarryGo consolidation record](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md).
 - [Install stable ProtoPeek v0.6.1](/install/).
-

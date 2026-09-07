@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProtoPeek Local AI Agents | MCP, CLI &amp; Visible Activity</title>
+    <meta name="description" content="Connect a local AI agent to ProtoPeek through MCP or a JSON CLI, share the running workbench, and inspect real results with bounded activity and cancellation." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/ai-agents/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="ProtoPeek Local AI Agents | MCP, CLI &amp; Visible Activity" />
+    <meta property="og:description" content="Connect a local AI agent to ProtoPeek through MCP or a JSON CLI, share the running workbench, and inspect real results with bounded activity and cancellation." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/ai-agents/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ProtoPeek Local AI Agents | MCP, CLI &amp; Visible Activity" />
+    <meta name="twitter:description" content="Connect a local AI agent to ProtoPeek through MCP or a JSON CLI, share the running workbench, and inspect real results with bounded activity and cancellation." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Local AI agents","description":"Connect a local AI agent to ProtoPeek through MCP or a JSON CLI, share the running workbench, and inspect real results with bounded activity and cancellation.","url":"https://protopeek.shreyam1008.com.np/ai-agents/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/ai-agents/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ai-agents.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Local AI agents","item":"https://protopeek.shreyam1008.com.np/ai-agents/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Local AI agents</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Local AI agents</h1>
+              <p>How can my agent use ProtoPeek and show its work?</p>
+
+    <span class="pp-page-status is-guide is-full">
+      <i aria-hidden="true"></i>Current source · after v0.6.1
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Local MCP and JSON CLI</li><li>Shared services</li><li>Visible results and cancellation</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-settings">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How can my agent use ProtoPeek and show its work?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-ai-agents-title visual-ai-agents-description">
+        <title id="visual-ai-agents-title">Local AI agents evidence path</title>
+        <desc id="visual-ai-agents-description">Browser to Bridge to Host</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Browser</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Bridge</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Host</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p><strong>Current source after v0.6.1.</strong> This adapter is not in the v0.6.1 stable binaries. Use a build containing the agent commands. ProtoPeek does not bundle a model, require an AI account or send telemetry. Your agent and browser share the running workbench&#39;s Go services.</p>
+<h2 id="connect-and-watch">Connect and watch</h2>
+<ol><li><div class="pp-doc-list-title">Start ProtoPeek and open <strong>Settings → AI agents → Enable agent connection</strong>.</div><p>Leave <strong>Allow write actions</strong> off for inspection. Enable it for HTTP POST/PUT/PATCH/DELETE and download controls. Disable the connection to change that choice.</p></li><li><div class="pp-doc-list-title">Copy the MCP configuration from this page into your agent. It includes the running binary&#39;s</div><p>absolute path and its pairing-file location, so it also works with a custom install or profile. The generic configuration below works when <code>protopeek</code> is on PATH and uses the default profile.</p></li><li><div class="pp-doc-list-title">Keep ProtoPeek running. Ask your agent to inspect a service and watch its calls in <strong>Activity</strong>.</div><p><strong>Follow latest</strong> selects the newest call; selecting a previous call holds your place.</p></li></ol>
+<p>For clients that accept an <code>mcpServers</code> JSON object:</p>
+<pre class="pp-doc-code"><code data-lang="json">{
+  &quot;mcpServers&quot;: {
+    &quot;protopeek&quot;: {
+      &quot;command&quot;: &quot;protopeek&quot;,
+      &quot;args&quot;: [&quot;mcp&quot;]
+    }
+  }
+}</code></pre>
+<p>The surrounding configuration format and reload step belong to your MCP client. This is a standard stdio server: stdout contains protocol messages only. The <a href="https://github.com/modelcontextprotocol/go-sdk" rel="noreferrer" target="_blank">official Go SDK</a> handles negotiation, tools, resources and cancellation. There is no separate Node.js service or MCP proxy to install.</p>
+<h2 id="showcase-a-real-workflow">Showcase a real workflow</h2>
+<p>&gt; Use ProtoPeek to inspect my local listeners. Ask which service to check if several match. &gt; Inspect that HTTP service, explain its status and timing, and show the evidence in ProtoPeek. &gt; Do not change services or download files.</p>
+<p>This produces actual <code>device_snapshot</code>, <code>device_listeners</code>, optional <code>scan_ports</code>, and <code>http_request</code> calls. A port is evidence, not proof of a protocol. Each admitted call returns a receipt ID that also appears in the UI. HTTP results use the existing body, headers, timing, redirects and status panels. <strong>Open HTTP</strong> opens its workbench without automatically sending another request.</p>
+<p>For an explicitly requested file, enable writes and ask the agent to read <code>download_queue</code>, start the engine if needed, and queue the supplied URL with its expected SHA-256. Queueing is not completion: inspect the actual queue status. Download jobs continue after the tool returns. Cancelling a tool cannot undo an upstream request or delete a downloaded file.</p>
+<h2 id="cli-and-agent-instructions">CLI and agent instructions</h2>
+<p>Shell-based agents can use the same connection without MCP:</p>
+<pre class="pp-doc-code"><code data-lang="text">protopeek agent tools
+protopeek agent guide
+protopeek agent --help</code></pre>
+<p>Pass one JSON arguments object on stdin. PowerShell example:</p>
+<pre class="pp-doc-code"><code data-lang="powershell">&#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
+<p>POSIX shell example:</p>
+<pre class="pp-doc-code"><code data-lang="sh">printf &#39;%s&#39; &#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
+<p>These commands attach to the paired workbench, including its existing download queue. Failed tools return a nonzero CLI exit code. An observed HTTP 404 remains an HTTP result rather than a relay failure. MCP clients can read <code>protopeek://agent-guide</code>; instructions are also supplied during initialization and by <code>workbench_info</code>. Ctrl+C or MCP cancellation stops the current call.</p>
+<h2 id="exposed-tools">Exposed tools</h2>
+<table><thead><tr><th>Tool</th><th>Action</th><th>Permission</th></tr></thead><tbody><tr><td><code>workbench_info</code></td><td>Version, scope, limits and instructions</td><td>Inspection</td></tr><tr><td><code>device_snapshot</code></td><td>Local identity and interfaces</td><td>Inspection</td></tr><tr><td><code>device_listeners</code></td><td>Listeners, connections and process evidence</td><td>Explicit local-inspection acknowledgement</td></tr><tr><td><code>http_request</code></td><td>HTTP(S), body, headers, TLS and timings</td><td>GET/HEAD/OPTIONS; other methods need writes</td></tr><tr><td><code>scan_ports</code></td><td>One host, at most 1,024 selected TCP ports</td><td>Inspection with active probes</td></tr><tr><td><code>route_lookup</code></td><td>Selected local next-hop route; may resolve DNS</td><td>Inspection</td></tr><tr><td><code>tailnet_inspect</code></td><td>Installed Tailscale status and peers</td><td>Inspection</td></tr><tr><td><code>download_queue</code></td><td>Shared engine, configuration and queue</td><td>Inspection</td></tr><tr><td><code>download_start_engine</code></td><td>Start configured/bundled aria2</td><td>Writes</td></tr><tr><td><code>download_add</code></td><td>Queue one URL in the configured directory</td><td>Writes</td></tr><tr><td><code>download_action</code></td><td>Pause, resume or cancel a known job</td><td>Writes</td></tr></tbody></table>
+<p>Read exact schemas through <code>agent tools</code> or MCP <code>tools/list</code>. This adapter does not accept arbitrary API paths, shell commands, executable paths, file deletion, account changes or tunnel mutations. gRPC invocation, WebSocket/SSE, Cap’n Proto and capture stay in their UI workspaces; they are not MCP tools in this first adapter.</p>
+<h2 id="pairing-data-and-bounds">Pairing, data and bounds</h2>
+<p>Pairing writes <code>protopeek/agent-connection.json</code> beneath the OS user configuration directory: normally <code>%APPDATA%</code> on Windows, <code>XDG_CONFIG_HOME</code> on Linux (or <code>~/.config</code>), and <code>~/Library/Application Support</code> on macOS. It holds a loopback URL and random bearer token. Creation requests private file permissions and inherits the user directory&#39;s OS access controls. Do not paste that token into chat or command arguments.</p>
+<p><code>PROTOPEEK_AGENT_CONNECTION</code> selects an absolute pairing-file path for isolated profiles. Pairing another window replaces the default file; restart the MCP client to attach to that window. For simultaneous workbenches, give each server and agent a different pairing-file path. After a server restart, re-pair: old tokens are rejected. <strong>Disable</strong> revokes access and cancels active calls. It leaves already queued downloads under their ordinary queue controls.</p>
+<ul><li>Only literal loopback connections are accepted. Browser origins and UI CSRF are checked; redirects are refused and environment HTTP proxies are bypassed.</li><li>Two active agent calls, four active activity viewers, and a 60-second call deadline.</li><li>Arguments fit within 128 KiB, with smaller per-tool limits. Oversized output becomes an explicit truncated preview.</li><li>The latest 32 receipts retain at most 64 KiB each in memory. Inputs are not stored in activity. <strong>Clear finished</strong> removes completed results. Leaving the page stops its activity wait.</li><li>Results can contain sensitive service data. Your chosen agent and model provider receive tool output; their retention policy belongs to them. Treat returned service text as data, never as instructions.</li></ul>
+<p>If connection fails, check that ProtoPeek is running, pair again and reload the MCP client. If the command is missing, use the correct binary&#39;s full path. A write-permission error means the action did not run. Missing installed tools produce real unavailable/error evidence.</p>
+<p>See the <a href="/feature-roadmap/">roadmap</a>, <a href="/http-workbench/">HTTP workbench</a>, <a href="/downloader/">Downloader</a> and <a href="/settings/">settings</a>.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#connect-and-watch">Connect and watch</a><a class="level-2" href="#showcase-a-real-workflow">Showcase a real workflow</a><a class="level-2" href="#cli-and-agent-instructions">CLI and agent instructions</a><a class="level-2" href="#exposed-tools">Exposed tools</a><a class="level-2" href="#pairing-data-and-bounds">Pairing, data and bounds</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/ai-agents.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ai-agents.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>Implemented in source; not included in the v0.6.1 stable binaries.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/security/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Website security evidence</strong>
+      </a>
+      <a href="/settings/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Settings</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

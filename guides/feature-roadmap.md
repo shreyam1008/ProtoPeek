@@ -3,6 +3,13 @@
 Updated for v0.6.1 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
 the [acceptance record](workbench-overhaul-2026-09.md) records tests, observations and remaining gaps.
 
+## Current source after v0.6.1
+
+**New current source, after this release:** [local AI agents](/ai-agents/) adds MCP over stdio,
+a JSON CLI and visible activity in the running workbench. Eleven bounded tools cover HTTP,
+listeners, ports, routes, Tailscale inspection and downloads. Agent adapters for gRPC,
+WebSocket/SSE, Cap’n Proto and capture remain future work. This is not part of v0.6.1.
+
 ## Available in v0.6.1
 
 Six permanent destinations keep related tools together. Existing deep links remain compatible.

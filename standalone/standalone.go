@@ -115,6 +115,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	staticServer := http.FileServer(http.FS(staticFS))
 
 	var mux http.ServeMux
+	registerAgentLink(&mux, uiOpts.version, uiOpts.basePath)
 
 	// Add optional resources to mux
 	for _, res := range uiOpts.addlServedResources() {

@@ -551,6 +551,33 @@
       "lastModified": "2026-09-07"
     },
     {
+      "id": "ai-agents",
+      "path": "/ai-agents/",
+      "slug": "ai-agents",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "preferences",
+      "title": "Local AI agents",
+      "documentTitle": "ProtoPeek Local AI Agents | MCP, CLI & Visible Activity",
+      "description": "Connect a local AI agent to ProtoPeek through MCP or a JSON CLI, share the running workbench, and inspect real results with bounded activity and cancellation.",
+      "question": "How can my agent use ProtoPeek and show its work?",
+      "section": "Agent connection",
+      "sourcePath": "guides/ai-agents.md",
+      "status": {
+        "label": "Current source · after v0.6.1",
+        "tone": "guide",
+        "detail": "Implemented in source; not included in the v0.6.1 stable binaries."
+      },
+      "highlights": [
+        "Local MCP and JSON CLI",
+        "Shared services",
+        "Visible results and cancellation"
+      ],
+      "visual": "settings",
+      "sitemap": { "changefreq": "monthly", "priority": "0.8" },
+      "lastModified": "2026-09-07"
+    },
+    {
       "id": "settings",
       "path": "/settings/",
       "slug": "settings",

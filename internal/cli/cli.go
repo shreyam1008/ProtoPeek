@@ -952,6 +952,12 @@ const rootUsageFormat = `Usage:
 
 Starts the ProtoPeek web console.
 
+Connect local AI agents with "protopeek mcp" (MCP over stdio). Pair the running
+workbench from Settings > AI agents first. "protopeek agent tools" prints JSON
+schemas; "protopeek agent guide" teaches the workflows. Use "protopeek agent
+call NAME" with a JSON object on stdin to share actions and visible results.
+Run "protopeek agent --help" for setup and cancellation details.
+
 The download command performs one local HTTP(S) transfer through the configured
 or system aria2c binary. Run "%s download --help" for its bounded output-name
 and optional SHA-256 verification flags.
