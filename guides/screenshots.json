@@ -49,6 +49,30 @@
       "height": 844,
       "sha256": "306b5f9efc3863f8ed0581e92629ce969c0eeb9b5820949bc16e319464f1277a",
       "workflow": "Real Chrome capture of the feature source promoted into v0.5.0 at a 390 by 844 responsive viewport with two fixture URLs staged as independent jobs and completed real local system-aria2 transfers visible in the queue. The JPEG was normalized to the documented viewport dimensions."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-workspace-edge-desktop.png",
+      "alt": "Actual ProtoPeek edge Home workspace on desktop with persistent or responsive navigation",
+      "platform": "desktop",
+      "capturedVersion": "v0.0.0-edge source 1970338",
+      "releaseStatus": "edge-prerelease",
+      "capturedAt": "2026-09-07",
+      "width": 1280,
+      "height": 720,
+      "sha256": "c77073740851afb619b15ec77720acd7a6bef7f38a060af2846330131bc987ae",
+      "workflow": "Real in-app browser capture of the Go-served production assets from verified commit 197033801f7b2a229018d26937627e9dd53f0249. No simulated services, private credentials or generated UI."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-workspace-edge-mobile.png",
+      "alt": "Actual ProtoPeek edge Home workspace on mobile with persistent or responsive navigation",
+      "platform": "mobile",
+      "capturedVersion": "v0.0.0-edge source 1970338",
+      "releaseStatus": "edge-prerelease",
+      "capturedAt": "2026-09-07",
+      "width": 390,
+      "height": 844,
+      "sha256": "534394248efd6d5d9057857f7ca331765ff2f0f7457a65f558cc3bc5424c82c6",
+      "workflow": "Real in-app browser capture of the Go-served production assets from verified commit 197033801f7b2a229018d26937627e9dd53f0249. No simulated services, private credentials or generated UI."
     }
   ]
 }

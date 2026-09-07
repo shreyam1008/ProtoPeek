@@ -24,7 +24,12 @@ See the [release notes](CHANGELOG.md), [feature roadmap](guides/feature-roadmap.
 
 The [current-source UI overhaul](guides/ui-overhaul-2026-09.md) adds a persistent tool navigator,
 last-tool destination resume, shared headers and loading states, compact connection flows,
-and a searchable roadmap. It is available on the explicit edge channel; stable remains v0.6.1.
+and a searchable roadmap. It is available on the explicit [edge channel](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge); stable remains v0.6.1.
+
+![ProtoPeek edge desktop workspace](web/site/public/assets/protopeek-workspace-edge-desktop.png)
+
+Actual edge capture from verified implementation `1970338`. [Browser acceptance](guides/ui-overhaul-2026-09.md)
+records 776 UI tests, cross-platform CI, real requests and transfers, and the remaining native-tool gaps.
 
 ## Product contract
 

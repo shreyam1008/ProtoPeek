@@ -5,10 +5,16 @@ the [acceptance record](workbench-overhaul-2026-09.md) records tests, observatio
 
 ## Current source after v0.6.1
 
-**New current source, after this release:** [local AI agents](/ai-agents/) adds MCP over stdio,
+**Published on the explicit [edge channel](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge), after v0.6.1:** [local AI agents](/ai-agents/) adds MCP over stdio,
 a JSON CLI and visible activity in the running workbench. Eleven bounded tools cover HTTP,
 listeners, ports, routes, Tailscale inspection and downloads. Agent adapters for gRPC,
 WebSocket/SSE, Cap’n Proto and capture remain future work. This is not part of v0.6.1.
+
+The [workspace overhaul](ui-overhaul-2026-09.md) is also on edge: persistent grouped navigation,
+last-tool resume, shared headers and recoverable route states, redesigned connection/queue/evidence
+layouts, mobile command search and a searchable roadmap. The verified implementation at `1970338`
+passed 776 UI tests, cross-platform CI and production archive checks. Browser PCAP and compiled
+Cap’n Proto uploads now have real acceptance evidence; privileged live capture remains unverified.
 
 ## Available in v0.6.1
 
@@ -93,8 +99,8 @@ GoBarryGo and TailScout public retirement/redirects remain separate decisions.
 
 For each change: exercise success and failure, variation in inputs, cancellation, reload/restart,
 missing dependencies and responsive browser layout. Keep synthetic fixture evidence explicitly labeled.
-Browser file selection currently needs the Chrome extension’s file-URL permission; real live capture
-needs an installed capture backend. Passing parser tests does not substitute for those native checks.
+Browser file selection was exercised through actual PCAP and compiled Cap’n Proto uploads. Real live
+capture still needs an installed capture backend and native acceptance; parser tests alone do not prove it.
 
 Run the frontend type/lint/tests, all Go packages, generated-site checks, bundle budgets and applicable
 installer/package tests. Release CI repeats Windows/Linux/macOS tests, cross-platform generated builds,

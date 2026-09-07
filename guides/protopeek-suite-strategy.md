@@ -1,5 +1,11 @@
 # ProtoPeek suite strategy
 
+> **Release checkpoint — 7 September 2026:** stable is v0.6.1, including the installed Tailscale
+> foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
+> agents are published on edge. [Current feature status](feature-roadmap.md) and
+> [verification](ui-overhaul-2026-09.md) supersede older release-status statements in this dated
+> planning document. Headscale, NetBird, integrated elevation and config writes remain future work.
+
 Status: product decision, selected redesign contract, and staged delivery plan. Current source
 implements the v0.6 six-destination shell; the published v0.5.0 release retains its historical
 six-area workbench. This document does not claim that the TailScout migration or any private-network

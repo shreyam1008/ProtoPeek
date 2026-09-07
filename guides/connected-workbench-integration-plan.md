@@ -1,5 +1,11 @@
 # Connected Workbench integration plan
 
+> **Release checkpoint — 7 September 2026:** stable is v0.6.1, including the installed Tailscale
+> foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
+> agents are published on edge. [Current feature status](feature-roadmap.md) and
+> [verification](ui-overhaul-2026-09.md) supersede older release-status statements in this dated
+> planning document. Headscale, NetBird, integrated elevation and config writes remain future work.
+
 **Status:** authoritative v0.7 implementation contract
 
 **Date:** 2026-09-03

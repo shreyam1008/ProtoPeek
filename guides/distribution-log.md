@@ -1,6 +1,24 @@
 # ProtoPeek distribution log
 
-## Current release — 7 September 2026
+## Verified edge overhaul — 7 September 2026
+
+Implementation `197033801f7b2a229018d26937627e9dd53f0249` published through
+[Edge Release 34121480924](https://github.com/shreyam1008/ProtoPeek/actions/runs/34121480924).
+[CI 34121480901](https://github.com/shreyam1008/ProtoPeek/actions/runs/34121480901) and
+[Pages 34121479824](https://github.com/shreyam1008/ProtoPeek/actions/runs/34121479824) passed.
+The downloaded Windows ZIP matched SHA-256
+`58cdcd752ebf7751d34701dfa52ff6af273742e34d8dcf32b68a1515ef01fc37`;
+its Go 1.26.8 executable reports that exact VCS revision and `vcs.modified=false`.
+This is a dated artifact checkpoint; the rolling edge checksum changes after later source commits.
+
+Edge includes persistent grouped navigation, last-tool resume, shared workspace layouts, mobile
+command search, new download-folder creation and local MCP/CLI agent access. Stable installers,
+Homebrew and Scoop remain v0.6.1. See [UI acceptance](ui-overhaul-2026-09.md),
+[agent acceptance](agent-acceptance-2026-09.md) and [feature roadmap](feature-roadmap.md).
+Native Nmap execution and privileged live capture remain unverified. File upload acceptance now
+covers a 75-packet PCAP and a compiled Cap’n Proto schema; old picker-blocker notes below are historical.
+
+## Current stable release — 7 September 2026
 
 **v0.6.1 is the latest stable release.** It supersedes the v0.6.0 candidate without rewriting
 that tag. The candidate was returned to draft after publication checks caught an edge-tag collision.

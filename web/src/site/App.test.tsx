@@ -73,7 +73,7 @@ describe('public site', () => {
     );
   });
 
-  it('uses only repository-verified screenshots and labels older captures honestly', () => {
+  it('uses only repository-verified screenshots and separates current edge captures from stable install commands', () => {
     render(<App />);
 
     const evidence = screen.getByRole('region', { name: 'One workbench. Real evidence.' });
@@ -82,11 +82,11 @@ describe('public site', () => {
         .getAllByRole('img')
         .map((image) => image.getAttribute('src'))
     ).toEqual([
-      '/assets/protopeek-downloader-development-mobile.jpg',
-      '/assets/protopeek-dashboard-dark.png',
+      '/assets/protopeek-workspace-edge-mobile.png',
+      '/assets/protopeek-workspace-edge-desktop.png',
     ]);
-    expect(within(evidence).getByText(/v0\.3\.0 capture/i)).toBeVisible();
-    expect(within(evidence).getByText('Downloader · v0.5.0 mobile')).toBeVisible();
+    expect(within(evidence).getByText('Edge · persistent desktop navigation')).toBeVisible();
+    expect(within(evidence).getByText('Edge · responsive Home')).toBeVisible();
   });
 
   it('shows one concise install command and switches it by operating system', () => {

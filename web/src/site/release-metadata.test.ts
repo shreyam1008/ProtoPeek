@@ -133,7 +133,7 @@ describe('release metadata', () => {
       }>;
     };
 
-    expect(manifest.screenshots).toHaveLength(5);
+    expect(manifest.screenshots).toHaveLength(7);
     const releaseCaptures = manifest.screenshots.filter(
       (screenshot) => screenshot.releaseStatus === 'released-v0.5.0'
     );

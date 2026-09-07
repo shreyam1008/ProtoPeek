@@ -1,5 +1,11 @@
 # Cloudflare Tunnel inside ProtoPeek
 
+> **Release checkpoint — 7 September 2026:** stable is v0.6.1, including the installed Tailscale
+> foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
+> agents are published on edge. [Current feature status](feature-roadmap.md) and
+> [verification](ui-overhaul-2026-09.md) supersede older release-status statements in this dated
+> planning document. Headscale, NetBird, integrated elevation and config writes remain future work.
+
 Status: current-source implementation plus forward plan; it is not part of stable v0.5.0.
 
 Last documentation and CLI check: 2026-09-02.

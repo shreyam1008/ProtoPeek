@@ -59,18 +59,18 @@ const productQuestions = [
 
 const verifiedScreenshots = [
   {
-    src: '/assets/protopeek-downloader-development-mobile.jpg',
-    alt: 'ProtoPeek v0.5.0 Downloader queue at a 390 by 844 responsive viewport',
+    src: '/assets/protopeek-workspace-edge-mobile.png',
+    alt: 'ProtoPeek edge Home workspace at 390 by 844 with responsive task cards and a navigation menu',
     width: 390,
     height: 844,
-    label: 'Downloader · v0.5.0 mobile',
+    label: 'Edge · responsive Home',
   },
   {
-    src: '/assets/protopeek-dashboard-dark.png',
-    alt: 'Historical ProtoPeek v0.3.0 systems dashboard in its persisted dark theme',
-    width: 1600,
-    height: 913,
-    label: 'Historical overview · v0.3.0 capture',
+    src: '/assets/protopeek-workspace-edge-desktop.png',
+    alt: 'ProtoPeek edge desktop workspace with six persistent destinations, grouped tools and local task shortcuts',
+    width: 1280,
+    height: 720,
+    label: 'Edge · persistent desktop navigation',
   },
 ] as const;
 
@@ -221,8 +221,8 @@ function Hero() {
           Find, reach, and inspect services locally.
         </h1>
         <p className="mt-7 max-w-xl text-lg leading-relaxed text-neutral-600 sm:text-xl">
-          Inspect gRPC and HTTP, trace a network path, or manage a download. A local Go app does the
-          work. Your browser provides the interface.
+          Inspect HTTP, gRPC, WebSocket, SSE and Cap’n Proto. Find ports, trace a network path, or
+          manage a download. A local Go app does the work; your browser provides the interface.
         </p>
         <div className="mt-9 flex flex-wrap gap-3">
           <a
@@ -244,6 +244,22 @@ function Hero() {
           <span className="size-1.5 rounded-full bg-[#f4a313]" aria-hidden="true" />
           Local-first. No account.
         </p>
+        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-neutral-700">
+          <strong className="block text-neutral-950">
+            New on edge: a consistent workspace and local AI agents.
+          </strong>
+          <p className="mt-1">
+            Keep your place across tools, use command search, and connect your own agent through MCP
+            or the JSON CLI. Edge is an opt-in prerelease.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
+            <a href={publicPagePath('workspace-ui')}>Explore the new workspace</a>
+            <a href={publicPagePath('ai-agents')}>Connect an agent</a>
+            <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge">
+              Download edge
+            </a>
+          </div>
+        </div>
       </div>
 
       <figure className="min-w-0 overflow-hidden rounded-2xl border border-neutral-800 bg-[#0b1118] p-2 shadow-2xl shadow-blue-950/15 sm:p-3">
@@ -256,16 +272,16 @@ function Hero() {
           </span>
         </div>
         <img
-          src="/assets/protopeek-downloader-development.jpg"
-          alt="ProtoPeek v0.5.0 Downloader with completed local aria2 transfers and SHA-256 evidence"
-          width="1487"
-          height="1058"
+          src="/assets/protopeek-workspace-edge-desktop.png"
+          alt="ProtoPeek edge workbench with persistent side navigation and six task destinations"
+          width="1280"
+          height="720"
           decoding="async"
           fetchPriority="high"
           className="block w-full rounded-lg border border-white/10"
         />
         <figcaption className="px-2 pb-1 pt-3 text-xs text-neutral-400">
-          Historical v0.5.0 capture · Local transfers with visible progress and integrity evidence.
+          Actual edge build · 7 September 2026. Stable installs remain on v0.6.1.
         </figcaption>
       </figure>
     </section>

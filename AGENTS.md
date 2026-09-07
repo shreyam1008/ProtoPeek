@@ -21,8 +21,8 @@ planned claims explicitly separate.
   Publish, and Downloader under Files. Roadmap and Help remain secondary command/About destinations.
 - Preserve existing routes and deep links as compatibility paths while the information architecture
   changes.
-- Private Access and Tailscale, Headscale, or NetBird integrations remain planned. Do not present a
-  planned provider, shared publishing workflow, or future control as implemented or shipped.
+- The installed Tailscale foundation ships in v0.6.1. Headscale, NetBird and integrated sign-in/elevation
+  remain planned. Do not present a future provider or shared publishing workflow as shipped.
 
 ## Feature admission
 
