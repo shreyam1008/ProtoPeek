@@ -79,6 +79,9 @@ jobs:
           args: release --clean --config .goreleaser.edge.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # A stable tag may point to the same commit. Never let tag sorting
+          # select that release for the rolling edge publisher.
+          GORELEASER_CURRENT_TAG: v0.0.0-edge
 
       - name: Attest edge archives
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
