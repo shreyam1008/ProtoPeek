@@ -554,9 +554,11 @@ describe('HTTPWorkbench', () => {
     expect(sent.headers).toContainEqual({ name: 'Authorization', value: 'Bearer super-secret' });
     expect(sent.timeoutMs).toBe(300);
 
-    const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
-    expect(stored).not.toContain('super-secret');
-    expect(stored).toContain('[redacted]');
+    await waitFor(() => {
+      const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
+      expect(stored).not.toContain('super-secret');
+      expect(stored).toContain('[redacted]');
+    });
   });
 
   it('exposes request and response tabs with matching tab panels', () => {
