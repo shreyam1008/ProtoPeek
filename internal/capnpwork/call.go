@@ -101,8 +101,8 @@ func (s *Schema) Call(parent context.Context, input CallRequest) (CallResult, er
 	defer socket.Close()
 	stopCancel := context.AfterFunc(ctx, func() { _ = socket.Close() })
 	defer stopCancel()
-	deadline, _ := ctx.Deadline()
-	_ = socket.SetDeadline(deadline)
+	// The context owns the wall and closes the socket after its error is set.
+	// A second socket deadline can fire first and masquerade as a remote close.
 	result.RemoteAddress = socket.RemoteAddr().String()
 	var stream net.Conn = socket
 	if input.Transport == "tls" {

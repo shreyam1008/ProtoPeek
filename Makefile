@@ -38,6 +38,7 @@ TOOLS_BIN := $(CURDIR)/.tmp/tools
 .PHONY: release-snapshot
 release-snapshot:
 	@command -v syft >/dev/null || { echo "syft is required for release SBOMs" >&2; exit 1; }
+	bun test scripts/package-aria2-sources.test.ts
 	bun scripts/package-aria2-sources.ts .local/aria2-sources
 	tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
 	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) check --config .goreleaser.yml

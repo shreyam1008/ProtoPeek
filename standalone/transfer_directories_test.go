@@ -11,8 +11,19 @@ import (
 	"testing"
 )
 
+func realTransferTestDirectory(t *testing.T) string {
+	t.Helper()
+	// macOS exposes its temporary directory through /var -> /private/var.
+	// The picker intentionally requires a real path rather than following links.
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestTransferDirectoryListing(t *testing.T) {
-	root := t.TempDir()
+	root := realTransferTestDirectory(t)
 	for _, name := range []string{"alpha", "Folder with spaces"} {
 		if err := os.Mkdir(filepath.Join(root, name), 0700); err != nil {
 			t.Fatal(err)
@@ -50,7 +61,7 @@ func TestTransferDirectoryAPIRequiresLocalCSRFAndStrictBody(t *testing.T) {
 	// The picker also serves Taildrop when no transfer engine is injected.
 	handler := Handler(nil, "", nil, nil)
 	cookie := handlerCSRFCookie(t, handler)
-	body, _ := json.Marshal(map[string]string{"path": t.TempDir()})
+	body, _ := json.Marshal(map[string]string{"path": realTransferTestDirectory(t)})
 	for _, tc := range []struct {
 		peer, body      string
 		csrf, forwarded bool

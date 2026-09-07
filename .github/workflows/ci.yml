@@ -314,6 +314,7 @@ jobs:
 
       - name: Prepare bundled aria2 source companion
         run: |
+          bun test scripts/package-aria2-sources.test.ts
           bun scripts/package-aria2-sources.ts .local/aria2-sources
           tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
 
