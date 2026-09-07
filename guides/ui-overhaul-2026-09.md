@@ -1,6 +1,6 @@
 # Workspace UI overhaul
 
-Current source after the local agent adapter. Scope: the complete embedded workbench UI.
+Published in the [opt-in edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge) on 7 September 2026. Stable installers remain on v0.6.1. Scope: the complete embedded workbench UI.
 
 ## Design contract
 

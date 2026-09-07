@@ -1,7 +1,7 @@
 # Local AI agents
 
-**Current source after v0.6.1.** This adapter is not in the v0.6.1 stable binaries.
-Use a build containing the agent commands. ProtoPeek does not bundle a model, require an AI
+**Published in the [opt-in edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge).** This adapter is not in the v0.6.1 stable binaries.
+Use the edge release or a source build containing the agent commands. ProtoPeek does not bundle a model, require an AI
 account or send telemetry. Your agent and browser share the running workbench's Go services.
 
 ## Connect and watch

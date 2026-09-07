@@ -115,6 +115,8 @@ Repository: ${repoRootURL}
 - Downloader product page: ${siteRoot}/downloader/
 
 - v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- The opt-in v0.0.0-edge prerelease adds the redesigned workspace, persistent grouped navigation, destination resume, mobile command search and local MCP/CLI agents. Download: ${repoRootURL}/releases/tag/v0.0.0-edge. Stable installers do not select edge.
+- Edge browser acceptance and remaining native Nmap/live-capture checks: ${siteRoot}/workspace-ui/. Agent setup and activity: ${siteRoot}/ai-agents/.
 - Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
 - Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
 - Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
