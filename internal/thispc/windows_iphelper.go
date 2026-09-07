@@ -215,7 +215,7 @@ func callWindowsExtendedUDPTable(buffer []byte, size *uint32, family, tableClass
 
 func callWindowsIPHelperTable(proc *windows.LazyProc, buffer []byte, size *uint32, family, tableClass uint32) error {
 	if size == nil {
-		return fmt.Errorf("Windows IP Helper table size pointer is nil")
+		return fmt.Errorf("native Windows IP Helper table size pointer is nil")
 	}
 	if err := proc.Find(); err != nil {
 		return fmt.Errorf("find %s: %w", proc.Name, err)
@@ -242,7 +242,7 @@ func callWindowsIPHelperTable(proc *windows.LazyProc, buffer []byte, size *uint3
 
 func checkedWindowsGetIfEntry2(row *windows.MibIfRow2) error {
 	if row == nil {
-		return fmt.Errorf("Windows interface row pointer is nil")
+		return fmt.Errorf("native Windows interface row pointer is nil")
 	}
 	// GetIfEntry2 is available on every Windows version supported by the Go
 	// toolchain. Resolve it only during the explicit read so Capabilities stays
@@ -260,7 +260,7 @@ func checkedWindowsGetIfEntry2(row *windows.MibIfRow2) error {
 
 func fetchWindowsTable(ctx context.Context, call windowsTableCall, family, tableClass uint32) ([]byte, error) {
 	if call == nil {
-		return nil, fmt.Errorf("Windows IP Helper table call is nil")
+		return nil, fmt.Errorf("native Windows IP Helper table call is nil")
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -271,21 +271,21 @@ func fetchWindowsTable(ctx context.Context, call windowsTableCall, family, table
 		return nil, err
 	}
 	if required < 4 {
-		return nil, fmt.Errorf("Windows IP Helper returned an invalid table size %d", required)
+		return nil, fmt.Errorf("native Windows IP Helper returned an invalid table size %d", required)
 	}
 	for attempt := 0; attempt < maxWindowsTableAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		if required > maxWindowsSocketTableBytes {
-			return nil, fmt.Errorf("Windows IP Helper table requires %d bytes, above the %d-byte limit", required, maxWindowsSocketTableBytes)
+			return nil, fmt.Errorf("native Windows IP Helper table requires %d bytes, above the %d-byte limit", required, maxWindowsSocketTableBytes)
 		}
 		buffer := make([]byte, int(required))
 		used := required
 		err = call(buffer, &used, family, tableClass)
 		if err == nil {
 			if used < 4 || used > uint32(len(buffer)) {
-				return nil, fmt.Errorf("Windows IP Helper returned an invalid used size %d for a %d-byte buffer", used, len(buffer))
+				return nil, fmt.Errorf("native Windows IP Helper returned an invalid used size %d for a %d-byte buffer", used, len(buffer))
 			}
 			return buffer[:used], nil
 		}
@@ -293,11 +293,11 @@ func fetchWindowsTable(ctx context.Context, call windowsTableCall, family, table
 			return nil, err
 		}
 		if used <= uint32(len(buffer)) {
-			return nil, fmt.Errorf("Windows IP Helper table grew without reporting a larger size")
+			return nil, fmt.Errorf("native Windows IP Helper table grew without reporting a larger size")
 		}
 		required = used
 	}
-	return nil, fmt.Errorf("Windows IP Helper table kept growing after %d bounded attempts", maxWindowsTableAttempts)
+	return nil, fmt.Errorf("native Windows IP Helper table kept growing after %d bounded attempts", maxWindowsTableAttempts)
 }
 
 func parseWindowsTCPTable(buffer []byte, maximum int) (windowsParsedSocketTable, error) {
@@ -438,12 +438,12 @@ func parseWindowsUDP6Table(buffer []byte, maximum int) (windowsParsedSocketTable
 
 func windowsTableCount(buffer []byte, offset, rowSize int) (int, error) {
 	if offset < 4 || rowSize < 1 || len(buffer) < offset {
-		return 0, fmt.Errorf("Windows IP Helper table header is truncated")
+		return 0, fmt.Errorf("native Windows IP Helper table header is truncated")
 	}
 	count := binary.LittleEndian.Uint32(buffer[:4])
 	available := (len(buffer) - offset) / rowSize
 	if uint64(count) > uint64(available) {
-		return 0, fmt.Errorf("Windows IP Helper table declares %d rows but contains space for %d", count, available)
+		return 0, fmt.Errorf("native Windows IP Helper table declares %d rows but contains space for %d", count, available)
 	}
 	return int(count), nil
 }

@@ -38,7 +38,9 @@ func (service *Service) controlAll(ctx context.Context, pause bool) error {
 	if pause {
 		return controller.PauseAll(ctx)
 	}
-	return controller.ResumeAll(ctx)
+	err = controller.ResumeAll(ctx)
+	service.wakeHistoryObserver()
+	return err
 }
 
 func (engine *aria2Engine) PauseAll(ctx context.Context) error {

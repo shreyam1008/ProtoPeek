@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cap’n Proto RPC Client: Schemas, TLS &amp; JSON | ProtoPeek</title>
+    <meta name="description" content="Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/capnp-workbench/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Cap’n Proto RPC Client: Schemas, TLS &amp; JSON | ProtoPeek" />
+    <meta property="og:description" content="Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/capnp-workbench/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cap’n Proto RPC Client: Schemas, TLS &amp; JSON | ProtoPeek" />
+    <meta name="twitter:description" content="Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Cap’n Proto workbench","description":"Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export.","url":"https://protopeek.shreyam1008.com.np/capnp-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/capnp-workbench/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/capnp-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Cap’n Proto workbench","item":"https://protopeek.shreyam1008.com.np/capnp-workbench/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Cap’n Proto workbench</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Cap’n Proto workbench</h1>
+              <p>How do I inspect a Cap’n Proto service?</p>
+
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.6.0
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Source or compiled schema</li><li>Exact integer values</li><li>Verified TLS and cancellation</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-capnp">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How do I inspect a Cap’n Proto service?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-capnp-workbench-title visual-capnp-workbench-description">
+        <title id="visual-capnp-workbench-title">Cap’n Proto workbench evidence path</title>
+        <desc id="visual-capnp-workbench-description">Schema to Capability to Response</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Schema</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Capability</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Response</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Load</span>
+              <h2>Choose a schema</h2>
+              <p>Load compiled bytes or use an optional installed source compiler.</p>
+            </article>
+
+            <article>
+              <span>02 · Call</span>
+              <h2>Select a bootstrap method</h2>
+              <p>Enter one endpoint and JSON request with a bounded deadline.</p>
+            </article>
+
+            <article>
+              <span>03 · Inspect</span>
+              <h2>Read the native response</h2>
+              <p>Keep exact values, connected address, timing and transport visible.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Available in current source after v0.5.0 at <strong>Inspect → Cap’n Proto</strong>. This is a native Cap’n Proto RPC client for a connection&#39;s bootstrap capability, implemented in Go.</p>
+<h2 id="load-a-schema-then-make-a-call">Load a schema, then make a call</h2>
+<ol><li><div class="pp-doc-list-title">Choose your <code>.capnp</code> files together and select the root file, or paste a single source schema.</div><p>Source loading uses <code>capnp</code> from the ProtoPeek host&#39;s PATH. The compiler is optional and is installed separately using the <a href="https://capnproto.org/install.html" rel="noreferrer" target="_blank">official setup guide</a>.</p></li><li><div class="pp-doc-list-title">Without a compiler on the ProtoPeek host, load an unpacked binary CodeGeneratorRequest (<code>.bin</code>)</div><p>generated on another machine. For example, in a shell with binary-safe redirection:</p></li></ol>
+<pre class="pp-doc-code"><code data-lang="sh">   capnp compile -o- service.capnp &gt; service.bin</code></pre>
+<p>Windows PowerShell 5 redirection converts native stdout to text: use <code>cmd.exe</code> or PowerShell 7.4+ for this binary output, as described in <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_redirection" rel="noreferrer" target="_blank">Microsoft&#39;s redirection guide</a>. Compiling before upload also handles nested imports conveniently.</p>
+<ol><li><div class="pp-doc-list-title">Select a method in the left list. Loading a schema does not connect to a peer.</div></li><li><div class="pp-doc-list-title">Enter <code>host:port</code> (or <code>[IPv6]:port</code>), choose TCP or verified TLS, and enter request JSON.</div><p>Omitted fields use schema defaults. Expand <strong>Parameter fields</strong> to see names and types.</p></li><li><div class="pp-doc-list-title">Click <strong>Call method</strong>. Inspect JSON, elapsed time, the connected address and TLS version.</div><p>Copy the response or save a JSON report. Cancel stops waiting and closes the connection; a request already delivered to the service may still have taken effect.</p></li></ol>
+<p>TLS verifies both the certificate chain and server identity. Advanced controls accept a server name override and additional CA certificates. Verification cannot be disabled. Each call opens one connection and has a configurable 0.1–30 second deadline; calls are never automatically retried.</p>
+<h2 id="json-representation">JSON representation</h2>
+<table><thead><tr><th>Schema value</th><th>Request and response representation</th></tr></thead><tbody><tr><td>Struct or group</td><td>Object using schema field names; unknown names are errors</td></tr><tr><td>Int64 / UInt64</td><td>Exact decimal strings recommended; unquoted request integers also preserve all digits; responses always use strings</td></tr><tr><td>Other integers</td><td>JSON numbers within the schema type&#39;s range</td></tr><tr><td>Float</td><td>JSON number, or strings <code>NaN</code>, <code>Infinity</code>, <code>-Infinity</code></td></tr><tr><td>Enum</td><td>Enumerant name or numeric value</td></tr><tr><td>Text / Data</td><td>UTF-8 string / base64 string</td></tr><tr><td>List</td><td>JSON array, including nested lists and structs</td></tr><tr><td>Union</td><td>At most one member in the request object</td></tr><tr><td>Capability / AnyPointer</td><td>Null input only; non-null responses are labeled opaque, not followed</td></tr></tbody></table>
+<p>Schemas, TLS CA input, requests and responses stay in memory for the open page. They are not saved as profiles. Reloading clears them. The local server receives schema and request bytes; only an explicit call sends the encoded request to the chosen endpoint.</p>
+<h2 id="bounds-and-compatibility">Bounds and compatibility</h2>
+<p>Source upload accepts at most 32 files / 512 KiB, with imports restricted to supplied files; embedded files and access to other host files are rejected. Compiled schemas are at most 2 MiB, 1,024 nodes and 256 methods. JSON requests and results are limited to 64 KiB. Wire messages, allocation, traversal depth, list size, compiler runtime and simultaneous work also have bounds.</p>
+<p>Concrete bootstrap methods, defaults, unions, groups, nested structs and lists have fixture coverage. Encoding is checked against output from the official C++ compiler. TCP and TLS RPC tests use a real Go peer; a C++ RPC peer has not yet been part of this acceptance pass. Generic interface/method bindings, returned-capability workflows and pipelining are not supported. Cap’n Proto is not HTTP or gRPC and does not supply an HTTP-style header editor.</p>
+<p>The Go RPC runtime is embedded. The C++ source compiler is not bundled. Dependency license texts are included in release archives; see <code>THIRD_PARTY_NOTICES.md</code> in the repository.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#load-a-schema-then-make-a-call">Load a schema, then make a call</a><a class="level-2" href="#json-representation">JSON representation</a><a class="level-2" href="#bounds-and-compatibility">Bounds and compatibility</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/capnp-workbench.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/capnp-workbench.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>Concrete bootstrap RPC is available; generic bindings and returned-capability workflows remain planned.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/install/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Install ProtoPeek</strong>
+      </a>
+      <a href="/grpc-workbench/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>gRPC workbench</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

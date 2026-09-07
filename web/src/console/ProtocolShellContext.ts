@@ -24,6 +24,7 @@ export type ProtocolShellValue = {
   setAppearance: (appearance: AppearancePreference) => void;
   interfacePreferences: InterfacePreferences;
   setInterfacePreferences: (preferences: InterfacePreferences) => void;
+  preferenceStorageError?: string;
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
   openHandoff: (handoff: PendingHandoffInput) => HandoffWriteResult;

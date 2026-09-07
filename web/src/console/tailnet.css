@@ -1,0 +1,180 @@
+.pp-tailnet {
+  width: 100%;
+  padding: 16px;
+  color: var(--pp-text);
+}
+.pp-tailnet header,
+.pp-tailnet-toolbar,
+.pp-tailnet-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pp-tailnet header h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+.pp-tailnet header > button:first-of-type {
+  margin-left: auto;
+}
+.pp-tailnet button,
+.pp-tailnet input {
+  font: inherit;
+  color: inherit;
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-border);
+  border-radius: 5px;
+  padding: 6px 9px;
+}
+.pp-tailnet button {
+  cursor: pointer;
+}
+.pp-tailnet button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-tailnet-summary {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-tailnet-summary small {
+  margin-left: auto;
+}
+.pp-tailnet-body {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+.pp-tailnet nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pp-tailnet nav button {
+  text-align: left;
+}
+.pp-tailnet nav button[aria-pressed="true"] {
+  color: var(--pp-accent);
+  background: var(--pp-accent-soft);
+}
+.pp-tailnet-content {
+  min-width: 0;
+}
+.pp-tailnet-devices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 14px;
+}
+.pp-tailnet-inventory {
+  min-width: 0;
+}
+.pp-tailnet-devices aside {
+  padding-left: 12px;
+  border-left: 1px solid var(--pp-border);
+  display: flex;
+  flex-direction: column;
+}
+.pp-tailnet-devices aside dt {
+  margin-top: 5px;
+  color: var(--pp-text-muted);
+}
+.pp-tailnet-devices aside .pp-tailnet-toolbar {
+  order: 1;
+}
+.pp-tailnet h2 {
+  font-size: 1rem;
+  margin: 12px 0 6px;
+}
+.pp-tailnet p {
+  font-size: 13px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.pp-tailnet-table {
+  overflow: auto;
+  max-height: 62vh;
+  margin: 10px 0;
+}
+.pp-tailnet table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pp-tailnet th,
+.pp-tailnet td {
+  padding: 7px;
+  text-align: left;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-tailnet tr[aria-selected="true"] {
+  background: var(--pp-accent-soft);
+}
+.pp-tailnet td small {
+  display: block;
+  color: var(--pp-text-muted);
+}
+.pp-tailnet dl {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  order: 2;
+  font-size: 12px;
+}
+.pp-tailnet dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pp-tailnet article {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-tailnet article button {
+  margin: 0 10px;
+}
+.pp-tailnet-review {
+  border: 1px solid var(--pp-accent);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.pp-tailnet-review .pp-tailnet-toolbar {
+  margin-top: 10px;
+}
+.pp-tailnet pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 300px;
+  overflow: auto;
+  font-size: 12px;
+}
+.pp-tailnet input[aria-label="Peer service port"] {
+  width: 80px;
+}
+.pp-tailnet input[aria-label="Taildrop local path"] {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+}
+@media (max-width: 760px) {
+  .pp-tailnet-body {
+    grid-template-columns: 1fr;
+  }
+  .pp-tailnet nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .pp-tailnet {
+    padding: 10px;
+  }
+}
+@media (max-width: 1100px) {
+  .pp-tailnet-devices {
+    grid-template-columns: 1fr;
+  }
+  .pp-tailnet-devices aside {
+    border-left: none;
+    padding-left: 0;
+  }
+}

@@ -124,7 +124,8 @@ type Socket struct {
 	OwnerStatus     string               `json:"ownerStatus"`
 	Processes       []ProcessAttribution `json:"processes"`
 	OwnersTruncated bool                 `json:"ownersTruncated,omitempty"`
-	inode           uint64
+	//lint:ignore U1000 Linux socket attribution joins procfs descriptors by inode.
+	inode uint64
 }
 
 type ActivityLimits struct {

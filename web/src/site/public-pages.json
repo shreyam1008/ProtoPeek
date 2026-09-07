@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastModified": "2026-09-03",
+  "lastModified": "2026-09-07",
   "groups": [
     {
       "id": "getting-started",
@@ -20,12 +20,12 @@
     {
       "id": "publish",
       "title": "Publish safely",
-      "description": "Inspect current-source Cloudflare Tunnel host state and understand which local actions remain guarded."
+      "description": "Inspect Cloudflare Tunnel host state and understand which local actions remain guarded."
     },
     {
       "id": "files",
       "title": "Transfer artifacts",
-      "description": "Queue, control, and verify bounded local downloads through an external aria2c."
+      "description": "Queue, control, and verify bounded local downloads through local aria2c, bundled on Windows x64."
     },
     {
       "id": "preferences",
@@ -48,7 +48,10 @@
       "title": "ProtoPeek",
       "documentTitle": "ProtoPeek | Local Systems Workbench",
       "description": "ProtoPeek is a lightweight local workbench for finding, reaching, and inspecting services with native gRPC and HTTP, network evidence, and local downloads.",
-      "sitemap": { "changefreq": "weekly", "priority": "1.0" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "1.0"
+      }
     },
     {
       "id": "docs",
@@ -58,12 +61,15 @@
       "generator": "hub",
       "title": "Features and guides",
       "documentTitle": "ProtoPeek Features & Guides | Local Systems Workbench",
-      "description": "Browse ProtoPeek guides for gRPC and HTTP, network and host evidence, current-source Cloudflare Tunnel operations, local downloads, security, and settings.",
+      "description": "Browse ProtoPeek guides for gRPC and HTTP, network and host evidence, Cloudflare Tunnel operations, local downloads, security, and settings.",
       "section": "Guides",
       "lastModified": "2026-09-02",
       "highlights": ["Choose a task", "See real evidence", "Know the limits"],
       "visual": "hub",
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      }
     },
     {
       "id": "install",
@@ -79,9 +85,9 @@
       "section": "Install guide",
       "sourcePath": "guides/INSTALLING.md",
       "status": {
-        "label": "Stable · v0.5.0",
+        "label": "Stable · v0.6.0",
         "tone": "stable",
-        "detail": "The owned Homebrew and Scoop channels and verified release resolvers install v0.5.0."
+        "detail": "Verified resolvers select stable releases; package manifests identify their packaged version."
       },
       "highlights": ["macOS, Linux, Windows", "Checksum verification", "Rollback path"],
       "visual": "install",
@@ -102,7 +108,58 @@
           "detail": "Start protopeek or pp and keep the workbench on the machine running the process."
         }
       ],
-      "sitemap": { "changefreq": "monthly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
+    },
+    {
+      "id": "capnp-workbench",
+      "path": "/capnp-workbench/",
+      "slug": "capnp-workbench",
+      "kind": "feature",
+      "generator": "markdown",
+      "group": "protocols",
+      "title": "Cap’n Proto workbench",
+      "documentTitle": "Cap’n Proto RPC Client: Schemas, TLS & JSON | ProtoPeek",
+      "description": "Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export.",
+      "question": "How do I inspect a Cap’n Proto service?",
+      "section": "Current source",
+      "sourcePath": "guides/capnp-workbench.md",
+      "visual": "capnp",
+      "status": {
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Concrete bootstrap RPC is available; generic bindings and returned-capability workflows remain planned."
+      },
+      "highlights": [
+        "Source or compiled schema",
+        "Exact integer values",
+        "Verified TLS and cancellation"
+      ],
+      "flow": [
+        {
+          "verb": "Load",
+          "title": "Choose a schema",
+          "detail": "Load compiled bytes or use an optional installed source compiler."
+        },
+        {
+          "verb": "Call",
+          "title": "Select a bootstrap method",
+          "detail": "Enter one endpoint and JSON request with a bounded deadline."
+        },
+        {
+          "verb": "Inspect",
+          "title": "Read the native response",
+          "detail": "Keep exact values, connected address, timing and transport visible."
+        }
+      ],
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.7"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "grpc-workbench",
@@ -118,9 +175,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/grpc-workbench.md",
       "status": {
-        "label": "Stable · v0.5.0",
+        "label": "Stable · v0.6.0",
         "tone": "stable",
-        "detail": "Protocol-native gRPC inspection ships in the stable v0.5.0 workbench."
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Reflection or proto files",
@@ -145,7 +202,11 @@
           "detail": "Inspect headers, response messages, trailers, final status, and observed timing separately."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "http-workbench",
@@ -161,9 +222,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/http-workbench.md",
       "status": {
-        "label": "Stable · v0.5.0",
+        "label": "Stable · v0.6.0",
         "tone": "stable",
-        "detail": "The bounded HTTP and REST request workbench ships in stable v0.5.0."
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Explicit request", "TLS and redirects", "Timing and response evidence"],
       "visual": "http",
@@ -184,7 +245,11 @@
           "detail": "See status, protocol, peer, headers, body, redirects, truncation, and timing phases."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "learn-grpc",
@@ -200,13 +265,17 @@
       "section": "Technical guide",
       "sourcePath": "guides/learn-grpc.md",
       "status": {
-        "label": "Reference guide",
-        "tone": "guide",
-        "detail": "A technical companion to the shipped gRPC workbench."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Proto contract", "Four RPC shapes", "HTTP/2 and trailers"],
       "visual": "learn-grpc",
-      "sitemap": { "changefreq": "monthly", "priority": "0.8" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.8"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "network-workbench",
@@ -222,9 +291,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/network-workbench.md",
       "status": {
-        "label": "Stable · v0.5.0",
+        "label": "Stable · v0.6.0",
         "tone": "stable",
-        "detail": "The bounded network workbench shipped before and remains part of stable v0.5.0."
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "DNS and selected route",
@@ -249,7 +318,11 @@
           "detail": "Store immutable snapshots and export canonical JSON, disclosed-loss GraphML, or flat CSV."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "route-and-nmap-evidence",
@@ -265,13 +338,17 @@
       "section": "Evidence guide",
       "sourcePath": "guides/route-and-nmap-evidence.md",
       "status": {
-        "label": "Stable boundary",
-        "tone": "guide",
-        "detail": "These limits describe shipped evidence and the claims ProtoPeek deliberately avoids."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Source RTT", "Authorized discovery", "No hidden Nmap execution"],
       "visual": "network-boundary",
-      "sitemap": { "changefreq": "monthly", "priority": "0.8" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.8"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "this-pc",
@@ -282,11 +359,11 @@
       "group": "network",
       "title": "This Device evidence",
       "documentTitle": "This Device: Ports, Public IP & Speed Evidence | ProtoPeek",
-      "description": "Current source inspects bounded Linux and native Windows sockets, owners, and interface counters, plus public IP/BGP and opt-in Cloudflare quality in Network.",
+      "description": "Inspect bounded Linux and Windows sockets, process owners and interface traffic, plus explicit public-IP/BGP and Cloudflare quality checks in ProtoPeek.",
       "question": "What is happening on this device?",
       "section": "Current-source feature",
       "sourcePath": "guides/this-pc.md",
-      "lastModified": "2026-09-03",
+      "lastModified": "2026-09-07",
       "keywords": [
         "Windows socket ownership",
         "Windows TCP UDP ports",
@@ -295,9 +372,9 @@
         "public IP BGP origin"
       ],
       "status": {
-        "label": "Current source · after v0.5.0",
-        "tone": "current",
-        "detail": "This route-lazy Network workspace is not included in published v0.5.0 packages."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Linux and Windows sockets",
@@ -322,7 +399,10 @@
           "detail": "A listener is not an Internet-open port and a Cloudflare run is not ISP line maximum."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      }
     },
     {
       "id": "cloudflare-tunnels",
@@ -333,11 +413,11 @@
       "group": "publish",
       "title": "Manage Cloudflare Tunnel locally",
       "documentTitle": "Manage Cloudflare Tunnel Locally | ProtoPeek",
-      "description": "Current source after v0.5.0 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
+      "description": "ProtoPeek v0.6.0 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
       "question": "Is cloudflared installed, current, and running on this host?",
       "section": "Current-source feature",
       "sourcePath": "guides/cloudflare-tunnels.md",
-      "lastModified": "2026-09-02",
+      "lastModified": "2026-09-07",
       "keywords": [
         "cloudflared service",
         "Cloudflare Tunnel",
@@ -348,9 +428,9 @@
         "Windows cloudflared service"
       ],
       "status": {
-        "label": "Current source · local operations foundation",
-        "tone": "current",
-        "detail": "Real host inspection, release comparison, and confirmed canonical-service control ship in source; route/config and Cloudflare account writes remain gated."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Real host and version evidence",
@@ -380,7 +460,10 @@
           "detail": "Review hostname, regex path, and origin YAML in the browser; local files and Cloudflare account configuration stay unchanged."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      }
     },
     {
       "id": "downloader",
@@ -391,13 +474,13 @@
       "group": "files",
       "title": "Downloader",
       "documentTitle": "ProtoPeek Downloader | Local aria2c Transfer Workbench",
-      "description": "ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.",
+      "description": "ProtoPeek v0.6.0 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.",
       "question": "Can I manage this download locally?",
       "section": "Stable feature",
       "status": {
-        "label": "Stable · v0.5.0",
+        "label": "Stable · v0.6.0",
         "tone": "stable",
-        "detail": "Downloader ships in v0.5.0 and uses external configured or system aria2c."
+        "detail": "Local queue and history with bundled Windows x64 aria2; other platforms use installed aria2."
       },
       "highlights": ["One to 32 HTTP(S) jobs", "Pause, resume, retry, cancel", "SHA-256 evidence"],
       "visual": "downloader",
@@ -418,7 +501,11 @@
           "detail": "See the completed path and optional expected SHA-256 result for a single job."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "security",
@@ -431,12 +518,12 @@
       "documentTitle": "Website Security Evidence: DNS, TLS & HTTP | ProtoPeek",
       "description": "Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.",
       "question": "What can I verify about this public website?",
-      "section": "Stable core and current-source report",
+      "section": "Stable core and report",
       "sourcePath": "guides/website-analysis-security.md",
       "status": {
-        "label": "Stable core · current-source report",
-        "tone": "mixed",
-        "detail": "v0.5.0 ships the name lookup and one HEAD observation; the derived local report is current source."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup."
       },
       "highlights": ["Historical certificate names", "One consented HEAD", "No security score"],
       "visual": "security",
@@ -457,7 +544,11 @@
           "detail": "Headers and certificate observations are not a vulnerability score or universal verdict."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.9" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.9"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "settings",
@@ -468,14 +559,14 @@
       "group": "preferences",
       "title": "Settings",
       "documentTitle": "ProtoPeek Settings: Local Preferences & Host Controls",
-      "description": "Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings.",
+      "description": "Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings.",
       "question": "Which settings stay in this browser or host?",
-      "section": "Stable core and current-source controls",
+      "section": "Stable core and controls",
       "sourcePath": "guides/settings.md",
       "status": {
-        "label": "Stable core · current-source host settings",
-        "tone": "mixed",
-        "detail": "Browser preferences and the GoBarryGo bridge ship in v0.5.0; Downloader host controls are current source."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Browser-only preferences",
@@ -500,7 +591,11 @@
           "detail": "Current source keeps Downloader engine settings in a private host file, not localStorage."
         }
       ],
-      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.8"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "feature-roadmap",
@@ -511,19 +606,22 @@
       "group": "direction",
       "title": "Feature roadmap",
       "documentTitle": "ProtoPeek Feature Roadmap: Shipped, Next & Gated",
-      "description": "See the shipped ProtoPeek protocol and systems workbench, current-source additions, planned evidence depth, and the gates for future protocol adapters.",
+      "description": "See the shipped ProtoPeek protocol and systems workbench, additions, planned evidence depth, and the gates for future protocol adapters.",
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
-      "lastModified": "2026-09-03",
+      "lastModified": "2026-09-07",
       "status": {
-        "label": "Living roadmap",
-        "tone": "guide",
-        "detail": "No fake dates: every item is labelled by evidence and release state."
+        "label": "Stable · v0.6.0",
+        "tone": "stable",
+        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
       "visual": "roadmap",
-      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.8"
+      }
     },
     {
       "id": "transport-boundaries",
@@ -545,7 +643,11 @@
       },
       "highlights": ["Local-first shell", "Protocol-native evidence", "Release gates"],
       "visual": "architecture",
-      "sitemap": { "changefreq": "monthly", "priority": "0.7" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.7"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "competitive-landscape",
@@ -567,7 +669,11 @@
       },
       "highlights": ["Official sources", "Workflow decisions", "Lightweight boundary"],
       "visual": "research",
-      "sitemap": { "changefreq": "monthly", "priority": "0.6" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.6"
+      },
+      "lastModified": "2026-09-07"
     },
     {
       "id": "vscode-extension-spec",
@@ -589,7 +695,10 @@
       },
       "highlights": ["Launch helper", "Small extension target", "No duplicate client"],
       "visual": "extension",
-      "sitemap": { "changefreq": "monthly", "priority": "0.5" }
+      "sitemap": {
+        "changefreq": "monthly",
+        "priority": "0.5"
+      }
     }
   ]
 }

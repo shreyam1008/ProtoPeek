@@ -19,17 +19,19 @@ type ToolObservation struct {
 // ServiceObservation describes the one canonical cloudflared service for the host.
 // Raw command lines and token values intentionally never cross this boundary.
 type ServiceObservation struct {
-	Manager           string `json:"manager"`
-	Label             string `json:"label"`
-	Present           bool   `json:"present"`
-	State             string `json:"state"`
-	Detail            string `json:"detail"`
-	PID               int    `json:"pid"`
-	ExecutablePath    string `json:"executablePath"`
-	ConfigPath        string `json:"configPath"`
-	CredentialSource  string `json:"credentialSource"`
-	actionTarget      string
-	definitionPath    string
+	Manager          string `json:"manager"`
+	Label            string `json:"label"`
+	Present          bool   `json:"present"`
+	State            string `json:"state"`
+	Detail           string `json:"detail"`
+	PID              int    `json:"pid"`
+	ExecutablePath   string `json:"executablePath"`
+	ConfigPath       string `json:"configPath"`
+	CredentialSource string `json:"credentialSource"`
+	actionTarget     string
+	//lint:ignore U1000 Used by the Darwin canonical service adapter.
+	definitionPath string
+	//lint:ignore U1000 Used by the Darwin canonical service adapter.
 	loaded            bool
 	argumentsObserved bool
 }

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
@@ -64,11 +65,37 @@ type transferGlobalControlService interface {
 	ResumeAll(context.Context) error
 }
 
+type transferHistoryService interface {
+	ForgetCompleted(context.Context, string) error
+}
+
 func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
+	admission := newAdmissionLimiter(maxConcurrentTransferOps)
+	// Taildrop and settings share the folder picker, including in embedders
+	// that do not supply a downloader service.
+	registerTransferDirectoryBrowser(mux, admission)
 	if service == nil {
 		return
 	}
-	admission := newAdmissionLimiter(maxConcurrentTransferOps)
+	if history, ok := service.(transferHistoryService); ok {
+		registerTransferPOST(mux, admission, "/api/transfers/forget", "forget completed transfer", func(w http.ResponseWriter, r *http.Request) {
+			var input struct {
+				ID string `json:"id"`
+			}
+			if !decodeStrictTransferJSON(w, r, maxTransferActionBodyBytes, &input) {
+				return
+			}
+			if !validTransferID(input.ID) {
+				http.Error(w, "Invalid transfer job id", http.StatusBadRequest)
+				return
+			}
+			if err := history.ForgetCompleted(r.Context(), input.ID); err != nil {
+				writeTransferError(w, err, http.StatusConflict)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		})
+	}
 
 	mux.HandleFunc("/api/transfers/snapshot", func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodGet {
@@ -94,6 +121,19 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 			return
 		}
 		writeTransferJSON(writer, http.StatusOK, health)
+	})
+
+	registerTransferPOST(mux, admission, "/api/transfers/stop", "transfer stop", func(writer http.ResponseWriter, request *http.Request) {
+		if !requireEmptyTransferBody(writer, request) {
+			return
+		}
+		ctx, cancel := context.WithTimeout(request.Context(), 15*time.Second)
+		defer cancel()
+		if err := service.Shutdown(ctx); err != nil {
+			writeTransferError(writer, err, http.StatusServiceUnavailable)
+			return
+		}
+		writer.WriteHeader(http.StatusNoContent)
 	})
 
 	if hostConfig, ok := service.(transferHostConfigService); ok {

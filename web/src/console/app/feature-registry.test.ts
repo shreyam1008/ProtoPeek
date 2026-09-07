@@ -19,6 +19,7 @@ import {
 } from './release-capabilities';
 
 const publicDocsSlugs = new Set([
+  'capnp-workbench',
   'cloudflare-tunnels',
   'downloader',
   'feature-roadmap',
@@ -95,7 +96,7 @@ describe('feature registry', () => {
     expect(new Set(orders).size).toBe(orders.length);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(commandDestinationFeatures.map((feature) => feature.order)).toEqual([
-      10, 20, 30, 40, 60, 70, 80, 90, 110, 120, 130, 140, 150, 160,
+      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 130, 140, 150, 160,
     ]);
     expect(aliases.every((alias) => !routeSet.has(alias))).toBe(true);
   });
@@ -133,11 +134,17 @@ describe('feature registry', () => {
       'Open Inspect',
       'Open gRPC workbench',
       'Open HTTP workbench',
+      'Open WebSocket and SSE',
+      'Open Cap’n Proto',
+      'Scan host ports',
       'Open next-hop route evidence',
+      'Open Nmap scanner',
+      'Inspect captured packets',
       'Trace a measured network path',
       'Discover an authorized local network',
       'Open the network evidence map',
       'Open This Device',
+      'Open Tailscale workbench',
       'Open Downloader',
       'Open Cloudflare tunnel operations',
       'Open Security evidence',
@@ -155,6 +162,8 @@ describe('feature registry', () => {
     expect(inspectEntryFeatures.map((feature) => feature.label)).toEqual([
       'gRPC',
       'HTTP',
+      'Event streams',
+      'Cap’n Proto',
       'Security',
     ]);
     expect(featureRegistry.every((feature) => !('navigation' in feature))).toBe(true);

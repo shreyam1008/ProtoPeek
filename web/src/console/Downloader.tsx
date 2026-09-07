@@ -1,4 +1,11 @@
 import {
+  type ColumnDef,
+  createPaginatedRowModel,
+  rowPaginationFeature,
+  tableFeatures,
+  useTable,
+} from '@tanstack/react-table';
+import {
   AlertTriangle,
   ArrowDownToLine,
   Check,
@@ -18,6 +25,7 @@ import {
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { StatusFact } from './evidence/StatusFact';
+import { ProtocolInfo } from './ProtocolInfo';
 import {
   addTransferBatch,
   fetchTransferSnapshot,
@@ -33,11 +41,18 @@ import {
   transferHealthLabel,
 } from './transfer-api';
 import './downloader.css';
+import { DirectoryPicker } from './DirectoryPicker';
+import { useTransferProgress } from './use-transfer-progress';
 
 type QueueFilter = 'all' | 'active' | 'completed' | 'failed';
 
 const activeStatuses = new Set<TransferJobStatus>(['queued', 'downloading', 'paused']);
 const maxBatchJobs = 32;
+const queueFeatures = tableFeatures({
+  rowPaginationFeature,
+  paginatedRowModel: createPaginatedRowModel(),
+});
+const queueColumns: ColumnDef<typeof queueFeatures, TransferJob>[] = [{ accessorKey: 'id' }];
 
 type HeaderDraft = TransferRequestHeader & { id: number };
 
@@ -58,12 +73,15 @@ export function Downloader() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
+  const [liveProgress, setLiveProgress] = useState(true);
   const mountedRef = useRef(true);
+  const snapshotRevision = useRef(0);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
+    const revision = ++snapshotRevision.current;
     try {
       const next = await fetchTransferSnapshot(signal);
-      if (!mountedRef.current || signal?.aborted) return;
+      if (!mountedRef.current || signal?.aborted || revision !== snapshotRevision.current) return;
       setSnapshot(next);
       setError('');
       setSelectedID((current) => {
@@ -71,7 +89,7 @@ export function Downloader() {
         return next.jobs[0]?.id ?? '';
       });
     } catch (cause) {
-      if (!mountedRef.current || signal?.aborted) return;
+      if (!mountedRef.current || signal?.aborted || revision !== snapshotRevision.current) return;
       setError(cause instanceof Error ? cause.message : 'Downloader state could not be loaded.');
     } finally {
       if (mountedRef.current && !signal?.aborted) setLoading(false);
@@ -88,6 +106,17 @@ export function Downloader() {
     };
   }, [refresh]);
 
+  const hasMovingJobs = Boolean(
+    snapshot?.health.ready &&
+      snapshot.jobs.some(
+        (job) =>
+          job.status === 'downloading' ||
+          job.status === 'queued' ||
+          job.verificationStatus === 'verifying'
+      )
+  );
+  useTransferProgress(liveProgress && hasMovingJobs && !busy && !error, refresh);
+
   useEffect(() => {
     if (advancedOpen) void import('./downloader-advanced.css');
   }, [advancedOpen]);
@@ -100,6 +129,19 @@ export function Downloader() {
     if (filter === 'failed') return jobs.filter((job) => job.status === 'failed');
     return jobs;
   }, [filter, snapshot?.jobs]);
+
+  const queueTable = useTable({
+    features: queueFeatures,
+    columns: queueColumns,
+    data: filteredJobs,
+    initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
+    autoResetPageIndex: false,
+    getRowId: (job) => job.id,
+  });
+  useEffect(() => {
+    const lastPage = Math.max(0, Math.ceil(filteredJobs.length / 50) - 1);
+    if (queueTable.state.pagination.pageIndex > lastPage) queueTable.setPageIndex(lastPage);
+  }, [filteredJobs.length, queueTable]);
 
   const counts = useMemo(() => {
     const jobs = snapshot?.jobs ?? [];
@@ -183,7 +225,10 @@ export function Downloader() {
     }
   }
 
-  async function runJobAction(action: 'pause' | 'resume' | 'retry' | 'cancel', id: string) {
+  async function runJobAction(
+    action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget',
+    id: string
+  ) {
     if (busy) return;
     setBusy(`${action}:${id}`);
     setError('');
@@ -199,6 +244,20 @@ export function Downloader() {
       // never tells the user the old queue state is authoritative.
       await refresh();
       setError(cause instanceof Error ? cause.message : `The transfer could not ${action}.`);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function restoreQueue() {
+    if (busy) return;
+    setBusy('restore');
+    setError('');
+    try {
+      await startTransferEngine();
+      await refresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'The saved queue could not be restored.');
     } finally {
       setBusy('');
     }
@@ -231,15 +290,33 @@ export function Downloader() {
     <div className="pp-downloader">
       <header className="pp-downloader-heading">
         <div>
-          <span className="pp-kicker">Download · verify · inspect</span>
           <h1>Downloader</h1>
-          <p>
-            Queue one URL or a bounded batch of independent jobs, then inspect real local transfer
-            and checksum evidence.
-          </p>
         </div>
+        <ProtocolInfo protocol="download" />
         <EngineState snapshot={snapshot} loading={loading} onRefresh={() => void refresh()} />
       </header>
+
+      <div className="pp-download-observation">
+        {snapshot && !snapshot.health.ready && (
+          <button type="button" disabled={Boolean(busy)} onClick={() => void restoreQueue()}>
+            {busy === 'restore' ? 'Restoring…' : 'Restore saved queue'}
+          </button>
+        )}
+        <label>
+          <input
+            type="checkbox"
+            checked={liveProgress}
+            onChange={(event) => setLiveProgress(event.target.checked)}
+          />
+          Live progress
+        </label>
+        <small>
+          {liveProgress && hasMovingJobs
+            ? 'Updates while this page is visible.'
+            : 'Refresh to read the latest queue.'}{' '}
+          Downloads continue when you close this page. Keep ProtoPeek running.
+        </small>
+      </div>
 
       <form className="pp-download-composer" onSubmit={submit}>
         <label htmlFor="download-source">URLs · one independent job per line</label>
@@ -280,9 +357,7 @@ export function Downloader() {
           className="pp-download-options"
           onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
         >
-          <summary>
-            Advanced per-job options <span>loaded when opened</span>
-          </summary>
+          <summary>Advanced per-job options</summary>
           {advancedOpen ? (
             <div className="pp-download-advanced-grid">
               <section>
@@ -343,6 +418,10 @@ export function Downloader() {
                   placeholder={snapshot?.config.downloadDirectory || '/absolute/path/to/downloads'}
                   value={destinationDirectory}
                   onChange={(event) => setDestinationDirectory(event.target.value)}
+                />
+                <DirectoryPicker
+                  initialPath={destinationDirectory || snapshot?.config.downloadDirectory || ''}
+                  onChoose={setDestinationDirectory}
                 />
                 <label htmlFor="download-user-agent">User-Agent override</label>
                 <input
@@ -438,6 +517,13 @@ export function Downloader() {
         </div>
       ) : null}
 
+      {snapshot?.persistenceWarning ? (
+        <div className="pp-downloader-warning" role="status">
+          <AlertTriangle aria-hidden="true" />
+          <span>{snapshot.persistenceWarning}</span>
+        </div>
+      ) : null}
+
       {warning ? (
         <div className="pp-downloader-warning" role="status">
           <AlertTriangle aria-hidden="true" />
@@ -452,7 +538,6 @@ export function Downloader() {
         <section className="pp-transfer-queue" aria-labelledby="transfer-queue-title">
           <header>
             <div>
-              <span className="pp-kicker">Queue</span>
               <h2 id="transfer-queue-title">Transfers</h2>
             </div>
             <div className="pp-transfer-queue-tools">
@@ -486,9 +571,7 @@ export function Downloader() {
                 )}
                 Resume all
               </button>
-              <span>
-                {counts.all}/{snapshot?.config.maxTrackedJobs || '—'} tracked
-              </span>
+              <span>{counts.all} live + saved</span>
             </div>
           </header>
           <nav className="pp-transfer-filters" aria-label="Filter transfers">
@@ -498,7 +581,10 @@ export function Downloader() {
                 type="button"
                 className={filter === value ? 'is-active' : ''}
                 aria-pressed={filter === value}
-                onClick={() => setFilter(value)}
+                onClick={() => {
+                  setFilter(value);
+                  queueTable.setPageIndex(0);
+                }}
               >
                 {filterLabel(value)} <span>{counts[value]}</span>
               </button>
@@ -518,7 +604,7 @@ export function Downloader() {
             {!loading && snapshot && filteredJobs.length === 0 ? (
               <QueueNotice kind={snapshot.health.ready ? 'empty' : 'stopped'} />
             ) : null}
-            {filteredJobs.map((job) => (
+            {queueTable.getRowModel().rows.map(({ original: job }) => (
               <TransferRow
                 key={job.id}
                 job={job}
@@ -530,7 +616,28 @@ export function Downloader() {
             ))}
           </div>
           <footer>
-            <span>{filteredJobs.length} shown</span>
+            <span>{filteredJobs.length} results</span>
+            {filteredJobs.length > 50 && (
+              <nav aria-label="Transfer pages">
+                <button
+                  type="button"
+                  disabled={!queueTable.getCanPreviousPage()}
+                  onClick={() => queueTable.previousPage()}
+                >
+                  Previous
+                </button>
+                <span>
+                  Page {queueTable.state.pagination.pageIndex + 1} of {queueTable.getPageCount()}
+                </span>
+                <button
+                  type="button"
+                  disabled={!queueTable.getCanNextPage()}
+                  onClick={() => queueTable.nextPage()}
+                >
+                  Next
+                </button>
+              </nav>
+            )}
             <span>↓ {formatRate(snapshot?.metrics.bytesPerSecond ?? 0)}</span>
           </footer>
         </section>
@@ -548,7 +655,7 @@ export function Downloader() {
           <i className="pp-engine-dot" aria-hidden="true" />{' '}
           {snapshot?.health.ready ? 'Engine ready' : 'Engine stopped'}
         </span>
-        <span>aria2c {snapshot?.health.engineVersion || 'external engine'}</span>
+        <span>aria2c {snapshot?.health.engineVersion || 'local engine'}</span>
         <span>Storage {snapshot?.config.downloadDirectory || 'not loaded'}</span>
         <span>
           Active {snapshot?.metrics.activeCount ?? 0}/{snapshot?.config.maxActiveJobs || '—'}
@@ -593,7 +700,7 @@ function TransferRow({
   selected: boolean;
   busy: boolean;
   onSelect: () => void;
-  onAction: (action: 'pause' | 'resume' | 'retry' | 'cancel') => void;
+  onAction: (action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget') => void;
 }) {
   return (
     <article className={selected ? 'is-selected' : ''} aria-current={selected || undefined}>
@@ -608,7 +715,7 @@ function TransferRow({
             className="pp-progress-track"
             style={{ '--pp-progress': `${job.progressPercent}%` } as React.CSSProperties}
           />
-          <small>{Math.round(job.progressPercent)}%</small>
+          <small>{transferProgressLabel(job)}</small>
         </span>
         <span>{formatProgress(job.completedBytes, job.totalBytes)}</span>
         <span>{formatETA(job.etaSeconds, job.status)}</span>
@@ -661,7 +768,10 @@ function TransferInspector({
 }: {
   job: TransferJob | null;
   busy: string;
-  onAction: (action: 'pause' | 'resume' | 'retry' | 'cancel', id: string) => Promise<void>;
+  onAction: (
+    action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget',
+    id: string
+  ) => Promise<void>;
 }) {
   const [copyStatus, setCopyStatus] = useState('');
 
@@ -687,10 +797,23 @@ function TransferInspector({
         <JobState status={job.status} />
       </header>
 
+      {job.historical ? (
+        <section className="pp-inspector-section">
+          <strong>Saved completion</strong>
+          <p>
+            Recorded{' '}
+            {job.completedAt && Number.isFinite(Date.parse(job.completedAt))
+              ? new Date(job.completedAt).toLocaleString()
+              : 'previously'}
+            . The file has not been rechecked.
+          </p>
+        </section>
+      ) : null}
+
       <section className="pp-inspector-progress">
         <div>
           <span className="pp-kicker">Progress</span>
-          <strong>{Math.round(job.progressPercent)}%</strong>
+          <strong>{transferProgressLabel(job)}</strong>
         </div>
         <i
           className="pp-progress-track"
@@ -761,6 +884,15 @@ function TransferInspector({
       <section className="pp-inspector-actions">
         <span className="pp-kicker">Actions</span>
         <div className="pp-inspector-action-row">
+          {job.status === 'completed' ? (
+            <button
+              type="button"
+              disabled={jobBusy}
+              onClick={() => void onAction('forget', job.id)}
+            >
+              <X aria-hidden="true" /> Remove history
+            </button>
+          ) : null}
           {job.status === 'downloading' ? (
             <button type="button" disabled={jobBusy} onClick={() => void onAction('pause', job.id)}>
               <CirclePause aria-hidden="true" /> Pause
@@ -796,6 +928,9 @@ function TransferInspector({
             </button>
           ) : null}
         </div>
+        {job.status === 'completed' ? (
+          <small>Removes this record. Your downloaded file stays on disk.</small>
+        ) : null}
         {job.status === 'failed' && !job.retryAvailable ? (
           <small className="pp-copy-status" role="status">
             {job.retryUnavailableReason ||
@@ -824,7 +959,7 @@ function QueueNotice({ kind }: { kind: 'loading' | 'empty' | 'stopped' }) {
         {kind === 'empty'
           ? 'Paste one or more HTTP(S) URLs above; every line becomes its own queue item.'
           : kind === 'stopped'
-            ? 'Queue URLs and ProtoPeek will explicitly start the configured external aria2c engine.'
+            ? 'Queue URLs to start the local aria2 engine. Configured and PATH engines take precedence over a bundled companion.'
             : 'Nothing is contacted while this state is loading.'}
       </p>
     </div>
@@ -851,6 +986,12 @@ export function parseBatchSources(value: string) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+export function transferProgressLabel(job: TransferJob) {
+  if (job.status === 'completed') return '100%';
+  if (job.totalBytes <= 0) return 'Size unknown';
+  return `${Math.round(job.progressPercent)}%`;
 }
 
 export function batchResultMessage(result: TransferBatchResult) {

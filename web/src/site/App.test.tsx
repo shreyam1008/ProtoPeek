@@ -54,7 +54,7 @@ describe('public site', () => {
       'href',
       '/this-pc/'
     );
-    expect(within(product).getByText(/current-source network workspace/i)).toBeVisible();
+    expect(within(product).getByText(/network workspace/i)).toBeVisible();
     expect(within(product).getByRole('link', { name: /choose grpc or http/i })).toHaveAttribute(
       'href',
       '/docs/#protocols'

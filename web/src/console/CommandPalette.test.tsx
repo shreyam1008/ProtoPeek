@@ -21,6 +21,34 @@ function PaletteHarness({ actions }: { actions: PaletteAction[] }) {
 }
 
 describe('CommandPalette', () => {
+  it('ranks fuzzy abbreviations and matches keywords in any word order', () => {
+    render(
+      <CommandPalette
+        open
+        actions={[
+          {
+            id: 'http',
+            label: 'Open HTTP workbench',
+            keywords: 'rest request response',
+            run: vi.fn(),
+          },
+          {
+            id: 'grpc',
+            label: 'Open gRPC workbench',
+            keywords: 'reflection proto trailers',
+            run: vi.fn(),
+          },
+        ]}
+        onClose={vi.fn()}
+      />
+    );
+    const input = screen.getByRole('combobox', { name: 'Search commands' });
+    fireEvent.change(input, { target: { value: 'grpc wkbnch' } });
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option')).toHaveTextContent('gRPC');
+    fireEvent.change(input, { target: { value: 'response http' } });
+    expect(screen.getByRole('option')).toHaveTextContent('HTTP');
+  });
   it('moves the active result with arrows and runs that result with Enter', async () => {
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);

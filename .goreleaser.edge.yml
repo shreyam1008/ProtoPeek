@@ -59,12 +59,20 @@ archives:
     files:
       - LICENSE
       - THIRD_PARTY_NOTICES.md
+      - src: third_party/licenses/*
+        dst: third_party/licenses
+        strip_parent: true
+      - src: internal/bundledaria2/notices/*
+        dst: aria2-notices
+        strip_parent: true
+      - src: internal/bundledaria2/README.md
+        dst: aria2-notices
+        strip_parent: true
       - README.md
       - CHANGELOG.md
-      - src: web/site/public/man/protopeek.1
-        dst: man/protopeek.1
-      - src: web/site/public/man/pp.1
-        dst: man/pp.1
+      - src: web/site/public/man/*.1
+        dst: man
+        strip_parent: true
 
 checksum:
   name_template: checksums.txt
@@ -78,6 +86,7 @@ release:
   prerelease: true
   make_latest: false
   extra_files:
+    - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
     - glob: ./install.sh
     - glob: ./install.ps1
 

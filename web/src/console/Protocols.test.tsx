@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 describe('Inspect landing', () => {
-  it('opens shipped native inspection tools and truthfully gates future research', async () => {
+  it('opens working inspection tools and links to planned protocols separately', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
     render(<RouterProvider router={router} />);
 
@@ -29,14 +29,22 @@ describe('Inspect landing', () => {
       within(available)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
-    ).toEqual(['/protocols/grpc', '/protocols/http', '/security']);
+    ).toEqual([
+      '/protocols/grpc',
+      '/protocols/http',
+      '/protocols/events',
+      '/protocols/capnp',
+      '/security',
+    ]);
 
-    const future = screen.getByRole('region', { name: 'Future protocol research' });
-    expect(within(future).getByText("Cap'n Proto")).toBeVisible();
-    expect(within(future).getByText('Exploring')).toBeVisible();
-    expect(within(future).getByText('WebSocket + SSE')).toBeVisible();
-    expect(within(future).getByText('Research')).toBeVisible();
-    expect(within(future).queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Upcoming protocols' })).toHaveAttribute(
+      'href',
+      '/roadmap'
+    );
+    expect(screen.getByRole('link', { name: 'Find services on this device' })).toHaveAttribute(
+      'href',
+      '/this-pc'
+    );
 
     expect(screen.getByRole('button', { name: /Inspect a target/i })).toBeEnabled();
   });

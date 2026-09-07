@@ -1,3 +1,4 @@
+import { compareItems, rankItem } from '@tanstack/match-sorter-utils';
 import { Search, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
@@ -15,11 +16,32 @@ export function CommandPalette({
   open,
   actions,
   onClose,
+  loadExtraActions,
 }: {
   open: boolean;
   actions: PaletteAction[];
   onClose: () => void;
+  loadExtraActions?: () => Promise<PaletteAction[]>;
 }) {
+  const [extraActions, setExtraActions] = useState<PaletteAction[]>([]);
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    let current = true;
+    setExtraActions([]);
+    setLoadError('');
+    if (open && loadExtraActions)
+      void loadExtraActions()
+        .then((items) => {
+          if (current) setExtraActions(items);
+        })
+        .catch(() => {
+          if (current)
+            setLoadError('Saved request search is unavailable. Other commands still work.');
+        });
+    return () => {
+      current = false;
+    };
+  }, [open, loadExtraActions]);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -35,13 +57,34 @@ export function CommandPalette({
 
   const visibleActions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return actions;
-    return actions.filter((action) =>
-      `${action.label} ${action.keywords ?? ''}`.toLowerCase().includes(normalized)
-    );
-  }, [actions, query]);
+    const allActions = [...actions, ...extraActions];
+    if (!normalized) return allActions;
+    const tokens = normalized.split(/\s+/).slice(0, 12);
+    return allActions
+      .map((action, index) => {
+        const text = `${action.label} ${action.keywords ?? ''}`;
+        const ranks = tokens.map((token) => rankItem(text, token));
+        return { action, index, ranks, labelRank: rankItem(action.label, normalized) };
+      })
+      .filter(({ ranks }) => ranks.every((rank) => rank.passed))
+      .sort(
+        (a, b) =>
+          compareItems(a.labelRank, b.labelRank) ||
+          b.ranks.reduce((sum, rank) => sum + rank.rank, 0) -
+            a.ranks.reduce((sum, rank) => sum + rank.rank, 0) ||
+          a.index - b.index
+      )
+      .map(({ action }) => action);
+  }, [actions, extraActions, query]);
   const visibleActiveIndex = activeIndex < visibleActions.length ? activeIndex : 0;
   const activeAction = visibleActions[visibleActiveIndex];
+
+  useEffect(() => {
+    if (!open || !activeAction) return;
+    document
+      .getElementById(`${resultListId}-result-${visibleActiveIndex}`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [open, activeAction, resultListId, visibleActiveIndex]);
 
   if (!open) return null;
 
@@ -70,6 +113,7 @@ export function CommandPalette({
           <input
             ref={inputRef}
             value={query}
+            maxLength={256}
             role="combobox"
             aria-autocomplete="list"
             aria-expanded="true"
@@ -130,6 +174,7 @@ export function CommandPalette({
             </p>
           )}
         </div>
+        {loadError ? <p role="status">{loadError}</p> : null}
       </section>
     </div>
   );

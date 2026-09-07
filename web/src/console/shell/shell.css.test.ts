@@ -7,27 +7,22 @@ const shellStyles = readFileSync(resolve('web/src/console/shell/shell.css'), 'ut
 describe('desktop shell layout contract', () => {
   it.each([
     { name: 'application bar', className: 'pp-app-bar', row: 1 },
-    { name: 'session strip', className: 'pp-session-strip', row: 2 },
-    { name: 'canvas', className: 'pp-workbench-canvas', row: 3 },
-    { name: 'status rail', className: 'pp-status-rail', row: 4 },
+    { name: 'canvas', className: 'pp-workbench-canvas', row: 1 },
+    { name: 'status rail', className: 'pp-status-rail', row: 2 },
   ])('keeps the $name in explicit row $row', ({ className, row }) => {
-    expect(shellStyles).toMatch(new RegExp(`\\.${className}\\s*\\{[^}]*grid-row:\\s*${row};`, 's'));
+    expect(shellStyles).toMatch(
+      new RegExp(`\\.${className}\\s*\\{[^}]*grid-row:\\s*${row}(?: / -1)?;`, 's')
+    );
   });
 
   it('keeps the live session announcement out of grid flow', () => {
     expect(shellStyles).toMatch(/\.pp-shell-announcement\s*\{[^}]*position:\s*absolute;/s);
   });
 
-  it('keeps destination labels naturally sized from 761 through 1119 pixels', () => {
-    const compactDesktop = shellStyles.slice(
-      shellStyles.indexOf('@media (min-width: 761px) and (max-width: 1119px)'),
-      shellStyles.indexOf('@media (max-width: 760px)')
-    );
-
-    expect(compactDesktop).toContain('.pp-app-brand strong');
-    expect(compactDesktop).toContain('.pp-app-command span');
-    expect(compactDesktop).not.toContain('.pp-app-navigation-link span');
-    expect(compactDesktop).not.toMatch(/\.pp-app-navigation-link[^}]*width:/s);
+  it('puts sessions and destinations vertically beside the canvas', () => {
+    expect(shellStyles).toMatch(/\.pp-app-navigation\s*\{[^}]*flex-direction:\s*column;/s);
+    expect(shellStyles).toMatch(/\.pp-session-tabs\s*\{[^}]*flex-direction:\s*column;/s);
+    expect(shellStyles).toMatch(/\.pp-workbench-canvas\s*\{[^}]*grid-column:\s*2;/s);
   });
 
   it('keeps the narrow destination drawer while hiding the desktop navigation', () => {

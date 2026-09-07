@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   BootstrapMethod,
@@ -62,6 +62,67 @@ function props(overrides: Partial<Parameters<typeof CallWorkspace>[0]> = {}) {
 }
 
 describe('CallWorkspace', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'clipboard');
+  });
+
+  it.each([
+    'Copy response JSON',
+    'Copy JSON',
+  ])('reports %s failure and allows a successful retry', async (button) => {
+    const writeText = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Denied'))
+      .mockResolvedValueOnce(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    render(<CallWorkspace {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: button }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not copy response');
+    fireEvent.click(screen.getByRole('button', { name: button }));
+    expect(await screen.findByText('Response JSON copied.')).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('ignores an old clipboard completion after the response changes', async () => {
+    let complete: () => void = () => {};
+    const writeText = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        })
+    );
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const { rerender } = render(<CallWorkspace {...props()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy response JSON' }));
+    rerender(
+      <CallWorkspace
+        {...props({ invokeState: { loading: true, error: null, result: null, latencyMs: 0 } })}
+      />
+    );
+    complete();
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('Response JSON copied.')).not.toBeInTheDocument();
+  });
+
+  it('shows the final gRPC error code while retaining preceding stream messages', () => {
+    render(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            error: null,
+            latencyMs: 51,
+            result: {
+              ...response,
+              error: { name: 'InvalidArgument', code: 3, message: 'Bad input', details: [] },
+            },
+          },
+        })}
+      />
+    );
+    expect(screen.getByRole('status', { name: 'RPC status INVALID_ARGUMENT' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Messages 2' })).toBeVisible();
+  });
   it('advertises the ordinary invoke wall at the deadline control', () => {
     render(<CallWorkspace {...props()} />);
 

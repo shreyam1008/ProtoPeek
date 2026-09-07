@@ -45,8 +45,7 @@ const productQuestions = [
   },
   {
     question: 'What is happening on this device?',
-    answer:
-      'Current-source Network workspace: listeners, connections, IPs, and bounded speed evidence.',
+    answer: 'Network workspace: listeners, connections, IPs, and bounded speed evidence.',
     action: 'Preview This Device',
     href: publicPagePath('this-pc'),
   },
@@ -266,7 +265,7 @@ function Hero() {
           className="block w-full rounded-lg border border-white/10"
         />
         <figcaption className="px-2 pb-1 pt-3 text-xs text-neutral-400">
-          Stable v0.5.0 capture · Local transfers with visible progress and integrity evidence.
+          Historical v0.5.0 capture · Local transfers with visible progress and integrity evidence.
         </figcaption>
       </figure>
     </section>
@@ -445,7 +444,7 @@ function Install() {
           </a>
           <a
             className="mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0"
           >
             Download a release archive
             <Download className="size-4" aria-hidden="true" />
@@ -509,7 +508,9 @@ function Install() {
             <p className="mt-4 text-xs leading-relaxed text-neutral-500" aria-live="polite">
               {copyState === 'manual'
                 ? 'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
-                : 'Installs stable ProtoPeek v0.5.0. Downloader uses your system aria2c.'}
+                : activeId === 'windows'
+                  ? 'Installs stable ProtoPeek v0.6.0. Windows x64 includes aria2 and a Start-menu shortcut.'
+                  : 'Installs ProtoPeek. Homebrew supplies aria2; Linux release archives use installed aria2.'}
             </p>
           </div>
         </div>
@@ -565,7 +566,11 @@ function Privacy() {
 function Footer() {
   return (
     <footer className="border-t border-black/10 bg-white">
-      <p className="mx-auto max-w-7xl px-5 pt-6 text-sm sm:px-8 lg:px-12"><a className="underline" href="https://shreyam1008.com.np/projects/#distribution-protopeek">Install channels and publication status</a></p>
+      <p className="mx-auto max-w-7xl px-5 pt-6 text-sm sm:px-8 lg:px-12">
+        <a className="underline" href="https://shreyam1008.com.np/projects/#distribution-protopeek">
+          Install channels and publication status
+        </a>
+      </p>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 text-sm text-neutral-500 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-12">
         <p>
           ProtoPeek · Built by{' '}
@@ -587,7 +592,7 @@ function Footer() {
           </a>
           <a
             className="hover:text-black"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0"
             target="_blank"
             rel="noreferrer"
           >

@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 )
 
 var ErrAria2NotFound = errors.New("aria2c executable not found")
@@ -111,12 +113,13 @@ func (launcher *Aria2Launcher) Start(ctx context.Context, config HostConfig, pat
 
 	stopper := newRuntimeStopper(process, rpc)
 	return &Runtime{
-		Engine:        &aria2Engine{rpc: rpc, sessionRewritePending: true},
-		BinaryPath:    binary,
-		EngineVersion: version,
-		Done:          process.Done(),
-		Stop:          stopper.Stop,
-		Err:           process.Err,
+		observeCompletions: true,
+		Engine:             &aria2Engine{rpc: rpc, sessionRewritePending: true},
+		BinaryPath:         binary,
+		EngineVersion:      version,
+		Done:               process.Done(),
+		Stop:               stopper.Stop,
+		Err:                process.Err,
 	}, nil
 }
 
@@ -167,7 +170,14 @@ func resolveAria2Binary(explicit string) (string, error) {
 	}
 	path, err := exec.LookPath("aria2c")
 	if err != nil {
-		return "", fmt.Errorf("%w in PATH", ErrAria2NotFound)
+		bundled, bundleErr := bundledaria2.Path()
+		if bundleErr != nil {
+			return "", fmt.Errorf("prepare bundled aria2: %w", bundleErr)
+		}
+		if bundled != "" {
+			return bundled, nil
+		}
+		return "", fmt.Errorf("%w in PATH; this platform build has no bundled engine", ErrAria2NotFound)
 	}
 	return filepath.Abs(path)
 }
@@ -241,6 +251,7 @@ func buildAria2Arguments(config HostConfig, paths Paths, port int, secretFile st
 	arguments := []string{
 		"--conf-path=" + secretFile,
 		"--enable-rpc=true",
+		"--stop-with-process=" + strconv.Itoa(os.Getpid()),
 		"--rpc-listen-all=false",
 		"--rpc-listen-port=" + strconv.Itoa(port),
 		"--dir=" + config.DownloadDirectory,

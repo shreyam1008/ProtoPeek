@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProtoPeek Settings: Local Preferences &amp; Host Controls</title>
-    <meta name="description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings." />
+    <meta name="description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
@@ -18,7 +18,7 @@
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="ProtoPeek Settings: Local Preferences &amp; Host Controls" />
-    <meta property="og:description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings." />
+    <meta property="og:description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/settings/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -29,10 +29,10 @@
     <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ProtoPeek Settings: Local Preferences &amp; Host Controls" />
-    <meta name="twitter:description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings." />
+    <meta name="twitter:description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Settings","description":"Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage current-source Downloader host settings.","url":"https://protopeek.shreyam1008.com.np/settings/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/settings/","dateModified":"2026-09-03","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/settings.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Settings","item":"https://protopeek.shreyam1008.com.np/settings/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Settings","description":"Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings.","url":"https://protopeek.shreyam1008.com.np/settings/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/settings/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/settings.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Settings","item":"https://protopeek.shreyam1008.com.np/settings/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -69,8 +69,8 @@
               <h1 id="page-title">Settings</h1>
               <p>Which settings stay in this browser or host?</p>
 
-    <span class="pp-page-status is-mixed is-full">
-      <i aria-hidden="true"></i>Stable core · current-source host settings
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.6.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -142,8 +142,10 @@
               <div class="pp-doc-prose">
                 <p>ProtoPeek separates browser-only preferences from private host configuration. Stable v0.5.0 includes appearance, local interface preferences, and the reversible GoBarryGo bridge; Downloader host controls are current source after v0.5.0.</p>
 <h2 id="shape-this-browser">Shape this browser</h2>
+<p>Current source uses compact vertical sections: Appearance, Preferences, Downloads, and Migration. Switching sections preserves an unsaved host-settings draft. The selected section scrolls independently; download Save/Reload actions stay visible. Arrow Up/Down, Home and End navigate the section list.</p>
 <p>Theme, density, and keyboard-hint preferences stay in this browser profile. Changing them does not write a server account, external database, or ProtoPeek cloud workspace.</p>
-<p>If browser storage is unavailable or malformed, the console keeps a usable session and reports the boundary instead of silently treating a failed write as saved state.</p>
+<p>Current-source HTTP saved requests also belong to this browser origin. Manage them in <strong>Inspect → HTTP → Saved requests</strong>: 50 recipes / 512 KiB total, with body storage explicitly enabled per saved request. Auth values are excluded. Delete and Reset affect the library; Export creates a portable JSON record. Global Ctrl+K can load a recipe without sending it.</p>
+<p>Missing or malformed interface preferences fall back to defaults. If a preference write fails, the live choice still applies and Settings shows that it is session-only. Retrying the affected choice can save it after storage becomes available; saving a different preference does not hide the earlier failure.</p>
 <h2 id="preview-the-gobarrygo-bridge">Preview the GoBarryGo bridge</h2>
 <p>The stable bridge is read-first:</p>
 <ol><li><div class="pp-doc-list-title">preview the one known local GoBarryGo profile;</div></li><li><div class="pp-doc-list-title">review bounded preferences and session state;</div></li><li><div class="pp-doc-list-title">import only after an explicit action; and</div></li><li><div class="pp-doc-list-title">keep a private receipt for guarded rollback.</div></li></ol>
@@ -152,10 +154,11 @@
 <p>This section is available in current source after v0.5.0, not in the published stable packages.</p>
 <p>Supported controls cover the aria2 executable, download directory, active jobs, per-host connections, bandwidth cap, disk reserve, resume behavior, file allocation, overwrite policy, and TLS verification.</p>
 <p>Host settings live in the private transfer configuration, not browser localStorage. A strict revisioned patch preserves hidden fields and refuses writes unless the engine is stopped and the cooperative process lock is held.</p>
+<p>The folder picker lists local directories only, on request, and is shared by Downloader and Taildrop. Queued and paused downloads reserve their output names before creating files. The auto-rename policy chooses a free name; overwrite cannot assign another active job&#39;s destination. Explicit retry retains the chosen output name and partial-download behavior.</p>
 <h2 id="know-where-each-value-lives">Know where each value lives</h2>
 <table><thead><tr><th>Setting</th><th>Storage boundary</th><th>Release state</th></tr></thead><tbody><tr><td>Theme, density, keyboard hints</td><td>This browser profile</td><td>Stable v0.5.0</td></tr><tr><td>GoBarryGo preview, import, rollback receipt</td><td>Local process and private state</td><td>Stable v0.5.0</td></tr><tr><td>Downloader engine and resource controls</td><td>Private host configuration</td><td>Current source after v0.5.0</td></tr></tbody></table>
 <h2 id="go-deeper">Go deeper</h2>
-<ul><li><a href="/downloader/">Use Downloader and inspect its external aria2 boundary</a>.</li><li><a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the GoBarryGo consolidation record</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.5.0</a>.</li></ul>
+<ul><li><a href="/downloader/">Use Downloader and inspect its external aria2 boundary</a>.</li><li><a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the GoBarryGo consolidation record</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.6.0</a>.</li></ul>
               </div>
             </article>
 
@@ -175,7 +178,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Browser preferences and the GoBarryGo bridge ship in v0.5.0; Downloader host controls are current source.</p>
+                <p>Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements.</p>
               </section>
             </aside>
           </div>
@@ -202,7 +205,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -8,10 +8,10 @@ import {
   ShieldCheck,
   Square,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 import { classNames, compactDate } from '@/shared/runtime';
-
+import type { IPAttribution } from './ip-attribution';
 import {
   buildHopRows,
   type PathCapabilities,
@@ -20,6 +20,9 @@ import {
   summarizePathTrace,
 } from './network-path';
 import { fetchPathCapabilities, type PathTraceRequest, traceNetworkPath } from './network-path-api';
+import { ProtocolInfo } from './ProtocolInfo';
+
+const HopAttribution = lazy(() => import('./HopAttribution'));
 
 export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTrace) => unknown }) {
   const [capabilities, setCapabilities] = useState<PathCapabilities | null>(null);
@@ -63,15 +66,23 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
   }, []);
 
   const availableCapabilities =
-    capabilities?.capabilities.filter((capability) => capability.available) ?? [];
-  const selectedCapability = availableCapabilities.find((capability) => {
-    const methodMatches =
-      method === 'auto' ? capability.method === 'udp' : capability.method === method;
-    const familyMatches = family === 'auto' || capability.families.includes(family);
-    return methodMatches && familyMatches;
-  });
-  const unavailableReason =
-    capabilities?.capabilities.find((capability) => !capability.available)?.reason ?? '';
+    capabilities?.capabilities.filter(
+      (capability) =>
+        capability.available && (family === 'auto' || capability.families.includes(family))
+    ) ?? [];
+  const selectedCapability = [...availableCapabilities]
+    .sort(
+      (left, right) =>
+        ['udp', 'icmp', 'tcp'].indexOf(left.method) - ['udp', 'icmp', 'tcp'].indexOf(right.method)
+    )
+    .find((capability) => {
+      const methodMatches = method === 'auto' || capability.method === method;
+      const familyMatches = family === 'auto' || capability.families.includes(family);
+      return methodMatches && familyMatches;
+    });
+  const unavailableReason = capabilities
+    ? `No ${method === 'auto' ? 'native' : method.toUpperCase()} path tracer is available for ${family === 'auto' ? 'this platform' : family.toUpperCase()} on this platform.`
+    : '';
   const maximumProbes = maxHops * probesPerHop;
   const planValid = Boolean(
     capabilities &&
@@ -148,13 +159,10 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
     <section className="pp-network-path" aria-labelledby="network-path-title">
       <header className="pp-network-page-heading">
         <div>
-          <span className="pp-kicker">Network Path</span>
-          <h1 id="network-path-title">See how this machine reaches a target.</h1>
-          <p>
-            DNS, the kernel-selected next hop, and bounded active hop evidence stay separate so one
-            timing is never mistaken for another.
-          </p>
+          <h1 id="network-path-title">Network path</h1>
+          <p>Measure hops from this PC. Inspect replies, timeouts, and optional provider labels.</p>
         </div>
+        <ProtocolInfo protocol="path" />
         {capabilities ? (
           selectedCapability ? (
             <span className="pp-path-capability is-ready">
@@ -170,28 +178,31 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
         )}
       </header>
 
-      <section className="pp-path-presets" aria-label="Trace target presets">
-        <button
-          type="button"
-          className={destination === '1.1.1.1' ? 'is-selected' : ''}
-          disabled={running}
-          onClick={() => updatePlan(() => setDestination('1.1.1.1'))}
-        >
-          <strong>Cloudflare resolver</strong>
-          <code>1.1.1.1</code>
-          <small>Anycast target · not a fixed datacenter</small>
-        </button>
-        <button
-          type="button"
-          className={destination === '8.8.8.8' ? 'is-selected' : ''}
-          disabled={running}
-          onClick={() => updatePlan(() => setDestination('8.8.8.8'))}
-        >
-          <strong>Google resolver</strong>
-          <code>8.8.8.8</code>
-          <small>Anycast target · path can change</small>
-        </button>
-      </section>
+      <details className="pp-path-target-examples">
+        <summary>Example targets · Cloudflare / Google DNS</summary>
+        <section className="pp-path-presets" aria-label="Trace target presets">
+          <button
+            type="button"
+            className={destination === '1.1.1.1' ? 'is-selected' : ''}
+            disabled={running}
+            onClick={() => updatePlan(() => setDestination('1.1.1.1'))}
+          >
+            <strong>Cloudflare resolver</strong>
+            <code>1.1.1.1</code>
+            <small>Anycast target · not a fixed datacenter</small>
+          </button>
+          <button
+            type="button"
+            className={destination === '8.8.8.8' ? 'is-selected' : ''}
+            disabled={running}
+            onClick={() => updatePlan(() => setDestination('8.8.8.8'))}
+          >
+            <strong>Google resolver</strong>
+            <code>8.8.8.8</code>
+            <small>Anycast target · path can change</small>
+          </button>
+        </section>
+      </details>
 
       <div className="pp-path-controls">
         <label className="pp-path-target">
@@ -227,8 +238,16 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
               updatePlan(() => setMethod(event.target.value as PathTraceRequest['method']))
             }
           >
-            <option value="auto">Auto · native UDP</option>
-            <option value="udp">UDP</option>
+            <option value="auto">
+              Auto · native {selectedCapability?.method.toUpperCase() ?? 'probe'}
+            </option>
+            <option
+              value="udp"
+              disabled={!availableCapabilities.some((entry) => entry.method === 'udp')}
+            >
+              UDP{' '}
+              {availableCapabilities.some((entry) => entry.method === 'udp') ? '' : '· unavailable'}
+            </option>
             <option
               value="icmp"
               disabled={!availableCapabilities.some((entry) => entry.method === 'icmp')}
@@ -325,8 +344,11 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
             disabled={running || !planValid || !selectedCapability || !destination.trim()}
             onChange={(event) => setConsent(event.target.checked)}
           />
-          I authorize these active {method === 'auto' ? 'UDP' : method.toUpperCase()} path probes,
-          including probes to public Internet targets.
+          I authorize these active{' '}
+          {method === 'auto'
+            ? (selectedCapability?.method.toUpperCase() ?? 'native')
+            : method.toUpperCase()}{' '}
+          path probes, including probes to public Internet targets.
         </label>
         <span>
           {maxHops} hops × {probesPerHop} probes · {maximumProbes} maximum probes ·{' '}
@@ -369,6 +391,10 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
       {trace ? (
         <PathEvidence
           trace={trace}
+          onAttribution={(attribution) => {
+            setTrace((current) => (current ? { ...current, attribution } : current));
+            setSaved(false);
+          }}
           onSave={
             onSaveTrace
               ? async () => {
@@ -411,10 +437,12 @@ function PathEvidence({
   trace,
   onSave,
   saved,
+  onAttribution,
 }: {
   trace: PathTrace;
   onSave?: () => unknown;
   saved: boolean;
+  onAttribution: (result: IPAttribution) => void;
 }) {
   const rows = useMemo(() => buildHopRows(trace), [trace]);
   const summary = useMemo(() => summarizePathTrace(trace), [trace]);
@@ -422,62 +450,72 @@ function PathEvidence({
     trace.route.interfaceName || `Interface ${trace.route.interfaceIndex || 'unknown'}`;
   return (
     <div className="pp-path-evidence">
-      <section className="pp-evidence-spine" aria-label="Network evidence spine">
-        <article>
-          <span>01</span>
-          <div>
-            <small>DNS resolution</small>
-            <strong>{trace.resolution.pinnedAddress}</strong>
-            <p>
-              {trace.resolution.source} · {formatMilliseconds(trace.resolution.durationMs)}
-            </p>
-          </div>
-          <ArrowRight aria-hidden="true" />
-        </article>
-        <article>
-          <span>02</span>
-          <div>
-            <small>Kernel route</small>
-            <strong>
-              {interfaceLabel} · {trace.route.nextHop || 'on-link / unknown gateway'}
-            </strong>
-            <p>
-              {trace.route.sourceIp || 'source not reported'} · {trace.route.backend}
-            </p>
-          </div>
-          <ArrowRight aria-hidden="true" />
-        </article>
-        <article>
-          <span>03</span>
-          <div>
-            <small>Active hop trace</small>
-            <strong>
-              {summary.respondingHopSlots}/{summary.hopSlots} hop slots replied
-            </strong>
-            <p>
-              {summary.responderCount} distinct responders · {trace.backend}
-            </p>
-          </div>
-          <ArrowRight aria-hidden="true" />
-        </article>
-        <article className={trace.reached ? 'is-reached' : 'is-partial'}>
-          <span>04</span>
-          <div>
-            <small>{trace.reached ? 'Destination reached' : 'Destination not confirmed'}</small>
-            <strong>{trace.resolution.pinnedAddress}</strong>
-            <p>
-              {summary.destinationRTT === null
-                ? trace.termination
-                : `${formatMilliseconds(summary.destinationRTT)} median RTT`}
-            </p>
-          </div>
-        </article>
-      </section>
+      <details className="pp-path-resolution-details">
+        <summary>Resolution and route details</summary>
+        <section className="pp-evidence-spine" aria-label="Network evidence spine">
+          <article>
+            <span>01</span>
+            <div>
+              <small>DNS resolution</small>
+              <strong>{trace.resolution.pinnedAddress}</strong>
+              <p>
+                {trace.resolution.source} · {formatMilliseconds(trace.resolution.durationMs)}
+              </p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </article>
+          <article>
+            <span>02</span>
+            <div>
+              <small>Kernel route</small>
+              <strong>
+                {interfaceLabel} · {trace.route.nextHop || 'on-link / unknown gateway'}
+              </strong>
+              <p>
+                {trace.route.sourceIp || 'source not reported'} · {trace.route.backend}
+              </p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </article>
+          <article>
+            <span>03</span>
+            <div>
+              <small>Active hop trace</small>
+              <strong>
+                {summary.respondingHopSlots}/{summary.hopSlots} hop slots replied
+              </strong>
+              <p>
+                {summary.responderCount} distinct responders · {trace.backend}
+              </p>
+            </div>
+            <ArrowRight aria-hidden="true" />
+          </article>
+          <article className={trace.reached ? 'is-reached' : 'is-partial'}>
+            <span>04</span>
+            <div>
+              <small>{trace.reached ? 'Destination reached' : 'Destination not confirmed'}</small>
+              <strong>{trace.resolution.pinnedAddress}</strong>
+              <p>
+                {summary.destinationRTT === null
+                  ? trace.termination
+                  : `${formatMilliseconds(summary.destinationRTT)} median RTT`}
+              </p>
+            </div>
+          </article>
+        </section>
+      </details>
 
       <div className="pp-path-result-heading">
         <div>
           <span className="pp-kicker">Observed {compactDate(trace.observedAt)}</span>
           <h2>Hop evidence from this machine</h2>
+          <p>
+            {trace.reached ? 'Destination reached' : 'Partial path'} · {summary.respondingHopSlots}/
+            {summary.hopSlots} responding hop slots
+            {summary.destinationRTT === null
+              ? ''
+              : ` · ${formatMilliseconds(summary.destinationRTT)} median RTT`}
+          </p>
         </div>
         {onSave ? (
           <button type="button" onClick={() => void onSave()} disabled={saved}>
@@ -485,6 +523,14 @@ function PathEvidence({
           </button>
         ) : null}
       </div>
+
+      <Suspense fallback={<p>Loading optional hop labels…</p>}>
+        <HopAttribution
+          addresses={rows.flatMap((row) => row.responders)}
+          result={trace.attribution}
+          onResult={onAttribution}
+        />
+      </Suspense>
 
       <div className="pp-hop-spine">
         {rows.map((row) => (
@@ -500,6 +546,27 @@ function PathEvidence({
                 </strong>
                 <small>{row.state === 'mixed' ? 'Mixed reply' : row.state}</small>
               </header>
+              {row.responders.map((address) => {
+                const label = trace.attribution?.entries.find((entry) => entry.ip === address);
+                return label ? (
+                  <p className="pp-hop-location" key={address}>
+                    {address} ·{' '}
+                    {label.status === 'observed'
+                      ? [
+                          label.asn ? `AS${label.asn}` : '',
+                          label.isp || label.organization || 'Provider unknown',
+                          [label.city, label.region, label.country].filter(Boolean).join(', ') ||
+                            'Location unknown',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')
+                      : label.note}{' '}
+                    {label.status === 'observed'
+                      ? `· approximate · ${compactDate(label.observedAt)}${label.cached ? ' · cached' : ''}`
+                      : ''}
+                  </p>
+                ) : null;
+              })}
               {row.rtt ? (
                 <p>
                   RTT from this machine · min {formatMilliseconds(row.rtt.min)} · median{' '}

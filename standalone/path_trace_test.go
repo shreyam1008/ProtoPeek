@@ -261,7 +261,11 @@ func TestHandlerDefaultPathCapabilitiesExposeFixedLimitsWithoutCSRF(t *testing.T
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if payload.Perspective != "protopeek-process" || payload.OS == "" || len(payload.Capabilities) != 3 {
+	expectedCapabilities := 3
+	if payload.OS == "windows" {
+		expectedCapabilities = 4 // Separate native IPv4/IPv6 ICMP capabilities.
+	}
+	if payload.Perspective != "protopeek-process" || payload.OS == "" || len(payload.Capabilities) != expectedCapabilities {
 		t.Fatalf("payload = %#v", payload)
 	}
 	if payload.Limits.MaxHops != 32 || payload.Limits.MaxTotalProbes != 96 || payload.Limits.MaxProbesPerSecond != 20 {

@@ -3,6 +3,8 @@ module github.com/shreyam1008/ProtoPeek
 go 1.26.0
 
 require (
+	capnproto.org/go/capnp/v3 v3.1.0-alpha.2
+	github.com/coder/websocket v1.8.15
 	github.com/fullstorydev/grpcurl v1.9.3
 	github.com/golang/protobuf v1.5.4
 	github.com/jhump/protoreflect v1.18.0
@@ -21,6 +23,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
+	github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect

@@ -59,12 +59,20 @@ archives:
     files:
       - LICENSE
       - THIRD_PARTY_NOTICES.md
+      - src: third_party/licenses/*
+        dst: third_party/licenses
+        strip_parent: true
+      - src: internal/bundledaria2/notices/*
+        dst: aria2-notices
+        strip_parent: true
+      - src: internal/bundledaria2/README.md
+        dst: aria2-notices
+        strip_parent: true
       - README.md
       - CHANGELOG.md
-      - src: web/site/public/man/protopeek.1
-        dst: man/protopeek.1
-      - src: web/site/public/man/pp.1
-        dst: man/pp.1
+      - src: web/site/public/man/*.1
+        dst: man
+        strip_parent: true
 
 nfpms:
   - id: protopeek-deb
@@ -84,6 +92,10 @@ nfpms:
         dst: /usr/share/doc/protopeek/copyright
       - src: THIRD_PARTY_NOTICES.md
         dst: /usr/share/doc/protopeek/THIRD_PARTY_NOTICES.md
+      - src: third_party/licenses/go-capnp-MIT.txt
+        dst: /usr/share/doc/protopeek/licenses/go-capnp-MIT.txt
+      - src: third_party/licenses/zeropool-APACHE-2.0.txt
+        dst: /usr/share/doc/protopeek/licenses/zeropool-APACHE-2.0.txt
       - src: web/site/public/man/protopeek.1
         dst: /usr/share/man/man1/protopeek.1
       - src: web/site/public/man/pp.1
@@ -100,5 +112,6 @@ sboms:
 release:
   draft: true
   extra_files:
+    - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
     - glob: ./install.sh
     - glob: ./install.ps1

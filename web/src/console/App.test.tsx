@@ -828,7 +828,7 @@ describe('gRPC launcher recents', () => {
     );
 
     expect(await screen.findByLabelText('Address')).toHaveValue('mount.test:50051');
-    expect(screen.getByRole('checkbox', { name: 'TLS' })).not.toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'gRPC transport' })).toHaveValue('tls');
     expect(screen.getByText('Target draft opened')).toBeVisible();
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).includes('/api/workspace/connect'))
@@ -866,7 +866,7 @@ describe('gRPC launcher recents', () => {
     });
 
     expect(await screen.findByLabelText('Address')).toHaveValue('deferred.test:50051');
-    expect(screen.getByRole('checkbox', { name: 'TLS' })).not.toBeChecked();
+    expect(screen.getByRole('combobox', { name: 'gRPC transport' })).toHaveValue('tls');
     expect(screen.getByText(/no connection has been attempted/i)).toBeVisible();
     for (const endpoint of ['/api/scan', '/api/workspace/connect']) {
       expect(

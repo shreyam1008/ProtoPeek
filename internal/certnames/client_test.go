@@ -36,7 +36,7 @@ func TestSearchUsesFixedEndpointAndNormalizesScopedCandidates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Search() error = %v", err)
 	}
-	if requested != SourceEndpoint+"?apex=example.com" {
+	if requested != SourceEndpoint+"?apex=example.com&format=json" {
 		t.Fatalf("requested URL = %q", requested)
 	}
 	want := []Candidate{
@@ -117,6 +117,24 @@ func TestSearchTimeoutCancelsProvider(t *testing.T) {
 	_, err := client.Search(context.Background(), "example.com")
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Search() error = %v, want deadline exceeded", err)
+	}
+}
+
+func TestSearchRateLimitIsNotCachedOrRetried(t *testing.T) {
+	var calls atomic.Int32
+	client := mustClient(t, Options{}, doerFunc(func(*http.Request) (*http.Response, error) {
+		calls.Add(1)
+		response := jsonResponse(`{"error":"provider rate limit"}`)
+		response.StatusCode = 429
+		return response, nil
+	}))
+	for range 2 {
+		if _, err := client.Search(context.Background(), "example.com"); !errors.Is(err, ErrProviderRateLimited) {
+			t.Fatal(err)
+		}
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("unexpected requests: %d", calls.Load())
 	}
 }
 

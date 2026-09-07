@@ -1,5 +1,5 @@
 import { CircleAlert, Copy, LoaderCircle } from 'lucide-react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { HTTPResponse, HTTPTimings, MetadataEntry } from '@/shared/types';
 import { classNames, durationLabel } from '@/shared/utils';
@@ -20,14 +20,31 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   response,
   loading,
   error,
+  cancelled = false,
 }: {
   response: HTTPResponse | null;
   loading: boolean;
   error: string | null;
+  cancelled?: boolean;
 }) {
   const [tab, setTab] = useState<HTTPResponseTab>('body');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
   const copyGenerationRef = useRef(0);
+  const [pretty, setPretty] = useState(true);
+  const prettyBody = useMemo(() => {
+    if (
+      !response ||
+      response.bodyEncoding !== 'text' ||
+      response.truncated ||
+      response.body.length > 1024 * 1024
+    )
+      return null;
+    try {
+      return JSON.stringify(JSON.parse(response.body), null, 2);
+    } catch {
+      return null;
+    }
+  }, [response]);
 
   useEffect(() => {
     copyGenerationRef.current++;
@@ -56,7 +73,8 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   }
 
   function renderResponseTab(value: HTTPResponseTab) {
-    if (!response) return <HTTPResponseState loading={loading} error={error} />;
+    if (!response)
+      return <HTTPResponseState loading={loading} error={error} cancelled={cancelled} />;
     switch (value) {
       case 'body':
         return (
@@ -66,6 +84,15 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
                 {response.bodyEncoding} · {response.bytes.toLocaleString()} bytes
                 {response.truncated ? ' · truncated' : ''}
               </span>
+              {prettyBody !== null ? (
+                <button
+                  type="button"
+                  aria-pressed={pretty}
+                  onClick={() => setPretty((current) => !current)}
+                >
+                  {pretty ? 'Pretty JSON' : 'Raw JSON'}
+                </button>
+              ) : null}
               <button
                 type="button"
                 aria-label="Copy response body"
@@ -79,7 +106,9 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
                 <span role="status">Response body copied.</span>
               ) : null}
             </div>
-            <pre>{response.body || '(empty body)'}</pre>
+            <pre>
+              {(pretty && prettyBody !== null ? prettyBody : response.body) || '(empty body)'}
+            </pre>
           </>
         );
       case 'headers':
@@ -152,7 +181,15 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
             loading && 'pp-status-mark-running'
           )}
         >
-          {loading ? 'IN FLIGHT' : error ? 'ERROR' : response ? response.statusCode : 'READY'}
+          {loading
+            ? 'IN FLIGHT'
+            : error
+              ? 'ERROR'
+              : cancelled
+                ? 'CANCELLED'
+                : response
+                  ? response.statusCode
+                  : 'READY'}
         </span>
         <strong>{response?.status ?? 'No response yet'}</strong>
         <span>{response?.proto ?? '—'}</span>
@@ -163,10 +200,11 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
       <AccessibleTabs
         id="http-response"
         label="HTTP response evidence"
+        orientation="vertical"
         tabs={responseTabs}
         value={tab}
         onChange={setTab}
-        className="pp-response-tabs"
+        className="pp-response-tabs pp-workbench-side-tabs"
       />
       <div className="pp-http-response-content">
         {responseTabs.map(({ value }) => (
@@ -185,12 +223,27 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   );
 });
 
-function HTTPResponseState({ loading, error }: { loading: boolean; error: string | null }) {
+function HTTPResponseState({
+  loading,
+  error,
+  cancelled,
+}: {
+  loading: boolean;
+  error: string | null;
+  cancelled: boolean;
+}) {
   if (loading) {
     return (
       <div className="pp-response-placeholder">
         <LoaderCircle className="pp-response-spinner" aria-hidden="true" />
         Waiting for HTTP evidence. Use Cancel to stop the request.
+      </div>
+    );
+  }
+  if (cancelled) {
+    return (
+      <div className="pp-response-placeholder" role="status">
+        HTTP request cancelled. Edit the request or send it again.
       </div>
     );
   }

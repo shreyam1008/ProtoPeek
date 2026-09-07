@@ -207,13 +207,7 @@ async function waitForSnapshot() {
 async function inspectListeners() {
   fireEvent.click(screen.getByRole('tab', { name: 'Listeners' }));
   fireEvent.click(screen.getByRole('button', { name: 'Inspect local listeners' }));
-  const dialog = screen.getByRole('dialog', { name: 'Inspect local listeners' });
-  const acknowledgement = within(dialog).getByRole('checkbox', {
-    name: /I understand this reads a one-time local socket snapshot/i,
-  });
-  expect(acknowledgement).toHaveFocus();
-  fireEvent.click(acknowledgement);
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Inspect once' }));
+  expect(screen.queryByRole('dialog', { name: 'Inspect local listeners' })).not.toBeInTheDocument();
 }
 
 beforeEach(() => {
@@ -346,7 +340,7 @@ describe('This PC workspace', () => {
 
     expect(await screen.findByText('Showing 50 of 4096')).toBeVisible();
     expect(screen.getAllByRole('row')).toHaveLength(51);
-    expect(screen.getByText(/Backend result truncated: yes/)).toBeVisible();
+    expect(screen.getByText(/Observation details.*partial result/)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Show 50 more' })).toBeVisible();
   });
 
@@ -486,12 +480,12 @@ describe('This PC workspace', () => {
     installFetch();
     render(<ThisPC />);
     await waitForSnapshot();
-    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Traffic' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sample once' }));
 
     expect(await screen.findByText('1.0 Mbps average')).toBeVisible();
     expect(screen.getByText('2.0 Mbps average')).toBeVisible();
-    expect(screen.getByText(/no per-process claim/i)).toBeVisible();
+    expect(screen.getByText(/not individual processes/i)).toBeVisible();
   });
 
   it('supersedes the shared action owner without stuck loading or stale evidence', async () => {
@@ -524,7 +518,7 @@ describe('This PC workspace', () => {
     expect(activitySignal).toBeInstanceOf(AbortSignal);
     expect(activitySignal?.aborted).toBe(false);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Traffic' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sample once' }));
     expect(activitySignal?.aborted).toBe(true);
     expect(trafficSignal).toBeInstanceOf(AbortSignal);
@@ -543,7 +537,7 @@ describe('This PC workspace', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Check selected families' }));
     expect(trafficSignal?.aborted).toBe(true);
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Traffic' }));
     expect(screen.getByRole('button', { name: 'Sample once' })).toBeEnabled();
     fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
     await act(async () => {

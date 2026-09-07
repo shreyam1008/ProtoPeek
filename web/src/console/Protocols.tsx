@@ -1,27 +1,17 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, Braces, Globe2, Radar, RadioTower, Server, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Globe2, Radar, Radio, Server, ShieldCheck } from 'lucide-react';
 
 import { inspectEntryFeatures } from './app/feature-registry';
 import { useProtocolShell } from './ProtocolShellContext';
 import './suite-pages.css';
 
-const inspectIcons = { grpc: Server, http: Globe2, security: ShieldCheck } as const;
-
-const futureProtocols = [
-  {
-    name: "Cap'n Proto",
-    state: 'Exploring',
-    detail: 'Requires a native schema and capability-oriented inspector before it can ship.',
-    icon: Braces,
-  },
-  {
-    name: 'WebSocket + SSE',
-    state: 'Research',
-    detail:
-      'Event timelines and cancellation must stay visible instead of becoming a generic text stream.',
-    icon: RadioTower,
-  },
-];
+const inspectIcons = {
+  grpc: Server,
+  http: Globe2,
+  events: Radio,
+  capnp: Server,
+  security: ShieldCheck,
+} as const;
 
 export function Protocols() {
   const { openScan } = useProtocolShell();
@@ -32,16 +22,13 @@ export function Protocols() {
         <div>
           <span className="pp-kicker">Inspect</span>
           <h1>Choose an inspection workbench.</h1>
-          <p>
-            HTTP, gRPC, and public website security stay related here, while each keeps its native
-            evidence.
-          </p>
+          <p>Send a request, explore a service, or check a website.</p>
         </div>
         <button type="button" className="pp-suite-page-action" onClick={() => openScan()}>
           <Radar aria-hidden="true" />
           <span>
             <strong>Inspect a target</strong>
-            <small>Bounded checks, only when requested</small>
+            <small>Find HTTP, gRPC, and open ports</small>
           </span>
           <ArrowRight aria-hidden="true" />
         </button>
@@ -50,7 +37,6 @@ export function Protocols() {
       <section className="pp-suite-section" aria-labelledby="available-protocols-title">
         <header>
           <div>
-            <span className="pp-kicker">Available now</span>
             <h2 id="available-protocols-title">Native inspection tools</h2>
           </div>
           <span>Local session</span>
@@ -62,7 +48,6 @@ export function Protocols() {
               <Link key={feature.id} to={feature.route} className="pp-protocol-choice">
                 <Icon aria-hidden="true" />
                 <span>
-                  <small>Available</small>
                   <strong>{feature.label}</strong>
                   <p>{feature.inspectEntry.detail}</p>
                 </span>
@@ -73,27 +58,14 @@ export function Protocols() {
         </div>
       </section>
 
-      <section className="pp-suite-section" aria-labelledby="future-protocols-title">
-        <header>
-          <div>
-            <span className="pp-kicker">Deliberately gated</span>
-            <h2 id="future-protocols-title">Future protocol research</h2>
-          </div>
-          <span>No generic-client promises</span>
-        </header>
-        <div className="pp-future-protocol-list">
-          {futureProtocols.map((protocol) => (
-            <article key={protocol.name}>
-              <protocol.icon aria-hidden="true" />
-              <div>
-                <strong>{protocol.name}</strong>
-                <p>{protocol.detail}</p>
-              </div>
-              <span>{protocol.state}</span>
-            </article>
-          ))}
-        </div>
-      </section>
+      <footer className="pp-inspect-footer">
+        <Link to="/this-pc">
+          Find services on this device <ArrowRight aria-hidden="true" />
+        </Link>
+        <Link to="/roadmap">
+          Upcoming protocols <ArrowRight aria-hidden="true" />
+        </Link>
+      </footer>
     </div>
   );
 }

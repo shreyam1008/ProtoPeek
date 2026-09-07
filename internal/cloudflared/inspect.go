@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -384,6 +383,8 @@ func redactService(raw string) string {
 
 func runBounded(ctx context.Context, executable string, args ...string) ([]byte, error) {
 	command := exec.CommandContext(ctx, executable, args...)
+	configureToolProcess(command)
+	command.WaitDelay = time.Second
 	var output boundedBuffer
 	command.Stdout = &output
 	command.Stderr = &output
@@ -391,7 +392,12 @@ func runBounded(ctx context.Context, executable string, args ...string) ([]byte,
 	return output.Bytes(), err
 }
 
-type boundedBuffer struct{ bytes.Buffer }
+// Do not embed bytes.Buffer: its promoted ReadFrom method lets io.Copy (and
+// os/exec's pipe reader) bypass Write and therefore the output limit.
+type boundedBuffer struct{ data bytes.Buffer }
+
+func (buffer *boundedBuffer) Bytes() []byte { return buffer.data.Bytes() }
+func (buffer *boundedBuffer) Len() int      { return buffer.data.Len() }
 
 func (buffer *boundedBuffer) Write(value []byte) (int, error) {
 	remaining := maxToolOutput - buffer.Len()
@@ -399,10 +405,10 @@ func (buffer *boundedBuffer) Write(value []byte) (int, error) {
 		return len(value), nil
 	}
 	if len(value) > remaining {
-		_, _ = buffer.Buffer.Write(value[:remaining])
+		_, _ = buffer.data.Write(value[:remaining])
 		return len(value), nil
 	}
-	return buffer.Buffer.Write(value)
+	return buffer.data.Write(value)
 }
 
 var _ io.Writer = (*boundedBuffer)(nil)
@@ -429,22 +435,4 @@ func boundedText(value string, maximum int) string {
 		}
 	}
 	return value
-}
-
-func sortedUnique(values []string) []string {
-	seen := map[string]struct{}{}
-	result := make([]string, 0, len(values))
-	for _, value := range values {
-		value = boundedText(value, 240)
-		if value == "" {
-			continue
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		result = append(result, value)
-	}
-	sort.Strings(result)
-	return result
 }

@@ -1,0 +1,236 @@
+.pp-capnp {
+  display: grid;
+  grid-template: auto minmax(0, 1fr) / 240px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+.pp-capnp-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--pp-border);
+}
+.pp-capnp-heading h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.pp-capnp-sidebar {
+  padding: 12px;
+  border-right: 1px solid var(--pp-border);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pp-capnp label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+.pp-capnp input,
+.pp-capnp select,
+.pp-capnp textarea,
+.pp-capnp button {
+  font: inherit;
+  color: inherit;
+  background: var(--pp-panel);
+  border: 1px solid var(--pp-border);
+  border-radius: 4px;
+  padding: 7px 9px;
+  min-width: 0;
+}
+.pp-capnp input:focus-visible,
+.pp-capnp textarea:focus-visible,
+.pp-capnp select:focus-visible,
+.pp-capnp button:focus-visible {
+  outline: 2px solid var(--pp-accent);
+  outline-offset: 2px;
+}
+.pp-capnp button {
+  cursor: pointer;
+  font-size: 12px;
+}
+.pp-capnp button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-capnp small,
+.pp-capnp p,
+.pp-capnp details {
+  font-size: 12px;
+}
+.pp-capnp small {
+  color: var(--pp-text-muted);
+}
+.pp-capnp details > label,
+.pp-capnp details > button,
+.pp-capnp details > small,
+.pp-capnp details > details {
+  margin-top: 10px;
+}
+.pp-capnp details > small {
+  display: block;
+}
+.pp-capnp summary {
+  cursor: pointer;
+}
+.pp-capnp code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.pp-capnp-sidebar input[type="file"] {
+  width: 100%;
+  font-size: 11px;
+}
+.pp-capnp-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pp-capnp-sidebar nav button {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-wrap: anywhere;
+}
+.pp-capnp-sidebar nav button[aria-current="true"] {
+  border-color: var(--pp-accent);
+  box-shadow: inset 3px 0 var(--pp-accent);
+}
+.pp-capnp-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+.pp-capnp-connect {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+.pp-capnp-target {
+  flex: 1;
+}
+.pp-capnp-connect input[type="number"] {
+  width: 85px;
+}
+.pp-capnp-connect button[type="submit"] {
+  background: var(--pp-accent);
+  color: white;
+}
+.pp-capnp-status,
+.pp-capnp-error {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pp-capnp-error {
+  color: var(--pp-danger, #b42318);
+}
+.pp-capnp-editors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 300px;
+}
+.pp-capnp-editors > section {
+  border: 1px solid var(--pp-border);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  gap: 8px;
+}
+.pp-capnp-editors header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.pp-capnp-editors header > div {
+  display: flex;
+  gap: 5px;
+}
+.pp-capnp-json {
+  flex: 1;
+  min-height: 180px;
+}
+.pp-capnp-json textarea {
+  flex: 1;
+  resize: none;
+  font-family: monospace;
+  font-size: 12px;
+  tab-size: 2;
+}
+.pp-capnp-response-json {
+  flex: 1;
+  min-height: 180px;
+  resize: none;
+  font-family: monospace;
+  margin: 0;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pp-capnp-editors dl > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border-bottom: 1px solid var(--pp-border);
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+.pp-capnp-editors dd {
+  margin: 0;
+}
+.pp-capnp-empty {
+  margin: auto;
+  max-width: 440px;
+  padding: 24px;
+  color: var(--pp-text-muted);
+}
+.pp-capnp-empty h2 {
+  font-size: 16px;
+}
+@media (max-width: 1000px) {
+  .pp-capnp {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+  .pp-capnp-connect {
+    flex-wrap: wrap;
+  }
+  .pp-capnp-target {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 760px) {
+  .pp-capnp {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+  .pp-capnp-sidebar {
+    border-right: 0;
+    max-height: 280px;
+    flex-shrink: 0;
+  }
+  .pp-capnp-main {
+    overflow: visible;
+  }
+  .pp-capnp-editors {
+    grid-template-columns: 1fr;
+  }
+}

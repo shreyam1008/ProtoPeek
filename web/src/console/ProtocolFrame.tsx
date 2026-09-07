@@ -12,11 +12,12 @@ import {
 
 import type { ScanResult } from './api';
 import { commandDestinationFeatures, destinations } from './app/feature-registry';
-import { storePendingHandoff } from './app/handoff-store';
+import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
 import { handoffDestinationRoutes } from './app/release-capabilities';
-import { CommandPalette, type PaletteAction } from './CommandPalette';
+import type { PaletteAction } from './CommandPalette';
 import { scanResultHTTPURL } from './discovery-url';
+import { httpRecipeLoadEvent, queueHTTPRecipe } from './http-library-handoff';
 import {
   applyInterfacePreferences,
   type InterfacePreferences,
@@ -38,6 +39,9 @@ const ScanTargetDialog = lazy(async () => {
   const module = await import('./ScanTargetDialog');
   return { default: module.ScanTargetDialog };
 });
+const CommandPalette = lazy(() =>
+  import('./CommandPalette').then((module) => ({ default: module.CommandPalette }))
+);
 
 function systemPrefersDark() {
   if (typeof window.matchMedia !== 'function') return false;
@@ -75,6 +79,12 @@ export function ProtocolFrame() {
     readAppearancePreference()
   );
   const [prefersDark, setPrefersDark] = useState(systemPrefersDark);
+  const [appearanceSaved, setAppearanceSaved] = useState(true);
+  const [interfaceSaved, setInterfaceSaved] = useState(true);
+  const preferenceStorageError =
+    appearanceSaved && interfaceSaved
+      ? ''
+      : 'Browser storage is unavailable. Some interface changes apply only to this session. Try the affected choice again to save it.';
   const [interfacePreferences, setInterfacePreferencesState] = useState<InterfacePreferences>(() =>
     readInterfacePreferences()
   );
@@ -93,7 +103,7 @@ export function ProtocolFrame() {
     (nextAppearance: AppearancePreference) => {
       setAppearanceState(nextAppearance);
       applyAppearance(nextAppearance, prefersDark, document.documentElement);
-      persistAppearancePreference(nextAppearance);
+      setAppearanceSaved(persistAppearancePreference(nextAppearance));
     },
     [prefersDark]
   );
@@ -101,7 +111,7 @@ export function ProtocolFrame() {
   const setInterfacePreferences = useCallback((preferences: InterfacePreferences) => {
     setInterfacePreferencesState(preferences);
     applyInterfacePreferences(preferences);
-    persistInterfacePreferences(preferences);
+    setInterfaceSaved(persistInterfacePreferences(preferences));
   }, []);
 
   useEffect(() => {
@@ -247,6 +257,27 @@ export function ProtocolFrame() {
     ];
   }, [appearance, navigate, openHelp, openScan, resolvedAppearance.theme, setAppearance]);
 
+  const loadSavedActions = useCallback(async () => {
+    const { readHTTPLibrary } = await import('./http-library');
+    const library = readHTTPLibrary();
+    if (library.error) throw new Error(library.error);
+    const action = (id: string, name: string, method: string, url: string): PaletteAction => ({
+      id: `http-recipe-${id}`,
+      label: `Load HTTP request: ${name}`,
+      hint: method,
+      keywords: `saved request ${url.slice(0, 1024)}`,
+      run: () => {
+        clearPendingHandoff();
+        queueHTTPRecipe(id);
+        void navigate({ to: '/protocols/http' });
+        window.dispatchEvent(new Event(httpRecipeLoadEvent));
+      },
+    });
+    return library.requests.map((recipe) =>
+      action(recipe.id, recipe.name, recipe.draft.method, recipe.draft.url)
+    );
+  }, [navigate]);
+
   useEffect(() => {
     function handleGlobalShortcut(event: KeyboardEvent) {
       if ((!event.metaKey && !event.ctrlKey) || event.key.toLowerCase() !== 'k') return;
@@ -268,6 +299,7 @@ export function ProtocolFrame() {
       setAppearance,
       interfacePreferences,
       setInterfacePreferences,
+      preferenceStorageError,
       discoveries,
       openScan,
       openHandoff,
@@ -276,6 +308,7 @@ export function ProtocolFrame() {
     }),
     [
       discoveries,
+      preferenceStorageError,
       interfacePreferences,
       openGRPCDiscovery,
       openHandoff,
@@ -332,7 +365,22 @@ export function ProtocolFrame() {
           />
         </Suspense>
       ) : null}
-      <CommandPalette open={commandOpen} actions={actions} onClose={() => setCommandOpen(false)} />
+      {commandOpen ? (
+        <Suspense
+          fallback={
+            <span className="pp-shell-announcement" role="status">
+              Loading commands…
+            </span>
+          }
+        >
+          <CommandPalette
+            open
+            actions={actions}
+            loadExtraActions={loadSavedActions}
+            onClose={() => setCommandOpen(false)}
+          />
+        </Suspense>
+      ) : null}
       <HelpDrawer open={helpOpen} onClose={closeHelp} />
     </ProtocolShellContext.Provider>
   );

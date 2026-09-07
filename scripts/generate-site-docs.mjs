@@ -112,27 +112,19 @@ Repository: ${repoRootURL}
 
 ## Release truth
 
-- v0.5.0 is the current stable release. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
-- Stable v0.5.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, offline Nmap XML import, local downloads, and consented Security evidence.
-- The verified release resolvers and \`@latest\` install v0.5.0 from checksum-pinned release archives.
-- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. ProtoPeek does not bundle aria2.
-
-## Current source after v0.5.0
-
-- Current source implements exactly six permanent destinations: Home, Inspect, Network, Publish, Files, and Settings. This shell is not part of the published v0.5.0 packages.
-- This Device remains route-lazy at /this-pc under Network. It reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
-- Cloudflare Tunnel remains route-lazy at /tunnels under Publish and keeps its domain-native evidence. It is not part of the published v0.5.0 packages.
-- Cloudflare Tunnel starts only from explicit local actions. It inspects the real host, compares cloudflared with the official release on request, and confirms, stale-guards, and verifies canonical OS service control. Route drafts remain browser-only; config/account writes, password capture, automatic installation or update, Docker-daemon access, and background polling stay unavailable.
-- Security is grouped under Inspect, Downloader remains its domain-native workspace under Files, and Roadmap and Help remain command/About destinations without persistent navigation entries.
-- Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
-- Private Access and Tailscale, Headscale, and NetBird workflows remain planned; none ships in the stable release or current source.
-
-## v0.5.0 capability boundary
-
 - Downloader product page: ${siteRoot}/downloader/
-- Downloader uses an explicitly configured or system-installed \`aria2c\`; ProtoPeek does not bundle aria2.
-- Website observation requires separate consent and sends exactly one credential-free, non-following \`HEAD\` request to a public-only target. It reads no body, follows no redirect, and emits no security score.
-- GoBarryGo files, releases, repository history, and public origin remain independent; the public redirect and retirement are not complete.
+
+- v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
+- Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
+- Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
+- Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
+- The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
+- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves transfers running while the server stays open; server restart restores recoverable jobs for explicit resume.
+- Nmap, dumpcap, Tailscale and cloudflared require their respective installed tools. Cap’n Proto source compilation uses the optional capnp compiler; compiled schemas work without it.
+- macOS native path probes and socket/counter activity are unsupported. Headscale, NetBird, integrated elevation/sign-in, deeper packet decoding and returned-capability RPC workflows remain planned.
+- Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
+- GoBarryGo files and history remain independent; its public redirect and retirement are not complete.
 
 ## Public features and guides
 
@@ -164,7 +156,7 @@ async function writeDownloaderPage() {
     operatingSystem: ['Linux', 'macOS', 'Windows'],
     isAccessibleForFree: true,
     softwareRequirements:
-      'ProtoPeek v0.5.0 plus a system-installed or explicitly configured aria2c for Downloader.',
+      'ProtoPeek v0.6.0 with bundled aria2 on Windows x64; installed aria2 on other platforms.',
     screenshot: [
       `${siteRoot}/assets/protopeek-downloader-development.jpg`,
       `${siteRoot}/assets/protopeek-downloader-development-mobile.jpg`,
@@ -185,7 +177,7 @@ async function writeDownloaderPage() {
       {
         '@type': 'PropertyValue',
         name: 'Package-manager status',
-        value: 'Homebrew and Scoop install v0.5.0 with aria2 declared as an external dependency',
+        value: 'Homebrew and Scoop supply aria2 as a package dependency',
       },
     ],
     softwareHelp: `${siteRoot}/docs/`,
@@ -263,7 +255,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-hero-copy">
               <h1 id="downloader-title">Download locally. Keep every decision visible.</h1>
               <p>
-                ProtoPeek v0.5.0 gives users one explicit local queue for
+                ProtoPeek v0.6.0 gives users one explicit local queue for
                 HTTP(S) transfers: queue one or up to 32 independent jobs, see partial success,
                 pause or resume one job or the whole queue, retry, cancel, choose the destination,
                 and enforce a single-job expected SHA-256 without sending transfer details to a hosted service.
@@ -271,21 +263,21 @@ async function writeDownloaderPage() {
               ${renderStatus(downloaderPage.status)}
               <p class="pp-download-boundary">${escapeHtml(downloaderPage.status.detail)}</p>
               <div class="pp-download-actions">
-                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Open v0.5.0 release</a>
+                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Open v0.6.0 release</a>
                 <a class="pp-download-action-secondary" href="${siteBase}/install/">Read installation boundaries</a>
               </div>
               <dl class="pp-download-truth">
                 <div>
                   <dt>Available now</dt>
-                  <dd>Stable ProtoPeek v0.5.0</dd>
+                  <dd>Stable ProtoPeek v0.6.0</dd>
                 </div>
                 <div>
                   <dt>Package channels</dt>
-                  <dd>Homebrew and Scoop install v0.5.0</dd>
+                  <dd>Homebrew and Scoop</dd>
                 </div>
                 <div>
                   <dt>Transfer engine</dt>
-                  <dd>System-installed or explicitly configured aria2c</dd>
+                  <dd>Bundled on Windows x64; installed aria2 elsewhere</dd>
                 </div>
               </dl>
             </div>
@@ -340,7 +332,7 @@ async function writeDownloaderPage() {
               <pre><code>pp download [--output NAME] [--sha256 64_HEX] URL</code></pre>
               <p class="pp-download-note">
                 It does not attach to an already-running ProtoPeek browser process. URL support is
-                deliberately limited to HTTP and HTTPS in this development slice.
+                limited to HTTP and HTTPS.
               </p>
               <div class="pp-download-link-list" aria-label="Downloader documentation">
                 <a href="${siteBase}/man/pp.1">Read the pp(1) manual</a>
@@ -352,18 +344,20 @@ async function writeDownloaderPage() {
 
           <section class="pp-download-section pp-download-requirements" aria-labelledby="requirements-title">
             <div>
-              <h2 id="requirements-title">Install the engine; ProtoPeek does not bundle it.</h2>
+              <h2 id="requirements-title">Ready to download on Windows x64.</h2>
               <p>
-                Downloader resolves an explicitly configured aria2c binary or the system aria2c on
-                PATH. That keeps the MIT ProtoPeek distribution separate from aria2 and makes the
-                process boundary inspectable. Homebrew and Scoop install v0.5.0 and declare aria2 as
-                an external package dependency, so Downloader is available without bundling the engine.
+                Windows x64 includes a pinned aria2 companion, extracted only when needed. A configured
+                executable or PATH engine takes priority. Linux, macOS, Windows ARM64 and 32-bit
+                Windows use installed aria2. The release includes license notices and a source
+                companion. Up to 16 connections can improve suitable transfers; speed depends on
+                the server and connection. Closing the browser leaves downloads running while
+                ProtoPeek stays open. Queue state and bounded history persist on the local host.
               </p>
             </div>
             <div class="pp-download-requirement-links">
               <a href="${siteBase}/docs/">Published documentation</a>
               <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Release setup</a>
-              <a href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Stable v0.5.0 release</a>
+              <a href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Stable v0.6.0 release</a>
             </div>
           </section>
 
@@ -859,6 +853,7 @@ function renderFeatureVisual(page) {
     hub: ['Request', 'Path', 'Machine', 'Transfer'],
     install: ['Channel', 'Checksum', 'Binary'],
     grpc: ['Schema', 'RPC', 'Evidence'],
+    capnp: ['Schema', 'Capability', 'Response'],
     http: ['Request', 'TLS', 'Response'],
     'learn-grpc': ['Contract', 'Stream', 'Status'],
     network: ['DNS', 'Route', 'Hop', 'Evidence'],
@@ -1005,7 +1000,7 @@ function renderFooter() {
       <nav aria-label="Footer">
         <a href="${siteBase}/docs/">Guides</a>
         <a href="${siteBase}/install/">Download</a>
-        <a href="${repoRootURL}/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ func TestConfigureAndSaveRoundTripsAndAppliesOnlyAfterSave(t *testing.T) {
 	updated := config
 	updated.MaxActiveJobs = 6
 	updated.MaxConnectionsPerHost = 12
+	updated.Split = 12
 
 	saved, revision, err := service.ConfigureAndSavePatch(HostConfigRevision(config), HostConfigPatch{
 		MaxActiveJobs:         intPointer(6),
@@ -336,6 +338,7 @@ func TestStoppedSnapshotReloadsExternalSaveAndAllowsNextPatch(t *testing.T) {
 	}
 	want := external
 	want.MaxConnectionsPerHost = 12
+	want.Split = 12
 	if saved != want || revision != HostConfigRevision(want) {
 		t.Fatalf("patched config=%#v revision=%q, want=%#v revision=%q", saved, revision, want, HostConfigRevision(want))
 	}
@@ -501,6 +504,19 @@ func TestHostConfigPatchPreservesHiddenFieldsAndNoOpBytes(t *testing.T) {
 	}
 	if loaded.MaxQueuedJobs != config.MaxQueuedJobs || loaded.MaxTrackedJobs != config.MaxTrackedJobs || loaded.Split != config.Split || loaded.MinSplitSizeBytes != config.MinSplitSizeBytes || loaded.UserAgent != config.UserAgent {
 		t.Fatalf("hidden fields changed: %#v", loaded)
+	}
+}
+
+func TestConnectionSettingUpdatesBothAria2ConnectionLimits(t *testing.T) {
+	t.Parallel()
+	config := DefaultHostConfig()
+	updated := (HostConfigPatch{MaxConnectionsPerHost: intPointer(16)}).Apply(config)
+	if updated.MaxConnectionsPerHost != 16 || updated.Split != 16 {
+		t.Fatalf("connection limits = %d/%d", updated.MaxConnectionsPerHost, updated.Split)
+	}
+	args := buildAria2Arguments(updated, Paths{}, 43199, "secret.conf")
+	if !slices.Contains(args, "--split=16") || !slices.Contains(args, "--max-connection-per-server=16") {
+		t.Fatalf("aria2 limits missing: %v", args)
 	}
 }
 

@@ -1,9 +1,9 @@
 # Website analysis and security boundary
 
 Status: one passive historical-name lookup and one direct website observation ship in v0.5.0.
-Current source after v0.5.0 also derives a bounded, copyable evidence report from that retained
-response without making another request. Broader website plans, active findings, and selected-port
-handoffs remain planned.
+Current source also provides copy/save reports, rejected-certificate metadata, a five-path HEAD
+plan, filtered historical names with unsent Inspect handoffs, and browser-local origin/domain
+memory. Active vulnerability testing and authenticated audits remain outside this implementation.
 
 ProtoPeek helps a user understand a website from the perspective of the local ProtoPeek process.
 It must not become an ambient Internet scanner, a security-score generator, or an automated
@@ -11,25 +11,46 @@ exploitation tool. This document separates the current build from later safety r
 
 ## Current build
 
-### Historical certificate-name candidates
+### Historical indexed names
 
 The user enters one hostname and must explicitly acknowledge that its normalized registrable apex
 will be sent to the named third party `crt.name`. The adapter then:
 
-- sends one bounded request to the fixed `https://crt.name/v1/search` endpoint;
+- sends one bounded request to the fixed `https://crt.name/v1/search` endpoint with `format=json`;
 - allows at most two concurrent client requests and is also wired behind a two-operation process
   admission limit;
-- uses an eight-second timeout, a 256 KiB response-body limit, at most 256 retained candidates, a
+- uses a 25-second timeout, a 256 KiB response-body limit, at most 256 retained candidates, a
   15-minute cache, and at most 32 cache entries by default;
 - suffix-checks, IDNA-normalizes, deduplicates, sorts, and bounds candidate names;
 - retains only each normalized name and whether it was a wildcard pattern; the provider adapter
   does not return per-candidate observation dates;
 - never resolves, probes, scans, or opens a returned candidate.
 
-`crt.name` is a historical certificate-name index, not proof that a returned name is live, owned,
+The provider indexes certificate transparency and other sources, including archived names and
+DNS datasets; see its [source description and API](https://crt.name/). A candidate is not proof that a returned name is live, owned,
 still configured, or independently deployed. Wildcards remain patterns. DNS has no universal
 “list every subdomain” operation, and this adapter does not use `ANY`, attempt AXFR, brute-force
 labels, or fan out across returned names.
+
+The result list supports filtering and JSON export. Inspect on a non-wildcard name prepares a
+port-443 target for review; it does not run a scan. The last submitted domain and website origin
+are remembered in bounded browser storage, with individual Forget actions. Paths, queries,
+credentials, response evidence and acknowledgement are never written to this target store.
+
+### Current source: standard path plan and failed certificates
+
+Standard paths makes five HEAD observations at the entered origin: `/robots.txt`, `/sitemap.xml`,
+`/.well-known/security.txt`, `/security.txt`, and `/.__protopeek_missing_resource__`. The last is a
+missing-resource comparison, not an assertion that its name cannot exist. Two workers share a
+30-second wall deadline; each observation independently resolves and pins public addresses,
+verifies TLS, reads no body and never follows redirects. The same process admission limiter
+covers single website observations and these plans. Responses retain status, type, reported
+length, redirect and duration; failures remain individual rows. A 200 comparison warns about
+possible fallback behavior, not a confirmed document or vulnerability.
+
+When TLS verification rejects a certificate, bounded peer-provided subject, issuer, dates and
+names are displayed explicitly as unverified evidence. Verification stays enabled; no HTTP
+request is sent after that failed TLS handshake. JSON report exports retain the stated boundary.
 
 ### One public website response
 
@@ -56,9 +77,9 @@ The result is one source-perspective observation at one time. A missing header, 
 redirect, hostname, route, or timing value is not a universal vulnerability verdict. ProtoPeek does
 not emit a security score and does not infer a CVE from a `Server` header.
 
-### Current source after v0.5.0: local HEAD evidence report
+### v0.6.0 local HEAD evidence report
 
-This source-only refinement is not part of the published v0.5.0 release. After one successful
+In v0.6.0, after one successful
 website observation, the Security page now runs a pure deterministic analyzer over the already
 retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect
 follow, body read, crawl, login attempt, or port connection.

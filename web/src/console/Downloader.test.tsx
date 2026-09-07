@@ -1,7 +1,14 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { batchResultMessage, Downloader, parseBatchSources, safeSourceLabel } from './Downloader';
+import {
+  batchResultMessage,
+  Downloader,
+  parseBatchSources,
+  safeSourceLabel,
+  transferProgressLabel,
+} from './Downloader';
+import type { TransferJob } from './transfer-api';
 
 const stoppedSnapshot = {
   observedAt: '2026-08-23T12:00:00Z',
@@ -54,6 +61,7 @@ const runningSnapshot = {
 };
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
@@ -61,6 +69,69 @@ afterEach(() => {
 });
 
 describe('Downloader', () => {
+  it('shows saved completions while stopped and removes only their history', async () => {
+    let forgotten = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/forget')) {
+        forgotten = true;
+        return new Response(null, { status: 204 });
+      }
+      return Response.json({
+        ...stoppedSnapshot,
+        jobs: forgotten
+          ? []
+          : [
+              {
+                ...runningSnapshot.jobs[0],
+                status: 'completed',
+                historical: true,
+                completedAt: '2026-09-06T12:00:00Z',
+              },
+            ],
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<Downloader />);
+    expect(await screen.findByText('Saved completion')).toBeInTheDocument();
+    expect(screen.getByText(/file has not been rechecked/)).toBeInTheDocument();
+    expect(screen.getByText(/downloaded file stays on disk/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove history' }));
+    await waitFor(() => expect(screen.queryByText('Saved completion')).not.toBeInTheDocument());
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/forget'))).toBe(true);
+  });
+
+  it('shows unknown-size progress honestly', () => {
+    expect(
+      transferProgressLabel({
+        status: 'downloading',
+        totalBytes: 0,
+        progressPercent: 0,
+      } as TransferJob)
+    ).toBe('Size unknown');
+    expect(
+      transferProgressLabel({
+        status: 'completed',
+        totalBytes: 0,
+        progressPercent: 0,
+      } as TransferJob)
+    ).toBe('100%');
+  });
+
+  it('restores saved work without requiring a new download URL', async () => {
+    let started = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/start')) {
+        started = true;
+        return Response.json({});
+      }
+      return Response.json(started ? runningSnapshot : stoppedSnapshot);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<Downloader />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore saved queue' }));
+    expect(await screen.findAllByText('archive.tar.gz')).toHaveLength(2);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/batch'))).toBe(false);
+  });
   it('renders the truthful stopped state without starting the engine on load', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json(stoppedSnapshot)
@@ -75,16 +146,66 @@ describe('Downloader', () => {
     expect((fetchMock.mock.calls[0]?.[1] as RequestInit).method).toBe('GET');
   });
 
-  it('does not schedule background refresh when the transfer engine is ready', async () => {
-    const intervalSpy = vi.spyOn(window, 'setInterval');
-    const fetchMock = vi.fn(async () => Response.json(runningSnapshot));
+  it('updates active progress and stops observing once all jobs complete', async () => {
+    const completed = {
+      ...runningSnapshot,
+      jobs: [{ ...runningSnapshot.jobs[0], status: 'completed', progressPercent: 100 }],
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(runningSnapshot))
+      .mockImplementation(async () => Response.json(completed));
     vi.stubGlobal('fetch', fetchMock);
-
-    render(<Downloader />);
-    await screen.findAllByText('archive.tar.gz');
-
+    vi.useFakeTimers();
+    await act(async () => {
+      render(<Downloader />);
+    });
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(intervalSpy).not.toHaveBeenCalledWith(expect.any(Function), 1_500);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(within(screen.getByRole('complementary')).getByText('100%')).toBeVisible();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('suspends observation while hidden and aborts the read on leaving without stopping downloads', async () => {
+    let hidden = false;
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() =>
+      hidden ? 'hidden' : 'visible'
+    );
+    let signal: AbortSignal | undefined;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json(runningSnapshot))
+      .mockImplementation((_input, init) => {
+        signal = init.signal;
+        return new Promise((_resolve, reject) =>
+          signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        );
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.useFakeTimers();
+    const view = render(<Downloader />);
+    await act(async () => {});
+    hidden = true;
+    fireEvent(document, new Event('visibilitychange'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    hidden = false;
+    fireEvent(document, new Event('visibilitychange'));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    view.unmount();
+    expect(signal?.aborted).toBe(true);
+    expect(fetchMock.mock.calls.every((call) => call[1]?.method === 'GET')).toBe(true);
   });
 
   it('uses one explicit submit to start the external engine, add the URL, and show real queue state', async () => {

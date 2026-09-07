@@ -14,6 +14,53 @@ import (
 
 type resolverFunc func(context.Context, string, string) ([]netip.Addr, error)
 
+func TestAutoFamilyUsesSupportedDNSAnswerWithoutResolvingAgain(t *testing.T) {
+	t.Parallel()
+	for _, publicConsent := range []bool{false, true} {
+		var lookups, probes int
+		engine := netpath.NewEngine(
+			resolverFunc(func(context.Context, string, string) ([]netip.Addr, error) {
+				lookups++
+				return []netip.Addr{netip.MustParseAddr("::1"), netip.MustParseAddr("1.1.1.1")}, nil
+			}),
+			func(_ context.Context, address netip.Addr) netroute.Result {
+				if address.String() != "1.1.1.1" {
+					t.Fatalf("route pinned to %s", address)
+				}
+				return netroute.Result{Status: "unavailable"}
+			},
+			backendFunc{
+				capabilities: func(context.Context) []netpath.Capability {
+					return []netpath.Capability{{Backend: "fixture-icmp", Method: "icmp", Families: []string{"ipv4"}, Available: true}}
+				},
+				trace: func(_ context.Context, target netpath.Target, config netpath.TraceConfig) (netpath.BackendResult, error) {
+					probes++
+					if target.Address.String() != "1.1.1.1" || config.Method != "icmp" {
+						t.Fatalf("unexpected target/config: %v %#v", target, config)
+					}
+					return netpath.BackendResult{Backend: "fixture-icmp", Method: "icmp", Termination: "deadline"}, nil
+				},
+			},
+		)
+		result, err := engine.Trace(context.Background(), netpath.Request{Destination: "dual.example", Consent: netpath.Consent{ActiveProbe: true, PublicTarget: publicConsent}})
+		if lookups != 1 {
+			t.Fatalf("DNS lookups = %d", lookups)
+		}
+		if !publicConsent {
+			if !errors.Is(err, netpath.ErrConsentRequired) || probes != 0 {
+				t.Fatalf("unconsented fallback = %v, probes %d", err, probes)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.Resolution.PinnedAddress != "1.1.1.1" || result.Resolution.PinnedFamily != "ipv4" || len(result.Resolution.Answers) != 2 || probes != 1 {
+			t.Fatalf("result = %#v, probes %d", result.Resolution, probes)
+		}
+	}
+}
+
 func (function resolverFunc) LookupNetIP(ctx context.Context, network, host string) ([]netip.Addr, error) {
 	return function(ctx, network, host)
 }

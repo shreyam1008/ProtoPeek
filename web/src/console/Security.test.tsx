@@ -4,6 +4,40 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Security } from './Security';
 
+const { openScan } = vi.hoisted(() => ({ openScan: vi.fn() }));
+vi.mock('./ProtocolShellContext', () => ({ useProtocolShell: () => ({ openScan }) }));
+
+it('shows certificate failure evidence without presenting a successful website response', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () =>
+      Response.json(
+        {
+          error: 'Certificate rejected',
+          tlsFailure: {
+            reason: 'Certificate authority is not trusted',
+            subject: 'CN=example.com',
+            issuer: 'CN=Fixture CA',
+            notBefore: '2024-01-01T00:00:00Z',
+            notAfter: '2025-01-01T00:00:00Z',
+            dnsNames: ['example.com'],
+          },
+        },
+        { status: 502 }
+      )
+    )
+  );
+  render(<Security />);
+  fireEvent.change(screen.getByRole('textbox', { name: 'Public website URL' }), {
+    target: { value: 'https://example.com' },
+  });
+  fireEvent.click(screen.getByRole('checkbox', { name: /Make one public HEAD request/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
+  const evidence = await screen.findByRole('region', { name: 'Unverified certificate evidence' });
+  expect(within(evidence).getByText('CN=Fixture CA')).toBeInTheDocument();
+  expect(screen.queryByText('200 OK')).not.toBeInTheDocument();
+});
+
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     to,
@@ -64,6 +98,7 @@ const websiteResult = {
 };
 
 afterEach(() => {
+  localStorage.clear();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   Reflect.deleteProperty(navigator, 'clipboard');
@@ -79,21 +114,23 @@ describe('Security', () => {
     render(<Security />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Security' })).toBeVisible();
-    expect(screen.getByText('Nothing runs on page load.')).toBeVisible();
-    expect(screen.getByLabelText(/Send this registrable domain to crt\.name/i)).not.toBeChecked();
     expect(screen.getByLabelText(/Make one public HEAD request/i)).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'Find historical names' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Observe website' })).toBeDisabled();
     expect(fetchMock).not.toHaveBeenCalled();
-
-    expect(
-      screen.getByRole('heading', { name: 'Continue with shipped network evidence' })
-    ).toBeVisible();
     expect(
       screen.getByRole('heading', { name: 'Observe one public website response' })
     ).toBeVisible();
+    expect(screen.getByRole('tablist', { name: 'Website tools' })).toHaveAttribute(
+      'aria-orientation',
+      'vertical'
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Subdomains' }));
+    expect(screen.getByText('Nothing runs on page load.')).toBeVisible();
+    expect(screen.getByLabelText(/Send this registrable domain to crt\.name/i)).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Find historical names' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Related tools' }));
     expect(screen.getByRole('complementary', { name: 'Not in this build' })).toHaveTextContent(
-      'multi-request website plans, selected-port security handoffs, or active vulnerability scans'
+      'active vulnerability scans or authenticated security audits'
     );
     expect(screen.getByRole('link', { name: /Open DNS evidence/i })).toHaveAttribute(
       'href',
@@ -118,6 +155,7 @@ describe('Security', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<Security />);
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Subdomains' }));
     fireEvent.change(screen.getByLabelText('Apex or host'), {
       target: { value: 'WWW.Example.com.' },
     });
@@ -137,10 +175,15 @@ describe('Security', () => {
       acknowledgeThirdParty: true,
     });
     const list = screen.getByRole('list', {
-      name: 'Historical certificate names for example.com',
+      name: 'Historical indexed names for example.com',
     });
     expect(within(list).queryByRole('link')).not.toBeInTheDocument();
-    expect(within(list).queryByRole('button')).not.toBeInTheDocument();
+    fireEvent.click(within(list).getByRole('button', { name: 'Inspect app.example.com' }));
+    expect(openScan).toHaveBeenCalledWith({ initialTarget: 'app.example.com:443' });
+    expect(
+      within(list).queryByRole('button', { name: 'Inspect *.api.example.com' })
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledOnce();
     expect(
       screen.getByText(/not proof of a live host, open port, owner, or vulnerability/i)
     ).toBeVisible();
@@ -158,6 +201,7 @@ describe('Security', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<Security />);
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Subdomains' }));
     fireEvent.change(screen.getByLabelText('Apex or host'), { target: { value: 'example.com' } });
     const disclosure = screen.getByLabelText(/Send this registrable domain to crt\.name/i);
     fireEvent.click(disclosure);
@@ -201,8 +245,11 @@ describe('Security', () => {
       acknowledgePublicRequest: true,
     });
     expect(screen.queryByText(/secure score/i)).not.toBeInTheDocument();
-    expect(screen.getByText('Reported, never followed')).toBeVisible();
-    expect(screen.getByText('Never read')).toBeVisible();
+    expect(
+      screen.getByText(
+        /rejects queries and credentials, pins ordinary public addresses only, reads no body/
+      )
+    ).toBeVisible();
     expect(
       await screen.findByRole('heading', { name: 'HEAD evidence report' }, { timeout: 5_000 })
     ).toBeVisible();

@@ -214,6 +214,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $fixture = Join-Path $env:RUNNER_TEMP 'protopeek-installer'
+          $env:PROTOPEEK_NO_SHORTCUTS = '1'
           $payload = Join-Path $fixture 'payload'
           $installDir = Join-Path $fixture 'install'
           $archive = Join-Path $fixture 'protopeek_test_windows_x86_64.zip'
@@ -228,6 +229,13 @@ jobs:
           & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate
           & (Join-Path $installDir 'protopeek.exe') -version
           & (Join-Path $installDir 'pp.exe') -version
+
+          # Windows PowerShell 5.1 and pwsh must both support the documented
+          # pipeline invocation, including running from System32.
+          powershell.exe -NoProfile -File ./scripts/test-install-pipeline.ps1 -Installer ./install.ps1 -Archive $archive -Checksums $checksums -FixtureRoot (Join-Path $fixture 'windows-powershell')
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell pipeline installation failed.' }
+          pwsh -NoProfile -File ./scripts/test-install-pipeline.ps1 -Installer ./install.ps1 -Archive $archive -Checksums $checksums -FixtureRoot (Join-Path $fixture 'pwsh')
+          if ($LASTEXITCODE -ne 0) { throw 'PowerShell 7 pipeline installation failed.' }
 
           $replacement = Join-Path $fixture 'replaced-pp.exe'
           Set-Content -LiteralPath $replacement -Value 'replaced after install' -NoNewline
@@ -300,6 +308,15 @@ jobs:
           version: v2.17.1
           args: check --config .goreleaser.edge.yml
 
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Prepare bundled aria2 source companion
+        run: |
+          bun scripts/package-aria2-sources.ts .local/aria2-sources
+          tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
+
       - name: Build release snapshot
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
@@ -331,9 +348,14 @@ jobs:
             grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
             grep -Eq '(^|/)pp\.exe$' <<<"$contents"
             grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/COPYING$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/README.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/go-capnp-MIT.txt$' <<<"$contents"
             grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
             grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
             grep -Fq "$(basename "$archive")" dist/checksums.txt
             test -f "$archive.sbom.json"
           done
           test "$archive_count" -gt 0
+          test -s .local/aria2-1.37.0-companion-sources.tar.gz
+          tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz | grep -Eq '(^|/)SOURCES.json$'

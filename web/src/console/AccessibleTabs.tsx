@@ -14,6 +14,7 @@ export function AccessibleTabs<T extends string>({
   value,
   onChange,
   className,
+  orientation = 'horizontal',
 }: {
   id: string;
   label: string;
@@ -21,9 +22,12 @@ export function AccessibleTabs<T extends string>({
   value: T;
   onChange: (value: T) => void;
   className?: string;
+  orientation?: 'horizontal' | 'vertical';
 }) {
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    const previous = orientation === 'vertical' ? 'ArrowUp' : 'ArrowLeft';
+    const following = orientation === 'vertical' ? 'ArrowDown' : 'ArrowRight';
+    if (![previous, following, 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
     const current = tabs.findIndex((tab) => tab.value === value);
     const nextIndex =
@@ -31,7 +35,7 @@ export function AccessibleTabs<T extends string>({
         ? 0
         : event.key === 'End'
           ? tabs.length - 1
-          : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          : (current + (event.key === following ? 1 : -1) + tabs.length) % tabs.length;
     const next = tabs[nextIndex];
     if (!next) return;
     onChange(next.value);
@@ -47,6 +51,7 @@ export function AccessibleTabs<T extends string>({
       className={classNames('pp-pane-tabs', className)}
       role="tablist"
       aria-label={label}
+      aria-orientation={orientation}
       onKeyDown={handleKeyDown}
     >
       {tabs.map((tab) => (

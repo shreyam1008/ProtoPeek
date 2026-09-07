@@ -65,6 +65,12 @@ describe('SessionTabs', () => {
     expect(http).toHaveAttribute('tabindex', '0');
     http.focus();
 
+    expect(screen.getByRole('tablist')).toHaveAttribute('aria-orientation', 'vertical');
+    fireEvent.keyDown(http, { key: 'ArrowDown' });
+    expect(path).toHaveFocus();
+    fireEvent.keyDown(path, { key: 'ArrowUp' });
+    expect(http).toHaveFocus();
+
     fireEvent.keyDown(http, { key: 'ArrowRight' });
     expect(path).toHaveFocus();
     expect(http).toHaveAttribute('aria-selected', 'true');

@@ -285,7 +285,7 @@ func (dependencies windowsProcessDependencies) processName(pid uint32) (string, 
 		return "", windows.ERROR_INVALID_PARAMETER
 	}
 	if dependencies.openProcess == nil || dependencies.queryImage == nil || dependencies.closeHandle == nil {
-		return "", fmt.Errorf("Windows process-name dependencies are incomplete")
+		return "", fmt.Errorf("native Windows process-name dependencies are incomplete")
 	}
 	handle, err := dependencies.openProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {

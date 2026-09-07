@@ -9,18 +9,18 @@ function parseHtml(path: string) {
   return new DOMParser().parseFromString(readRepositoryFile(path), 'text/html');
 }
 
-describe('This Device current-source guide', () => {
-  it('keeps stable v0.5.0 history separate from the six-destination current source', () => {
+describe('This Device release guide', () => {
+  it('documents the six-destination release and platform evidence boundaries', () => {
     const readme = readRepositoryFile('README.md');
     const guide = readRepositoryFile('guides/this-pc.md');
     const generator = readRepositoryFile('scripts/generate-site-docs.mjs');
 
-    expect(readme).toContain('shipped unified shell has exactly six primary areas');
-    expect(readme).toContain('the v0.6 workbench has exactly six permanent destinations');
-    expect(readme).toContain('**This Device** workspace');
+    expect(readme).toContain('**Latest stable: v0.6.0.**');
+    expect(readme).toContain('v0.6.0 has six permanent destinations');
+    expect(readme).toContain('**This Device** under Network');
     expect(readme).not.toContain('seventh, route-lazy **This PC** workspace');
     expect(readme).not.toContain('eighth **Cloudflare Tunnel** workspace');
-    expect(guide).toContain('not part of the published v0.5.0 release');
+    expect(guide).toContain('available under Network in v0.6.0');
     expect(guide).toContain('**This Device** is ProtoPeek');
     expect(guide).toContain('canonical `/this-pc` route');
     expect(guide).toContain('`/api/this-pc/*` endpoints');
@@ -34,11 +34,13 @@ describe('This Device current-source guide', () => {
     expect(guide).toMatch(/two partial reads have no interface in\s+common/);
     expect(guide).toMatch(/evidence is no more than five\s+minutes old/);
     expect(guide).toContain('performs no DNS resolution, probe, connection');
-    expect(guide).toContain('active-hop probing remains Linux-only');
+    expect(guide).toContain('active-hop probing supports Linux UDP and Windows IPv4/IPv6 ICMP');
     expect(guide).not.toContain('macOS and Windows report listeners');
     expect(guide).not.toContain('for the planned native Windows backend');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');
-    expect(generator).toContain('Current source implements exactly six permanent destinations');
+    expect(generator).toContain(
+      'v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings'
+    );
     expect(generator).not.toContain('Current source adds a seventh route-lazy area, This PC');
     expect(generator).not.toContain('Current source also adds an eighth route-lazy area');
   });
@@ -65,8 +67,8 @@ describe('This Device current-source guide', () => {
       title: 'This Device evidence',
       documentTitle: 'This Device: Ports, Public IP & Speed Evidence | ProtoPeek',
       description:
-        'Current source inspects bounded Linux and native Windows sockets, owners, and interface counters, plus public IP/BGP and opt-in Cloudflare quality in Network.',
-      lastModified: '2026-09-03',
+        'Inspect bounded Linux and Windows sockets, process owners and interface traffic, plus explicit public-IP/BGP and Cloudflare quality checks in ProtoPeek.',
+      lastModified: '2026-09-07',
     });
     expect(sourcePage?.keywords).toEqual(
       expect.arrayContaining([

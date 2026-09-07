@@ -15,6 +15,7 @@ import (
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 	reflectionpb "google.golang.org/grpc/reflection/grpc_reflection_v1"
@@ -32,6 +33,9 @@ import (
 
 func main() {
 	port := flag.Int("port", 0, "Port on which to listen")
+	host := flag.String("host", "127.0.0.1", "Loopback IP on which to listen")
+	tlsCert := flag.String("tls-cert", "", "QA TLS certificate PEM file")
+	tlsKey := flag.String("tls-key", "", "QA TLS private key PEM file")
 	flag.Parse()
 
 	if flag.NArg() > 0 {
@@ -40,14 +44,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
+	if ip := net.ParseIP(*host); ip == nil || !ip.IsLoopback() {
+		fmt.Fprintln(os.Stderr, "QA host must be a literal loopback IP")
+		os.Exit(1)
+	}
+	options := []grpc.ServerOption{}
+	if *tlsCert != "" || *tlsKey != "" {
+		creds, err := credentials.NewServerTLSFromFile(*tlsCert, *tlsKey)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		options = append(options, grpc.Creds(creds))
+	}
+	l, err := net.Listen("tcp", net.JoinHostPort(*host, fmt.Sprint(*port)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create network listener: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Listening on %v\n", l.Addr().(*net.TCPAddr).String())
 
-	svr := grpc.NewServer()
+	svr := grpc.NewServer(options...)
 	RegisterKitchenSinkServer(svr, &testSvr{})
 	refSvc := reflection.NewServerV1(reflection.ServerOptions{
 		Services:           svr,

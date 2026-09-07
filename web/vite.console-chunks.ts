@@ -34,8 +34,9 @@ function normalizeModuleID(moduleID: string) {
   return moduleID.replace(pathSeparatorPattern, '/');
 }
 
-const routerPackagePattern =
-  /\/node_modules\/@tanstack\/(?:history|react-router|react-store|router-core|store)\//;
+// Let route-only Store versions follow their consumers. The router's actual
+// Store dependency joins core through its imports, without hoisting Table's Store.
+const routerPackagePattern = /\/node_modules\/@tanstack\/(?:history|react-router|router-core)\//;
 
 export function isSharedLucideIconModule(moduleID: string) {
   const id = normalizeModuleID(moduleID);

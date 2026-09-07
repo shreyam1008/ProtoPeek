@@ -14,7 +14,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
-import { useRef } from 'react';
+import { type ReactNode, useRef } from 'react';
 
 import type { DestinationDefinition, DestinationId } from '../app/feature-registry';
 import { ProtoPeekMark } from '../ProtoPeekMark';
@@ -30,6 +30,7 @@ const destinationIcons: Record<DestinationDefinition['icon'], LucideIcon> = {
 };
 
 export type AppBarProps = {
+  children?: ReactNode;
   destinations: readonly DestinationDefinition[];
   activeDestinationId?: DestinationId;
   activeLabel: string;
@@ -88,6 +89,8 @@ export function AppBar(props: AppBarProps) {
           })}
         </nav>
 
+        {!props.navigationOpen ? props.children : null}
+
         <div className="pp-app-actions">
           <button type="button" className="pp-app-inspect" onClick={props.onInspect}>
             <Radar aria-hidden="true" /> <span>Inspect target</span>
@@ -99,7 +102,7 @@ export function AppBar(props: AppBarProps) {
             onClick={props.onOpenCommand}
           >
             <Search aria-hidden="true" />
-            <span>Search or run a command</span>
+            <span>Search</span>
             <kbd>{props.modifier} K</kbd>
           </button>
           <button
@@ -123,6 +126,7 @@ export function AppBar(props: AppBarProps) {
 }
 
 function MobileNavigationDrawer({
+  children,
   destinations,
   activeDestinationId,
   navigationOpen,
@@ -193,6 +197,7 @@ function MobileNavigationDrawer({
             );
           })}
         </nav>
+        {children}
         <div className="pp-navigation-actions">
           <button type="button" className="pp-navigation-link" onClick={() => closeThen(onInspect)}>
             <Radar aria-hidden="true" /> Inspect target

@@ -35,6 +35,7 @@ import {
   formatHostPort,
 } from '@/console/app/handoff-store';
 import type { LocalServiceRef } from '@/console/app/handoff-types';
+import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { protocolShellEvents, useProtocolShell } from '@/console/ProtocolShellContext';
 import { type PlannedTunnelRoute, scanResultFromTunnelRoute } from '@/console/tunnels/route-plan';
 import {
@@ -387,6 +388,7 @@ export function CloudflareRoute() {
             <h1 id="tunnels-title" tabIndex={-1}>
               Tunnel operations
             </h1>
+            <ProtocolInfo protocol="cloudflare" />
             <span className="pp-tunnel-scope">
               <ShieldCheck aria-hidden="true" /> Local-only control
             </span>

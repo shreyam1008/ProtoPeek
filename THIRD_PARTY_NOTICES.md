@@ -1,6 +1,23 @@
 # Third-party notices
 
-ProtoPeek's browser bundle includes the following direct third-party component.
+ProtoPeek includes third-party components under their respective licenses.
+
+## Cap’n Proto Go runtime (current source)
+
+`capnproto.org/go/capnp/v3` v3.1.0-alpha.2 is Copyright (C) 2014 the go-capnproto
+authors and contributors, under the MIT license. Its `github.com/colega/zeropool`
+dependency is under Apache-2.0. Full license texts accompany this source and release
+archives in `third_party/licenses/`. The official `capnp` C++ compiler is an optional
+separately installed tool; its executable is not bundled with ProtoPeek.
+
+## aria2 1.37.0 Windows companion (current-source Windows amd64)
+
+Copyright Tatsuhiro Tsujikawa and aria2 contributors. GPL-2.0-or-later.
+The unmodified upstream executable runs as a separate local process. Full COPYING, AUTHORS,
+README.mingw and LICENSE.OpenSSL are included in `aria2-notices/` in release archives and beside the
+extracted executable. The source companion archive is distributed with the same release.
+See `internal/bundledaria2/README.md` in source for hashes, source versions, and build provenance.
+Stable ProtoPeek v0.5.0 does not include this companion.
 
 ## `@cloudflare/speedtest` 1.12.1
 

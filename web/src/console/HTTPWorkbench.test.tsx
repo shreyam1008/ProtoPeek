@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,6 +69,7 @@ function notifyPendingHandoff() {
 }
 
 afterEach(() => {
+  cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   Reflect.deleteProperty(navigator, 'clipboard');
@@ -78,6 +79,22 @@ afterEach(() => {
 });
 
 describe('HTTPWorkbench', () => {
+  it('restores an unsent request across navigation without sending it automatically', () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const first = renderWorkbench();
+    fireEvent.change(screen.getByLabelText('Request URL'), {
+      target: { value: 'http://localhost:43111/echo?draft=1' },
+    });
+    fireEvent.change(screen.getByLabelText('HTTP method'), { target: { value: 'POST' } });
+    first.unmount();
+    renderWorkbench();
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://localhost:43111/echo?draft=1');
+    expect(screen.getByLabelText('HTTP method')).toHaveValue('POST');
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'New request' }));
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+  });
   it('exposes the HTTP workbench with a level-one page heading', () => {
     renderWorkbench();
 
@@ -310,7 +327,7 @@ describe('HTTPWorkbench', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
     const evidence = screen.getByRole('region', { name: 'HTTP response evidence' });
-    await waitFor(() => expect(within(evidence).getByText('{"ok":true}')).toBeVisible());
+    await waitFor(() => expect(within(evidence).getByText(/"ok": true/)).toBeVisible());
 
     fireEvent.change(screen.getByLabelText('Request URL'), {
       target: { value: 'https://user:secret@example.test/' },
@@ -776,7 +793,8 @@ describe('HTTPWorkbench', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^Cancel/ }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toHaveProperty('aborted', true);
-    expect(await screen.findByRole('alert')).toHaveTextContent('HTTP request cancelled.');
+    expect(await screen.findByRole('status')).toHaveTextContent('HTTP request cancelled.');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Send/ })).toBeVisible();
   });
 
@@ -892,7 +910,7 @@ describe('HTTPWorkbench', () => {
 
     first.unmount();
     renderWorkbench();
-    expect(await screen.findByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+    expect(await screen.findByLabelText('Request URL')).toHaveValue('https://legacy.test/api');
   });
 
   it('leaves another route kind untouched and discards malformed broker storage', async () => {

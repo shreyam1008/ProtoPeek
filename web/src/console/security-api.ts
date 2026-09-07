@@ -1,3 +1,6 @@
+import { readBoundedText } from '@/shared/bounded-response';
+
+export { readBoundedText } from '@/shared/bounded-response';
 export type DomainCandidate = {
   name: string;
   wildcard: boolean;
@@ -85,17 +88,28 @@ const retainedWebsiteHeaders = new Map(
 const ipv4Pattern = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 const hostnameLabelPattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
+export type WebsiteTLSFailure = {
+  reason: string;
+  subject: string;
+  issuer: string;
+  notBefore: string;
+  notAfter: string;
+  dnsNames: string[];
+};
+
 export class SecurityAPIError extends Error {
   readonly status: number;
+  readonly tlsFailure?: WebsiteTLSFailure;
 
-  constructor(message: string, status = 0) {
+  constructor(message: string, status = 0, tlsFailure?: WebsiteTLSFailure) {
     super(message);
     this.name = 'SecurityAPIError';
     this.status = status;
+    this.tlsFailure = tlsFailure;
   }
 }
 
-function csrfToken() {
+export function csrfToken() {
   return document.cookie.match(/(?:^|;\s*)_protopeek_csrf_token=([^;]+)/)?.[1] ?? '';
 }
 
@@ -420,44 +434,6 @@ export function normalizeWebsiteObservationResult(input: unknown): WebsiteObserv
   };
 }
 
-async function readBoundedText(response: Response, limit: number) {
-  if (!response.body) {
-    const text = await response.text();
-    return { text: text.slice(0, limit), truncated: text.length > limit };
-  }
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  let truncated = false;
-  try {
-    while (length < limit) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const remaining = limit - length;
-      chunks.push(value.subarray(0, remaining));
-      length += Math.min(value.length, remaining);
-      if (value.length > remaining) {
-        truncated = true;
-        break;
-      }
-    }
-    if (length === limit && !truncated) {
-      const { done } = await reader.read();
-      truncated = !done;
-    }
-  } finally {
-    if (truncated) await reader.cancel().catch(() => undefined);
-    reader.releaseLock();
-  }
-  const joined = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    joined.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return { text: new TextDecoder().decode(joined), truncated };
-}
-
 async function responseError(response: Response) {
   const { text, truncated } = await readBoundedText(response, errorByteLimit);
   const fallback = `${response.status} ${response.statusText}`.trim() || 'Domain lookup failed.';
@@ -507,7 +483,34 @@ export async function fetchWebsiteObservation(url: string, signal?: AbortSignal)
     }),
     signal,
   });
-  if (!response.ok) throw new SecurityAPIError(await responseError(response), response.status);
+  if (!response.ok) {
+    const { text, truncated } = await readBoundedText(response, 16 * 1024);
+    if (!truncated && response.headers.get('content-type')?.includes('application/json')) {
+      let value: unknown;
+      try {
+        value = JSON.parse(text);
+      } catch {
+        throw new SecurityAPIError('ProtoPeek returned a malformed website error.');
+      }
+      if (isRecord(value) && isRecord(value.tlsFailure)) {
+        const failure = value.tlsFailure;
+        if (!Array.isArray(failure.dnsNames) || failure.dnsNames.length > 8)
+          throw new SecurityAPIError('ProtoPeek returned malformed certificate failure evidence.');
+        throw new SecurityAPIError(boundedString(value.error, 512, 'TLS error'), response.status, {
+          reason: boundedString(failure.reason, 256, 'TLS failure reason'),
+          subject: boundedString(failure.subject, 256, 'certificate subject'),
+          issuer: boundedString(failure.issuer, 256, 'certificate issuer'),
+          notBefore: normalizeObservedAt(failure.notBefore),
+          notAfter: normalizeObservedAt(failure.notAfter),
+          dnsNames: failure.dnsNames.map((name) => boundedString(name, 128, 'certificate name')),
+        });
+      }
+    }
+    throw new SecurityAPIError(
+      `${text.trim() || 'Website observation failed.'}${truncated ? '…' : ''}`,
+      response.status
+    );
+  }
   const { text, truncated } = await readBoundedText(response, websiteResponseByteLimit);
   if (truncated) throw new SecurityAPIError('ProtoPeek website evidence exceeded 512 KiB.');
   let parsed: unknown;

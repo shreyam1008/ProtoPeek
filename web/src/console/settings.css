@@ -70,6 +70,7 @@
 }
 
 .pp-host-settings-grid > label,
+.pp-host-settings-grid > div,
 .pp-host-settings-fieldset,
 .pp-host-settings-toggle {
   display: grid;
@@ -107,6 +108,7 @@
 }
 
 .pp-host-settings-grid label small,
+.pp-host-settings-grid > div > small,
 .pp-host-settings-fieldset small,
 .pp-host-settings-toggle small {
   color: var(--pp-text-faint);
@@ -610,6 +612,158 @@
   }
 
   .pp-migration-details dl > div {
+    grid-template-columns: 1fr;
+  }
+}
+.pp-suite-page.pp-settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.pp-settings-page > .pp-suite-page-heading {
+  display: flex;
+  flex: 0 0 auto;
+  width: 100%;
+  align-items: center;
+  padding: 0 0 10px;
+  gap: 12px;
+}
+
+.pp-settings-page > .pp-suite-page-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.pp-settings-page > .pp-suite-page-heading p {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pp-settings-page .pp-settings-layout {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.pp-settings-navigation {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+  overflow-y: auto;
+  border: 0;
+  border-right: 1px solid var(--pp-stroke);
+  padding: 0 8px 0 0;
+  gap: 4px;
+}
+
+.pp-settings-navigation .pp-pane-tab {
+  flex: 0 0 auto;
+  min-height: 36px;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px;
+  text-align: left;
+  font-size: 12px;
+}
+
+.pp-settings-navigation .pp-pane-tab-active {
+  background: var(--pp-accent-soft);
+  box-shadow: inset 2px 0 var(--pp-accent-signal);
+}
+
+.pp-settings-navigation .pp-pane-tab::after {
+  display: none;
+}
+
+.pp-settings-section .pp-host-settings-body {
+  padding: 12px;
+  gap: 10px;
+}
+.pp-settings-section .pp-host-settings-state {
+  padding: 8px;
+}
+.pp-settings-section .pp-host-settings-grid {
+  gap: 10px;
+}
+.pp-settings-section .pp-host-settings-grid input:not([type="checkbox"]),
+.pp-settings-section .pp-host-settings-grid select {
+  height: 32px;
+}
+.pp-settings-section .pp-host-settings-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--pp-surface);
+  border-top: 1px solid var(--pp-stroke);
+  padding: 8px 0;
+}
+
+@media (min-width: 1100px) {
+  .pp-settings-section .pp-host-settings-wide {
+    grid-column: auto;
+  }
+}
+
+.pp-settings-content {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.pp-settings-section[hidden] {
+  display: none;
+}
+
+.pp-settings-section .pp-settings-panel {
+  box-shadow: none;
+  padding-bottom: 12px;
+}
+
+.pp-settings-section .pp-settings-choice-group {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 12px;
+}
+
+.pp-settings-section .pp-settings-choice-group:last-child {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pp-settings-section .pp-settings-choice-group button {
+  min-height: 60px;
+  padding: 8px;
+}
+
+.pp-settings-storage-error {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  color: var(--pp-danger-signal);
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .pp-settings-page {
+    padding: 8px;
+  }
+  .pp-settings-page .pp-settings-layout {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .pp-settings-page .pp-settings-local {
+    display: none;
+  }
+  .pp-settings-section .pp-settings-choice-group,
+  .pp-settings-section .pp-settings-choice-group:last-child {
     grid-template-columns: 1fr;
   }
 }

@@ -68,22 +68,23 @@ export function TargetForm({
               <option value="protoset">Host protoset paths</option>
             </select>
           </label>
-          <div className="pp-transport-choice">
+          <label className="block">
             <span className="pp-label">Transport</span>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={draft.plaintext}
-                onChange={(event) =>
-                  onChange({
-                    plaintext: event.target.checked,
-                    insecure: event.target.checked ? false : draft.insecure,
-                  })
-                }
-              />
-              {draft.plaintext ? 'Plaintext' : 'TLS'}
-            </label>
-          </div>
+            <select
+              className="pp-input mt-1"
+              aria-label="gRPC transport"
+              value={draft.plaintext ? 'plaintext' : 'tls'}
+              onChange={(event) =>
+                onChange({
+                  plaintext: event.target.value === 'plaintext',
+                  insecure: event.target.value === 'plaintext' ? false : draft.insecure,
+                })
+              }
+            >
+              <option value="tls">TLS (encrypted)</option>
+              <option value="plaintext">Plaintext (local development)</option>
+            </select>
+          </label>
         </div>
         {draft.schemaSource === 'browser-proto-folder' ? (
           <BrowserProtoFolderPicker

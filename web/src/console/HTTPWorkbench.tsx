@@ -35,16 +35,23 @@ import { handoffEvidence } from './app/handoff-display';
 import { consumeLegacyHandoff, consumePendingHandoff } from './app/handoff-store';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
 import { buildCurlCommand } from './http-curl';
+import { type HTTPDraft, httpMethods, readHTTPDraft, writeHTTPDraft } from './http-draft-store';
+import { type HTTPRecipe, readHTTPLibrary } from './http-library';
+import { consumeHTTPRecipe, httpRecipeLoadEvent } from './http-library-handoff';
 import {
   formatJSONDraft,
   normalizeHTTPDraftURL,
   prepareHTTPRequestDraft,
 } from './http-request-draft';
 import type { OpenAPICollection, OpenAPIOperation } from './openapi';
+import { ProtocolInfo } from './ProtocolInfo';
 import { protocolShellEvents } from './ProtocolShellContext';
 
 const OpenAPIImportPanel = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIImportPanel }))
+);
+const HTTPRequestLibrary = lazy(() =>
+  import('./HTTPRequestLibrary').then((module) => ({ default: module.HTTPRequestLibrary }))
 );
 const OpenAPIOperationRail = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIOperationRail }))
@@ -62,25 +69,28 @@ const requestTabs: Array<{ value: RequestTab; label: string }> = [
   { value: 'body', label: 'Body' },
 ];
 
-const httpMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
-
 export function HTTPWorkbench() {
-  const [method, setMethod] = useState('GET');
-  const [url, setURL] = useState('http://localhost:8080/');
-  const [params, setParams] = useState<MetadataEntry[]>([]);
-  const [headers, setHeaders] = useState<MetadataEntry[]>([]);
+  const [restored] = useState(readHTTPDraft);
+  const [method, setMethod] = useState(restored.draft.method);
+  const [url, setURL] = useState(restored.draft.url);
+  const [params, setParams] = useState<MetadataEntry[]>(restored.draft.params);
+  const [headers, setHeaders] = useState<MetadataEntry[]>(restored.draft.headers);
   const [authMode, setAuthMode] = useState<AuthMode>('none');
   const [authName, setAuthName] = useState('X-API-Key');
   const [authUser, setAuthUser] = useState('');
   const [authSecret, setAuthSecret] = useState('');
-  const [bodyMode, setBodyMode] = useState<BodyMode>('none');
-  const [body, setBody] = useState('');
-  const [timeoutSeconds, setTimeoutSeconds] = useState(30);
-  const [followRedirects, setFollowRedirects] = useState(false);
+  const [bodyMode, setBodyMode] = useState<BodyMode>(restored.draft.bodyMode);
+  const [body, setBody] = useState(restored.draft.body);
+  const [rememberBody, setRememberBody] = useState(restored.draft.rememberBody);
+  const [draftNotice, setDraftNotice] = useState(restored.notice);
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [timeoutSeconds, setTimeoutSeconds] = useState(restored.draft.timeoutSeconds);
+  const [followRedirects, setFollowRedirects] = useState(restored.draft.followRedirects);
   const [requestTab, setRequestTab] = useState<RequestTab>('params');
   const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
   const [response, setResponse] = useState<HTTPResponse | null>(null);
   const [requestPending, setRequestPending] = useState(false);
+  const [requestCancelled, setRequestCancelled] = useState(false);
   const [requestFailure, setRequestFailure] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
@@ -94,6 +104,8 @@ export function HTTPWorkbench() {
   const [openAPICollection, setOpenAPICollection] = useState<OpenAPICollection | null>(null);
   const [selectedOpenAPIOperation, setSelectedOpenAPIOperation] = useState<string | null>(null);
   const [openAPIRailVisible, setOpenAPIRailVisible] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [activeRecipe, setActiveRecipe] = useState<HTTPRecipe | null>(null);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
     normalizeHTTPHistory(loadStoredValue<unknown>(appStorageKeys.httpHistory, []))
   );
@@ -105,10 +117,40 @@ export function HTTPWorkbench() {
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const modifier = modifierKeyLabel();
 
+  const draftRef = useRef<HTTPDraft>(restored.draft);
+  useEffect(() => {
+    draftRef.current = {
+      method,
+      url,
+      params,
+      headers,
+      bodyMode,
+      body,
+      rememberBody,
+      timeoutSeconds,
+      followRedirects,
+    };
+    const timer = window.setTimeout(() => setDraftSaveError(writeHTTPDraft(draftRef.current)), 250);
+    return () => window.clearTimeout(timer);
+  }, [method, url, params, headers, bodyMode, body, rememberBody, timeoutSeconds, followRedirects]);
+
+  useEffect(() => {
+    const flush = () => {
+      writeHTTPDraft(draftRef.current);
+    };
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, []);
+
   function resetRequest(
     nextURL = 'http://localhost:8080/',
     nextHandoffNotice: string | null = null
   ) {
+    setActiveRecipe(null);
+    setRequestCancelled(false);
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
     const active = abortRef.current;
@@ -126,6 +168,8 @@ export function HTTPWorkbench() {
     setAuthSecret('');
     setBodyMode('none');
     setBody('');
+    setRememberBody(false);
+    setDraftNotice(null);
     setTimeoutSeconds(30);
     setFollowRedirects(false);
     setResponse(null);
@@ -140,6 +184,8 @@ export function HTTPWorkbench() {
   }
 
   function applyOpenAPIOperation(operation: OpenAPIOperation) {
+    setRequestCancelled(false);
+    setRememberBody(false);
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
     const active = abortRef.current;
@@ -175,6 +221,7 @@ export function HTTPWorkbench() {
   function acceptOpenAPICollection(collection: OpenAPICollection) {
     setOpenAPICollection(collection);
     setOpenAPIRailVisible(true);
+    setLibraryOpen(false);
     setOpenAPIImportOpen(false);
     setOpenAPIImportError(null);
     applyOpenAPIOperation(collection.operations[0]);
@@ -366,6 +413,7 @@ export function HTTPWorkbench() {
 
   async function handleSend() {
     if (abortRef.current || requestPending) return;
+    setRequestCancelled(false);
     setValidationError(null);
     setHistoryNotice(null);
     setRequestFailure(null);
@@ -377,6 +425,7 @@ export function HTTPWorkbench() {
       return;
     }
     const { input } = prepared;
+    setHandoffNotice(null);
     if (prepared.redactedQueryCount > 0) {
       setHistoryNotice(
         `${prepared.redactedQueryCount} redacted query ${prepared.redactedQueryCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before sending if the endpoint requires them.`
@@ -417,7 +466,7 @@ export function HTTPWorkbench() {
         return;
       }
       if (controller.signal.aborted) {
-        setValidationError('HTTP request cancelled.');
+        setRequestCancelled(true);
       } else {
         setRequestFailure(
           error instanceof Error
@@ -503,6 +552,8 @@ export function HTTPWorkbench() {
   const jsonDraft = bodyMode === 'json' ? formatJSONDraft(body) : null;
 
   function loadHistory(entry: HTTPHistoryEntry) {
+    setRequestCancelled(false);
+    setRememberBody(false);
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
     const active = abortRef.current;
@@ -539,6 +590,41 @@ export function HTTPWorkbench() {
     urlInputRef.current?.focus();
   }
 
+  function loadRecipe(recipe: HTTPRecipe) {
+    resetRequest(recipe.draft.url);
+    setActiveRecipe(recipe);
+    const draft = recipe.draft;
+    setMethod(draft.method);
+    setParams(draft.params);
+    setHeaders(draft.headers);
+    setBodyMode(draft.bodyMode);
+    setBody(draft.body);
+    setRememberBody(draft.rememberBody);
+    setTimeoutSeconds(draft.timeoutSeconds);
+    setFollowRedirects(draft.followRedirects);
+    setDraftNotice(`Loaded “${recipe.name}”. Re-enter credentials before sending.`);
+  }
+
+  const applySavedRequest = useEffectEvent(() => {
+    const id = consumeHTTPRecipe();
+    if (!id) return;
+    const library = readHTTPLibrary();
+    const recipe = library.requests.find((item) => item.id === id);
+    if (!recipe) {
+      setDraftNotice(library.error || 'This saved request is no longer available.');
+      return;
+    }
+    loadRecipe(recipe);
+    setLibraryOpen(true);
+    setOpenAPIRailVisible(false);
+  });
+  useEffect(() => {
+    applySavedRequest();
+    const apply = () => applySavedRequest();
+    window.addEventListener(httpRecipeLoadEvent, apply);
+    return () => window.removeEventListener(httpRecipeLoadEvent, apply);
+  }, []);
+
   return (
     <div className="pp-http-workbench">
       <header className="pp-http-header">
@@ -552,8 +638,20 @@ export function HTTPWorkbench() {
         <span className="pp-connection-fact">
           <LockKeyhole aria-hidden="true" /> Local relay
         </span>
+        <ProtocolInfo protocol="http" />
         <button type="button" className="pp-http-new-request" onClick={() => resetRequest()}>
           <Plus aria-hidden="true" /> New request
+        </button>
+        <button
+          type="button"
+          className="pp-http-new-request"
+          aria-expanded={libraryOpen}
+          onClick={() => {
+            setLibraryOpen((open) => !open);
+            setOpenAPIRailVisible(false);
+          }}
+        >
+          Saved requests
         </button>
         <button
           type="button"
@@ -571,7 +669,10 @@ export function HTTPWorkbench() {
             type="button"
             className="pp-openapi-collection-trigger"
             aria-expanded={openAPIRailVisible}
-            onClick={() => setOpenAPIRailVisible((visible) => !visible)}
+            onClick={() => {
+              setLibraryOpen(false);
+              setOpenAPIRailVisible((visible) => !visible);
+            }}
           >
             {openAPICollection.title} <span>{openAPICollection.operations.length}</span>
           </button>
@@ -658,6 +759,22 @@ export function HTTPWorkbench() {
         </button>
       </div>
 
+      {draftSaveError || draftNotice ? (
+        <div className="pp-http-replay-notice" role="status">
+          <span>{draftSaveError ?? draftNotice}</span>
+          {!draftSaveError ? (
+            <button
+              type="button"
+              className="pp-http-notice-dismiss"
+              aria-label="Dismiss draft notice"
+              onClick={() => setDraftNotice(null)}
+            >
+              <X aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {handoffNotice ? (
         <div className="pp-http-replay-notice" role="status">
           <Clock3 className="pp-http-notice-icon" aria-hidden="true" />
@@ -721,9 +838,31 @@ export function HTTPWorkbench() {
       <div
         className={classNames(
           'pp-http-workspace',
+          libraryOpen && 'has-library-rail',
           openAPICollection && openAPIRailVisible && 'has-openapi-rail'
         )}
       >
+        {libraryOpen ? (
+          <Suspense fallback={<aside aria-busy="true">Loading saved requests…</aside>}>
+            <HTTPRequestLibrary
+              activeRecipe={activeRecipe}
+              onSaved={setActiveRecipe}
+              getDraft={() => ({
+                method,
+                url,
+                params,
+                headers,
+                bodyMode,
+                body,
+                rememberBody,
+                timeoutSeconds,
+                followRedirects,
+              })}
+              onLoad={loadRecipe}
+              onClose={() => setLibraryOpen(false)}
+            />
+          </Suspense>
+        ) : null}
         {openAPICollection && openAPIRailVisible ? (
           <Suspense fallback={null}>
             <OpenAPIOperationRail
@@ -784,10 +923,11 @@ export function HTTPWorkbench() {
           <AccessibleTabs
             id="http-request"
             label="HTTP request settings"
+            orientation="vertical"
             tabs={requestTabs}
             value={requestTab}
             onChange={setRequestTab}
-            className="pp-http-request-tabs"
+            className="pp-http-request-tabs pp-workbench-side-tabs"
           />
           <div className="pp-http-request-content">
             <TabPanel id="http-request" tab="params" active={requestTab === 'params'}>
@@ -930,6 +1070,15 @@ export function HTTPWorkbench() {
                   </span>
                 </span>
               </div>
+              <label className="pp-http-remember-body">
+                <input
+                  type="checkbox"
+                  checked={rememberBody}
+                  onChange={(event) => setRememberBody(event.target.checked)}
+                />
+                Remember body in this browser
+                <small>Stores body text as entered, including any secrets in it.</small>
+              </label>
               <textarea
                 value={body}
                 disabled={bodyMode === 'none'}
@@ -950,7 +1099,12 @@ export function HTTPWorkbench() {
           aria-labelledby="http-mobile-pane-tab-response"
           className={classNames(mobilePane !== 'response' && 'pp-mobile-pane-hidden')}
         >
-          <HTTPResponsePanel response={response} loading={requestPending} error={requestError} />
+          <HTTPResponsePanel
+            response={response}
+            loading={requestPending}
+            error={requestError}
+            cancelled={requestCancelled}
+          />
         </div>
       </div>
     </div>

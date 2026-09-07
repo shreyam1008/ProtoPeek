@@ -18,8 +18,41 @@ export type BundleBudget = {
 };
 
 const kibibyte = 1024;
+// Gzip measurements use release CI's pinned Bun 1.3.10 node:zlib implementation.
+// Bun 1.4/Node compress the identical assets differently. The release baseline is
+// 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  {
+    label: 'Saved HTTP request library JavaScript',
+    pattern: /^HTTPRequestLibrary-.+\.js$/,
+    maxRawBytes: 7 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'Packet inspection JavaScript',
+    pattern: /^PacketWorkbench-.+\.js$/,
+    maxRawBytes: 14 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Cap’n Proto workspace JavaScript',
+    pattern: /^CapnpWorkbench-.+\.js$/,
+    maxRawBytes: 16 * kibibyte,
+    maxGzipBytes: 6 * kibibyte,
+  },
+  {
+    label: 'Home workspace JavaScript',
+    pattern: /^Dashboard-.+\.js$/,
+    maxRawBytes: 6 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'Tailscale workspace JavaScript',
+    pattern: /^TailnetWorkbench-.+\.js$/,
+    maxRawBytes: 15 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
   {
     label: 'shared entry JavaScript',
     pattern: /^index-.+\.js$/,
@@ -31,7 +64,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     pattern: /^console-core-.+\.js$/,
     // React, Router, Lucide's factory, and the tiny shared runtime are already required at start.
     maxRawBytes: 268 * kibibyte,
-    maxGzipBytes: 87 * kibibyte,
+    maxGzipBytes: 89 * kibibyte,
   },
   {
     label: 'shared route icons JavaScript',
@@ -63,6 +96,19 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 17 * kibibyte,
   },
   {
+    label: 'event stream workspace JavaScript',
+    pattern: /^EventStreamWorkbench-.+\.js$/,
+    maxRawBytes: 10 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'port scanner with TanStack Table JavaScript',
+    pattern: /^PortScanner-.+\.js$/,
+    // Includes bounded browser draft and observation recovery.
+    maxRawBytes: 44 * kibibyte,
+    maxGzipBytes: 14 * kibibyte,
+  },
+  {
     label: 'scan dialog JavaScript',
     pattern: /^ScanTargetDialog-.+\.js$/,
     maxRawBytes: 15 * kibibyte,
@@ -84,10 +130,13 @@ export const consoleBundleBudgets: BundleBudget[] = [
   },
   {
     label: 'network workbench JavaScript',
-    pattern: /^(?:NetworkWorkbench|LocalNetworkPanel|TopologyCanvas|network-model)-.+\.js$/,
+    pattern:
+      /^(?:NetworkWorkbench|NetworkPathPanel|HopAttribution|ip-attribution|LocalNetworkPanel|TopologyCanvas|network-model|bounded-response)-.+\.js$/,
     mode: 'aggregate',
-    maxRawBytes: 132 * kibibyte,
-    maxGzipBytes: 40 * kibibyte,
+    // Path controls now load only in the Path section. Include the optional IP
+    // labels and shared validators in this aggregate: ~139 KiB raw / 44 KiB gzip.
+    maxRawBytes: 144 * kibibyte,
+    maxGzipBytes: 46 * kibibyte,
   },
   {
     label: 'network workbench CSS',
@@ -98,7 +147,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'Downloader workspace JavaScript',
     pattern: /^Downloader-.+\.js$/,
-    maxRawBytes: 24 * kibibyte,
+    // Host history, restore/stop controls and foreground progress: 24,860 raw bytes.
+    maxRawBytes: 25 * kibibyte,
     maxGzipBytes: 8 * kibibyte,
   },
   {
@@ -135,7 +185,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     label: 'This Device workspace JavaScript',
     pattern: /^ThisPC-.+\.js$/,
     maxRawBytes: 58 * kibibyte,
-    maxGzipBytes: 16 * kibibyte,
+    maxGzipBytes: 17 * kibibyte,
   },
   {
     label: 'This Device benchmark engine JavaScript',
@@ -190,10 +240,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'Settings workspace CSS',
     pattern: /^Settings-.+\.css$/,
-    // The host-settings card is intentionally route-lazy. Its current
-    // measured baseline is 10.80 KiB / 1.92 KiB gzip; keep a small explicit
-    // headroom allowance for accessible control copy without hiding growth.
-    maxRawBytes: 12 * kibibyte,
+    // Host controls, directory picker and vertical sections measure about 14 KiB raw.
+    // This stylesheet remains route-lazy; startup and gzip caps are unchanged.
+    maxRawBytes: 15 * kibibyte,
     maxGzipBytes: 3 * kibibyte,
   },
   // Downloader, Security, This Device, and Tunnels are route-lazy: none is transferred when Home
@@ -204,11 +253,23 @@ export const consoleBundleBudgets: BundleBudget[] = [
     label: 'all console JavaScript',
     pattern: /\.js$/,
     mode: 'aggregate',
-    // The connected-workbench suite, including its independently bounded lazy
-    // routes and shared chunks, measures 941,827 raw / 287,399 gzip bytes. Keep
-    // tight aggregate headroom so split chunks cannot hide growth.
-    maxRawBytes: 920 * kibibyte,
-    maxGzipBytes: 284 * kibibyte,
+    // September overhaul: bounded HTTP draft recovery, JSON formatting, protocol help,
+    // and lazy TanStack fuzzy search measure 952,474 raw / 292,382 gzip bytes.
+    // Search no longer enters the startup graph. Keep the startup budgets unchanged.
+    // WebSocket/SSE adds a separately lazy 8.7 KiB / 3.4 KiB gzip route.
+    // Host scanning and TanStack Table's modular pagination add a lazy ~40 KiB route.
+    // Optional Nmap adds 8.2 KiB raw / 3.1 KiB gzip, wholly route-lazy.
+    // Installed Tailscale workflows add 13.5 KiB / 4.3 KiB gzip, route-lazy.
+    // Website path plan, TLS failure metadata, safe target memory and name handoffs
+    // bring the measured aggregate to 1,056,816 raw / 329,045 gzip bytes.
+    // Cap’n Proto adds 12.4 KiB / 4.4 KiB gzip. Home is now route-lazy too,
+    // avoiding its API and rendering modules when another tool is opened.
+    // Measured all-route total: 1,079,728 raw / 340,349 gzip; startup caps unchanged.
+    // Includes the lazy packet reader UI (~13 KiB raw / 4.5 KiB gzip).
+    // Native settings sections and truthful gRPC clipboard results: 1,106,550 raw / 350,226 gzip.
+    maxRawBytes: 1082 * kibibyte,
+    // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
+    maxGzipBytes: 356 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -219,7 +280,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // slice moves the measured suite baseline to 298,722 raw / 53,806 gzip
     // bytes; keep small explicit headroom without hiding route growth.
     maxRawBytes: 304 * kibibyte,
-    maxGzipBytes: 56 * kibibyte,
+    maxGzipBytes: 61 * kibibyte,
   },
 ];
 

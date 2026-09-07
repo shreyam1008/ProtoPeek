@@ -96,7 +96,9 @@ func writeDomainCandidatesError(writer http.ResponseWriter, err error) {
 	case errors.Is(err, context.Canceled):
 		http.Error(writer, "Certificate-name lookup cancelled", 499)
 	case errors.Is(err, context.DeadlineExceeded):
-		http.Error(writer, "Certificate-name lookup timed out", http.StatusGatewayTimeout)
+		http.Error(writer, "Name-index lookup timed out; try again later. No returned name was probed.", http.StatusGatewayTimeout)
+	case errors.Is(err, certnames.ErrProviderRateLimited):
+		http.Error(writer, "crt.name rate limit reached. The provider allows 100 free requests per source IP per day; try later.", http.StatusTooManyRequests)
 	case errors.Is(err, certnames.ErrInvalidApex):
 		http.Error(writer, "Host must contain a valid registrable domain", http.StatusBadRequest)
 	case errors.Is(err, certnames.ErrProviderBusy):

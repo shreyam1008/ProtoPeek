@@ -29,7 +29,7 @@ func newCounterReader() counterReader {
 
 func (dependencies windowsCounterDependencies) read(ctx context.Context) (map[string]rawCounters, error) {
 	if dependencies.interfaces == nil || dependencies.getIfEntry == nil {
-		return nil, fmt.Errorf("Windows interface-counter dependencies are incomplete")
+		return nil, fmt.Errorf("native Windows interface-counter dependencies are incomplete")
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (dependencies windowsCounterDependencies) read(ctx context.Context) (map[st
 	var firstFailure error
 	if len(interfaces) > maxSnapshotInterfaces {
 		failures += len(interfaces) - maxSnapshotInterfaces
-		firstFailure = fmt.Errorf("Windows interface list exceeded %d entries", maxSnapshotInterfaces)
+		firstFailure = fmt.Errorf("native Windows interface list exceeded %d entries", maxSnapshotInterfaces)
 		interfaces = interfaces[:maxSnapshotInterfaces]
 	}
 	result := make(map[string]rawCounters, len(interfaces))
@@ -66,7 +66,7 @@ func (dependencies windowsCounterDependencies) read(ctx context.Context) (map[st
 		if networkInterface.Name == "" {
 			failures++
 			if firstFailure == nil {
-				firstFailure = fmt.Errorf("Windows interface %d has an empty name", networkInterface.Index)
+				firstFailure = fmt.Errorf("native Windows interface %d has an empty name", networkInterface.Index)
 			}
 			continue
 		}
@@ -116,7 +116,7 @@ func (dependencies windowsCounterDependencies) read(ctx context.Context) (map[st
 		if firstFailure != nil {
 			return nil, fmt.Errorf("no Windows interface counters were available: %w", firstFailure)
 		}
-		return nil, fmt.Errorf("Windows reported no network interfaces with counters")
+		return nil, fmt.Errorf("native Windows reported no network interfaces with counters")
 	}
 	if failures > 0 {
 		return result, fmt.Errorf("%d Windows interface counter entries were unavailable; first failure: %w", failures, firstFailure)

@@ -1,4 +1,4 @@
-import { Copy } from 'lucide-react';
+import { Copy, Download } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
 
 import type { WebsiteObservationResult } from './security-api';
@@ -44,6 +44,15 @@ export default function WebsiteEvidenceReport({ result }: { result: WebsiteObser
     }
   }
 
+  function downloadReport() {
+    const url = URL.createObjectURL(new Blob([reportJSON], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'protopeek-website-report.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   return (
     <section className="pp-security-evidence-report" aria-labelledby={titleID}>
       <header>
@@ -58,6 +67,9 @@ export default function WebsiteEvidenceReport({ result }: { result: WebsiteObser
           onClick={() => void copyReport()}
         >
           <Copy aria-hidden="true" /> Copy JSON report
+        </button>
+        <button type="button" className="pp-security-copy-report" onClick={downloadReport}>
+          <Download aria-hidden="true" /> Save JSON report
         </button>
       </header>
 

@@ -8,42 +8,35 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 ## Release truth
 
-- v0.5.0 is the current stable release. Its areas are exactly Overview, Protocols, Network, Downloader, Security, and Settings.
-- Stable v0.5.0 provides protocol-native gRPC and HTTP, bounded target and private-network discovery, read-only route evidence, Linux consented path evidence, logical topology, offline Nmap XML import, local downloads, and consented Security evidence.
-- The verified release resolvers and `@latest` install v0.5.0 from checksum-pinned release archives.
-- The owned Homebrew and Scoop channels install v0.5.0 from checksum-pinned release archives and declare aria2 as an external package dependency. ProtoPeek does not bundle aria2.
-
-## Current source after v0.5.0
-
-- Current source implements exactly six permanent destinations: Home, Inspect, Network, Publish, Files, and Settings. This shell is not part of the published v0.5.0 packages.
-- This Device remains route-lazy at /this-pc under Network. It reads local process-perspective identity and interfaces first. Linux-only socket/process inspection, one-shot interface load, public IPv4/IPv6 and BGP-origin observation, and the bounded Cloudflare quality plan each require an explicit action.
-- Cloudflare Tunnel remains route-lazy at /tunnels under Publish and keeps its domain-native evidence. It is not part of the published v0.5.0 packages.
-- Cloudflare Tunnel starts only from explicit local actions. It inspects the real host, compares cloudflared with the official release on request, and confirms, stale-guards, and verifies canonical OS service control. Route drafts remain browser-only; config/account writes, password capture, automatic installation or update, Docker-daemon access, and background polling stay unavailable.
-- Security is grouped under Inspect, Downloader remains its domain-native workspace under Files, and Roadmap and Help remain command/About destinations without persistent navigation entries.
-- Downloader host settings and the local derived website evidence report are current-source refinements, not stable v0.5.0 claims.
-- Private Access and Tailscale, Headscale, and NetBird workflows remain planned; none ships in the stable release or current source.
-
-## v0.5.0 capability boundary
-
 - Downloader product page: https://protopeek.shreyam1008.com.np/downloader/
-- Downloader uses an explicitly configured or system-installed `aria2c`; ProtoPeek does not bundle aria2.
-- Website observation requires separate consent and sends exactly one credential-free, non-following `HEAD` request to a public-only target. It reads no body, follows no redirect, and emits no security score.
-- GoBarryGo files, releases, repository history, and public origin remain independent; the public redirect and retirement are not complete.
+
+- v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
+- Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
+- Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
+- Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
+- The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
+- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves transfers running while the server stays open; server restart restores recoverable jobs for explicit resume.
+- Nmap, dumpcap, Tailscale and cloudflared require their respective installed tools. Cap’n Proto source compilation uses the optional capnp compiler; compiled schemas work without it.
+- macOS native path probes and socket/counter activity are unsupported. Headscale, NetBird, integrated elevation/sign-in, deeper packet decoding and returned-capability RPC workflows remain planned.
+- Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
+- GoBarryGo files and history remain independent; its public redirect and retirement are not complete.
 
 ## Public features and guides
 
-- Install ProtoPeek: https://protopeek.shreyam1008.com.np/install/ — Stable · v0.5.0
-- gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.5.0
-- HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.5.0
-- Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Reference guide
-- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.5.0
-- Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable boundary
-- This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Current source · after v0.5.0
-- Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Current source · local operations foundation
-- Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.5.0
-- Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable core · current-source report
-- Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable core · current-source host settings
-- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Living roadmap
+- Install ProtoPeek: https://protopeek.shreyam1008.com.np/install/ — Stable · v0.6.0
+- Cap’n Proto workbench: https://protopeek.shreyam1008.com.np/capnp-workbench/ — Stable · v0.6.0
+- gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.6.0
+- HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.6.0
+- Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Stable · v0.6.0
+- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.6.0
+- Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable · v0.6.0
+- This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Stable · v0.6.0
+- Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable · v0.6.0
+- Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.0
+- Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable · v0.6.0
+- Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.0
+- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Stable · v0.6.0
 - Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide
 - Competitive workflow decisions: https://protopeek.shreyam1008.com.np/competitive-landscape/ — Research record
 - VS Code and Open VSX spec: https://protopeek.shreyam1008.com.np/vscode-extension-spec/ — Planned · not shipped

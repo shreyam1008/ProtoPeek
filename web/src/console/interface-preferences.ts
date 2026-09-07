@@ -53,15 +53,16 @@ export function persistInterfacePreferences(
     try {
       storage = window.localStorage;
     } catch {
-      return;
+      return false;
     }
   }
-  if (!storage) return;
+  if (!storage) return false;
 
   try {
     storage.setItem(interfacePreferencesStorageKey, JSON.stringify({ version: 1, ...preferences }));
+    return true;
   } catch {
-    // The live preference remains active when persistence is unavailable.
+    return false;
   }
 }
 

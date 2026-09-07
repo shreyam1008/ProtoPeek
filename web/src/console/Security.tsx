@@ -4,7 +4,6 @@ import {
   ArrowRight,
   CircleAlert,
   Clock3,
-  KeyRound,
   LoaderCircle,
   LockKeyhole,
   Search,
@@ -19,13 +18,27 @@ import {
   fetchWebsiteObservation,
   normalizeDomainHost,
   normalizeWebsiteURL,
+  SecurityAPIError,
   type WebsiteObservationResult,
+  type WebsiteTLSFailure,
 } from './security-api';
 import './security.css';
+import { AccessibleTabs, TabPanel } from './AccessibleTabs';
+import { ProtocolInfo } from './ProtocolInfo';
+import { useProtocolShell } from './ProtocolShellContext';
+import { readWebsiteTargets, rememberWebsiteTarget } from './website-draft';
 
 type SearchPhase = 'idle' | 'loading' | 'success' | 'error' | 'cancelled';
 
 const WebsiteEvidenceReport = lazy(() => import('./WebsiteEvidenceReport'));
+const WebsitePathsPanel = lazy(() => import('./WebsitePathsPanel'));
+type SecuritySection = 'website' | 'paths' | 'names' | 'related';
+const securitySections: Array<{ value: SecuritySection; label: string }> = [
+  { value: 'website', label: 'Response & TLS' },
+  { value: 'paths', label: 'Standard paths' },
+  { value: 'names', label: 'Subdomains' },
+  { value: 'related', label: 'Related tools' },
+];
 
 const evidenceTools = [
   {
@@ -69,9 +82,11 @@ function timingLabel(value: number | null) {
 }
 
 export function Security() {
+  const [section, setSection] = useState<SecuritySection>('website');
   const inputID = useId();
   const disclosureID = useId();
-  const [host, setHost] = useState('');
+  const [host, setHost] = useState(() => readWebsiteTargets().domain ?? '');
+  const [storageError, setStorageError] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<DomainCandidatesResult | null>(null);
@@ -116,6 +131,11 @@ export function Security() {
     controllerRef.current?.abort();
     controllerRef.current = controller;
     setHost(normalizedHost);
+    setStorageError(
+      rememberWebsiteTarget('domain', normalizedHost)
+        ? ''
+        : 'This browser could not remember the domain.'
+    );
     setAcknowledged(false);
     setResult(null);
     setMessage('');
@@ -154,190 +174,245 @@ export function Security() {
     <div className="pp-security">
       <header className="pp-security-heading">
         <div>
-          <span className="pp-security-kicker">Website & domain evidence</span>
           <h1>Security</h1>
-          <p>Check one response or look up historical names. Neither is a security audit.</p>
+          <p>Website responses, certificates, paths, and historical subdomains.</p>
         </div>
-        <div className="pp-security-local">
-          <ShieldCheck aria-hidden="true" />
-          <span>
-            <strong>Local control</strong>
-            <small>Every external operation is explicit</small>
-          </span>
-        </div>
+        <ProtocolInfo protocol="website" />
       </header>
 
-      <WebsiteObservationPanel />
-
-      <section className="pp-security-query" aria-labelledby="domain-query-title">
-        <header>
-          <div className="pp-security-boundary-item">
-            <span>Certificate-name source</span>
-            <h2 id="domain-query-title">Find historical names for a domain</h2>
-          </div>
-          <span className="pp-security-passive-state">Passive · no candidate probing</span>
-        </header>
-        <form onSubmit={(event) => void submit(event)}>
-          <label htmlFor={inputID}>Apex or host</label>
-          <div className="pp-security-query-row">
-            <input
-              id={inputID}
-              value={host}
-              type="text"
-              inputMode="url"
-              autoComplete="off"
-              spellCheck={false}
-              maxLength={1024}
-              disabled={phase === 'loading'}
-              placeholder="www.example.com"
-              aria-describedby={disclosureID}
-              onChange={(event) => changeHost(event.currentTarget.value)}
-            />
-            {phase === 'loading' ? (
-              <button type="button" className="pp-security-cancel" onClick={cancel}>
-                <Square aria-hidden="true" /> Cancel lookup
-              </button>
-            ) : (
-              <button type="submit" disabled={!host.trim() || !acknowledged}>
-                <Search aria-hidden="true" /> Find historical names
-              </button>
-            )}
-          </div>
-          <label className="pp-security-disclosure" htmlFor={`${inputID}-disclosure`}>
-            <input
-              id={`${inputID}-disclosure`}
-              type="checkbox"
-              checked={acknowledged}
-              disabled={phase === 'loading'}
-              onChange={(event) => setAcknowledged(event.currentTarget.checked)}
-            />
-            <span id={disclosureID}>
-              <strong>Send this registrable domain to crt.name for this operation.</strong>
-              <small>
-                Only the apex, such as example.com, leaves ProtoPeek. Returned historical names are
-                listed here without DNS resolution, port checks, or requests.
-              </small>
-            </span>
-          </label>
-        </form>
-      </section>
-
-      <div className="pp-security-workspace" aria-busy={phase === 'loading'}>
-        <section className="pp-security-results" aria-labelledby="domain-results-title">
-          <header>
-            <div>
-              <span>Historical certificate evidence</span>
-              <h2 id="domain-results-title">Domain candidates</h2>
-            </div>
-            {result ? (
-              <span>
-                {result.candidates.length} retained{result.cached ? ' · cached' : ''}
-              </span>
-            ) : null}
-          </header>
-
-          {phase === 'idle' ? (
-            <div className="pp-security-empty">
-              <ShieldCheck aria-hidden="true" />
-              <h3>Nothing runs on page load.</h3>
-              <p>Enter a host, review the disclosure, then start one bounded lookup.</p>
-            </div>
-          ) : null}
-          {phase === 'loading' ? (
-            <div className="pp-security-empty" role="status" aria-live="polite">
-              <LoaderCircle className="is-spinning" aria-hidden="true" />
-              <h3>Asking crt.name for historical names…</h3>
-              <p>The checkbox is reset. Another lookup will require a fresh acknowledgement.</p>
-            </div>
-          ) : null}
-          {phase === 'error' ? (
-            <div className="pp-security-message is-error" role="alert">
-              <CircleAlert aria-hidden="true" />
-              <span>{message}</span>
-            </div>
-          ) : null}
-          {phase === 'cancelled' ? (
-            <div className="pp-security-message" role="status" aria-live="polite">
-              <Square aria-hidden="true" />
-              <span>{message}</span>
-            </div>
-          ) : null}
-          {phase === 'success' && result ? <CandidateResult result={result} /> : null}
-        </section>
-
-        <aside className="pp-security-boundary" aria-labelledby="evidence-boundary-title">
-          <header>
-            <span>Interpretation boundary</span>
-            <h2 id="evidence-boundary-title">What this evidence means</h2>
-          </header>
-          <dl>
-            <div>
-              <dt>Source</dt>
-              <dd>crt.name historical certificate-name index</dd>
-            </div>
-            <div>
-              <dt>Observed</dt>
-              <dd>{result ? observedAtLabel(result.observedAt) : 'After an explicit lookup'}</dd>
-            </div>
-            <div>
-              <dt>Network contact</dt>
-              <dd>crt.name only; candidate names stay uncontacted</dd>
-            </div>
-            <div>
-              <dt>Conclusion</dt>
-              <dd>Candidate names, not proof of a live host, open port, owner, or vulnerability</dd>
-            </div>
-          </dl>
-          <p>
-            Wildcards remain patterns. A missing name does not prove that a subdomain never existed
-            or does not exist now.
-          </p>
-        </aside>
-      </div>
-
-      <section className="pp-security-evidence" aria-labelledby="security-evidence-title">
-        <header>
-          <div className="pp-security-boundary-item">
-            <span>Available now</span>
-            <h2 id="security-evidence-title">Continue with shipped network evidence</h2>
-          </div>
-          <p>Each tool keeps its own method, scope, timing, and authorization visible.</p>
-        </header>
-        <div className="pp-security-evidence-grid">
-          {evidenceTools.map((tool) => {
-            return (
-              <Link key={tool.title} to={tool.to} className="pp-security-evidence-card">
+      <div className="pp-security-layout">
+        <AccessibleTabs
+          id="security-sections"
+          label="Website tools"
+          tabs={securitySections}
+          value={section}
+          orientation="vertical"
+          className="pp-security-sections"
+          onChange={(next) => {
+            if (phase === 'loading') cancel();
+            setSection(next);
+          }}
+        />
+        <div className="pp-security-content">
+          <TabPanel id="security-sections" tab="website" active={section === 'website'}>
+            <WebsiteObservationPanel active={section === 'website'} />
+          </TabPanel>
+          <TabPanel id="security-sections" tab="paths" active={section === 'paths'}>
+            <Suspense fallback={<p role="status">Loading path checks…</p>}>
+              <WebsitePathsPanel active={section === 'paths'} />
+            </Suspense>
+          </TabPanel>
+          <TabPanel id="security-sections" tab="names" active={section === 'names'}>
+            <section className="pp-security-query" aria-labelledby="domain-query-title">
+              <header>
+                <div className="pp-security-query-title">
+                  <span>Historical name index</span>
+                  <h2 id="domain-query-title">Find historical names for a domain</h2>
+                </div>
+                <span className="pp-security-passive-state">Passive · no candidate probing</span>
+              </header>
+              <form onSubmit={(event) => void submit(event)}>
+                <label htmlFor={inputID}>Apex or host</label>
+                <div className="pp-security-query-row">
+                  <input
+                    id={inputID}
+                    value={host}
+                    type="text"
+                    inputMode="url"
+                    autoComplete="off"
+                    spellCheck={false}
+                    maxLength={1024}
+                    disabled={phase === 'loading'}
+                    placeholder="www.example.com"
+                    aria-describedby={disclosureID}
+                    onChange={(event) => changeHost(event.currentTarget.value)}
+                  />
+                  {phase === 'loading' ? (
+                    <button type="button" className="pp-security-cancel" onClick={cancel}>
+                      <Square aria-hidden="true" /> Cancel lookup
+                    </button>
+                  ) : (
+                    <button type="submit" disabled={!host.trim() || !acknowledged}>
+                      <Search aria-hidden="true" /> Find historical names
+                    </button>
+                  )}
+                </div>
+                <label className="pp-security-disclosure" htmlFor={`${inputID}-disclosure`}>
+                  <input
+                    id={`${inputID}-disclosure`}
+                    type="checkbox"
+                    checked={acknowledged}
+                    disabled={phase === 'loading'}
+                    onChange={(event) => setAcknowledged(event.currentTarget.checked)}
+                  />
+                  <span id={disclosureID}>
+                    <strong>Send this registrable domain to crt.name for this operation.</strong>
+                    <small>
+                      Only the apex, such as example.com, leaves ProtoPeek. Returned historical
+                      names are listed here without DNS resolution, port checks, or requests.
+                    </small>
+                  </span>
+                </label>
+              </form>
+              <div className="pp-security-remember">
                 <span>
-                  <strong>{tool.title}</strong>
-                  <small>{tool.detail}</small>
+                  {storageError || 'Last submitted domain is remembered in this browser.'}
                 </span>
-                <em>{tool.action}</em>
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+                <button
+                  type="button"
+                  disabled={phase === 'loading' || !host}
+                  onClick={() => {
+                    changeHost('');
+                    setStorageError(
+                      rememberWebsiteTarget('domain', '')
+                        ? ''
+                        : 'Could not clear the remembered domain.'
+                    );
+                  }}
+                >
+                  Forget domain
+                </button>
+              </div>
+            </section>
 
-      <aside className="pp-security-planned" aria-label="Not in this build">
-        <p>
-          <strong>Not in this build:</strong> multi-request website plans, selected-port security
-          handoffs, or active vulnerability scans.
-        </p>
-      </aside>
+            <div className="pp-security-workspace" aria-busy={phase === 'loading'}>
+              <section className="pp-security-results" aria-labelledby="domain-results-title">
+                <header>
+                  <div>
+                    <span>Historical indexed names</span>
+                    <h2 id="domain-results-title">Domain candidates</h2>
+                  </div>
+                  {result ? (
+                    <span>
+                      {result.candidates.length} retained{result.cached ? ' · cached' : ''}
+                    </span>
+                  ) : null}
+                </header>
+
+                {phase === 'idle' ? (
+                  <div className="pp-security-empty">
+                    <ShieldCheck aria-hidden="true" />
+                    <h3>Nothing runs on page load.</h3>
+                    <p>Enter a host, review the disclosure, then start one bounded lookup.</p>
+                  </div>
+                ) : null}
+                {phase === 'loading' ? (
+                  <div className="pp-security-empty" role="status" aria-live="polite">
+                    <LoaderCircle className="is-spinning" aria-hidden="true" />
+                    <h3>Asking crt.name for historical names…</h3>
+                    <p>
+                      The checkbox is reset. Another lookup will require a fresh acknowledgement.
+                    </p>
+                  </div>
+                ) : null}
+                {phase === 'error' ? (
+                  <div className="pp-security-message is-error" role="alert">
+                    <CircleAlert aria-hidden="true" />
+                    <span>{message}</span>
+                  </div>
+                ) : null}
+                {phase === 'cancelled' ? (
+                  <div className="pp-security-message" role="status" aria-live="polite">
+                    <Square aria-hidden="true" />
+                    <span>{message}</span>
+                  </div>
+                ) : null}
+                {phase === 'success' && result ? <CandidateResult result={result} /> : null}
+              </section>
+
+              <aside className="pp-security-boundary" aria-labelledby="evidence-boundary-title">
+                <header>
+                  <span>Interpretation boundary</span>
+                  <h2 id="evidence-boundary-title">What this evidence means</h2>
+                </header>
+                <dl>
+                  <div>
+                    <dt>Source</dt>
+                    <dd>crt.name · certificate transparency and other name sources</dd>
+                  </div>
+                  <div>
+                    <dt>Observed</dt>
+                    <dd>
+                      {result ? observedAtLabel(result.observedAt) : 'After an explicit lookup'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Network contact</dt>
+                    <dd>crt.name only; candidate names stay uncontacted</dd>
+                  </div>
+                  <div>
+                    <dt>Conclusion</dt>
+                    <dd>
+                      Candidate names, not proof of a live host, open port, owner, or vulnerability
+                    </dd>
+                  </div>
+                </dl>
+                <p>
+                  Wildcards remain patterns. A missing name does not prove that a subdomain never
+                  existed or does not exist now.
+                </p>
+              </aside>
+            </div>
+          </TabPanel>
+          <TabPanel id="security-sections" tab="related" active={section === 'related'}>
+            <section className="pp-security-evidence" aria-labelledby="security-evidence-title">
+              <header>
+                <div className="pp-security-query-title">
+                  <span>Available now</span>
+                  <h2 id="security-evidence-title">Continue with shipped network evidence</h2>
+                </div>
+                <p>Each tool keeps its own method, scope, timing, and authorization visible.</p>
+              </header>
+              <div className="pp-security-evidence-grid">
+                {evidenceTools.map((tool) => {
+                  return (
+                    <Link key={tool.title} to={tool.to} className="pp-security-evidence-card">
+                      <span>
+                        <strong>{tool.title}</strong>
+                        <small>{tool.detail}</small>
+                      </span>
+                      <em>{tool.action}</em>
+                      <ArrowRight aria-hidden="true" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+
+            <aside className="pp-security-planned" aria-label="Not in this build">
+              <p>
+                <strong>Not in this build:</strong> active vulnerability scans or authenticated
+                security audits.
+              </p>
+            </aside>
+          </TabPanel>
+        </div>
+      </div>
     </div>
   );
 }
 
-function WebsiteObservationPanel() {
+function WebsiteObservationPanel({ active }: { active: boolean }) {
   const inputID = useId();
   const disclosureID = useId();
-  const [url, setURL] = useState('');
+  const [url, setURL] = useState(() => readWebsiteTargets().origin ?? '');
+  const [storageError, setStorageError] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<WebsiteObservationResult | null>(null);
+  const [tlsFailure, setTLSFailure] = useState<WebsiteTLSFailure | null>(null);
   const [message, setMessage] = useState('');
   const controllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!active && controllerRef.current) {
+      controllerRef.current.abort();
+      controllerRef.current = null;
+      setAcknowledged(false);
+      setPhase('cancelled');
+      setMessage('Observation cancelled when leaving this section.');
+    }
+  }, [active]);
 
   useEffect(
     () => () => {
@@ -349,6 +424,7 @@ function WebsiteObservationPanel() {
   );
 
   function changeURL(value: string) {
+    setTLSFailure(null);
     setURL(value);
     setAcknowledged(false);
     setResult(null);
@@ -377,6 +453,12 @@ function WebsiteObservationPanel() {
     controllerRef.current?.abort();
     controllerRef.current = controller;
     setURL(normalizedURL);
+    setStorageError(
+      rememberWebsiteTarget('origin', normalizedURL)
+        ? ''
+        : 'This browser could not remember the website origin.'
+    );
+    setTLSFailure(null);
     setAcknowledged(false);
     setResult(null);
     setMessage('');
@@ -395,6 +477,7 @@ function WebsiteObservationPanel() {
         setMessage(
           cause instanceof Error ? cause.message : 'Website evidence could not be loaded.'
         );
+        setTLSFailure(cause instanceof SecurityAPIError ? (cause.tlsFailure ?? null) : null);
         setPhase('error');
       }
     } finally {
@@ -415,7 +498,6 @@ function WebsiteObservationPanel() {
     <section className="pp-security-website" aria-labelledby="website-observer-title">
       <header>
         <div>
-          <span>Available now · active public request</span>
           <h2 id="website-observer-title">Observe one public website response</h2>
           <p>
             Resolve and pin the target, send one credential-free HEAD request, and retain bounded
@@ -470,6 +552,25 @@ function WebsiteObservationPanel() {
         </label>
       </form>
 
+      <div className="pp-security-remember">
+        <span>
+          {storageError ||
+            'Only the website origin is remembered; paths and results stay in memory.'}
+        </span>
+        <button
+          type="button"
+          disabled={phase === 'loading' || !url}
+          onClick={() => {
+            changeURL('');
+            setStorageError(
+              rememberWebsiteTarget('origin', '') ? '' : 'Could not clear the remembered origin.'
+            );
+          }}
+        >
+          Forget website
+        </button>
+      </div>
+
       <div className="pp-security-website-workspace" aria-busy={phase === 'loading'}>
         <div className="pp-security-website-result">
           {phase === 'idle' ? (
@@ -504,6 +605,29 @@ function WebsiteObservationPanel() {
               <span>{message}</span>
             </div>
           ) : null}
+          {phase === 'error' && tlsFailure ? (
+            <section aria-label="Unverified certificate evidence">
+              <h3>Unverified certificate evidence</h3>
+              <p>
+                The peer supplied this certificate, but verification rejected it. No HTTP request
+                was sent.
+              </p>
+              <dl>
+                <dt>Reason</dt>
+                <dd>{tlsFailure.reason}</dd>
+                <dt>Subject</dt>
+                <dd>{tlsFailure.subject || 'Not reported'}</dd>
+                <dt>Issuer</dt>
+                <dd>{tlsFailure.issuer || 'Not reported'}</dd>
+                <dt>Valid from</dt>
+                <dd>{observedAtLabel(tlsFailure.notBefore)}</dd>
+                <dt>Valid until</dt>
+                <dd>{observedAtLabel(tlsFailure.notAfter)}</dd>
+                <dt>Certificate names (up to eight)</dt>
+                <dd>{tlsFailure.dnsNames.join(', ') || 'None reported'}</dd>
+              </dl>
+            </section>
+          ) : null}
           {phase === 'success' && result ? (
             <WebsiteObservationResultView
               key={`${result.observedAt}:${result.url}`}
@@ -511,37 +635,6 @@ function WebsiteObservationPanel() {
             />
           ) : null}
         </div>
-
-        <aside className="pp-security-website-boundary" aria-label="Website observation boundary">
-          <div className="pp-security-boundary-item">
-            <KeyRound aria-hidden="true" />
-            <span>
-              <strong>Credentials</strong>
-              <small>URL queries and credentials rejected</small>
-            </span>
-          </div>
-          <div className="pp-security-boundary-item">
-            <ArrowRight aria-hidden="true" />
-            <span>
-              <strong>Redirects</strong>
-              <small>Reported, never followed</small>
-            </span>
-          </div>
-          <div className="pp-security-boundary-item">
-            <Square aria-hidden="true" />
-            <span>
-              <strong>Response body</strong>
-              <small>Never read</small>
-            </span>
-          </div>
-          <div className="pp-security-boundary-item">
-            <ShieldCheck aria-hidden="true" />
-            <span>
-              <strong>Address policy</strong>
-              <small>Ordinary public addresses only</small>
-            </span>
-          </div>
-        </aside>
       </div>
     </section>
   );
@@ -695,6 +788,21 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
 }
 
 function CandidateResult({ result }: { result: DomainCandidatesResult }) {
+  const { openScan } = useProtocolShell();
+  const [query, setQuery] = useState('');
+  const candidates = result.candidates.filter((candidate) =>
+    candidate.name.includes(query.trim().toLowerCase())
+  );
+  function saveNames() {
+    const objectURL = URL.createObjectURL(
+      new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' })
+    );
+    const link = document.createElement('a');
+    link.href = objectURL;
+    link.download = 'protopeek-domain-names.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(objectURL), 1000);
+  }
   return (
     <div className="pp-security-result">
       <div className="pp-security-result-summary" role="status" aria-live="polite">
@@ -718,18 +826,47 @@ function CandidateResult({ result }: { result: DomainCandidatesResult }) {
         </p>
       ) : null}
       {result.candidates.length ? (
-        <ol
-          className="pp-security-candidate-list"
-          aria-label={`Historical certificate names for ${result.apex}`}
-        >
-          {result.candidates.map((candidate, index) => (
-            <li key={candidate.name}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
-              <code>{candidate.name}</code>
-              <em>{candidate.wildcard ? 'Wildcard pattern' : 'Historical name'}</em>
-            </li>
-          ))}
-        </ol>
+        <>
+          <div className="pp-security-name-actions">
+            <input
+              type="search"
+              aria-label="Filter historical names"
+              value={query}
+              maxLength={253}
+              placeholder="Filter names…"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <button type="button" onClick={saveNames}>
+              Save names
+            </button>
+          </div>
+          <ol
+            className="pp-security-candidate-list"
+            aria-label={`Historical indexed names for ${result.apex}`}
+          >
+            {candidates.map((candidate, index) => (
+              <li key={candidate.name}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <code>{candidate.name}</code>
+                <em>{candidate.wildcard ? 'Wildcard pattern' : 'Historical name'}</em>
+                {!candidate.wildcard ? (
+                  <button
+                    type="button"
+                    aria-label={`Inspect ${candidate.name}`}
+                    onClick={() => openScan({ initialTarget: `${candidate.name}:443` })}
+                  >
+                    Inspect…
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </li>
+            ))}
+          </ol>
+          {candidates.length === 0 ? (
+            <p className="pp-security-result-note">No names match this filter.</p>
+          ) : null}
+        </>
       ) : (
         <div className="pp-security-no-results">
           <Clock3 aria-hidden="true" />

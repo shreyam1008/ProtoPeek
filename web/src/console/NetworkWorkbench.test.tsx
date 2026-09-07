@@ -659,7 +659,18 @@ describe('NetworkWorkbench persistence protections', () => {
       within(navigation)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
-    ).toEqual(['This Device', 'Next hop', 'Path', 'Local scan', 'Map', 'History']);
+    ).toEqual([
+      'This Device',
+      'Next hop',
+      'Path',
+      'Local scan',
+      'Map',
+      'History',
+      'Port scanner',
+      'Nmap',
+      'Tailscale',
+      'Packets',
+    ]);
     expect(
       within(navigation)
         .getAllByRole('link')
@@ -671,6 +682,10 @@ describe('NetworkWorkbench persistence protections', () => {
       '/network/local',
       '/network/map',
       '/network/history',
+      '/network/ports',
+      '/network/nmap',
+      '/network/tailnet',
+      '/network/packets',
     ]);
 
     fireEvent.change(screen.getByLabelText('Workspace name'), {

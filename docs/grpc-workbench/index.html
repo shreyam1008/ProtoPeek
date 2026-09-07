@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"gRPC workbench","description":"Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests.","url":"https://protopeek.shreyam1008.com.np/grpc-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/grpc-workbench/","dateModified":"2026-09-03","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/grpc-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"gRPC workbench","item":"https://protopeek.shreyam1008.com.np/grpc-workbench/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"gRPC workbench","description":"Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests.","url":"https://protopeek.shreyam1008.com.np/grpc-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/grpc-workbench/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/grpc-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"gRPC workbench","item":"https://protopeek.shreyam1008.com.np/grpc-workbench/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -70,7 +70,7 @@
               <p>What happened inside this gRPC call?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.5.0
+      <i aria-hidden="true"></i>Stable · v0.6.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -148,6 +148,7 @@
 <p>ProtoPeek can learn a service through:</p>
 <ul><li>server reflection;</li><li>one temporary browser-selected <code>.proto</code> folder;</li><li>host <code>.proto</code> files and import roots available to the ProtoPeek process; or</li><li>a compiled protoset produced by a build pipeline.</li></ul>
 <p>A browser folder is a bounded in-memory snapshot. ProtoPeek saves no browser handle, file bytes, folder name, or host path, so the folder must be selected again after reload.</p>
+<p>For host schemas in current source, an entry such as <code>test.proto</code> resolves against the import roots in order. Preflight file-size checks use the same resolution as the compiler, including absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are files on the machine running ProtoPeek; a custom CA preserves certificate verification.</p>
 <h2 id="send-the-native-rpc-shape">Send the native RPC shape</h2>
 <p>Search the service and method rail, then edit the schema-generated JSON request. Unary, server-streaming, client-streaming, and bidirectional methods stay visibly different.</p>
 <p>The request keeps metadata, Bearer auth, deadlines, TLS choices, and cancellation beside the payload. Binary metadata and credential-like values are excluded from automatic history and default exports.</p>
@@ -155,13 +156,14 @@
 <p>ProtoPeek separates:</p>
 <ol><li><div class="pp-doc-list-title">response headers;</div></li><li><div class="pp-doc-list-title">ordered response messages;</div></li><li><div class="pp-doc-list-title">response trailers;</div></li><li><div class="pp-doc-list-title">the final gRPC status; and</div></li><li><div class="pp-doc-list-title">lifecycle timing observed by the local ProtoPeek handler and browser relay.</div></li></ol>
 <p>Those timings are not packet arrival, server processing time, or universal TTFB. If a local response limit ends the call, retained messages remain visible and the unobserved server status is not invented.</p>
+<p>Current source puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down navigates those lists. Copy actions report success or failure, and changing the displayed response invalidates pending clipboard feedback.</p>
 <h2 id="reuse-a-request-carefully">Reuse a request carefully</h2>
 <p>Saved requests, environments, assertions, recent calls, and workspace import/export stay in local browser storage. Default exports redact sensitive metadata, but saved request bodies are deliberate workspace data and must be reviewed before sharing.</p>
 <p>Unary Repeat runs 2–50 sequential real RPCs with cancellation, explicit deadlines, partial evidence, and separate transport versus gRPC-status outcomes. It is a diagnostic aid, not a load generator; every call may change server data.</p>
 <h2 id="ask-health-directly">Ask Health directly</h2>
 <p>When the selected service exposes canonical <code>grpc.health.v1.Health</code>, ProtoPeek can run one Check or a bounded Watch. Watch is one user-started server stream, never background polling or fleet-wide health proof.</p>
 <h2 id="go-deeper">Go deeper</h2>
-<ul><li><a href="/learn-grpc/">Learn the protocol concepts behind the workbench</a>.</li><li><a href="/transport-boundaries/">See the shared transport and safety boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.5.0</a>.</li></ul>
+<ul><li><a href="/learn-grpc/">Learn the protocol concepts behind the workbench</a>.</li><li><a href="/transport-boundaries/">See the shared transport and safety boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.6.0</a>.</li></ul>
               </div>
             </article>
 
@@ -181,16 +183,16 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Protocol-native gRPC inspection ships in the stable v0.5.0 workbench.</p>
+                <p>Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements.</p>
               </section>
             </aside>
           </div>
 
 
     <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
-      <a href="/install/">
+      <a href="/capnp-workbench/">
         <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
-        <strong>Install ProtoPeek</strong>
+        <strong>Cap’n Proto workbench</strong>
       </a>
       <a href="/http-workbench/">
         <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
@@ -208,7 +210,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -1,0 +1,205 @@
+.pp-packets {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px;
+}
+.pp-packets > header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.pp-packets h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.pp-packets label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+}
+.pp-packets input,
+.pp-packets select,
+.pp-packets button {
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+}
+.pp-packets input,
+.pp-packets select {
+  padding: 7px;
+  border: 1px solid var(--pp-border);
+  border-radius: 5px;
+  color: var(--pp-text);
+  background: var(--pp-panel);
+}
+.pp-packets button {
+  padding: 6px 9px;
+  border: 1px solid var(--pp-border);
+  border-radius: 5px;
+  color: var(--pp-text);
+  background: var(--pp-panel);
+  cursor: pointer;
+}
+.pp-packets button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-packets button[aria-pressed="true"] {
+  border-color: var(--pp-accent);
+  color: var(--pp-accent);
+}
+.pp-packet-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  overflow: auto;
+  padding-right: 12px;
+  border-right: 1px solid var(--pp-border);
+}
+.pp-packet-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pp-packet-options label {
+  align-content: space-between;
+}
+.pp-packet-controls nav {
+  display: grid;
+  gap: 6px;
+}
+.pp-packet-controls small,
+.pp-packet-results > small {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--pp-muted);
+}
+.pp-packets .pp-packet-consent {
+  display: flex;
+  align-items: flex-start;
+}
+.pp-packet-results {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  min-height: 0;
+}
+.pp-packet-results > p {
+  margin: 0;
+  font-size: 12px;
+}
+.pp-packet-results [role="alert"] {
+  color: var(--pp-danger);
+  overflow-wrap: anywhere;
+}
+.pp-packet-summary,
+.pp-packet-filters,
+.pp-packet-results footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.pp-packet-summary strong {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.pp-packet-filters label:first-child {
+  flex: 1;
+}
+.pp-packet-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  gap: 12px;
+}
+.pp-packet-body.has-selection {
+  grid-template-columns: minmax(0, 1fr) 250px;
+}
+.pp-packet-table {
+  overflow: auto;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+}
+.pp-packet-table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+}
+.pp-packet-table th {
+  position: sticky;
+  top: 0;
+  background: var(--pp-panel);
+  text-align: left;
+  z-index: 1;
+}
+.pp-packet-table td,
+.pp-packet-table th {
+  padding: 7px;
+  border-bottom: 1px solid var(--pp-border);
+  overflow-wrap: anywhere;
+}
+.pp-packet-table tr[aria-selected="true"] {
+  background: color-mix(in srgb, var(--pp-accent) 10%, transparent);
+}
+.pp-packet-body > aside {
+  overflow: auto;
+  padding: 10px;
+  border-left: 1px solid var(--pp-border);
+  font-size: 12px;
+}
+.pp-packet-body > aside header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pp-packet-body dt {
+  margin-top: 13px;
+  color: var(--pp-muted);
+}
+.pp-packet-body dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+.pp-packet-empty {
+  margin: auto;
+  max-width: 480px;
+  line-height: 1.7;
+}
+@media (max-width: 1000px) {
+  .pp-packet-body.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pp-packet-body > aside {
+    max-height: 220px;
+    border-left: 0;
+    border-top: 1px solid var(--pp-border);
+  }
+}
+@media (max-width: 760px) {
+  .pp-packets {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(400px, 1fr);
+    height: auto;
+  }
+  .pp-packet-controls {
+    max-height: 320px;
+    border-right: 0;
+    padding: 0;
+  }
+  .pp-packets > header {
+    flex-wrap: wrap;
+  }
+  .pp-packet-table {
+    max-height: 55vh;
+  }
+}

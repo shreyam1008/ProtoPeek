@@ -118,13 +118,14 @@ export function persistAppearancePreference(
   storage?: ThemeStorage | null
 ) {
   const normalized = parseAppearancePreference(preference);
-  if (!normalized) return;
+  if (!normalized) return false;
   const resolvedStorage = resolveStorage(storage);
-  if (!resolvedStorage) return;
+  if (!resolvedStorage) return false;
   try {
     resolvedStorage.setItem(appearanceStorageKey, JSON.stringify(normalized));
+    return true;
   } catch {
-    // The selected appearance remains active for this session when persistence is denied.
+    return false;
   }
 }
 

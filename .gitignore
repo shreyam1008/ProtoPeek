@@ -5,6 +5,7 @@ VERSION
 .idea/
 *.iml
 .tmp/
+.local/
 .playwright-cli/
 output/
 node_modules/

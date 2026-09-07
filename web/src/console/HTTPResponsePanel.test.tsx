@@ -25,6 +25,18 @@ afterEach(() => {
 });
 
 describe('HTTPResponsePanel', () => {
+  it('formats JSON while preserving the raw response when toggled', () => {
+    render(
+      <HTTPResponsePanel
+        response={{ ...response, body: '{"ok":true}' }}
+        loading={false}
+        error={null}
+      />
+    );
+    expect(screen.getByText(/"ok": true/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Pretty JSON' }));
+    expect(screen.getByText('{"ok":true}')).toBeVisible();
+  });
   it('reports clipboard rejection instead of claiming response evidence was copied', async () => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,

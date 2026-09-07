@@ -8,12 +8,28 @@ const roadmap = [
     items: [
       ['Workbench + themes', 'Local workbench, paired themes, and recent bounded discoveries.'],
       [
+        'Host port scanner',
+        'Custom TCP ports and ranges for one local or remote host, IPv4/IPv6, presets, cancellation, open/closed/timeout evidence, and protocol inspection handoffs.',
+      ],
+      [
+        'WebSocket + SSE',
+        'Text/binary WebSocket messages, SSE event names and IDs, headers, verified TLS, bounded live timelines, explicit connect/disconnect, and cleanup on navigation.',
+      ],
+      [
         'gRPC workbench',
         'Reflection, proto/protoset schemas, all stream modes, deadlines, headers, messages, trailers, and status.',
       ],
       [
+        'Cap’n Proto RPC',
+        'Source or compiled schemas, concrete bootstrap methods, exact 64-bit JSON values, verified TLS, deadlines, cancellation and response export. Source compilation uses an optional installed compiler.',
+      ],
+      [
         'HTTP workbench',
         'Bounded HTTP(S), verified TLS, explicit redirects, peer, timing, headers, response bodies, and bounded credential-redacted cURL export.',
+      ],
+      [
+        'Saved HTTP requests',
+        'Named browser-local requests with explicit body opt-in, update/delete/export, bounded storage, credential removal and global fuzzy search. Loading prepares an unsent editor.',
       ],
       [
         'Bounded discovery',
@@ -24,8 +40,8 @@ const roadmap = [
         'One read-only kernel route lookup per resolved address from the ProtoPeek process; no hop probes.',
       ],
       [
-        'Network Path · Linux',
-        'Built-in unprivileged UDP error-queue probes with one pinned destination, separate DNS and kernel-route evidence, silent hops, ECMP responders, and source-to-responder RTT.',
+        'Network Path · Linux + Windows',
+        'Native Linux UDP and Windows IPv4/IPv6 ICMP probes, pinned destinations, per-responder RTT, saved traces and optional dated ASN/ISP/location labels.',
       ],
       [
         'Authorized private discovery',
@@ -40,6 +56,18 @@ const roadmap = [
         'Bounded hints from an existing nmap -oX file. Nmap is not required for import; literal-IP endpoints are verified before opening a workbench.',
       ],
       [
+        'Installed Nmap scanner',
+        'Explicit TCP connect or light service detection on one IP or a bounded private subnet, exact scope preview, cancellation, paginated results, export and protocol inspection handoff. Nmap is installed separately.',
+      ],
+      [
+        'Packet inspection',
+        'Bounded PCAP/PCAPNG metadata, paginated packet details, filters and JSON export. An installed dumpcap adapter supports explicit timed IP/port capture; native capture platform acceptance is still pending.',
+      ],
+      [
+        'Tailscale client workbench',
+        'Installed-client peers, accounts, exit-node controls, bounded diagnostics and Taildrop, with explicit reviewed operations. Integrated sign-in, elevation, Headscale administration and NetBird remain open work.',
+      ],
+      [
         'Browser proto folders',
         'Review and upload a bounded relative-path .proto manifest to the running ProtoPeek instance; folder access and schema bytes are never saved in profiles.',
       ],
@@ -49,11 +77,11 @@ const roadmap = [
       ],
       [
         'Downloader',
-        'One to 32 independent HTTP(S) jobs through configured or system aria2c, with bounded per-job options, queue controls, private retry state, checksum evidence, and one-shot CLI transfer.',
+        'HTTP(S) queues through configured, system or bundled Windows amd64 aria2c, bounded options, live progress, pause/resume, restart recovery, completed history, checksum evidence and one-shot CLI transfer.',
       ],
       [
         'Security evidence',
-        'One disclosed historical certificate-name lookup and one separately consented public-only HEAD observation, plus a deterministic local observed/not observed/attention report from that retained response; no added target request or security score.',
+        'Public website HEAD/TLS evidence and JSON reports, a fixed five-path metadata plan, historical indexed names with filtering/export and unsent Inspect handoffs. No security score or automatic candidate probing.',
       ],
       [
         'GoBarryGo bridge',
@@ -79,8 +107,8 @@ const roadmap = [
         'Render each general server-stream message immediately with bounded retention while keeping headers, trailers, cancellation, and final status distinct.',
       ],
       [
-        'Saved HTTP requests + profiles',
-        'Reusable local request recipes and environment values with secret-safe persistence.',
+        'HTTP environment profiles + library import',
+        'Environment variables and portable library restoration beyond the current named request save/load/export workflow.',
       ],
       [
         'cURL import',
@@ -91,12 +119,12 @@ const roadmap = [
         'Explain resolution, SNI, ALPN, certificate verification, and handshake timing before an RPC or HTTP request.',
       ],
       [
-        'Darwin + Windows path backends',
+        'Darwin path backend',
         'Earn native unprivileged implementations with equivalent cancellation and evidence semantics; no localized subprocess parsing or elevation prompts.',
       ],
       [
         'Snapshot diff + sourced enrichment',
-        'Compare immutable observations and attach attributed, user-supplied region/ASN evidence without pretending an IP address proves a datacenter.',
+        'Compare immutable observations over time. Current traces already retain optional sourced ASN/ISP/location labels; IP location does not establish a datacenter.',
       ],
       [
         'WinGet package',
@@ -114,20 +142,12 @@ const roadmap = [
     icon: Beaker,
     items: [
       [
-        'WebSocket + SSE',
-        'Protocol-native event timelines, cancellation, and bounded payload retention.',
-      ],
-      [
-        'Bounded PCAP import',
-        'Offline evidence with an explicit Wireshark/TShark handoff; no hidden capture.',
-      ],
-      [
         'Nmap XML to topology',
         'Map bounded existing XML hints into a saved workspace with import provenance and explicit loss notices, without executing Nmap.',
       ],
       [
-        "Cap'n Proto",
-        'A schema/capability inspector only if native evidence and dependency size earn a surface.',
+        'Cap’n Proto capability workflows',
+        'Follow returned capabilities, generic bindings and pipelined calls beyond the current concrete bootstrap method client.',
       ],
       [
         'QUIC + HTTP/3',
@@ -153,8 +173,8 @@ const roadmap = [
         'Why: SIN, BOM, provider-region labels, WHOIS, and IP geolocation are hints rather than measured facilities. Gate: user-supplied sources, attribution, freshness, and confidence.',
       ],
       [
-        'Live capture',
-        'Why: capture can require privilege and expose payload secrets. Gate: explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.',
+        'Capture elevation and deeper decoding',
+        'The installed-tool adapter uses existing permissions. Driver installation, integrated elevation, stream reassembly, raw payload export and decryption need separate workflows.',
       ],
       [
         'Tunnel service and config mutation',

@@ -1,0 +1,61 @@
+.pp-directory-picker {
+  margin: 6px 0;
+  font-size: 12px;
+}
+.pp-directory-picker button {
+  min-height: 30px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: var(--pp-surface-raised);
+  color: var(--pp-text);
+  cursor: pointer;
+}
+.pp-directory-picker button:hover {
+  background: var(--pp-accent-soft);
+}
+.pp-directory-picker button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-directory-picker button:focus-visible {
+  outline: 2px solid var(--pp-accent-signal);
+  outline-offset: 2px;
+}
+.pp-directory-picker section {
+  padding: 10px;
+  border: 1px solid var(--border-color, #8886);
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.pp-directory-toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.pp-directory-toolbar input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.pp-directory-toolbar span {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.pp-directory-picker ul {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+  max-height: 200px;
+  overflow: auto;
+}
+.pp-directory-picker li button {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+}
+.pp-directory-picker small {
+  display: block;
+  margin-top: 6px;
+}

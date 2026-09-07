@@ -38,6 +38,8 @@ TOOLS_BIN := $(CURDIR)/.tmp/tools
 .PHONY: release-snapshot
 release-snapshot:
 	@command -v syft >/dev/null || { echo "syft is required for release SBOMs" >&2; exit 1; }
+	bun scripts/package-aria2-sources.ts .local/aria2-sources
+	tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
 	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) check --config .goreleaser.yml
 	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) check --config .goreleaser.edge.yml
 	go run github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION) release --snapshot --clean --config .goreleaser.yml
@@ -81,7 +83,7 @@ vet:
 .PHONY: staticcheck
 staticcheck:
 	@mkdir -p $(TOOLS_BIN)
-	@GOBIN=$(TOOLS_BIN) go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
+	@GOBIN=$(TOOLS_BIN) go install honnef.co/go/tools/cmd/staticcheck@v0.8.1
 	$(TOOLS_BIN)/staticcheck -checks "inherit,-SA1019" ./...
 
 .PHONY: ineffassign
@@ -93,7 +95,7 @@ ineffassign:
 .PHONY: predeclared
 predeclared:
 	@mkdir -p $(TOOLS_BIN)
-	@GOBIN=$(TOOLS_BIN) go install github.com/nishanths/predeclared@v0.2.3-0.20250331095553-51e8c974458a
+	@cd tools && GOBIN=$(TOOLS_BIN) go install github.com/nishanths/predeclared
 	$(TOOLS_BIN)/predeclared ./...
 
 .PHONY: test

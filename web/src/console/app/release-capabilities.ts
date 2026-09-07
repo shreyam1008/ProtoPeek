@@ -33,6 +33,12 @@ export const releaseCapabilities = [
     accepts: ['http-url-draft'],
   },
   {
+    featureId: 'events',
+    releaseStatus: 'stable',
+    docsSlug: 'http-workbench',
+  },
+  { featureId: 'capnp', releaseStatus: 'stable', docsSlug: 'capnp-workbench' },
+  {
     featureId: 'network',
     releaseStatus: 'stable',
     docsSlug: 'network-workbench',
@@ -46,7 +52,7 @@ export const releaseCapabilities = [
   },
   {
     featureId: 'this-pc',
-    releaseStatus: 'source',
+    releaseStatus: 'stable',
     docsSlug: 'this-pc',
     produces: [
       'grpc-target-draft',
@@ -57,15 +63,19 @@ export const releaseCapabilities = [
   },
   {
     featureId: 'tunnels',
-    releaseStatus: 'source',
+    releaseStatus: 'stable',
     docsSlug: 'cloudflare-tunnels',
     accepts: ['publish-origin-draft'],
     produces: ['grpc-target-draft', 'http-url-draft'],
   },
+  { featureId: 'tailnet', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'downloader', releaseStatus: 'stable', docsSlug: 'downloader' },
-  { featureId: 'security', releaseStatus: 'source', docsSlug: 'security' },
-  { featureId: 'settings', releaseStatus: 'source', docsSlug: 'settings' },
-  { featureId: 'roadmap', releaseStatus: 'source', docsSlug: 'feature-roadmap' },
+  { featureId: 'network-ports', releaseStatus: 'stable', docsSlug: 'network-workbench' },
+  { featureId: 'network-nmap', releaseStatus: 'stable', docsSlug: 'network-workbench' },
+  { featureId: 'network-packets', releaseStatus: 'stable', docsSlug: 'network-workbench' },
+  { featureId: 'security', releaseStatus: 'stable', docsSlug: 'security' },
+  { featureId: 'settings', releaseStatus: 'stable', docsSlug: 'settings' },
+  { featureId: 'roadmap', releaseStatus: 'stable', docsSlug: 'feature-roadmap' },
 ] as const satisfies readonly ReleaseCapability[];
 
 export function stableReleaseFeatures<Capability extends Pick<ReleaseCapability, 'releaseStatus'>>(

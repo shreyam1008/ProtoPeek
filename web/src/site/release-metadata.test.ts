@@ -16,11 +16,11 @@ describe('release metadata', () => {
     );
 
     expect(product.latestRelease).toEqual({
-      version: '0.5.0',
+      version: '0.6.0',
       status: 'published',
-      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0',
+      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0',
     });
-    expect(packageVersions['GitHub Releases']).toBe('0.5.0');
+    expect(packageVersions['GitHub Releases']).toBe('0.6.0');
     expect(packageVersions['Homebrew Tap']).toBe('0.5.0');
     expect(packageVersions['Scoop Bucket']).toBe('0.5.0');
     expect(
@@ -42,26 +42,24 @@ describe('release metadata', () => {
     };
 
     expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
-    expect(siteIndex).toContain('"softwareVersion": "0.5.0"');
-    expect(siteIndex).toContain('/releases/tag/v0.5.0');
-    expect(siteIndex).toContain(
-      'six areas: Overview, Protocols, Network, Downloader, Security, and Settings'
-    );
+    expect(siteIndex).toContain('"softwareVersion": "0.6.0"');
+    expect(siteIndex).toContain('/releases/tag/v0.6.0');
+    expect(siteIndex).toContain('six areas: Home, Inspect, Network, Publish, Files, and Settings');
     expect(siteIndex).toContain(
       '<meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />'
     );
     expect(siteIndex).toContain('<meta property="og:image:width" content="1200" />');
     expect(siteIndex).toContain('<meta property="og:image:height" content="630" />');
     expect(manifest.theme_color).toBe('#0b5cff');
-    expect(llms).toContain('v0.5.0 is the current stable release');
-    expect(llms).toContain('Homebrew and Scoop channels install v0.5.0');
-    expect(llms).toContain('ProtoPeek does not bundle aria2');
-    expect(llms).toContain('Tailscale, Headscale, and NetBird workflows remain planned');
+    expect(llms).toContain('v0.6.0 is the current stable release');
+    expect(llms).toContain('Homebrew and Scoop manifests identify their package versions');
+    expect(llms).toContain('Windows x64 includes pinned aria2 1.37.0');
+    expect(llms).toContain('Headscale, NetBird, integrated elevation/sign-in');
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
     );
-    expect(llms).toContain('exactly one credential-free, non-following `HEAD` request');
-    expect(sitemap).toContain('<lastmod>2026-09-02</lastmod>');
+    expect(llms).toContain('explicit website/TLS/header/path evidence');
+    expect(sitemap).toContain('<lastmod>2026-09-07</lastmod>');
     expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/downloader/</loc>');
     for (const path of [
       '/install/',
@@ -82,17 +80,17 @@ describe('release metadata', () => {
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');
-    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0\.5\.0"/);
-    expect(ppMan).toMatch(/^\.TH PP 1 "August 2026" "ProtoPeek 0\.5\.0"/);
+    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "September 2026" "ProtoPeek 0\.6\.0"/);
+    expect(ppMan).toMatch(/^\.TH PP 1 "September 2026" "ProtoPeek 0\.6\.0"/);
     expect(protopeekMan).toContain('.B protopeek download');
     expect(protopeekMan).toContain('subcommand ships in ProtoPeek v0.5.0');
-    expect(protopeekMan).toContain('Homebrew and Scoop install v0.5.0');
+    expect(protopeekMan).toContain('Windows x64 includes pinned aria2 1.37.0');
     expect(protopeekMan).toContain('does not attach to an\nalready-running ProtoPeek process');
     expect(protopeekMan).toContain('.B protopeek migrate-gobarry');
     expect(protopeekMan).toContain('observational preview');
     expect(ppMan).toContain('.B pp download');
     expect(ppMan).toContain('.B pp migrate-gobarry');
-    expect(ppMan).toContain('ProtoPeek v0.5.0 ships');
+    expect(ppMan).toContain('Windows x64 also includes bundled aria2');
   });
 
   it('keeps consolidation and website-analysis guides split into current and planned work', () => {

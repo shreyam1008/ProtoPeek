@@ -47,6 +47,8 @@ type Service struct {
 	health        Health
 	checksums     map[string]string
 	retryRequests map[string]AddRequest
+	completed     []Job
+	historyLoaded bool
 }
 
 func NewService(config HostConfig, paths Paths) (*Service, error) {
@@ -248,6 +250,11 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 		Jobs:           []Job{},
 	}
 	if runtime == nil {
+		if err := service.loadHistory(true); err != nil {
+			snapshot.PersistenceWarning = "Completed download history could not be read. Existing files and resumable sessions are preserved."
+		} else {
+			service.appendHistory(&snapshot)
+		}
 		return snapshot, nil
 	}
 
@@ -301,6 +308,10 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 			return snapshot, fmt.Errorf("remove completed transfer retry metadata: %w", err)
 		}
 	}
+	if err := service.rememberCompleted(snapshot.Jobs); err != nil {
+		snapshot.PersistenceWarning = "Completed download history could not be saved. Keep ProtoPeek running and check the local state directory."
+	}
+	service.appendHistory(&snapshot)
 	return snapshot, nil
 }
 
@@ -392,6 +403,8 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		return fail("failed", "aria2c returned an invalid runtime.", err)
 	}
 
+	runtime.observationWake = make(chan struct{}, 1)
+	service.historyLoaded = false
 	health := Health{
 		Ready:         true,
 		Status:        "running",
@@ -445,6 +458,12 @@ func (service *Service) Add(ctx context.Context, request AddRequest) (AddResult,
 	if free < uint64(config.MinimumFreeDiskBytes) {
 		return AddResult{}, ErrInsufficientDisk
 	}
+	// queueMu covers both the snapshot and Add, reserving waiting outputs even
+	// before aria2 creates their files. Persist the chosen name for exact retry.
+	request.OutputName, err = newDownloadOutput(config, request, engineSnapshot.Jobs...)
+	if err != nil {
+		return AddResult{}, fmt.Errorf("%w: %v", ErrInvalidAddRequest, err)
+	}
 
 	id, queueErr := runtime.Engine.Add(ctx, request, config)
 	if id == "" || (queueErr != nil && !errors.Is(queueErr, ErrQueueStateNotPersisted)) {
@@ -475,6 +494,7 @@ func (service *Service) Add(ctx context.Context, request AddRequest) (AddResult,
 	if request.SHA256 != "" {
 		verification = "pending"
 	}
+	service.wakeHistoryObserver()
 	return AddResult{
 		ID:                 id,
 		ExpectedSHA256:     request.SHA256,
@@ -500,7 +520,9 @@ func (service *Service) Resume(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	return runtime.Engine.Resume(ctx, id)
+	err = runtime.Engine.Resume(ctx, id)
+	service.wakeHistoryObserver()
+	return err
 }
 
 func (service *Service) Retry(ctx context.Context, id string) (AddResult, error) {
@@ -570,6 +592,7 @@ func (service *Service) Retry(ctx context.Context, id string) (AddResult, error)
 	if expected != "" {
 		verification = "pending"
 	}
+	service.wakeHistoryObserver()
 	warning := ""
 	if queueErr != nil || stateErr != nil {
 		warning = PersistenceWarningMessage
@@ -648,6 +671,9 @@ func (service *Service) pruneCompletedRetryState(ctx context.Context, runtime *R
 	if err != nil {
 		return fmt.Errorf("inspect completed transfers before shutdown: %w", err)
 	}
+	if err := service.rememberCompleted(snapshot.Jobs); err != nil {
+		return err
+	}
 	service.mu.Lock()
 	before := cloneRetryRequests(service.retryRequests)
 	changed := service.pruneCompletedRetryRequestsLocked(snapshot.Jobs)
@@ -722,6 +748,10 @@ func pendingJobs(snapshot EngineSnapshot) int {
 }
 
 func (service *Service) monitor(runtime *Runtime) {
+	if runtime.observeCompletions {
+		service.observeCompletedHistory(runtime)
+		return
+	}
 	<-runtime.Done
 	service.finishRuntime(runtime, false)
 }
@@ -801,7 +831,7 @@ func validateAddRequest(request AddRequest) (AddRequest, error) {
 
 	request.OutputName = strings.TrimSpace(request.OutputName)
 	if request.OutputName != "" {
-		if len(request.OutputName) > 255 || request.OutputName == "." || request.OutputName == ".." || filepath.Base(request.OutputName) != request.OutputName || strings.ContainsAny(request.OutputName, "/\\") || containsControl(request.OutputName) {
+		if !safeOutputName(request.OutputName) {
 			return AddRequest{}, errors.New("output name must be a single safe file name")
 		}
 	}

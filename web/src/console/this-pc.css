@@ -6,26 +6,26 @@
 }
 
 .this-pc-page-inner {
-  width: min(84rem, 100%);
+  width: 100%;
   margin: 0 auto;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding: 1rem;
 }
 
 .this-pc-hero {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem;
   border-bottom: 1px solid var(--pp-stroke-strong);
-  padding: 0.25rem 0 1.1rem;
+  padding: 0 0 0.75rem;
 }
 
 .this-pc-hero h1 {
   margin: 0;
   color: var(--pp-text);
-  font-size: clamp(2.4rem, 4vw, 3.25rem);
+  font-size: 1.4rem;
   font-weight: 760;
-  letter-spacing: -0.065em;
+  letter-spacing: -0.025em;
   line-height: 0.96;
 }
 
@@ -37,7 +37,7 @@
 
 .this-pc-hero > div:last-child {
   display: grid;
-  min-width: 18rem;
+  min-width: 0;
   justify-items: stretch;
   gap: 0.35rem;
 }
@@ -260,11 +260,48 @@
 .this-pc-tabs,
 .this-pc-bottom-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-top: 0.7rem;
   border: 1px solid var(--pp-stroke);
   border-radius: 0.42rem;
   background: color-mix(in srgb, var(--pp-surface-sunken) 82%, transparent);
+}
+
+.this-pc-section-layout {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.this-pc-section-layout > .this-pc-tabs {
+  grid-template-columns: 1fr;
+  position: sticky;
+  top: 0.5rem;
+}
+
+.this-pc-section-layout > .this-pc-tabs button {
+  display: flex;
+  min-height: 2.5rem;
+  padding: 0.6rem;
+  gap: 0.5rem;
+  border-right: 0;
+  text-align: left;
+}
+
+.this-pc-section-layout > .this-pc-tabs button.is-active {
+  box-shadow: inset 2px 0 var(--pp-accent-signal);
+}
+
+.this-pc-section-layout > .this-pc-footer {
+  grid-column: 2;
+}
+
+.this-pc-hero > div:first-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .this-pc-tabs button,
@@ -311,6 +348,7 @@
 }
 
 .this-pc-view {
+  min-width: 0;
   margin-top: 0.7rem;
 }
 
@@ -784,6 +822,7 @@
 }
 
 .this-pc-table-wrap {
+  max-height: 55vh;
   overflow-x: auto;
 }
 
@@ -1189,7 +1228,7 @@
   }
 
   .this-pc-hero h1 {
-    font-size: 2.5rem;
+    font-size: 1.4rem;
   }
 
   .this-pc-hero p {
@@ -1235,6 +1274,10 @@
 
   .this-pc-tabs {
     display: none;
+  }
+
+  .this-pc-section-layout {
+    display: block;
   }
 
   .this-pc-tabs button,

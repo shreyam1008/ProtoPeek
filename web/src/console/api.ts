@@ -30,7 +30,7 @@ function csrfToken() {
   return match?.[1] ?? '';
 }
 
-async function fetchJSON<T>(path: string, init?: RequestInit) {
+export async function fetchJSON<T>(path: string, init?: RequestInit) {
   const response = await fetch(urlFor(path), {
     ...init,
     credentials: 'same-origin',

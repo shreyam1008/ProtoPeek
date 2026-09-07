@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -127,4 +128,68 @@ func TestSystemAria2Integration(t *testing.T) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+func TestSystemAria2NewJobPreservesExistingFile(t *testing.T) {
+	if os.Getenv("PROTOPEEK_ARIA2_INTEGRATION") != "1" {
+		t.Skip("set PROTOPEEK_ARIA2_INTEGRATION=1")
+	}
+	binary, err := resolveAria2Binary("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := strings.Repeat("different new bytes\n", 64)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, payload) }))
+	defer server.Close()
+	root := t.TempDir()
+	config := DefaultHostConfig()
+	config.DownloadDirectory = root
+	config.Aria2Path = binary
+	config.MinimumFreeDiskBytes = 0
+	original := filepath.Join(root, "artifact.bin")
+	if err := os.WriteFile(original, []byte("keep this unrelated completed file"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	paths := Paths{ConfigFile: filepath.Join(root, "config.json"), StateDirectory: filepath.Join(root, "state"), SessionFile: filepath.Join(root, "state", "session.aria2"), VerificationFile: filepath.Join(root, "state", "verification.json"), LockFile: filepath.Join(root, "state", "engine.lock")}
+	runtime, err := NewAria2Launcher().Start(context.Background(), config, paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := runtime.Stop(ctx); err != nil {
+			t.Error(err)
+		}
+	}()
+	id, err := runtime.Engine.Add(context.Background(), AddRequest{Sources: []string{server.URL + "/artifact.bin"}}, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		snapshot, err := runtime.Engine.Snapshot(context.Background(), 16)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, job := range snapshot.Jobs {
+			if job.ID != id {
+				continue
+			}
+			if job.Status == JobFailed {
+				t.Fatalf("new job failed: %#v", job)
+			}
+			if job.Status == JobCompleted {
+				if data, err := os.ReadFile(original); err != nil || string(data) != "keep this unrelated completed file" {
+					t.Fatalf("original changed: %q %v", data, err)
+				}
+				if data, err := os.ReadFile(filepath.Join(root, "artifact (1).bin")); err != nil || string(data) != payload {
+					t.Fatalf("new payload wrong: %d bytes %v", len(data), err)
+				}
+				return
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatal("new download did not finish")
 }

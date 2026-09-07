@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 
 import type { ThisPCActivity, ThisPCCapabilities, ThisPCSocket } from '@/console/this-pc-api';
 
-import { ConsentPrompt } from './ConsentPrompt';
 import type { IdleResource, Resource } from './device-state';
 import { type ListenerHandoffKind, listenerIPv6ScopeMissing } from './listener-handoff';
 
@@ -44,12 +43,15 @@ function SocketTable({
   sockets,
   kind,
   onHandoff,
+  query,
+  setQuery,
 }: {
   sockets: ThisPCSocket[];
   kind: 'listeners' | 'connections';
   onHandoff?: (socket: ThisPCSocket, kind: ListenerHandoffKind) => void;
+  query: string;
+  setQuery: (query: string) => void;
 }) {
-  const [query, setQuery] = useState('');
   const [shown, setShown] = useState(50);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -187,20 +189,21 @@ function SocketTable({
 function ActivityNotes({ activity }: { activity: ThisPCActivity }) {
   return (
     <aside className="this-pc-notes">
-      <p>
-        Backend result truncated: {activity.truncated ? 'yes' : 'no'} · observed{' '}
-        {activity.listeners.length + activity.connections.length} of at most{' '}
-        {activity.limits.maxSockets} sockets.
-      </p>
-      {activity.truncated ? (
-        <p>
-          Bounded to {activity.limits.maxSockets} sockets under a {activity.limits.wallTimeMs} ms
-          processing budget.
-        </p>
-      ) : null}
-      {activity.notes.map((note) => (
-        <p key={note}>{note}</p>
-      ))}
+      <details>
+        <summary>
+          Observation details · {activity.listeners.length + activity.connections.length} of at most{' '}
+          {activity.limits.maxSockets} sockets{activity.truncated ? ' · partial result' : ''}
+        </summary>
+        {activity.truncated ? (
+          <p>
+            Bounded to {activity.limits.maxSockets} sockets under a {activity.limits.wallTimeMs} ms
+            processing budget.
+          </p>
+        ) : null}
+        {activity.notes.map((note) => (
+          <p key={note}>{note}</p>
+        ))}
+      </details>
     </aside>
   );
 }
@@ -209,27 +212,20 @@ export function SocketsPanel({
   kind,
   capabilities,
   activity,
-  consentOpen,
-  acknowledged,
   handoffError,
   onOpen,
-  onAcknowledged,
-  onConfirm,
   onCancel,
   onHandoff,
 }: {
   kind: 'listeners' | 'connections';
   capabilities: Resource<ThisPCCapabilities>;
   activity: IdleResource<ThisPCActivity>;
-  consentOpen: boolean;
-  acknowledged: boolean;
   handoffError?: string;
   onOpen: () => void;
-  onAcknowledged: (value: boolean) => void;
-  onConfirm: () => void;
   onCancel: () => void;
   onHandoff?: (socket: ThisPCSocket, kind: ListenerHandoffKind) => void;
 }) {
+  const [query, setQuery] = useState('');
   const listeners = kind === 'listeners';
   const capability = capabilities.status === 'ready' ? capabilities.value.activity : null;
   const title = listeners ? 'Local listeners' : 'Current connections';
@@ -255,35 +251,23 @@ export function SocketsPanel({
               : 'A one-time socket view initiated locally; it is not a background monitor.'}
           </p>
         </div>
-        {!consentOpen ? (
+        {activity.status === 'loading' ? (
+          <button type="button" className="this-pc-button" onClick={onCancel}>
+            Cancel observation
+          </button>
+        ) : (
           <button
             type="button"
             className="this-pc-button"
-            disabled={!capability?.supported || activity.status === 'loading'}
+            disabled={!capability?.supported}
             onClick={onOpen}
           >
             {listeners ? <Radio aria-hidden="true" /> : <Activity aria-hidden="true" />}
             {action}
           </button>
-        ) : null}
+        )}
       </header>
-      {consentOpen ? (
-        <ConsentPrompt
-          title={listeners ? 'Inspect local listeners' : 'Inspect current connections'}
-          acknowledged={acknowledged}
-          onAcknowledged={onAcknowledged}
-          acknowledgement="I understand this reads a one-time local socket snapshot."
-          onConfirm={onConfirm}
-          onCancel={onCancel}
-          confirmLabel="Inspect once"
-        >
-          <p>
-            This reads local listeners and current connections visible to the ProtoPeek
-            process/network namespace at one moment. It does not send network probes.
-          </p>
-          <p>Process labels are best-effort local evidence and may be absent or restricted.</p>
-        </ConsentPrompt>
-      ) : activity.status === 'ready' ? (
+      {activity.status === 'ready' ? (
         <>
           {listeners && onHandoff ? (
             <p className="this-pc-handoff-guidance">
@@ -296,7 +280,8 @@ export function SocketsPanel({
             </p>
           ) : null}
           <SocketTable
-            key={`${kind}-${activity.value.observedAt}`}
+            query={query}
+            setQuery={setQuery}
             sockets={listeners ? activity.value.listeners : activity.value.connections}
             kind={kind}
             onHandoff={listeners ? onHandoff : undefined}

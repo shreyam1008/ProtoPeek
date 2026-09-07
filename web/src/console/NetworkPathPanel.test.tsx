@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { NetworkPathPanel } from './NetworkPathPanel';
+import { normalizePathTrace } from './network-path';
 
 const capabilities = {
   perspective: 'protopeek-process',
@@ -120,7 +121,79 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('retains bounded, source-labelled attribution when saving a measured trace', async () => {
+  const attribution = {
+    source: 'https://ipwhois.io/documentation',
+    entries: [
+      {
+        ip: '1.1.1.1',
+        status: 'observed',
+        country: 'Australia',
+        asn: 13335,
+        isp: 'Cloudflare',
+        observedAt: '2026-09-06T12:00:00Z',
+        cached: false,
+      },
+    ],
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      return Response.json(
+        path.endsWith('/capabilities')
+          ? capabilities
+          : path.endsWith('/attribution')
+            ? attribution
+            : trace
+      );
+    })
+  );
+  const save = vi.fn();
+  render(<NetworkPathPanel onSaveTrace={save} />);
+  await screen.findByText('Built in · no elevation');
+  fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+  fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
+  const controls = await screen.findByRole('region', { name: 'Optional hop attribution' });
+  fireEvent.click(within(controls).getByRole('checkbox'));
+  fireEvent.click(within(controls).getByRole('button', { name: 'Look up hop labels' }));
+  await screen.findByText(/AS13335 · Cloudflare · Australia/);
+  fireEvent.click(screen.getByRole('button', { name: 'Save trace' }));
+  const saved = normalizePathTrace(save.mock.calls[0]?.[0]);
+  expect(saved.attribution?.source).toBe('https://ipwhois.io/documentation');
+  expect(saved.attribution?.entries[0]?.asn).toBe(13335);
+  expect(saved.hops[0]?.samples[0]?.rttMs).toBe(1.1);
+});
+
 describe('NetworkPathPanel', () => {
+  it('selects native ICMP automatically on Windows and names the actual probe protocol', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...capabilities,
+          os: 'windows',
+          capabilities: [
+            {
+              ...capabilities.capabilities[0],
+              backend: 'windows-icmp-echo',
+              method: 'icmp',
+              families: ['ipv4'],
+            },
+          ],
+        })
+      )
+    );
+    render(<NetworkPathPanel />);
+    expect(await screen.findByText('Built in · no elevation')).toBeVisible();
+    expect(screen.getByRole('option', { name: 'Auto · native ICMP' })).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/authorize these active ICMP path probes/i));
+    expect(screen.getByRole('button', { name: 'Trace path' })).toBeEnabled();
+    expect(screen.getByRole('option', { name: 'UDP · unavailable' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Address family'), { target: { value: 'ipv6' } });
+    expect(screen.getByRole('button', { name: 'Trace path' })).toBeDisabled();
+    expect(screen.getByText(/No native path tracer is available for IPV6/i)).toBeVisible();
+  });
   it('requires explicit probe consent, sends the exact bounded plan, and renders truthful hop evidence', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
     document.cookie = '_protopeek_csrf_token=trace-token; path=/';
@@ -137,6 +210,7 @@ describe('NetworkPathPanel', () => {
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(screen.getByRole('button', { name: 'Trace path' })).toBeDisabled();
     expect(screen.getByText(/24 hops × 3 probes.*72 maximum probes.*20 s wall/i)).toBeVisible();
+    fireEvent.click(screen.getByText('Example targets · Cloudflare / Google DNS'));
     expect(screen.getByText(/Anycast.*not a fixed datacenter/i)).toBeVisible();
 
     fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
@@ -155,6 +229,7 @@ describe('NetworkPathPanel', () => {
       consent: { activeProbe: true, publicTarget: true },
     });
 
+    fireEvent.click(await screen.findByText('Resolution and route details'));
     const spine = await screen.findByRole('region', { name: 'Network evidence spine' });
     expect(within(spine).getByText('DNS resolution')).toBeVisible();
     expect(within(spine).getByText('Kernel route')).toBeVisible();
@@ -162,7 +237,7 @@ describe('NetworkPathPanel', () => {
     expect(within(spine).getByText('Destination reached')).toBeVisible();
     expect(screen.getByText('wlan0 · 192.168.1.1')).toBeVisible();
     expect(screen.getByText(/No reply.*may still forward traffic/i)).toBeVisible();
-    expect(screen.getAllByText(/1\.1\.1\.1.*1\.0\.0\.1/)[0]).toBeVisible();
+    expect(screen.getByText('1.1.1.1 · 1.0.0.1')).toBeVisible();
     expect(screen.getAllByText(/RTT from this machine/i).length).toBeGreaterThan(0);
     expect(screen.getByText('18.0 ms median RTT')).toBeVisible();
     expect(screen.getByRole('list', { name: 'Hop 3 RTT by responder' })).toBeVisible();
@@ -195,7 +270,7 @@ describe('NetworkPathPanel', () => {
     );
     render(<NetworkPathPanel />);
 
-    expect(await screen.findByText(/No proven unprivileged native backend/i)).toBeVisible();
+    expect(await screen.findByText(/No native path tracer is available/i)).toBeVisible();
     expect(
       screen.getByText(/ProtoPeek never runs a package manager or asks for root\/admin/i)
     ).toBeVisible();

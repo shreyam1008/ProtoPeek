@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 	"github.com/fullstorydev/grpcurl"
 	legacyproto "github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/desc/protoparse"
 )
 
 const (
@@ -153,13 +155,24 @@ func preflightWorkspaceSchemaFiles(ctx context.Context, cfg WorkspaceTargetConfi
 	default:
 		return nil
 	}
+	var importPaths []string
+	if cfg.SchemaSource == "proto-files" && len(cfg.ImportPaths) > 0 {
+		// Match grpcurl's compiler filename rules, including import-relative
+		// entries, absolute files and the search order of multiple import roots.
+		var err error
+		paths, err = protoparse.ResolveFilenames(cfg.ImportPaths, paths...)
+		if err != nil {
+			return fmt.Errorf("resolve host schema files: %w", err)
+		}
+		importPaths = cfg.ImportPaths
+	}
 
 	var total int64
 	for _, schemaPath := range paths {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		info, err := os.Stat(schemaPath)
+		info, err := statWorkspaceSchemaFile(ctx, schemaPath, importPaths)
 		if err != nil {
 			return fmt.Errorf("inspect host schema file %q: %w", schemaPath, err)
 		}
@@ -176,6 +189,27 @@ func preflightWorkspaceSchemaFiles(ctx context.Context, cfg WorkspaceTargetConfi
 		total += fileBytes
 	}
 	return ctx.Err()
+}
+
+func statWorkspaceSchemaFile(ctx context.Context, name string, importPaths []string) (os.FileInfo, error) {
+	if len(importPaths) == 0 {
+		return os.Stat(name)
+	}
+	var lastErr error
+	for _, root := range importPaths {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		info, err := os.Stat(filepath.Join(root, name))
+		if err == nil {
+			return info, nil
+		}
+		lastErr = err
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+	}
+	return nil, lastErr
 }
 
 func (m *WorkspaceManager) beginWorkspaceSchemaConnect(parent context.Context) (context.Context, func(), error) {

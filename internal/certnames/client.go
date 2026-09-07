@@ -1,5 +1,6 @@
 // Package certnames provides an explicit, bounded adapter for historical
-// certificate-name candidates. It returns names only and never resolves,
+// indexed name candidates (certificate transparency and other provider sources).
+// It returns names only and never resolves,
 // connects to, or probes any returned candidate.
 package certnames
 
@@ -25,7 +26,7 @@ import (
 const SourceEndpoint = "https://crt.name/v1/search"
 
 const (
-	defaultTimeout         = 8 * time.Second
+	defaultTimeout         = 25 * time.Second
 	defaultCacheTTL        = 15 * time.Minute
 	defaultMaxBodyBytes    = 256 << 10
 	defaultMaxCandidates   = 256
@@ -38,9 +39,10 @@ const (
 )
 
 var (
-	ErrInvalidApex      = errors.New("invalid certificate-name apex")
-	ErrResponseTooLarge = errors.New("certificate-name response is too large")
-	ErrProviderBusy     = errors.New("certificate-name provider capacity is busy")
+	ErrInvalidApex         = errors.New("invalid certificate-name apex")
+	ErrResponseTooLarge    = errors.New("certificate-name response is too large")
+	ErrProviderBusy        = errors.New("certificate-name provider capacity is busy")
+	ErrProviderRateLimited = errors.New("name index rate limit reached")
 )
 
 type Options struct {
@@ -188,6 +190,7 @@ func (client *Client) Search(parent context.Context, input string) (Result, erro
 	endpoint, _ := url.Parse(SourceEndpoint)
 	query := endpoint.Query()
 	query.Set("apex", apex)
+	query.Set("format", "json")
 	endpoint.RawQuery = query.Encode()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
@@ -200,6 +203,9 @@ func (client *Client) Search(parent context.Context, input string) (Result, erro
 		return Result{}, fmt.Errorf("query crt.name: %w", err)
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusTooManyRequests {
+		return Result{}, ErrProviderRateLimited
+	}
 	if response.StatusCode != http.StatusOK {
 		return Result{}, fmt.Errorf("crt.name returned HTTP %d", response.StatusCode)
 	}
@@ -249,7 +255,7 @@ func (client *Client) Search(parent context.Context, input string) (Result, erro
 	result := Result{
 		Apex:       apex,
 		Source:     endpoint.String(),
-		ObservedAt: now,
+		ObservedAt: client.now().UTC(),
 		Candidates: candidates,
 		Discarded:  discarded,
 		Truncated:  truncated,
@@ -332,7 +338,7 @@ type safeProviderDoer struct {
 
 func (doer *safeProviderDoer) Do(request *http.Request) (*http.Response, error) {
 	session, err := doer.guard.NewSession(request.Context(), request.URL.String(), targetguard.SessionConfig{
-		Redirect: targetguard.RedirectPolicy{MaxRedirects: 1},
+		Redirect: targetguard.RedirectPolicy{MaxRedirects: 0},
 	})
 	if err != nil {
 		return nil, err

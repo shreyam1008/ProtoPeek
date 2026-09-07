@@ -38,7 +38,8 @@ export function SessionTabs({
   if (!references.length) return null;
 
   function moveFocus(event: KeyboardEvent<HTMLButtonElement>, reference: SessionReference) {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
+      return;
     event.preventDefault();
     const current = references.findIndex((candidate) => candidate.id === reference.id);
     const nextIndex =
@@ -46,7 +47,9 @@ export function SessionTabs({
         ? 0
         : event.key === 'End'
           ? references.length - 1
-          : (current + (event.key === 'ArrowRight' ? 1 : -1) + references.length) %
+          : (current +
+              (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) +
+              references.length) %
             references.length;
     const next = references[nextIndex];
     if (next) document.getElementById(tabID(next.id))?.focus();
@@ -54,7 +57,13 @@ export function SessionTabs({
 
   return (
     <div className="pp-session-strip">
-      <div className="pp-session-tabs" role="tablist" aria-label="Open workbench sessions">
+      <span className="pp-session-heading">Open workspaces</span>
+      <div
+        className="pp-session-tabs"
+        role="tablist"
+        aria-orientation="vertical"
+        aria-label="Open workbench sessions"
+      >
         {references.map((reference, index) => {
           const Icon = sessionIcons[reference.destination];
           const selected = reference.id === activeId;

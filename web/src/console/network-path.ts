@@ -1,3 +1,5 @@
+import { type IPAttribution, normalizeIPAttribution } from './ip-attribution';
+
 export type PathSample = {
   sequence: number;
   status: 'reply' | 'timeout' | 'unreachable' | 'error';
@@ -62,6 +64,7 @@ export type PathTrace = {
   hops: PathHop[];
   warnings: string[];
   durationMs: number;
+  attribution?: IPAttribution;
 };
 
 export type PathCapability = {
@@ -332,6 +335,14 @@ export function normalizePathTrace(value: unknown): PathTrace {
     method,
     parameters: normalizedParameters,
     hops,
+    ...(trace.attribution === undefined
+      ? {}
+      : {
+          attribution: normalizeIPAttribution(
+            trace.attribution,
+            hops.flatMap((hop) => hop.responders)
+          ),
+        }),
     warnings: stringArray(trace.warnings, 'warnings', maxWarnings),
     durationMs: number(
       trace.durationMs,

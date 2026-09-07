@@ -70,6 +70,43 @@ const trace = normalizePathTrace({
   durationMs: 2200,
 });
 
+it('keeps third-party attribution distinct through persisted map export/import', () => {
+  const attributed = normalizePathTrace({
+    ...trace,
+    attribution: {
+      source: 'https://ipwhois.io/documentation',
+      entries: [
+        {
+          ip: '203.0.113.20',
+          status: 'observed',
+          country: 'Fixture country',
+          asn: 64500,
+          isp: 'Fixture ISP',
+          observedAt: '2026-09-06T12:00:00Z',
+          cached: false,
+        },
+      ],
+    },
+  });
+  const workspace = pathTraceToNetworkWorkspace(attributed);
+  const restored = validateNetworkWorkspaceImport(JSON.parse(serializeNetworkWorkspace(workspace)));
+  expect(restored.error).toBeNull();
+  const destination = restored.value?.nodes.find((node) =>
+    node.identities.some((identity) => identity.value === '203.0.113.20')
+  );
+  expect(destination?.notes).toContain('Fixture ISP');
+  expect(destination?.provenance).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        source: 'ip-attribution',
+        kind: 'inferred',
+        observedAt: '2026-09-06T12:00:00.000Z',
+      }),
+    ])
+  );
+  expect(destination?.identities[0]?.provenance[0]?.source).toBe('path-trace');
+});
+
 describe('path trace topology conversion', () => {
   it('preserves source, silent TTL, ECMP responders, destination, provenance, and immutable snapshot', () => {
     const workspace = pathTraceToNetworkWorkspace(trace, {

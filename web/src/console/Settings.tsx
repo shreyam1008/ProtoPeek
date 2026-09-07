@@ -32,6 +32,7 @@ import {
   previewGoBarryMigration,
   rollbackGoBarryState,
   saveTransferHostConfig,
+  stopTransferEngine,
   type TransferHealthStatus,
   type TransferHostConfig,
   type TransferHostConfigPatch,
@@ -40,6 +41,15 @@ import {
 } from './transfer-api';
 import './suite-pages.css';
 import './settings.css';
+import { AccessibleTabs, TabPanel } from './AccessibleTabs';
+import { DirectoryPicker } from './DirectoryPicker';
+
+const settingsSections = [
+  { value: 'appearance', label: 'Appearance' },
+  { value: 'preferences', label: 'Preferences' },
+  { value: 'downloads', label: 'Downloads' },
+  { value: 'migration', label: 'Migration' },
+];
 
 const appearanceModeOptions: Array<{ value: AppearanceMode; label: string; detail: string }> = [
   { value: 'system', label: 'System', detail: 'Follow this operating system as it changes.' },
@@ -87,14 +97,20 @@ const densities: Array<{ value: InterfaceDensity; label: string; detail: string 
 const editableHostStatuses = new Set<TransferHealthStatus>(['stopped', 'failed', 'binary_missing']);
 
 export function Settings() {
-  const { appearance, setAppearance, interfacePreferences, setInterfacePreferences } =
-    useProtocolShell();
+  const {
+    appearance,
+    setAppearance,
+    interfacePreferences,
+    setInterfacePreferences,
+    preferenceStorageError,
+  } = useProtocolShell();
+  const [section, setSection] = useState('appearance');
   const [notice, setNotice] = useState('');
   const [hostSnapshot, setHostSnapshot] = useState<TransferSnapshot | null>(null);
   const [hostDraft, setHostDraft] = useState<TransferHostConfig | null>(null);
   const [hostLoading, setHostLoading] = useState(true);
   const [hostSnapshotConfirmed, setHostSnapshotConfirmed] = useState(false);
-  const [hostBusy, setHostBusy] = useState<'reload' | 'save' | ''>('');
+  const [hostBusy, setHostBusy] = useState<'reload' | 'save' | 'stop' | ''>('');
   const [hostError, setHostError] = useState('');
   const [migrationPreview, setMigrationPreview] = useState<GoBarryMigrationPreview | null>(null);
   const [migrationBusy, setMigrationBusy] = useState(false);
@@ -327,18 +343,19 @@ export function Settings() {
     <div className="pp-suite-page pp-settings-page">
       <header className="pp-suite-page-heading">
         <div>
-          <span className="pp-kicker">Settings</span>
-          <h1>Shape this browser&apos;s console.</h1>
-          <p>
-            Interface preferences stay browser-local. Host/runtime settings come from the local
-            snapshot, while migration remains separated, preview-first, and explicit.
-          </p>
+          <h1>Settings</h1>
+          <p>Interface preferences in this browser. Download settings on this machine.</p>
         </div>
         <span className="pp-settings-local">
           <LockKeyhole aria-hidden="true" /> Local + explicit
         </span>
       </header>
 
+      {preferenceStorageError ? (
+        <p className="pp-settings-storage-error" role="alert">
+          {preferenceStorageError}
+        </p>
+      ) : null}
       {notice ? (
         <p className="pp-settings-notice" role="status">
           {notice}
@@ -346,185 +363,235 @@ export function Settings() {
       ) : null}
 
       <div className="pp-settings-layout">
-        <section className="pp-settings-panel" aria-labelledby="appearance-title">
-          <header>
-            <Monitor aria-hidden="true" />
-            <div>
-              <h2 id="appearance-title">Appearance</h2>
-              <p>Applied immediately and saved in this browser profile.</p>
-            </div>
-          </header>
-
-          <fieldset className="pp-settings-choice-group">
-            <legend>Mode</legend>
-            {appearanceModeOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={appearance.mode === option.value}
-                onClick={() => {
-                  setNotice('');
-                  setAppearance({ ...appearance, mode: option.value });
-                }}
-              >
-                <span>{option.label}</span>
-                <small>{option.detail}</small>
-              </button>
-            ))}
-          </fieldset>
-
-          <fieldset className="pp-settings-choice-group">
-            <legend>Color scheme</legend>
-            {paletteOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={appearance.palette === option.value}
-                onClick={() => {
-                  setNotice('');
-                  setAppearance({ ...appearance, palette: option.value });
-                }}
-              >
-                <span>{option.label}</span>
-                <small>{option.detail}</small>
-              </button>
-            ))}
-          </fieldset>
-
-          <fieldset className="pp-settings-choice-group">
-            <legend>Interface density</legend>
-            {densities.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={interfacePreferences.density === option.value}
-                onClick={() => setDensity(option.value)}
-              >
-                <span>{option.label}</span>
-                <small>{option.detail}</small>
-              </button>
-            ))}
-          </fieldset>
-        </section>
-
-        <section className="pp-settings-panel" aria-labelledby="local-preferences-title">
-          <header>
-            <LayoutPanelLeft aria-hidden="true" />
-            <div>
-              <h2 id="local-preferences-title">Local preferences</h2>
-              <p>Presentation choices only; these do not alter the ProtoPeek host.</p>
-            </div>
-          </header>
-
-          <label className="pp-settings-toggle">
-            <Keyboard aria-hidden="true" />
-            <span>
-              <strong>Show keyboard shortcut hints</strong>
-              <small>Display key labels beside command and workbench actions.</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={interfacePreferences.showKeyboardHints}
-              onChange={(event) => setKeyboardHints(event.target.checked)}
-            />
-          </label>
-
-          <div className="pp-settings-boundary">
-            <Eye aria-hidden="true" />
-            <div>
-              <strong>What this page does not control</strong>
-              <p>
-                CPU, memory, scan authorization, and protocol deadlines remain explicit where they
-                are used. Only the reviewed migration card below can copy its allowlisted transfer
-                preferences into host state.
-              </p>
-            </div>
-          </div>
-
-          <button type="button" className="pp-settings-reset" onClick={restoreDefaults}>
-            <RotateCcw aria-hidden="true" /> Restore interface defaults
-          </button>
-        </section>
-
-        <HostSettingsPanel
-          snapshot={hostSnapshot}
-          draft={hostDraft}
-          snapshotConfirmed={hostSnapshotConfirmed}
-          loading={hostLoading}
-          busy={hostBusy}
-          error={hostError}
-          onReload={() => {
-            setHostBusy('reload');
-            void refreshHostSettings()
-              .catch(() => undefined)
-              .finally(() => setHostBusy(''));
-          }}
-          onSave={() => void saveHostSettings()}
-          onChange={updateHostDraft}
+        <AccessibleTabs
+          id="settings"
+          label="Settings sections"
+          orientation="vertical"
+          tabs={settingsSections}
+          value={section}
+          onChange={setSection}
+          className="pp-settings-navigation"
         />
+        <div className="pp-settings-content">
+          <TabPanel
+            id="settings"
+            tab="appearance"
+            active={section === 'appearance'}
+            className="pp-settings-section"
+          >
+            <section className="pp-settings-panel" aria-labelledby="appearance-title">
+              <header>
+                <Monitor aria-hidden="true" />
+                <div>
+                  <h2 id="appearance-title">Appearance</h2>
+                  <p>Applied immediately; saved in this browser when storage is available.</p>
+                </div>
+              </header>
 
-        <section
-          className="pp-settings-panel pp-settings-migration"
-          aria-labelledby="gobarry-migration-title"
-        >
-          <header>
-            <ArchiveRestore aria-hidden="true" />
-            <div>
-              <h2 id="gobarry-migration-title">Bring GoBarryGo home</h2>
-              <p>
-                Preview the final GoBarryGo profile, then explicitly copy compatible preferences and
-                resumable aria2 session entries into ProtoPeek.
-              </p>
-            </div>
-          </header>
+              <fieldset className="pp-settings-choice-group">
+                <legend>Mode</legend>
+                {appearanceModeOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={appearance.mode === option.value}
+                    onClick={() => {
+                      setNotice('');
+                      setAppearance({ ...appearance, mode: option.value });
+                    }}
+                  >
+                    <span>{option.label}</span>
+                    <small>{option.detail}</small>
+                  </button>
+                ))}
+              </fieldset>
 
-          {!migrationPreview ? (
-            <div className="pp-migration-intro">
-              <div>
-                <strong>No automatic filesystem scan</strong>
-                <p>
-                  ProtoPeek checks the known local GoBarryGo profile only after you ask. Previewing
-                  never starts aria2c and never writes either product&apos;s files. Close GoBarryGo
-                  before the final preview/import so its source snapshot stays stable.
-                </p>
+              <fieldset className="pp-settings-choice-group">
+                <legend>Color scheme</legend>
+                {paletteOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={appearance.palette === option.value}
+                    onClick={() => {
+                      setNotice('');
+                      setAppearance({ ...appearance, palette: option.value });
+                    }}
+                  >
+                    <span>{option.label}</span>
+                    <small>{option.detail}</small>
+                  </button>
+                ))}
+              </fieldset>
+
+              <fieldset className="pp-settings-choice-group">
+                <legend>Interface density</legend>
+                {densities.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={interfacePreferences.density === option.value}
+                    onClick={() => setDensity(option.value)}
+                  >
+                    <span>{option.label}</span>
+                    <small>{option.detail}</small>
+                  </button>
+                ))}
+              </fieldset>
+            </section>
+          </TabPanel>
+          <TabPanel
+            id="settings"
+            tab="preferences"
+            active={section === 'preferences'}
+            className="pp-settings-section"
+          >
+            <section className="pp-settings-panel" aria-labelledby="local-preferences-title">
+              <header>
+                <LayoutPanelLeft aria-hidden="true" />
+                <div>
+                  <h2 id="local-preferences-title">Local preferences</h2>
+                  <p>Presentation choices only; these do not alter the ProtoPeek host.</p>
+                </div>
+              </header>
+
+              <label className="pp-settings-toggle">
+                <Keyboard aria-hidden="true" />
+                <span>
+                  <strong>Show keyboard shortcut hints</strong>
+                  <small>Display key labels beside command and workbench actions.</small>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={interfacePreferences.showKeyboardHints}
+                  onChange={(event) => setKeyboardHints(event.target.checked)}
+                />
+              </label>
+
+              <div className="pp-settings-boundary">
+                <Eye aria-hidden="true" />
+                <div>
+                  <strong>What this page does not control</strong>
+                  <p>
+                    CPU, memory, scan authorization, and protocol deadlines remain explicit where
+                    they are used. Downloader host settings are saved on this machine, separately
+                    from these interface preferences.
+                  </p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => void checkGoBarryState()}
-                disabled={migrationBusy}
-              >
-                {migrationBusy ? (
-                  <LoaderCircle className="is-spinning" aria-hidden="true" />
-                ) : (
-                  <HardDriveDownload aria-hidden="true" />
-                )}
-                Check for GoBarryGo
-              </button>
-            </div>
-          ) : (
-            <GoBarryMigrationPanel
-              preview={migrationPreview}
-              busy={migrationBusy}
-              importPreferences={importPreferences}
-              importSession={importSession}
-              preservationAccepted={preservationAccepted}
-              rollbackAccepted={rollbackAccepted}
-              onImportPreferences={setImportPreferences}
-              onImportSession={setImportSession}
-              onPreservationAccepted={setPreservationAccepted}
-              onRollbackAccepted={setRollbackAccepted}
-              onRefresh={() => void checkGoBarryState()}
-              onImport={() => void importGoBarry()}
-              onRollback={() => void rollbackGoBarry()}
-            />
-          )}
 
-          {migrationError ? (
-            <p className="pp-settings-migration-error" role="alert">
-              <TriangleAlert aria-hidden="true" /> {migrationError}
-            </p>
-          ) : null}
-        </section>
+              <button type="button" className="pp-settings-reset" onClick={restoreDefaults}>
+                <RotateCcw aria-hidden="true" /> Restore interface defaults
+              </button>
+            </section>
+          </TabPanel>
+          <TabPanel
+            id="settings"
+            tab="downloads"
+            active={section === 'downloads'}
+            className="pp-settings-section"
+          >
+            <HostSettingsPanel
+              snapshot={hostSnapshot}
+              draft={hostDraft}
+              snapshotConfirmed={hostSnapshotConfirmed}
+              loading={hostLoading}
+              busy={hostBusy}
+              error={hostError}
+              onReload={() => {
+                setHostBusy('reload');
+                void refreshHostSettings()
+                  .catch(() => undefined)
+                  .finally(() => setHostBusy(''));
+              }}
+              onSave={() => void saveHostSettings()}
+              onStop={() => {
+                if (hostBusy) return;
+                setHostBusy('stop');
+                setHostError('');
+                void stopTransferEngine()
+                  .then(() => refreshHostSettings())
+                  .catch((cause: unknown) =>
+                    setHostError(
+                      cause instanceof Error ? cause.message : 'Downloader could not stop.'
+                    )
+                  )
+                  .finally(() => setHostBusy(''));
+              }}
+              onChange={updateHostDraft}
+            />
+          </TabPanel>
+          <TabPanel
+            id="settings"
+            tab="migration"
+            active={section === 'migration'}
+            className="pp-settings-section"
+          >
+            <section
+              className="pp-settings-panel pp-settings-migration"
+              aria-labelledby="gobarry-migration-title"
+            >
+              <header>
+                <ArchiveRestore aria-hidden="true" />
+                <div>
+                  <h2 id="gobarry-migration-title">Bring GoBarryGo home</h2>
+                  <p>
+                    Preview the final GoBarryGo profile, then explicitly copy compatible preferences
+                    and resumable aria2 session entries into ProtoPeek.
+                  </p>
+                </div>
+              </header>
+
+              {!migrationPreview ? (
+                <div className="pp-migration-intro">
+                  <div>
+                    <strong>No automatic filesystem scan</strong>
+                    <p>
+                      ProtoPeek checks the known local GoBarryGo profile only after you ask.
+                      Previewing never starts aria2c and never writes either product&apos;s files.
+                      Close GoBarryGo before the final preview/import so its source snapshot stays
+                      stable.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void checkGoBarryState()}
+                    disabled={migrationBusy}
+                  >
+                    {migrationBusy ? (
+                      <LoaderCircle className="is-spinning" aria-hidden="true" />
+                    ) : (
+                      <HardDriveDownload aria-hidden="true" />
+                    )}
+                    Check for GoBarryGo
+                  </button>
+                </div>
+              ) : (
+                <GoBarryMigrationPanel
+                  preview={migrationPreview}
+                  busy={migrationBusy}
+                  importPreferences={importPreferences}
+                  importSession={importSession}
+                  preservationAccepted={preservationAccepted}
+                  rollbackAccepted={rollbackAccepted}
+                  onImportPreferences={setImportPreferences}
+                  onImportSession={setImportSession}
+                  onPreservationAccepted={setPreservationAccepted}
+                  onRollbackAccepted={setRollbackAccepted}
+                  onRefresh={() => void checkGoBarryState()}
+                  onImport={() => void importGoBarry()}
+                  onRollback={() => void rollbackGoBarry()}
+                />
+              )}
+
+              {migrationError ? (
+                <p className="pp-settings-migration-error" role="alert">
+                  <TriangleAlert aria-hidden="true" /> {migrationError}
+                </p>
+              ) : null}
+            </section>
+          </TabPanel>
+        </div>
       </div>
     </div>
   );
@@ -535,10 +602,11 @@ type HostSettingsPanelProps = {
   draft: TransferHostConfig | null;
   snapshotConfirmed: boolean;
   loading: boolean;
-  busy: 'reload' | 'save' | '';
+  busy: 'reload' | 'save' | 'stop' | '';
   error: string;
   onReload: () => void;
   onSave: () => void;
+  onStop: () => void;
   onChange: <K extends keyof TransferHostConfig>(field: K, value: TransferHostConfig[K]) => void;
 };
 
@@ -551,6 +619,7 @@ function HostSettingsPanel({
   error,
   onReload,
   onSave,
+  onStop,
   onChange,
 }: HostSettingsPanelProps) {
   const hostStatus = snapshot?.health.status ?? (loading ? 'loading' : 'unavailable');
@@ -567,10 +636,7 @@ function HostSettingsPanel({
         <Server aria-hidden="true" />
         <div>
           <h2 id="host-settings-title">Downloader host settings</h2>
-          <p>
-            Runtime and filesystem controls are read from the local transfer snapshot and saved on
-            this host. They are never stored in browser preferences.
-          </p>
+          <p>Download and engine preferences are saved on this machine.</p>
         </div>
       </header>
 
@@ -585,6 +651,17 @@ function HostSettingsPanel({
             {transferHealthLabel(hostStatus)}
           </span>
         </div>
+
+        {snapshot?.health.ready && (
+          <button
+            type="button"
+            className="pp-settings-reset"
+            disabled={Boolean(busy)}
+            onClick={onStop}
+          >
+            {busy === 'stop' ? 'Saving and stopping…' : 'Save queue and stop Downloader'}
+          </button>
+        )}
 
         {error ? (
           <p className="pp-host-settings-error" role="alert">
@@ -618,11 +695,13 @@ function HostSettingsPanel({
                   value={draft.aria2Path}
                   onChange={(event) => onChange('aria2Path', event.target.value)}
                 />
-                <small>Blank uses the system aria2c lookup.</small>
+                <small>
+                  Blank checks PATH, then the bundled engine when included for this platform.
+                </small>
               </label>
 
-              <label className="pp-host-settings-wide" htmlFor="host-download-directory">
-                Download directory
+              <div className="pp-host-settings-wide">
+                <label htmlFor="host-download-directory">Download directory</label>
                 <input
                   id="host-download-directory"
                   type="text"
@@ -633,7 +712,11 @@ function HostSettingsPanel({
                   onChange={(event) => onChange('downloadDirectory', event.target.value)}
                 />
                 <small>Use an absolute path that the local process can write.</small>
-              </label>
+                <DirectoryPicker
+                  initialPath={draft.downloadDirectory}
+                  onChoose={(path) => onChange('downloadDirectory', path)}
+                />
+              </div>
 
               <label htmlFor="host-active-jobs">
                 Active jobs
@@ -662,7 +745,10 @@ function HostSettingsPanel({
                     onChange('maxConnectionsPerHost', numberValue(event.target.value))
                   }
                 />
-                <small>aria2 connections for each source host.</small>
+                <small>
+                  Up to 16 connections and segments per download. Speed depends on range support and
+                  the server.
+                </small>
               </label>
 
               <label htmlFor="host-bandwidth-cap">

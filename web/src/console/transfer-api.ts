@@ -76,6 +76,8 @@ export type TransferHostConfigSaveResult = TransferHostConfig & {
 };
 
 export type TransferJob = {
+  historical?: boolean;
+  completedAt?: string;
   id: string;
   name: string;
   status: TransferJobStatus;
@@ -118,6 +120,7 @@ export type TransferMetrics = {
 };
 
 export type TransferSnapshot = {
+  persistenceWarning?: string;
   observedAt: string;
   health: TransferHealth;
   config: TransferHostConfig;
@@ -386,6 +389,8 @@ function normalizeJob(input: unknown): TransferJob | null {
   const verification = boundedString(value.verificationStatus, 32);
   return {
     id,
+    historical: boundedBoolean(value.historical),
+    completedAt: boundedString(value.completedAt, 128),
     name: boundedString(value.name, 2 * 1024) || 'Unnamed transfer',
     status: jobStatuses.has(status) ? status : 'unknown',
     directory: boundedString(value.directory, 4 * 1024),
@@ -559,6 +564,7 @@ export function normalizeTransferSnapshot(input: unknown): TransferSnapshot {
   const jobs = rawJobs.map(normalizeJob).filter((job): job is TransferJob => job !== null);
   const rawObservedAt = boundedString(value.observedAt, 128);
   return {
+    persistenceWarning: boundedString(value.persistenceWarning, 2048),
     observedAt:
       rawObservedAt && Number.isFinite(Date.parse(rawObservedAt))
         ? rawObservedAt
@@ -601,6 +607,10 @@ export async function startTransferEngine(signal?: AbortSignal) {
   await mutateTransfer('api/transfers/start', undefined, signal);
 }
 
+export async function stopTransferEngine(signal?: AbortSignal) {
+  await mutateTransfer('api/transfers/stop', undefined, signal);
+}
+
 export async function addTransfer(
   source: string,
   options: { outputName?: string; sha256?: string } = {},
@@ -630,7 +640,7 @@ export async function addTransferBatch(jobs: TransferBatchJob[], signal?: AbortS
 }
 
 export async function mutateTransferJob(
-  action: 'pause' | 'resume' | 'retry' | 'cancel',
+  action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget',
   id: string,
   signal?: AbortSignal
 ) {

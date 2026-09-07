@@ -19,6 +19,11 @@ ProtoPeek can learn a service through:
 
 A browser folder is a bounded in-memory snapshot. ProtoPeek saves no browser handle, file bytes, folder name, or host path, so the folder must be selected again after reload.
 
+For host schemas in current source, an entry such as `test.proto` resolves against the import
+roots in order. Preflight file-size checks use the same resolution as the compiler, including
+absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are
+files on the machine running ProtoPeek; a custom CA preserves certificate verification.
+
 ## Send the native RPC shape
 
 Search the service and method rail, then edit the schema-generated JSON request. Unary, server-streaming, client-streaming, and bidirectional methods stay visibly different.
@@ -37,6 +42,10 @@ ProtoPeek separates:
 
 Those timings are not packet arrival, server processing time, or universal TTFB. If a local response limit ends the call, retained messages remain visible and the unobserved server status is not invented.
 
+Current source puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down
+navigates those lists. Copy actions report success or failure, and changing the displayed response
+invalidates pending clipboard feedback.
+
 ## Reuse a request carefully
 
 Saved requests, environments, assertions, recent calls, and workspace import/export stay in local browser storage. Default exports redact sensitive metadata, but saved request bodies are deliberate workspace data and must be reviewed before sharing.
@@ -51,5 +60,5 @@ When the selected service exposes canonical `grpc.health.v1.Health`, ProtoPeek c
 
 - [Learn the protocol concepts behind the workbench](/learn-grpc/).
 - [See the shared transport and safety boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.5.0](/install/).
+- [Install stable ProtoPeek v0.6.0](/install/).
 

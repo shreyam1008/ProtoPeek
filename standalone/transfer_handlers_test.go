@@ -204,6 +204,7 @@ func TestTransferStartAndActions(t *testing.T) {
 		{path: "/api/transfers/resume", body: `{"id":"aabbccdd"}`, want: http.StatusNoContent},
 		{path: "/api/transfers/retry", body: `{"id":"aabbccdd"}`, want: http.StatusOK},
 		{path: "/api/transfers/cancel", body: `{"id":"aabbccdd"}`, want: http.StatusNoContent},
+		{path: "/api/transfers/stop", want: http.StatusNoContent},
 	}
 	for _, test := range tests {
 		test := test
@@ -834,6 +835,45 @@ func handlerCSRFCookie(t *testing.T, handler http.Handler) *http.Cookie {
 
 type failOnReadBody struct {
 	read bool
+}
+
+type fakeTransferHistoryService struct{ *fakeTransferService }
+
+func (service *fakeTransferHistoryService) ForgetCompleted(_ context.Context, id string) error {
+	service.record("forget")
+	service.lastID = id
+	return service.actionErr
+}
+
+func TestTransferForgetHistoryBoundary(t *testing.T) {
+	service := &fakeTransferHistoryService{&fakeTransferService{}}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	cookie := handlerCSRFCookie(t, handler)
+	for _, tc := range []struct {
+		body string
+		csrf bool
+		want int
+	}{
+		{`{"id":"abcdef1234567890"}`, false, 401},
+		{`{"id":"../file"}`, true, 400},
+		{`{"id":"abcdef1234567890","deleteFile":true}`, true, 400},
+		{`{"id":"abcdef1234567890"}`, true, 204},
+	} {
+		r := httptest.NewRequest(http.MethodPost, "/api/transfers/forget", strings.NewReader(tc.body))
+		r.Header.Set("Content-Type", "application/json")
+		if tc.csrf {
+			r.AddCookie(cookie)
+			r.Header.Set(csrfHeaderName, cookie.Value)
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Fatalf("forget = %d %s, want %d", w.Code, w.Body.String(), tc.want)
+		}
+	}
+	if len(service.calls) != 1 || service.lastID != "abcdef1234567890" {
+		t.Fatalf("unexpected mutations: %+v", service.calls)
+	}
 }
 
 func (body *failOnReadBody) Read([]byte) (int, error) {

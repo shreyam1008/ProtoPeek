@@ -160,6 +160,40 @@ func TestWorkspaceConnectPreflightsHostSchemaBeforeDial(t *testing.T) {
 	}
 }
 
+func TestWorkspaceProtoPreflightResolvesImportRootsLikeCompiler(t *testing.T) {
+	t.Parallel()
+	first, second := t.TempDir(), t.TempDir()
+	name := "entry.proto"
+	content := []byte(`syntax = "proto3"; package qa; message Empty {} service Test { rpc Ping(Empty) returns (Empty); }`)
+	if err := os.WriteFile(filepath.Join(second, name), content, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := WorkspaceTargetConfig{SchemaSource: "proto-files", ProtoFiles: []string{name}, ImportPaths: []string{first, second}}
+	limits := defaultWorkspaceSchemaLimits()
+	if err := preflightWorkspaceSchemaFiles(context.Background(), cfg, limits); err != nil {
+		t.Fatal(err)
+	}
+	methods, _, _, err := loadWorkspaceDescriptors(context.Background(), nil, cfg, nil, limits)
+	if err != nil || len(methods) != 1 {
+		t.Fatalf("host schema = %d methods, %v", len(methods), err)
+	}
+	// An earlier root shadows a later valid file; apply limits to the same file
+	// the compiler would use, rather than accepting the smaller later match.
+	limits.maxFileBytes = int64(len(content))
+	if err := os.WriteFile(filepath.Join(first, name), append(content, ' '), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := preflightWorkspaceSchemaFiles(context.Background(), cfg, limits); err == nil || !strings.Contains(err.Error(), "per-file limit") {
+		t.Fatalf("shadowed file error = %v", err)
+	}
+	// An absolute entry is converted back to its import-relative name before
+	// the compiler searches all roots; preflight must use that same search.
+	cfg.ProtoFiles = []string{filepath.Join(second, name)}
+	if err := preflightWorkspaceSchemaFiles(context.Background(), cfg, limits); err == nil || !strings.Contains(err.Error(), "per-file limit") {
+		t.Fatalf("absolute shadowed file error = %v", err)
+	}
+}
+
 func TestWorkspaceSchemaProductionBoundariesAcceptExactAndRejectPlusOne(t *testing.T) {
 	t.Parallel()
 

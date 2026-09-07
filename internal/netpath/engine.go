@@ -276,13 +276,28 @@ func (engine *Engine) Trace(ctx context.Context, request Request) (Response, err
 	if err := traceCtx.Err(); err != nil {
 		return Response{}, err
 	}
-	if isPublicAddress(address) && !request.Consent.PublicTarget {
-		return Response{}, fmt.Errorf("%w: public destinations require consent.publicTarget", ErrConsentRequired)
+	capabilities := engine.backend.Capabilities(traceCtx)
+	method, capability, err := selectCapability(capabilities, config.Method, familyForAddress(address))
+	// Auto may receive IPv6 first on a host whose native backend supports only
+	// IPv4. Choose a supported retained answer without performing a second lookup.
+	if err != nil && family == "auto" {
+		for _, answer := range resolution.Answers {
+			candidateMethod, candidateCapability, candidateErr := selectCapability(capabilities, config.Method, answer.Family)
+			if candidateErr != nil {
+				continue
+			}
+			address = netip.MustParseAddr(answer.Address)
+			resolution.PinnedAddress = answer.Address
+			resolution.PinnedFamily = answer.Family
+			method, capability, err = candidateMethod, candidateCapability, nil
+			break
+		}
 	}
-
-	method, capability, err := selectCapability(engine.backend.Capabilities(traceCtx), config.Method, familyForAddress(address))
 	if err != nil {
 		return Response{}, err
+	}
+	if isPublicAddress(address) && !request.Consent.PublicTarget {
+		return Response{}, fmt.Errorf("%w: public destinations require consent.publicTarget", ErrConsentRequired)
 	}
 	config.Method = method
 	parameters := parametersFor(config, familyForAddress(address))
@@ -529,7 +544,13 @@ func validHostname(hostname string) bool {
 func selectCapability(capabilities []Capability, requested, family string) (string, Capability, error) {
 	method := requested
 	if method == "auto" {
-		method = "udp"
+		for _, candidate := range []string{"udp", "icmp", "tcp"} {
+			for _, capability := range capabilities {
+				if capability.Available && capability.Method == candidate && slices.Contains(capability.Families, family) {
+					return candidate, capability, nil
+				}
+			}
+		}
 	}
 	for _, capability := range capabilities {
 		if capability.Available && capability.Method == method && slices.Contains(capability.Families, family) {

@@ -86,11 +86,48 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'events',
+    destination: 'inspect',
+    label: 'Event streams',
+    route: '/protocols/events',
+    order: 45,
+    command: {
+      label: 'Open WebSocket and SSE',
+      keywords: 'websocket ws wss sse server sent events streaming messages binary',
+    },
+    inspectEntry: {
+      detail: 'Connect to WebSocket or server-sent events, send messages, and inspect live events.',
+    },
+  },
+  {
+    id: 'capnp',
+    destination: 'inspect',
+    label: 'Cap’n Proto',
+    route: '/protocols/capnp',
+    order: 47,
+    command: { label: 'Open Cap’n Proto', keywords: 'capnp schema capability rpc binary tcp tls' },
+    inspectEntry: {
+      detail:
+        'Load source or compiled schemas, call bootstrap methods over TCP or verified TLS, and inspect typed JSON.',
+    },
+  },
+  {
     id: 'network',
     destination: 'network',
     label: 'Network',
     route: '/network',
     order: 50,
+  },
+  {
+    id: 'network-ports',
+    destination: 'network',
+    label: 'Port scanner',
+    route: '/network/ports',
+    order: 55,
+    command: {
+      label: 'Scan host ports',
+      keywords: 'tcp port scanner ranges open closed local remote services',
+    },
   },
   {
     id: 'network-route',
@@ -102,6 +139,28 @@ export const featureRegistry = [
     command: {
       label: 'Open next-hop route evidence',
       keywords: 'route kernel next hop interface source',
+    },
+  },
+  {
+    id: 'network-nmap',
+    destination: 'network',
+    label: 'Nmap',
+    route: '/network/nmap',
+    order: 65,
+    command: {
+      label: 'Open Nmap scanner',
+      keywords: 'nmap subnet service version tcp scan ports network',
+    },
+  },
+  {
+    id: 'network-packets',
+    destination: 'network',
+    label: 'Packets',
+    route: '/network/packets',
+    order: 67,
+    command: {
+      label: 'Inspect captured packets',
+      keywords: 'pcap pcapng wireshark dumpcap capture traffic packets dns tcp udp',
     },
   },
   {
@@ -161,6 +220,17 @@ export const featureRegistry = [
     homeEntry: {
       label: 'Check this device',
       detail: 'Review interfaces, connections, public IP, and browser-path speed.',
+    },
+  },
+  {
+    id: 'tailnet',
+    destination: 'network',
+    label: 'Tailscale',
+    route: '/network/tailnet',
+    order: 115,
+    command: {
+      label: 'Open Tailscale workbench',
+      keywords: 'tailscout tailnet wireguard tailscale peers accounts exit node taildrop netcheck',
     },
   },
   {

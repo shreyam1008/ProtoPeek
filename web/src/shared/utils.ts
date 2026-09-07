@@ -339,15 +339,7 @@ export function defaultValueForField(
     }
     const nextSeen = new Set(seen);
     nextSeen.add(field.type);
-    const messageFields = schema.messageTypes[field.type] ?? [];
-    return Object.fromEntries(
-      messageFields
-        .filter((nestedField) => nestedField.type !== 'oneof')
-        .map((nestedField) => [
-          nestedField.name,
-          defaultValueForField(nestedField, schema, nextSeen),
-        ])
-    );
+    return messageTemplate(field.type, schema, nextSeen);
   }
 
   if (field.defaultVal !== null && field.defaultVal !== undefined) {
@@ -378,13 +370,54 @@ export function defaultValueForField(
   }
 }
 
-export function generateRequestTemplate(schema: SchemaResponse) {
-  const fields = schema.messageTypes[schema.requestType] ?? [];
-  const payload = Object.fromEntries(
+function messageTemplate(type: string, schema: SchemaResponse, seen: Set<string>): unknown {
+  // Well-known types use ProtoJSON, not their underlying wire fields.
+  // https://protobuf.dev/programming-guides/json/#well-known-types
+  switch (type) {
+    case 'google.protobuf.Timestamp':
+      return '1970-01-01T00:00:00Z';
+    case 'google.protobuf.Duration':
+      return '0s';
+    case 'google.protobuf.StringValue':
+    case 'google.protobuf.BytesValue':
+    case 'google.protobuf.FieldMask':
+      return '';
+    case 'google.protobuf.BoolValue':
+      return false;
+    case 'google.protobuf.Int32Value':
+    case 'google.protobuf.UInt32Value':
+    case 'google.protobuf.FloatValue':
+    case 'google.protobuf.DoubleValue':
+      return 0;
+    case 'google.protobuf.Int64Value':
+    case 'google.protobuf.UInt64Value':
+      return '0';
+    case 'google.protobuf.Value':
+      return null;
+    case 'google.protobuf.ListValue':
+      return [];
+    case 'google.protobuf.Struct':
+    case 'google.protobuf.Empty':
+      return {};
+    case 'google.protobuf.Any':
+      return { '@type': 'type.googleapis.com/google.protobuf.Empty' };
+  }
+  const fields = schema.messageTypes[type] ?? [];
+  return Object.fromEntries(
     fields
-      .filter((field) => field.type !== 'oneof')
-      .map((field) => [field.name, defaultValueForField(field, schema)])
+      // Optional message presence is meaningful. Avoid expanding entire recursive
+      // schemas and their required descendants simply by selecting a method.
+      .filter(
+        (field) =>
+          field.type !== 'oneof' &&
+          (!field.isMessage || field.isRequired || field.isArray || field.isMap)
+      )
+      .map((field) => [field.name, defaultValueForField(field, schema, seen)])
   );
+}
+
+export function generateRequestTemplate(schema: SchemaResponse) {
+  const payload = messageTemplate(schema.requestType, schema, new Set([schema.requestType]));
   return schema.requestStream ? [payload] : payload;
 }
 

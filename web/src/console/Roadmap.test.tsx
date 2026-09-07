@@ -33,7 +33,9 @@ describe('Roadmap', () => {
     expect(gated).not.toBeNull();
     if (!available || !gated) return;
 
-    expect(within(available).getByRole('heading', { name: 'Network Path · Linux' })).toBeVisible();
+    expect(
+      within(available).getByRole('heading', { name: 'Network Path · Linux + Windows' })
+    ).toBeVisible();
     expect(
       within(available).getByRole('heading', { name: 'Authorized private discovery' })
     ).toBeVisible();

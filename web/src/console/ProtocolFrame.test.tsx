@@ -124,7 +124,7 @@ describe('ProtocolFrame', () => {
     const trigger = screen.getByRole('button', { name: 'Open global command menu' });
     trigger.focus();
     fireEvent.click(trigger);
-    const commands = screen.getByRole('dialog', { name: 'ProtoPeek commands' });
+    const commands = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
     expect(within(commands).getByRole('option', { name: 'Open Downloader' })).toBeVisible();
     expect(
       within(commands).getByRole('option', { name: 'Open Cloudflare tunnel operations' })
@@ -185,9 +185,7 @@ describe('ProtocolFrame', () => {
     fireEvent.click(menu);
     const reopened = await screen.findByRole('dialog', { name: 'ProtoPeek' });
     fireEvent.click(within(reopened).getByRole('link', { name: 'Settings' }));
-    expect(
-      await screen.findByRole('heading', { name: "Shape this browser's console." })
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).not.toBeInTheDocument();
   });
@@ -215,7 +213,7 @@ describe('ProtocolFrame', () => {
       })
     );
     const settingsHeading = await screen.findByRole('heading', {
-      name: "Shape this browser's console.",
+      name: 'Settings',
     });
     await waitFor(() => expect(settingsHeading).toHaveFocus());
     expect(within(sessions).getAllByRole('tab')).toHaveLength(2);
@@ -229,9 +227,7 @@ describe('ProtocolFrame', () => {
       )
     );
     fireEvent.click(screen.getByRole('button', { name: 'Close Inspect session' }));
-    expect(
-      await screen.findByRole('heading', { name: "Shape this browser's console." })
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/settings');
     expect(within(sessions).queryByRole('tab', { name: 'Inspect' })).toBeNull();
   });

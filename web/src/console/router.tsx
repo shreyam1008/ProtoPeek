@@ -7,14 +7,13 @@ import {
   redirect,
 } from '@tanstack/react-router';
 
-import { Dashboard } from './Dashboard';
 import { ProtocolFrame } from './ProtocolFrame';
 
 const rootRoute = createRootRoute({ component: ProtocolFrame });
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: Dashboard,
+  component: lazyRouteComponent(() => import('./Dashboard'), 'Dashboard'),
 });
 const protocolsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -31,10 +30,40 @@ const httpRoute = createRoute({
   path: '/protocols/http',
   component: lazyRouteComponent(() => import('./HTTPRoute'), 'HTTPRoute'),
 });
+const eventsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/protocols/events',
+  component: lazyRouteComponent(() => import('./EventStreamWorkbench'), 'EventStreamWorkbench'),
+});
+const capnpRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/protocols/capnp',
+  component: lazyRouteComponent(() => import('./CapnpWorkbench'), 'CapnpWorkbench'),
+});
 const downloaderRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/downloader',
   component: lazyRouteComponent(() => import('./Downloader'), 'Downloader'),
+});
+const portScannerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/ports',
+  component: lazyRouteComponent(() => import('./PortScanner'), 'PortScanner'),
+});
+const nmapScannerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/nmap',
+  component: lazyRouteComponent(() => import('./NmapScanner'), 'NmapScanner'),
+});
+const tailnetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/tailnet',
+  component: lazyRouteComponent(() => import('./TailnetWorkbench'), 'TailnetWorkbench'),
+});
+const packetsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/packets',
+  component: lazyRouteComponent(() => import('./PacketWorkbench'), 'PacketWorkbench'),
 });
 const thisPCRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -138,6 +167,12 @@ const routeTree = rootRoute.addChildren([
   protocolsRoute,
   grpcRoute,
   httpRoute,
+  eventsRoute,
+  capnpRoute,
+  packetsRoute,
+  portScannerRoute,
+  nmapScannerRoute,
+  tailnetRoute,
   thisPCRoute,
   tunnelsRoute,
   downloaderRoute,

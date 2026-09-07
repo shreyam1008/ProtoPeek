@@ -1,8 +1,46 @@
 # Private networking inside ProtoPeek
 
-Status: product decision and delivery plan; no private-network client integration is shipped yet.
+Status: product decision and delivery plan. Current source after v0.5.0 includes an installed
+Tailscale client workbench; this is not a claim that the stable release or full retirement gate is complete.
 
 Last ecosystem documentation check: 2026-09-02.
+
+## Current-source checkpoint, September 6
+
+**Network → Tailscale** reads the existing client when you click Inspect. It finds PATH, the
+standard Windows installation, and documented macOS app/Homebrew locations. No account token,
+daemon fork or WireGuard implementation is bundled. The Go adapter whitelists status fields and
+omits auth URLs, keys, capability maps and profile images. Null or missing evidence stays unknown.
+
+The device list has online-first ordering, filtering, 50-row pages and a selected-peer inspector.
+It distinguishes active direct, peer-relay and DERP traffic from idle peers. An assigned relay
+region alone is not proof that traffic is relayed. Taildrop eligibility requires the client's
+`TaildropTargetAvailable` value (1); TailScout's previous positive-number check also admitted
+several failure states. Source reference: [upstream status contract](https://github.com/tailscale/tailscale/blob/main/ipn/ipnstate/ipnstate.go).
+
+Explicit operations cover connect/disconnect/logout, saved-account switching, exit-node selection
+and advertisement, three bounded peer pings, netcheck, and Taildrop send/receive. The app reviews
+the concrete target and effect before submission; the backend re-reads the daemon and checks the
+observed control revision. It accepts typed operations and current peer/account IDs, not shell
+text or arbitrary arguments. Receive uses `--conflict=rename`. Send uses one existing local regular
+file. Browser navigation or Cancel terminates the CLI, but a daemon change or transfer may already
+have occurred; refresh before retrying. [CLI reference](https://tailscale.com/docs/reference/tailscale-cli).
+
+Status reads take at most 10 seconds, ordinary commands 30 seconds, and file commands five minutes.
+Output limits are 4 MiB stdout and 16 KiB stderr; API command output is further capped at 16 KiB.
+The view contains at most 1,024 peers, 128 routes per peer and 64 profiles. There is no idle polling,
+automatic scan, saved credential, automatic file send or automatic setting change. View/filter
+preferences remain in bounded browser storage; raw snapshots and diagnostic output stay in memory.
+
+Verified in Windows: actual client 1.102.3, 14 peers, saved account, active relay evidence,
+three reported Taildrop recipients, and a real netcheck. Mutations and file-command argument
+contracts were exercised with fixtures; no live account, route, login, or peer file state was changed
+as part of this QA. Linux/macOS execution and native elevation still require platform validation.
+
+Remaining parity gates: integrated interactive sign-in, OS-owned elevation, transfer progress and
+long-transfer recovery, Serve/Funnel workflows, richer structured diagnostics, Headscale-specific
+management and a distinct NetBird adapter. The architecture and retirement criteria below remain
+the delivery contract; no planned provider is presented as completed.
 
 The portfolio boundary, six-destination information architecture, code reset, and public migration
 sequence are defined in [ProtoPeek suite strategy](protopeek-suite-strategy.md). This document owns

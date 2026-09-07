@@ -731,12 +731,14 @@
     left: 0;
     top: 0;
     transform: translateX(-102%);
+    visibility: hidden;
     box-shadow: 18px 0 50px rgba(0, 0, 0, 0.35);
     transition: transform var(--pp-motion-slow) var(--pp-ease-out);
   }
 
   .pp-sidebar-open {
     transform: translateX(0);
+    visibility: visible;
   }
   .pp-sidebar-backdrop {
     position: fixed;
@@ -2440,15 +2442,16 @@
   }
 
   .pp-http-request-editor {
-    display: flex;
+    display: grid;
     min-height: 0;
-    flex-direction: column;
+    grid-template: auto minmax(0, 1fr) / 88px minmax(0, 1fr);
     overflow: hidden;
     background: #f5f8f8;
     color: #142329;
   }
 
   .pp-http-request-settings {
+    grid-column: 1 / -1;
     display: flex;
     min-height: 2.7rem;
     align-items: center;
@@ -2521,6 +2524,7 @@
   }
 
   .pp-http-request-content {
+    min-width: 0;
     min-height: 0;
     flex: 1;
     overflow: auto;
@@ -2708,16 +2712,17 @@
   }
 
   .pp-http-response {
-    display: flex;
+    display: grid;
     height: 100%;
     min-height: 0;
-    flex-direction: column;
+    grid-template: auto minmax(0, 1fr) / 88px minmax(0, 1fr);
     overflow: hidden;
     background: #091117;
     color: #dbe6ea;
   }
 
   .pp-http-response-summary {
+    grid-column: 1 / -1;
     display: flex;
     min-height: 2.7rem;
     align-items: center;
@@ -2737,6 +2742,7 @@
   }
 
   .pp-http-response-content {
+    min-width: 0;
     min-height: 0;
     flex: 1;
     overflow: auto;
@@ -2745,6 +2751,60 @@
 
   .pp-http-response-content > [role="tabpanel"] {
     min-height: 100%;
+  }
+
+  .pp-workbench-side-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    border-bottom: 0;
+    border-right: 1px solid var(--pp-stroke);
+    padding: 6px;
+    gap: 4px;
+  }
+
+  .pp-rpc-pane-content {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pp-rpc-pane-content > [role="tabpanel"] {
+    min-width: 0;
+    min-height: 0;
+  }
+  .pp-rpc-pane-content > [hidden] {
+    display: none;
+  }
+  .pp-rpc-copy-notice {
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .pp-rpc-copy-notice[role="alert"] {
+    color: var(--pp-danger-signal);
+  }
+
+  .pp-workbench-side-tabs .pp-pane-tab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 6px;
+    border-radius: 3px;
+    text-align: left;
+    white-space: normal;
+    font-size: 11px;
+  }
+
+  .pp-workbench-side-tabs .pp-pane-tab-active {
+    background: var(--pp-accent-soft);
+    box-shadow: inset 2px 0 var(--pp-accent-signal);
+  }
+
+  .pp-workbench-side-tabs .pp-pane-tab::after {
+    display: none;
   }
 
   .pp-http-evidence-toolbar {

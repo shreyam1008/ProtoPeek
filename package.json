@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@cloudflare/speedtest": "1.12.1",
+    "@tanstack/match-sorter-utils": "^9.1.2",
     "@tanstack/react-router": "^1.170.31",
+    "@tanstack/react-table": "^9.2.4",
     "lucide-react": "^1.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

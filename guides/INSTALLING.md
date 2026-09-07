@@ -1,6 +1,6 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.5.0 is the current stable release. The default resolver installs it from immutable GitHub release
+> v0.6.0 is the current stable release. The default resolver installs it from immutable GitHub release
 > assets and never falls back to edge.
 
 ## Install through an owned package channel
@@ -18,8 +18,8 @@ scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek
 ```
 
-The formula and manifest pin the public v0.5.0 archives by SHA-256 and declare aria2 as an external
-package dependency. They provide the v0.5.0 Downloader without bundling aria2 into ProtoPeek.
+The formula and manifest pin release archives by SHA-256 and declare aria2 as a package
+dependency. Check the manifest for its packaged version; the direct resolver selects latest stable.
 Update with `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
 
@@ -35,9 +35,9 @@ command unless an unrelated `pp` already occupies the install directory; that
 file is never overwritten. Older verified archives that contain only
 `protopeek` are supported by deriving the alias from that verified binary.
 
-The v0.5.0 archive does not bundle aria2. Install `aria2c` separately or configure its executable
-path before using Downloader or `pp download`; every other v0.5.0 workbench area remains usable
-without starting the transfer engine.
+v0.6.0 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted
+only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64
+and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.
 
 Windows PowerShell installs per user and updates the user PATH without requiring
 administrator access:
@@ -56,14 +56,27 @@ Get-Content .\install.ps1
 
 ## Install a pinned release
 
+The Windows PowerShell 5.1 and PowerShell 7 compatible per-user installer
+adds a **ProtoPeek** Start-menu shortcut. It opens the browser and minimizes the console. The
+shortcut uses loopback port `8844`, keeping the browser origin stable so drafts and appearance
+survive a restart. Use `-UIPort` to choose another port if it is occupied, or `-NoShortcuts` for a
+CLI-only installation. `-ShortcutDir` supports a custom Start-menu destination. A shortcut pointing
+at a different installation is preserved. The console process remains the server: closing the
+browser leaves downloads running; stopping the server requires queue recovery on next start.
+Reopen the existing browser address while the server is running instead of starting a second copy.
+
+The bundled engine adds about 2.36 MiB compressed to Windows x64 builds. Its upstream Windows
+TLS implementation does not support TLS 1.3-only servers; configure another aria2 build if needed.
+Source and notices are documented in `internal/bundledaria2/README.md` and accompany the release.
+
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.5.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.6.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.5.0'
+$env:PROTOPEEK_VERSION = 'v0.6.0'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
@@ -94,6 +107,10 @@ a PowerShell release-resolver install, remove
 `%LOCALAPPDATA%\Programs\ProtoPeek` and remove that directory from the user
 PATH. Never remove an unrelated `pp` command. Browser-saved targets remain
 until cleared through browser site-data controls.
+
+For the Windows installer, also remove the owned
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\ProtoPeek\ProtoPeek.lnk` shortcut (or the
+custom shortcut location). The PATH entry is the `bin` directory inside the installation.
 
 ## Docker
 

@@ -88,6 +88,15 @@ func setWebsiteObservationHeaders(writer http.ResponseWriter) {
 }
 
 func writeWebsiteObservationError(writer http.ResponseWriter, err error) {
+	if failure := certificateFailure(err); failure != nil {
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		writer.WriteHeader(http.StatusBadGateway)
+		_ = json.NewEncoder(writer).Encode(struct {
+			Error      string             `json:"error"`
+			TLSFailure *websiteTLSFailure `json:"tlsFailure"`
+		}{Error: failure.Reason + ". TLS verification rejected the connection; no HTTP response was received.", TLSFailure: failure})
+		return
+	}
 	var phaseError *webobserve.PhaseError
 	phase := ""
 	if errors.As(err, &phaseError) {

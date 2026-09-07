@@ -52,7 +52,7 @@ const (
 
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
-	case "/protocols", "/protocols/grpc", "/protocols/http", "/downloader", "/this-pc", "/tunnels", "/network/route", "/security", "/settings",
+	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/network/route", "/security", "/settings",
 		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap":
 		return true
 	default:
@@ -169,6 +169,14 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		domainCandidatesAdmission.serveHTTP("certificate-name lookup", w, r, domainCandidatesOperation)
 	})
 	websiteObservationOperation := WebsiteObservationOperationHandler(websiteObserver)
+	websitePathsOperation := WebsitePathsOperationHandler(websiteObserver)
+	mux.HandleFunc("/api/security/paths", func(w http.ResponseWriter, r *http.Request) {
+		setWebsiteObservationHeaders(w)
+		if !validateAdmittedPOST(w, r) {
+			return
+		}
+		websiteObservationAdmission.serveHTTP("website path checks", w, r, websitePathsOperation)
+	})
 	mux.HandleFunc("/api/security/web", func(w http.ResponseWriter, r *http.Request) {
 		setWebsiteObservationHeaders(w)
 		if !validateAdmittedPOST(w, r) {
@@ -208,6 +216,9 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		scanHandler.ServeHTTP(w, r)
 	})
 	httpRequestHandler := HTTPRequestHandler()
+	registerEventStreams(&mux)
+	registerPortScanner(&mux)
+	registerIPAttribution(&mux)
 	mux.HandleFunc("/api/http/request", func(w http.ResponseWriter, r *http.Request) {
 		if !validateAdmittedPOST(w, r) {
 			return
@@ -241,6 +252,10 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		pathTraceAdmission.serveHTTP("path trace", w, r, pathTraceEndpoint)
 	})
 	mux.Handle("/api/network/capabilities", NetworkDiscoveryCapabilitiesHandler())
+	registerNmapScanner(&mux)
+	registerCapnpWorkbench(&mux)
+	registerPacketWorkbench(&mux)
+	registerTailnet(&mux)
 	networkDiscoveryEndpoint := NetworkDiscoveryHandler()
 	mux.HandleFunc("/api/network/discover", func(w http.ResponseWriter, r *http.Request) {
 		if !validateAdmittedPOST(w, r) {

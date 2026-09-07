@@ -24,7 +24,7 @@ describe('Downloader public landing page', () => {
       'https://protopeek.shreyam1008.com.np/downloader/'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
-      'ProtoPeek v0.5.0 Downloader is a local transfer workbench using system or configured aria2c with queue controls and SHA-256 evidence.'
+      'ProtoPeek v0.6.0 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).not.toBe(
       homepage.querySelector('meta[name="description"]')?.getAttribute('content')
@@ -63,9 +63,7 @@ describe('Downloader public landing page', () => {
         url: 'https://protopeek.shreyam1008.com.np/downloader/',
       })
     );
-    expect(structuredData.softwareRequirements).toMatch(
-      /system-installed or explicitly configured aria2c/i
-    );
+    expect(structuredData.softwareRequirements).toMatch(/bundled aria2 on Windows x64/i);
     expect(structuredData.screenshot).toEqual([
       'https://protopeek.shreyam1008.com.np/assets/protopeek-downloader-development.jpg',
       'https://protopeek.shreyam1008.com.np/assets/protopeek-downloader-development-mobile.jpg',
@@ -78,7 +76,7 @@ describe('Downloader public landing page', () => {
         }),
         expect.objectContaining({
           name: 'Package-manager status',
-          value: expect.stringMatching(/Homebrew and Scoop install v0\.5\.0/i),
+          value: expect.stringMatching(/Homebrew and Scoop/i),
         }),
       ])
     );
@@ -96,9 +94,9 @@ describe('Downloader public landing page', () => {
       .map((entry) => entry.file.replace('../web/site/public', ''));
 
     expect(screenshots.map((image) => image.getAttribute('src'))).toEqual(releaseScreenshotFiles);
-    expect(renderedText).toMatch(/Stable ProtoPeek v0\.5\.0/i);
-    expect(renderedText).toMatch(/Homebrew and Scoop install v0\.5\.0/i);
-    expect(renderedText).toMatch(/system-installed or explicitly configured aria2c/i);
+    expect(renderedText).toMatch(/Stable ProtoPeek v0\.6\.0/i);
+    expect(renderedText).toMatch(/Homebrew and Scoop/i);
+    expect(renderedText).toMatch(/Bundled on Windows x64; installed aria2 elsewhere/i);
     expect(renderedText).toMatch(/up to 32 independent jobs/i);
     expect(renderedText).toMatch(/pause or resume one job or the whole queue/i);
     expect(renderedText).toMatch(/bounded headers, and User-Agent/i);

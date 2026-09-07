@@ -1,5 +1,9 @@
 # HTTP workbench
 
+Current source places request settings and response evidence in vertical tabs beside the editors.
+Request and response remain visible together at desktop widths; narrow screens expose a pane
+switch. Arrow Up/Down navigates each side list.
+
 ProtoPeek sends one bounded HTTP or REST request through the local Go process and keeps request choices, transport evidence, and the response together. The workbench ships in stable v0.5.0.
 
 ## Build one explicit request
@@ -36,6 +40,26 @@ One phase can be absent when the transport reused a connection or did not expose
 
 ## Reuse without hiding secrets
 
+### Current-source saved requests
+
+**Saved requests** opens a left-side library for reusable HTTP requests. Name the current request
+and choose **Save new**, or **Update selected** to replace the selected recipe. The library keeps
+the method, URL, query fields, non-sensitive headers, body mode, timeout and redirect choice.
+Credential-like values are removed, while empty parameter names remain available for re-entry.
+Auth fields are never saved. **Include this request body** is an explicit option; included body
+text is saved verbatim and should not contain secrets you want kept only in memory.
+
+Loading a recipe fills the editor and clears old response/auth state without sending a request.
+Global **Ctrl+K** search also finds saved requests by name, method and sanitized URL, even from
+another workspace. Choosing a result prepares the request; **Send** remains a separate action.
+Use the library filter, Delete, Export library or Reset library to manage stored recipes.
+
+Storage belongs to this browser origin: at most 50 recipes / 512 KiB total and 64 KiB per saved
+body. A corrupt/full/unavailable store produces an error and is not overwritten by a failed save.
+Other tabs refresh the list when browser storage changes. Closing/reopening the browser preserves
+the library on the same origin; it is not an account or a host-wide database. This functionality
+is in current source after v0.5.0; environment profiles and library import are still future work.
+
 Recent HTTP calls remain local to this browser and preserve a small response summary. Replaying a history entry starts from a clean request state and leaves redacted values blank for deliberate re-entry.
 
 Copy as cURL validates the same prepared request as Send. It preserves the method, duplicate query values, non-sensitive headers, timeout, and body while omitting auth and credential-like headers. Redirect-enabled drafts are refused because a portable command cannot reproduce ProtoPeek’s complete redirect policy.
@@ -44,10 +68,29 @@ The copied command runs in your shell. Its DNS, proxy, trust roots, network name
 
 ## Deliberate limits
 
+### Current-source draft recovery and event streams
+
+Unsent HTTP drafts recover in the same browser after navigation or restart. Credential-like query
+values and headers are redacted; auth must be entered again. Bodies stay in memory unless
+“Remember body in this browser” is enabled. Draft storage is bounded to 256 KiB, and storage failures
+are shown in the workbench. JSON responses offer a pretty/raw toggle without changing copied bytes.
+
+Inspect → Event streams (current source, after v0.5.0) connects to `ws://` / `wss://` WebSockets or
+`http://` / `https://` SSE endpoints through the local Go server. WebSocket supports text/JSON and
+base64 binary messages, custom headers, and negotiated subprotocols. SSE displays multiline data,
+event names, and last-event IDs. TLS certificates are verified; redirects are not followed.
+
+Connect starts traffic; Disconnect or leaving the workbench closes the upstream connection. The
+duration is explicit (0.1–120 seconds, default 60). Each session stops at 500 received messages or
+2 MiB, with a 64 KiB per-message limit and 200 WebSocket sends. The UI retains the latest 200 rows;
+timestamps are browser observation times since Connect, not one-way network latency. Two simultaneous
+stream sessions are allowed per server. Headers and payloads remain in memory. SSE does not retry
+automatically; an explicit `Last-Event-ID` header can request resumption from a compatible server.
+
 ProtoPeek does not currently provide cURL import, automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
 
 ## Go deeper
 
 - [See how network path evidence stays separate](/network-workbench/).
 - [Read the transport and workspace boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.5.0](/install/).
+- [Install stable ProtoPeek v0.6.0](/install/).

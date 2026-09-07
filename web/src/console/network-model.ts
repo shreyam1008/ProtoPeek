@@ -30,6 +30,7 @@ export type NetworkEvidenceSource =
   | 'protopeek-probe'
   | 'nmap-import'
   | 'path-trace'
+  | 'ip-attribution'
   | 'graphml-import'
   | 'manual';
 
@@ -149,6 +150,7 @@ const evidenceSources = new Set<NetworkEvidenceSource>([
   'protopeek-probe',
   'nmap-import',
   'path-trace',
+  'ip-attribution',
   'graphml-import',
   'manual',
 ]);

@@ -55,18 +55,59 @@ afterEach(() => {
 });
 
 describe('Settings', () => {
+  it('reports unsaved interface choices until each failed preference is retried', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(hostSnapshot))
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Settings', level: 1 });
+    const save = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Full', 'QuotaExceededError');
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Dark/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Compact/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('only to this session');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(document.documentElement).toHaveAttribute('data-density', 'compact');
+    save.mockRestore();
+    fireEvent.click(screen.getByRole('button', { name: /^Dark/ }));
+    expect(screen.getByRole('alert')).toHaveTextContent('only to this session');
+    fireEvent.click(screen.getByRole('button', { name: /^Compact/ }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('uses vertical keyboard navigation and preserves unsaved host drafts across sections', async () => {
+    const fetchMock = vi.fn(async () => Response.json(hostSnapshot));
+    vi.stubGlobal('fetch', fetchMock);
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    const tabs = await screen.findByRole('tablist', { name: 'Settings sections' });
+    expect(tabs).toHaveAttribute('aria-orientation', 'vertical');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Appearance' }), { key: 'ArrowDown' });
+    expect(screen.getByRole('tabpanel', { name: 'Preferences' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Dark/ })).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Preferences' }), { key: 'ArrowDown' });
+    const activeJobs = await screen.findByRole('spinbutton', { name: /^Active jobs/ });
+    fireEvent.change(activeJobs, { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Appearance' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Downloads' }));
+    expect(screen.getByRole('spinbutton', { name: /^Active jobs/ })).toHaveValue(7);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('persists browser-local appearance and presentation choices', async () => {
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
 
-    expect(
-      await screen.findByRole('heading', { name: "Shape this browser's console." })
-    ).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
     expect(screen.getByText('Local + explicit')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /^Dark/ }));
     fireEvent.click(screen.getByRole('button', { name: /^Nord/ }));
     fireEvent.click(screen.getByRole('button', { name: /^Compact/ }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Preferences' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /Show keyboard shortcut hints/i }));
 
     await waitFor(() => {
@@ -134,6 +175,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
 
     const activeJobs = await screen.findByRole('spinbutton', { name: /^Active jobs/ });
     expect(activeJobs).toHaveValue(4);
@@ -194,6 +236,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
     await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
 
     fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
@@ -230,6 +273,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
     await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
 
     expect(screen.getByRole('button', { name: 'Save host settings' })).toBeDisabled();
@@ -263,6 +307,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
     await screen.findByRole('textbox', { name: /^aria2 executable\/path/ });
 
     expect(screen.getByRole('button', { name: 'Save host settings' })).toBeEnabled();
@@ -298,6 +343,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
     await screen.findByRole('spinbutton', { name: /^Bandwidth cap · MiB\/s/ });
     fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
     expect(
@@ -331,6 +377,7 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
     const activeJobs = await screen.findByRole('spinbutton', { name: /^Active jobs/ });
     fireEvent.change(activeJobs, { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save host settings' }));
@@ -413,7 +460,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
     expect(new URL(String(fetchMock.mock.calls[0]?.[0])).pathname).toMatch(
       /\/api\/transfers\/snapshot$/
@@ -501,7 +549,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
 
     expect(await screen.findByRole('checkbox', { name: /Allow guarded rollback/i })).toBeVisible();
@@ -572,7 +621,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
     await screen.findByText('Ready for explicit import');
     fireEvent.click(screen.getByRole('checkbox', { name: /Keep GoBarryGo untouched/i }));
@@ -639,7 +689,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
     const rollbackApproval = await screen.findByRole('checkbox', {
       name: /Allow guarded rollback/i,
@@ -701,7 +752,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
     await screen.findByText('Ready for explicit import');
     fireEvent.click(screen.getByRole('checkbox', { name: /Keep GoBarryGo untouched/i }));
@@ -760,7 +812,8 @@ describe('Settings', () => {
 
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
     render(<RouterProvider router={router} />);
-    await screen.findByRole('heading', { name: "Shape this browser's console." });
+    fireEvent.click(await screen.findByRole('tab', { name: 'Migration' }));
+    await screen.findByRole('heading', { name: 'Settings' });
 
     fireEvent.click(screen.getByRole('button', { name: /Check for GoBarryGo/i }));
     expect(await screen.findByText('Stop Downloader before import')).toBeVisible();

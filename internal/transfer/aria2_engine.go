@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -77,6 +78,9 @@ func (engine *aria2Engine) Snapshot(ctx context.Context, maxTracked int) (Engine
 	globalPending := parseInt(global.NumWaiting)
 	globalStopped := parseInt(global.NumStopped)
 	metrics.ActiveCount = max(metrics.ActiveCount, globalActive)
+	if metrics.ActiveCount == 0 {
+		metrics.BytesPerSecond = 0
+	}
 	metrics.TotalCount = max(metrics.TotalCount, globalActive+globalPending+globalStopped)
 	pendingCount := max(metrics.QueuedCount+metrics.PausedCount, globalPending)
 	if err := engine.rewriteSessionAfterCompletions(ctx, stoppedResults); err != nil {
@@ -112,6 +116,12 @@ func (engine *aria2Engine) rewriteSessionAfterCompletions(ctx context.Context, s
 
 func (engine *aria2Engine) Add(ctx context.Context, request AddRequest, config HostConfig) (string, error) {
 	options := optionsForRequest(config, request)
+	output, err := newDownloadOutput(config, request)
+	if err != nil {
+		return "", err
+	}
+	options["out"] = output
+	options["continue"] = "false"
 	id, err := engine.rpc.AddURI(ctx, request.Sources, options)
 	if err != nil {
 		return "", err
@@ -252,6 +262,9 @@ func mapAria2Status(status aria2Status) Job {
 	total := parseInt64(status.TotalLength)
 	completed := parseInt64(status.CompletedLength)
 	speed := parseInt64(status.DownloadSpeed)
+	if status.Status != "active" {
+		speed = 0
+	}
 	progress := 0.0
 	if total > 0 {
 		progress = float64(completed) / float64(total) * 100
@@ -272,6 +285,11 @@ func mapAria2Status(status aria2Status) Job {
 	source := ""
 	if len(sources) > 0 {
 		source = redactSource(sources[0])
+		if output == "" {
+			if parsed, err := url.Parse(source); err == nil && parsed.Path != "" && parsed.Path != "/" {
+				name = path.Base(parsed.Path)
+			}
+		}
 	}
 	verifiedBytes := parseInt64(status.VerifiedLength)
 	verification := "unknown"

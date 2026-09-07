@@ -152,7 +152,8 @@ func TestDomainCandidatesOperationMapsErrorsExactly(t *testing.T) {
 		retryAfter string
 	}{
 		{name: "cancelled", err: context.Canceled, status: 499, body: "Certificate-name lookup cancelled\n"},
-		{name: "deadline", err: context.DeadlineExceeded, status: http.StatusGatewayTimeout, body: "Certificate-name lookup timed out\n"},
+		{name: "deadline", err: context.DeadlineExceeded, status: http.StatusGatewayTimeout, body: "Name-index lookup timed out; try again later. No returned name was probed.\n"},
+		{name: "provider rate limit", err: certnames.ErrProviderRateLimited, status: http.StatusTooManyRequests, body: "crt.name rate limit reached. The provider allows 100 free requests per source IP per day; try later.\n"},
 		{name: "invalid apex", err: certnames.ErrInvalidApex, status: http.StatusBadRequest, body: "Host must contain a valid registrable domain\n"},
 		{name: "busy", err: certnames.ErrProviderBusy, status: http.StatusTooManyRequests, body: "Certificate-name provider is busy; retry shortly\n", retryAfter: "1"},
 		{name: "response too large", err: certnames.ErrResponseTooLarge, status: http.StatusBadGateway, body: "Certificate-name provider response exceeded the safety limit\n"},

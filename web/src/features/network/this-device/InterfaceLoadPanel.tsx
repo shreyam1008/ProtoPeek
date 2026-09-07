@@ -4,10 +4,11 @@ import type { ThisPCCapabilities, ThisPCTrafficSample } from '@/console/this-pc-
 
 import { formatAverageBitRate, formatDecimalBytes, formatObservedAt } from './device-format';
 import type { IdleResource, Resource } from './device-state';
+import { useTrafficMonitor } from './useTrafficMonitor';
 
 export function InterfaceLoadPanel({
   capabilities,
-  state,
+  state: singleState,
   duration,
   onDuration,
   onSample,
@@ -20,13 +21,18 @@ export function InterfaceLoadPanel({
 }) {
   const capability = capabilities.status === 'ready' ? capabilities.value.trafficSample : null;
   const durations = capability?.durationsMs ?? [];
+  const monitor = useTrafficMonitor(duration);
+  const state: IdleResource<ThisPCTrafficSample> = monitor.value
+    ? { status: 'ready', value: monitor.value }
+    : singleState;
   return (
     <section className="this-pc-panel this-pc-traffic" aria-labelledby="traffic-sample-title">
       <header>
         <div>
-          <h2 id="traffic-sample-title">One-shot interface traffic sample</h2>
+          <h2 id="traffic-sample-title">Interface traffic</h2>
           <p>
-            Reads local interface counters twice; no background sampling and no per-process claim.
+            Received and sent bytes from local interface counters. Rates describe the interface, not
+            individual processes.
           </p>
         </div>
         <div className="this-pc-sample-actions">
@@ -35,7 +41,9 @@ export function InterfaceLoadPanel({
             <select
               aria-label="Traffic sample duration"
               value={duration}
-              disabled={!capability?.supported || state.status === 'loading'}
+              disabled={
+                !capability?.supported || singleState.status === 'loading' || monitor.running
+              }
               onChange={(event) => onDuration(Number(event.target.value) as 500 | 1000 | 2000)}
             >
               {durations.map((item) => (
@@ -48,13 +56,29 @@ export function InterfaceLoadPanel({
           <button
             type="button"
             className="this-pc-button"
-            disabled={!capability?.supported || state.status === 'loading'}
-            onClick={onSample}
+            disabled={!capability?.supported || singleState.status === 'loading' || monitor.running}
+            onClick={() => {
+              monitor.clear();
+              onSample();
+            }}
           >
             <Timer aria-hidden="true" /> {state.status === 'loading' ? 'Sampling…' : 'Sample once'}
           </button>
+          <button
+            type="button"
+            className="this-pc-button"
+            disabled={!capability?.supported || singleState.status === 'loading'}
+            onClick={() => (monitor.running ? monitor.stop() : monitor.start())}
+          >
+            {monitor.running ? 'Stop live sampling' : 'Start live sampling'}
+          </button>
         </div>
       </header>
+      {monitor.message ? (
+        <p className="this-pc-action-note" role="status">
+          {monitor.message}
+        </p>
+      ) : null}
       {state.status === 'ready' ? (
         <div className="this-pc-traffic-results">
           {state.value.interfaces.map((item) => (

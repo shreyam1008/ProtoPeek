@@ -28,6 +28,9 @@ describe('console core chunk contract', () => {
   it.each([
     '/repo/node_modules/@tanstack/react-router/dist/esm/useBlocker.js',
     '/repo/node_modules/@tanstack/query-core/build/modern/query.js',
+    '/repo/node_modules/@tanstack/react-store/dist/index.js',
+    '/repo/node_modules/@tanstack/store/dist/index.js',
+    '/repo/node_modules/@tanstack/react-table/dist/index.js',
     '/repo/node_modules/@cloudflare/speedtest/dist/index.js',
     '/repo/web/src/features/network/NetworkRoute.tsx',
   ])('leaves route-only modules out of the eager core: %s', (moduleID) => {

@@ -104,7 +104,7 @@
 
 .pp-protocol-choice-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .pp-protocol-choice {
@@ -118,7 +118,26 @@
 }
 
 .pp-protocol-choice + .pp-protocol-choice {
-  border-left: 1px solid var(--pp-stroke);
+  border-top: 1px solid var(--pp-stroke);
+}
+
+.pp-inspect-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  width: min(76rem, 100%);
+  margin: 1rem auto;
+  color: var(--pp-text-muted);
+  font-size: 0.78rem;
+}
+.pp-inspect-footer a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.pp-inspect-footer svg {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .pp-protocol-choice:hover,

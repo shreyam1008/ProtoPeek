@@ -63,11 +63,37 @@ function networkNode(
   }
 ): NetworkNode {
   const provenance = pathProvenance(trace, input.detail, input.evidenceKind);
+  const attribution = trace.attribution?.entries.find(
+    (entry) => entry.ip === input.identity.value && entry.status === 'observed'
+  );
+  const attributionDetail = attribution
+    ? `IPWHOIS (${trace.attribution?.source}): ${[
+        attribution.asn ? `AS${attribution.asn}` : '',
+        attribution.organization,
+        attribution.isp,
+        [attribution.city, attribution.region, attribution.country].filter(Boolean).join(', '),
+      ]
+        .filter(Boolean)
+        .join(
+          ' · '
+        )}. Approximate IP attribution; not a measured physical datacenter or return route.`
+    : '';
+  const nodeProvenance: NetworkProvenance[] = attribution
+    ? [
+        ...provenance,
+        {
+          kind: 'inferred',
+          source: 'ip-attribution',
+          observedAt: attribution.observedAt,
+          detail: attributionDetail,
+        },
+      ]
+    : provenance;
   return {
     id: input.id,
     label: input.label,
     tags: [],
-    notes: '',
+    notes: attributionDetail,
     deviceType: input.deviceType,
     firstSeen: trace.observedAt,
     lastSeen: trace.observedAt,
@@ -75,7 +101,7 @@ function networkNode(
     ports: [],
     groupIds: [],
     position: input.position,
-    provenance,
+    provenance: nodeProvenance,
   };
 }
 

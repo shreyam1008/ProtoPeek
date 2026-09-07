@@ -2,6 +2,7 @@ import { LoaderCircle, LockKeyhole, Play, X } from 'lucide-react';
 import { type ReactNode, useContext } from 'react';
 import type { ScanResult } from '@/console/api';
 import { DiscoveryPanel } from '@/console/DiscoveryScanner';
+import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
 import { ProtoPeekMark } from '@/console/ProtoPeekMark';
 import { GrpcStatusBanner } from '@/features/grpc/GrpcViewPrimitives';
@@ -192,7 +193,8 @@ export function LauncherView({
         <section className="pp-launcher-intro">
           <span className="pp-kicker">gRPC workbench</span>
           <h1>Open a gRPC target.</h1>
-          <p>Reflection first. Browser folders or host descriptors when it is off.</p>
+          <p>Connect with reflection, a proto folder, or a saved schema.</p>
+          <ProtocolInfo protocol="grpc" />
           <div className="pp-trust-row">
             <span>Auto-find loopback services</span>
             <span>

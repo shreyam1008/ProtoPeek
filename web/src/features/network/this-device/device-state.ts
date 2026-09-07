@@ -1,6 +1,6 @@
 import { ThisPCAPIError } from '@/console/this-pc-api';
 
-export type DeviceView = 'overview' | 'listeners' | 'activity' | 'benchmark';
+export type DeviceView = 'overview' | 'listeners' | 'activity' | 'traffic' | 'benchmark';
 
 export type Resource<T> =
   | { status: 'loading'; value?: undefined; error?: undefined }

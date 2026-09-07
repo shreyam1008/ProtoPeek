@@ -5,7 +5,37 @@ version source of truth.
 
 ## Unreleased
 
-- Added the current-source v0.7 typed v1 broker and unscoped TCP-listener drafts backed by evidence
+## v0.6.0 — 2026-09-07
+
+- Rebuilt the workbench around Home, Inspect, Network, Publish, Files and Settings. Side navigation,
+  vertical request/response and settings tabs, independent scrolling, fuzzy commands and saved HTTP
+  requests use the available desktop space. Drafts and appearance remain local; failed saves report
+  session-only state instead of claiming persistence.
+- Added bounded WebSocket/SSE inspection and Cap’n Proto bootstrap RPC with compiled or source
+  schemas, exact 64-bit JSON values, verified TLS, deadlines and cancellation. Improved ProtoJSON
+  request templates, streaming evidence, copy feedback and import-root resolution for host protos.
+- Added single-host TCP port scanning, explicit private-network Nmap scans, PCAP/PCAPNG inspection
+  and optional dumpcap capture. Findings retain their provenance; a port hint is not a verified
+  protocol, and packet metadata does not claim decrypted contents or full stream reconstruction.
+- Added native Windows IPv4/IPv6 ICMP paths and opt-in public-hop country/ASN attribution. Extended
+  This Device with Windows socket ownership, bounded traffic monitoring and typed unsent handoffs.
+- Added installed Tailscale status, peer/netcheck evidence and reviewed CLI actions, plus Cloudflare
+  Tunnel host/config inspection and guarded canonical service control. Headscale, NetBird,
+  integrated sign-in/elevation and Cloudflare configuration writes remain future work.
+- Added explicit website TLS/header evidence and five fixed HEAD path checks, with separate
+  historical certificate-name lookup. Reports preserve failures and never assign a security score.
+- Bundled the pinned aria2 1.37.0 Windows x64 companion inside the Go executable (about 2.36 MiB
+  compressed), extracted only when needed. Other platforms use installed aria2. Releases include
+  license notices and a checksum-verified source companion. Downloader now has destination browsing,
+  bounded persisted queue/history, foreground progress, safe filename conflicts and restart recovery.
+  Up to 16 connections can help compatible servers; this is not a guaranteed 16× speed increase.
+- Fixed the documented Windows PowerShell 5.1 pipeline installer, including architecture detection,
+  native stderr during binary validation and empty ownership markers. Added a per-user Start-menu
+  shortcut with a stable browser origin and regression checks from System32 in PowerShell 5.1 and 7.
+- Kept tools route-lazy and idle work bounded. Added transport, cancellation, malformed-input,
+  persistence and UI regression coverage alongside real-browser acceptance recorded in the guide.
+
+- Added the typed v1 broker and unscoped TCP-listener drafts backed by evidence
   no more than five minutes old. HTTP, gRPC, next-hop, and Publish handoffs are bounded,
   consume-once, and draft-only; they perform no automatic I/O and make no reachability claim.
 - Added native Windows This Device socket activity and interface counters through bounded IP Helper
@@ -21,7 +51,7 @@ version source of truth.
   host configuration; changed bytes or executable resolution now require a fresh preview, and
   duplicate or case-aliased preference fields fail closed instead of using last-value-wins.
 - Promoted the owned Homebrew tap and Scoop bucket to v0.5.0 after their dependency-aware
-  definitions and default-branch install checks passed. Both channels keep aria2 external to the
+  definitions and default-branch install checks passed. Those v0.5.0 channels kept aria2 external to the
   MIT ProtoPeek archives while making Downloader available through the package-manager install.
 
 ## v0.5.0 — 2026-08-24

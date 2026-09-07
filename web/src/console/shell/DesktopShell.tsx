@@ -97,17 +97,21 @@ export function DesktopShell({
         onInspect={onInspect}
         onOpenCommand={onOpenCommand}
         onToggleTheme={onToggleTheme}
-      />
-      <SessionTabs
-        references={sessions.references}
-        activeId={sessions.activeId}
-        onActivate={(reference) => void navigate({ to: reference.route })}
-        onClose={(reference) => {
-          const result = closeSession(sessions, reference.id);
-          setSessions(result.state);
-          if (result.nextRoute) void navigate({ to: result.nextRoute });
-        }}
-      />
+      >
+        <SessionTabs
+          references={sessions.references}
+          activeId={sessions.activeId}
+          onActivate={(reference) => {
+            onCloseNavigation();
+            void navigate({ to: reference.route });
+          }}
+          onClose={(reference) => {
+            const result = closeSession(sessions, reference.id);
+            setSessions(result.state);
+            if (result.nextRoute) void navigate({ to: result.nextRoute });
+          }}
+        />
+      </AppBar>
       <main
         id="pp-workbench-canvas"
         ref={canvasRef}

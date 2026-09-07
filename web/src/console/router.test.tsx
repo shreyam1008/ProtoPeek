@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BootstrapResponse } from '@/shared/types';
 
 import { getCompatibilityRouteTargets } from './app/feature-registry';
+import { emptyHTTPDraft } from './http-draft-store';
+import { saveHTTPRecipe } from './http-library';
 import { createProtoPeekRouter } from './router';
 
 const bootstrap: BootstrapResponse = {
@@ -45,6 +47,39 @@ afterEach(() => {
 });
 
 describe('protocol routes', () => {
+  it('finds saved HTTP requests globally and loads them without invoking the endpoint', async () => {
+    saveHTTPRecipe('QA reusable health', {
+      ...emptyHTTPDraft(),
+      url: 'http://127.0.0.1:43111/echo',
+      method: 'POST',
+      bodyMode: 'json',
+      body: '{"fixture":true}',
+      rememberBody: true,
+    });
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => Response.json(bootstrap));
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <RouterProvider
+        router={createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }))}
+      />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Open global command menu' }));
+    const search = await screen.findByRole('combobox', { name: 'Search commands' });
+    fireEvent.change(search, { target: { value: 'reusable health' } });
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Load HTTP request: QA reusable health/ })
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: 'Request URL' })).toHaveValue(
+        'http://127.0.0.1:43111/echo'
+      )
+    );
+    expect(screen.getByRole('combobox', { name: 'HTTP method' })).toHaveValue('POST');
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('http/request'))).toBe(false);
+    expect(await screen.findByRole('complementary', { name: 'Saved HTTP requests' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Request name' })).toHaveValue('QA reusable health');
+    expect(screen.getByRole('button', { name: 'Update selected' })).toBeEnabled();
+  });
   it.each(getCompatibilityRouteTargets())('redirects $route to $target', async ({
     route,
     target,
@@ -131,7 +166,7 @@ describe('protocol routes', () => {
     await screen.findByRole('region', { name: 'Echo call workspace' });
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
-    const dialogs = screen.getAllByRole('dialog', { name: 'ProtoPeek commands' });
+    const dialogs = await screen.findAllByRole('dialog', { name: 'ProtoPeek commands' });
     expect(dialogs).toHaveLength(1);
     expect(within(dialogs[0]).getByRole('option', { name: 'Open Home' })).toBeVisible();
     expect(within(dialogs[0]).queryByRole('option', { name: /Invoke current method/ })).toBeNull();
@@ -194,7 +229,7 @@ describe('protocol routes', () => {
       await router.navigate({ to: '/network' });
     });
     expect(
-      await screen.findByRole('heading', { name: 'See how this machine reaches a target.' })
+      await screen.findByRole('heading', { name: 'Network path', level: 1 })
     ).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/network/path');
     expect(screen.getByRole('link', { name: 'Open Network' })).toHaveClass('is-active');
@@ -250,7 +285,7 @@ describe('protocol routes', () => {
     expect(screen.getByRole('heading', { name: 'GoBarryGo bridge', level: 3 })).toBeInTheDocument();
     expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
-    expect(screen.getByText('Network Path · Linux')).toBeInTheDocument();
+    expect(screen.getByText('Network Path · Linux + Windows')).toBeInTheDocument();
     expect(screen.getByText('Broader/public range discovery')).toBeInTheDocument();
   });
 

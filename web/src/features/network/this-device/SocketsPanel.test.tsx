@@ -67,11 +67,7 @@ it('offers draft-only destinations for TCP listeners and leaves UDP as evidence'
       kind="listeners"
       capabilities={capabilities}
       activity={activity}
-      consentOpen={false}
-      acknowledged={false}
       onOpen={vi.fn()}
-      onAcknowledged={vi.fn()}
-      onConfirm={vi.fn()}
       onCancel={vi.fn()}
       onHandoff={onHandoff}
     />
@@ -109,11 +105,7 @@ it('does not offer URL-shaped drafts for a scoped IPv6 listener', () => {
       kind="listeners"
       capabilities={capabilities}
       activity={{ ...activity, value: { ...activity.value, listeners: [scoped] } }}
-      consentOpen={false}
-      acknowledged={false}
       onOpen={vi.fn()}
-      onAcknowledged={vi.fn()}
-      onConfirm={vi.fn()}
       onCancel={vi.fn()}
       onHandoff={vi.fn()}
     />
@@ -141,11 +133,7 @@ it('does not offer drafts when link-local IPv6 evidence lacks an interface scope
       kind="listeners"
       capabilities={capabilities}
       activity={{ ...activity, value: { ...activity.value, listeners: [missingScope] } }}
-      consentOpen={false}
-      acknowledged={false}
       onOpen={vi.fn()}
-      onAcknowledged={vi.fn()}
-      onConfirm={vi.fn()}
       onCancel={vi.fn()}
       onHandoff={vi.fn()}
     />

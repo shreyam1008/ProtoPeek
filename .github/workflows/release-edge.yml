@@ -48,6 +48,11 @@ jobs:
         with:
           syft-version: v1.51.0
 
+      - name: Prepare bundled aria2 source companion
+        run: |
+          bun scripts/package-aria2-sources.ts .local/aria2-sources
+          tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
+
       - name: Validate edge packaging before changing the public edge release
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:

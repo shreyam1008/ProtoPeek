@@ -175,7 +175,7 @@ export function ServiceNavigator({
         <span className="pp-wordmark-icon">
           <Network aria-hidden="true" />
         </span>
-        <strong>ProtoPeek</strong>
+        <strong>gRPC services</strong>
       </div>
 
       <div className="pp-service-search">

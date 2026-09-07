@@ -4,9 +4,22 @@ ProtoPeek separates browser-only preferences from private host configuration. St
 
 ## Shape this browser
 
+Current source uses compact vertical sections: Appearance, Preferences, Downloads, and Migration.
+Switching sections preserves an unsaved host-settings draft. The selected section scrolls
+independently; download Save/Reload actions stay visible. Arrow Up/Down, Home and End navigate
+the section list.
+
 Theme, density, and keyboard-hint preferences stay in this browser profile. Changing them does not write a server account, external database, or ProtoPeek cloud workspace.
 
-If browser storage is unavailable or malformed, the console keeps a usable session and reports the boundary instead of silently treating a failed write as saved state.
+Current-source HTTP saved requests also belong to this browser origin. Manage them in
+**Inspect → HTTP → Saved requests**: 50 recipes / 512 KiB total, with body storage explicitly
+enabled per saved request. Auth values are excluded. Delete and Reset affect the library;
+Export creates a portable JSON record. Global Ctrl+K can load a recipe without sending it.
+
+Missing or malformed interface preferences fall back to defaults. If a preference write fails,
+the live choice still applies and Settings shows that it is session-only. Retrying the affected
+choice can save it after storage becomes available; saving a different preference does not hide
+the earlier failure.
 
 ## Preview the GoBarryGo bridge
 
@@ -27,6 +40,11 @@ Supported controls cover the aria2 executable, download directory, active jobs, 
 
 Host settings live in the private transfer configuration, not browser localStorage. A strict revisioned patch preserves hidden fields and refuses writes unless the engine is stopped and the cooperative process lock is held.
 
+The folder picker lists local directories only, on request, and is shared by Downloader and
+Taildrop. Queued and paused downloads reserve their output names before creating files. The
+auto-rename policy chooses a free name; overwrite cannot assign another active job's destination.
+Explicit retry retains the chosen output name and partial-download behavior.
+
 ## Know where each value lives
 
 | Setting | Storage boundary | Release state |
@@ -39,5 +57,5 @@ Host settings live in the private transfer configuration, not browser localStora
 
 - [Use Downloader and inspect its external aria2 boundary](/downloader/).
 - [Read the GoBarryGo consolidation record](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md).
-- [Install stable ProtoPeek v0.5.0](/install/).
+- [Install stable ProtoPeek v0.6.0](/install/).
 

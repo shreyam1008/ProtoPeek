@@ -2,52 +2,42 @@
 
 Official downloads and package links: [ProtoPeek distribution tracker](https://shreyam1008.com.np/projects/#distribution-protopeek). Stable release, Homebrew and Scoop links are kept separate from planned distribution channels.
 
-ProtoPeek (Protocol Peek) is the lightweight local workbench for finding, reaching, inspecting, and
-safely exposing services. Its protocol-native gRPC and HTTP surfaces keep transport details visible.
-Its bounded evidence tools add DNS and kernel-route context, Linux-native active hop observations,
-authorized private-network service discovery, a logical topology notebook, and offline Nmap XML
-import without background polling or an external database. Its local Downloader uses an external
-`aria2c`, while Security keeps historical-name lookup and one public website observation behind
-separate disclosures and explicit consent.
+ProtoPeek (Protocol Peek) is a lightweight local workbench for finding, reaching, inspecting and
+publishing services. Inspect gRPC, HTTP, WebSocket, SSE and Cap’n Proto; discover ports and private
+network services; follow network hops; examine packet metadata and this device’s activity; manage
+local Tailscale and Cloudflare tools; and queue resumable downloads without an external database.
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Latest stable:** v0.5.0. The verified shell and PowerShell installers, and
-> `@latest`, resolve this release. Edge remains a separate opt-in channel.
+> **Latest stable: v0.6.0.** Six permanent destinations: **Home, Inspect, Network, Publish, Files and
+> Settings**. The verified installers resolve stable releases; edge remains an explicit opt-in.
+> Windows x64 includes aria2 inside the executable. Other platforms use installed aria2.
 
-> **v0.5.0 workbench:** the shipped unified shell has exactly six primary areas: Overview,
-> Protocols, Network, Downloader, Security, and Settings. The owned Homebrew and Scoop channels
-> install v0.5.0 and declare aria2 as an external package dependency.
+Vertical protocol/settings tabs, independent scrolling, recoverable drafts and fuzzy command search
+keep the workbench practical on a desktop. HTTP recipes and appearance belong to the browser origin;
+download configuration, resumable jobs and bounded completed history belong to the local host.
+Closing the browser leaves active downloads running while ProtoPeek stays open. Restarting the server
+restores recoverable queue state for explicit resume.
 
-> **Current source after v0.5.0:** the v0.6 workbench has exactly six permanent destinations:
-> **Home, Inspect, Network, Publish, Files, and Settings**. The route-lazy **This Device** workspace
-> remains available at `/this-pc` under Network. The domain-native **Cloudflare Tunnel** workspace
-> remains available at `/tunnels` under Publish, with explicit real-host inspection, an on-request
-> installed/latest `cloudflared` comparison, and confirmed, verified start/stop/restart for the one
-> canonical OS service. Route drafts remain browser-only. These source-only additions are not part
-> of the published v0.5.0 packages.
->
-> The unreleased v0.7 foundation adds native, bounded Windows socket ownership and interface
-> counters alongside Linux support, plus typed consume-once listener handoffs. macOS still reports
-> local activity and counters as unsupported. This is current-source behavior, not a v0.5.0 or
-> completed-v0.7 claim.
+See the [release notes](CHANGELOG.md), [feature roadmap](guides/feature-roadmap.md) and
+[acceptance record](guides/workbench-overhaul-2026-09.md) for measured behavior and limitations.
 
 ## Product contract
 
-Current source implements the v0.6 workbench as six permanent destinations without pretending that
-this shell shipped in v0.5.0:
+v0.6.0 has six permanent destinations:
 
 | Destination | Responsibility | Current and compatibility paths retained |
 | --- | --- | --- |
 | Home | resume and bounded discovery | `/` |
-| Inspect | gRPC, HTTP, website, and TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security`, `/grpc`, `/http` |
+| Inspect | gRPC, HTTP, WebSocket/SSE, Cap’n Proto, website and TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security`, `/grpc`, `/http` |
 | Network | this device, next hop, path, authorized discovery, map, and history | `/network/*`, `/this-pc`, `/routes` |
-| Publish | current-source Cloudflare host evidence and guarded service actions | `/tunnels` |
+| Publish | Cloudflare host evidence and guarded service actions | `/tunnels` |
 | Files | Downloader and artifact evidence | `/downloader`, `/downloads` |
 | Settings | appearance, local dependencies, host policy, and About | `/settings`, `/roadmap` |
 
-Existing deep links remain valid. Private Access and Tailscale, Headscale, and NetBird workflows are
-planned; they are not shipped capabilities. A feature belongs in ProtoPeek only when it operates on
+Existing deep links remain valid. Installed Tailscale status, peers, netcheck and reviewed CLI
+actions are available under Network. Headscale, NetBird, integrated sign-in/elevation and
+Tailscale Serve/Funnel remain planned. A feature belongs in ProtoPeek only when it operates on
 a service or related artifact, strengthens an existing journey or typed handoff, remains useful
 local-first, stays lazy/bounded/quiet, and has a truthful Windows, Linux, and macOS story that one
 maintainer can support. See the [suite strategy](guides/protopeek-suite-strategy.md) and selected
@@ -95,11 +85,11 @@ Windows PowerShell, per user:
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
-The verified release installers resolve v0.5.0 from immutable archives pinned to its published
-SHA-256 entries. The owned Homebrew and Scoop definitions pin the same v0.5.0 release archives and
-declare aria2 as an external package dependency. ProtoPeek itself does not bundle aria2. See the
-[install guide](guides/INSTALLING.md) for package updates, pinned versions,
-rollback, PATH behavior, and uninstall.
+The verified installers select the latest stable release and verify its published SHA-256 archive.
+Windows x64 bundles pinned aria2 1.37.0, with its notices and source companion included in release
+packaging. A configured executable takes priority, followed by PATH and then the bundle. Homebrew
+and Scoop can supply aria2 as a package dependency; see their manifests for the packaged version.
+The [install guide](guides/INSTALLING.md) covers updates, pinned releases, PATH, rollback and uninstall.
 
 Go fallback:
 
@@ -117,11 +107,10 @@ pp https://api.example.test       # Home + inspection of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode in gRPC under Inspect
 ```
 
-In stable v0.5.0, the dashboard opens at `/` with exactly six primary areas: Overview, Protocols,
-Network, Downloader, Security, and Settings. Legacy `/grpc`, `/http`,
-`/routes`, and `/downloads` links remain compatibility redirects, while `/downloader` is canonical.
+In v0.6.0, Home opens at `/` with side navigation for Home, Inspect, Network, Publish, Files and
+Settings. Legacy `/grpc`, `/http`, `/routes` and `/downloads` links remain compatible.
 
-Current source retains `/this-pc` as the canonical deep link for **This Device** under Network. Its
+v0.6.0 retains `/this-pc` as the canonical deep link for **This Device** under Network. Its
 first render is local-only: it reads capabilities, hostname/OS/architecture, and bounded interface
 evidence from the running ProtoPeek process. Linux and native Windows can explicitly inspect bounded
 TCP/UDP socket ownership and sample aggregate interface counters; macOS reports both operations as
@@ -137,7 +126,7 @@ presented as per-process traffic, and provider throughput is never presented as 
 See the [This Device boundary](guides/this-pc.md) and
 [Connected Workbench contract](guides/connected-workbench-integration-plan.md).
 
-Current source retains `/tunnels` as the canonical deep link for the domain-native **Cloudflare
+v0.6.0 retains `/tunnels` as the canonical deep link for the domain-native **Cloudflare
 Tunnel** workspace under Publish. It performs no work until **Inspect this host** is chosen, then
 uses the real host adapter to read only the canonical `cloudflared` OS service, documented config
 candidates, and bounded executable metadata. An absent executable or service is a valid empty
@@ -160,7 +149,7 @@ browser-folder snapshot, host proto paths, or host protoset paths), and cert pat
 defaults to `http://localhost:8080/`. Exact `localhost`, `127.0.0.1`, and `[::1]` shorthand may omit
 the scheme and is normalized to HTTP; every non-loopback host must state `http://` or `https://`.
 HTTP history shows its 12 newest secret-safe entries with total observed time, and JSON formatting
-is optional—invalid JSON remains sendable verbatim. Current source can also import an explicit,
+is optional—invalid JSON remains sendable verbatim. You can also import an explicit,
 bounded OpenAPI 3.x or Swagger 2.0 JSON definition by file or URL, including a Swagger UI or Scalar
 page that exposes its linked JSON definition. Light is the first-run theme; dark mode and local
 histories are stored only in the browser profile.
@@ -182,8 +171,8 @@ The CLI contract remains deliberately smaller:
 pp download [--output NAME] [--sha256 64_HEX] URL
 ```
 
-It accepts exactly one absolute HTTP(S) URL and uses an explicitly configured or system-installed
-`aria2c`; ProtoPeek does not bundle aria2. The command owns its local engine session, writes progress
+It accepts exactly one absolute HTTP(S) URL and uses configured, PATH or bundled Windows x64
+`aria2c`, in that order. The command owns its local engine session, writes progress
 to stderr, prints only the completed path to stdout, and preserves partial data plus the aria2
 session when interrupted. It does not attach to an already-running ProtoPeek process. The command
 ships in v0.5.0 and is available through the release installers, Homebrew, and Scoop.
@@ -250,8 +239,10 @@ are calculated independently per responder instead of blending ECMP replies. The
 median appears only when reply samples came from the exact pinned destination; ProtoPeek never
 substitutes the last responding router. Silent hops do not prove a device is down, and ECMP or other
 load balancing can produce several responders at one TTL. Active probes require explicit consent,
-with an additional acknowledgement for public targets. Darwin and Windows currently report active
-hop probing as unsupported; ProtoPeek offers no automatic package manager or elevation path.
+with an additional acknowledgement for public targets. Windows uses native IPv4/IPv6 ICMP echo;
+Darwin currently reports active hop probing as unsupported. No elevation is requested.
+Optional, explicitly requested IPWHOIS labels add dated ASN/ISP and approximate location evidence
+to responding public IPs. Local addresses are skipped, and labels survive saving the trace.
 
 Local network discovery is another explicit operation, not ambient crawling. Its capability check
 only reads interface metadata. A scan accepts an authorized RFC 1918 IPv4 CIDR no broader than
@@ -297,7 +288,7 @@ lossy and accepts only one flat directed graph; undirected or mixed edges, neste
 ports, duplicate structures, and XML 1.0-invalid controls are rejected rather than reinterpreted.
 CSV is an export-only flat inventory.
 
-The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`. Nmap is not required to import an existing file. To create new XML, users obtain and run Nmap separately; ProtoPeek does not bundle, install, locate, or execute Nmap/Npcap and accepts no Nmap arguments. Imported service names and table/probed confidence are untrusted hints; an open TCP endpoint at a validated literal IP must run through **Verify with ProtoPeek** and the existing bounded scanner before gRPC or HTTP can open. Uploaded XML and imported inventory are not persisted.
+The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`, without Nmap installed. Current source additionally offers **Network → Nmap** for an installed Nmap: one literal IP or an authorized private IPv4 `/24`-or-smaller subnet, TCP connect or light service detection, an exact scope preview, cancellation, and JSON export. It does not bundle or install Nmap/Npcap and accepts no arbitrary arguments. See the [Nmap workflow](guides/network-workbench.md#installed-nmap-in-current-source) for limits. Imported or scanned service labels remain hints; **Inspect service** opens the selected endpoint for explicit verification before gRPC or HTTP. Uploaded XML and scanned inventory are not persisted automatically.
 
 One running ProtoPeek handler also shares small admission budgets across browser sessions: eight
 ordinary gRPC invokes total across the direct and workspace paths, four HTTP relays, and two native
@@ -338,9 +329,10 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
-| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; import bounded OpenAPI 3.x or Swagger 2.0 JSON into a searchable operation rail; copy the current draft as bounded, credential-redacted cURL |
+| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; import OpenAPI/Swagger JSON; save up to 50 named requests with explicit body opt-in; load saved requests through fuzzy global search without sending; export redacted cURL |
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
+| **Website workbench · current source** | Side sections for response/TLS, five standard-path HEAD checks and historical indexed names; rejected-certificate evidence, JSON exports, name filtering and reviewed Inspect handoffs; bounded browser-local origin/domain memory |
 | **This Device · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux or native Windows TCP/UDP socket-owner evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; Windows owner labels are best-effort, macOS activity/counters remain unsupported, and there is no ambient monitor or Internet-open-port claim |
 | **Cloudflare Tunnel · current source after v0.5.0** | Explicitly inspect the real host for `cloudflared`, the canonical Windows SCM/systemd/launchd service, config authority, and parsed routes including catch-all; manually compare the installed version with the official release; confirm and verify canonical-service start/stop/restart with stale-state protection and OS-owned elevation guidance; **Draft ingress route** uses regex paths and stays browser-only, remote-managed drafts have no local YAML destination, and there is no secret/password collection, automatic install/update, config mutation, Docker daemon call, or account/cloud mutation |
 
@@ -413,26 +405,31 @@ adapter owns discovery, schema, invocation, cancellation, and its native inspect
 | Adapter | Status | First useful slice |
 |---|---|---|
 | gRPC | Stable · v0.3.0 | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, canonical Health Check/Watch, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
-| HTTP / REST | Stable · v0.3.0; OpenAPI import in current source | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, bounded text/base64 response bodies, and explicit OpenAPI 3.x or Swagger 2.0 JSON import |
+| HTTP / REST | Stable · v0.6.0 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, bounded text/base64 response bodies, and explicit OpenAPI 3.x or Swagger 2.0 JSON import |
+| WebSocket / SSE | Stable · v0.6.0 | Inspect → Event streams: real text/binary WebSocket sends, named SSE events and IDs, headers, subprotocols, verified TLS, bounded timelines, disconnect and navigation cleanup |
+| Host port scanner | Stable · v0.6.0 | Up to 1024 chosen TCP ports on one local or remote IP, presets/ranges, open/refused/timeout results, IPv4/IPv6, cancellation, and a protocol-inspection handoff |
 | Next-hop route evidence | Shipped · v0.3.0 | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
 | Network Path | Shipped · v0.4.0 · Linux | Built-in unprivileged UDP error-queue tracing with separate DNS, route, per-TTL sample, and source-RTT evidence; active probes require explicit consent |
+| Windows Network Path | Stable · v0.6.0 | Native IPv4/IPv6 ICMP echo tracing, automatic backend choice, per-hop RTT/status, bounded probes and cancellation without installing traceroute or requesting elevation |
 | Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |
 | Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
-| Nmap XML evidence | Shipped · v0.3.0 · optional input | Streaming offline import only; Nmap is not required for import and is never executed by ProtoPeek |
-| Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; no bundled aria2 |
+| Nmap XML evidence | Shipped · v0.3.0 · optional input | Bounded streaming offline import; Nmap is not required to import a file |
+| Installed Nmap | Stable · v0.6.0 | Explicit bounded TCP connect or light service scans, private subnet scope preview, cancellation, paginated evidence, export and Inspect handoff |
+| Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; bundled Windows x64 aria2 fallback |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
-| This Device | Current source after v0.5.0 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
-| Cloudflare Tunnel | Current source after v0.5.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
-| Private-network clients | Planned · not implemented | Consolidate TailScout into a route-lazy Network section: Tailscale and Headscale-backed clients first, NetBird only after the real shared boundary exists; peer-to-HTTP/gRPC handoff without a cloud-admin clone or generic provider SDK |
-| Cap'n Proto | Exploring | Local schema/capability bootstrap only after fixture, dependency-size, and native-inspector gates |
-| Darwin / Windows active hop probes | Soon | Require verified unprivileged native backends; no package-manager, shell-parser, or elevation fallback is offered |
+| This Device | Stable · v0.6.0 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
+| Cloudflare Tunnel | Stable · v0.6.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
+| Tailscale client | Stable · v0.6.0 | Network → Tailscale reads installed-client peers, accounts and routes; prepared service inspection, reviewed connection/account/exit-node actions, diagnostics and Taildrop. Integrated sign-in/elevation, Headscale administration and NetBird remain open work |
+| [Cap’n Proto](guides/capnp-workbench.md) | Stable · v0.6.0 | Source/compiled schema loading, concrete bootstrap RPC, exact integers, verified TLS, cancellation and JSON export; optional external source compiler |
+| [Packet inspection](guides/network-workbench.md#current-source-packet-inspection) | Stable · v0.6.0 | PCAP/PCAPNG metadata, packet filtering/details/export; explicit installed dumpcap adapter with native live-capture acceptance still pending |
+| Darwin active hop probes | Remaining work | Windows IPv4/IPv6 and Linux UDP are implemented; Darwin needs a verified native backend |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
 | Broader or public range discovery | Not planned for the core flow | Current discovery remains selected TCP ports inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope |
 | SMTP, FTP, and others | Later | Only after protocol-specific security, evidence, and UX are designed |
 
 Bundled Nmap execution is not planned for the core binary. Active path and private-network
 operations never start on page load and remain distinct from the passive kernel-route lookup and
-offline Nmap XML import. Wider range expansion and live capture remain gated.
+offline Nmap XML import. Wider range expansion remains gated; live capture requires separately installed dumpcap and OS capture support.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
 [This Device evidence and connection-quality boundary](guides/this-pc.md),

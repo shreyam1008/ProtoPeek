@@ -1,4 +1,4 @@
-.TH PP 1 "August 2026" "ProtoPeek 0.5.0" "User Commands"
+.TH PP 1 "September 2026" "ProtoPeek 0.6.0" "User Commands"
 .SH NAME
 pp \- short executable name for ProtoPeek
 .SH SYNOPSIS
@@ -25,17 +25,17 @@ is an identical executable entrypoint for
 Use the canonical name if another installed program already owns
 .BR pp .
 .SH DOWNLOADER COMMAND
-ProtoPeek v0.5.0 ships
+ProtoPeek provides
 .BR "pp download" .
 It accepts exactly one absolute HTTP(S) URL without user information, an
 optional safe output filename with no directory components, and an optional
 exact 64-hexadecimal-character SHA-256 digest. It uses a configured or system
 .BR aria2c ;
-aria2 is not bundled.
+Windows x64 also includes bundled aria2 as a fallback. Other platforms require
+installed aria2.
 .PP
-Homebrew and Scoop install v0.5.0 and declare aria2 as an external package
-dependency, so those package-manager installs provide the Downloader and
-migration commands without bundling aria2 into ProtoPeek.
+Homebrew and Scoop declare aria2 as a package dependency and provide both
+Downloader and migration commands.
 .PP
 The one-shot command owns its local engine session instead of attaching to an
 already-running ProtoPeek process. It writes progress to standard error and the

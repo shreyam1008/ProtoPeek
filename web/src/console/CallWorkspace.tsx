@@ -13,7 +13,7 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   BootstrapMethod,
@@ -103,6 +103,29 @@ export function CallWorkspace({
   const [responseQuery, setResponseQuery] = useState('');
   const [selectedResponse, setSelectedResponse] = useState(0);
   const response = invokeState.result;
+  const [copyState, setCopyState] = useState<'copied' | 'error' | ''>('');
+  const copyGeneration = useRef(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Changing displayed evidence invalidates pending clipboard results.
+  useEffect(() => {
+    setCopyState('');
+    copyGeneration.current += 1;
+    return () => {
+      copyGeneration.current += 1;
+    };
+  }, [response, selectedResponse, responseQuery]);
+  async function copyResponse(message?: unknown) {
+    if (!response) return;
+    const generation = ++copyGeneration.current;
+    setCopyState('');
+    try {
+      await navigator.clipboard.writeText(
+        prettyJson(message === undefined ? sanitizeInvokeResponseForExport(response) : message)
+      );
+      if (generation === copyGeneration.current) setCopyState('copied');
+    } catch {
+      if (generation === copyGeneration.current) setCopyState('error');
+    }
+  }
   const parsedRequest = useMemo(() => safeParseJson(requestText), [requestText]);
   const lineCount = Math.max(1, requestText.split('\n').length);
   const modifier = modifierKeyLabel();
@@ -143,11 +166,13 @@ export function CallWorkspace({
       : 'IN FLIGHT'
     : response?.localLimit
       ? 'LOCAL LIMIT'
-      : invokeState.error || response?.error
-        ? 'ERROR'
-        : response
-          ? 'OK'
-          : 'READY';
+      : response?.error
+        ? response.error.name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase() || 'ERROR'
+        : invokeState.error
+          ? 'ERROR'
+          : response
+            ? 'OK'
+            : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -198,6 +223,7 @@ export function CallWorkspace({
             selectedIndex={visibleSelectedIndex}
             selected={selected}
             onSelect={setSelectedResponse}
+            onCopy={() => void copyResponse(selected?.message)}
           />
         );
       case 'headers':
@@ -249,89 +275,92 @@ export function CallWorkspace({
             <Save aria-hidden="true" /> Save request
           </button>
         </div>
-        <AccessibleTabs
-          id="grpc-request"
-          label="Request input"
-          tabs={[
-            { value: 'request' as const, label: 'Request' },
-            {
-              value: 'metadata' as const,
-              label: (
-                <>
-                  Metadata{' '}
-                  <span className="pp-count">{metadata.filter((item) => item.name).length}</span>
-                </>
-              ),
-            },
-          ]}
-          value={requestTab}
-          onChange={setRequestTab}
-        />
-
-        <TabPanel
-          id="grpc-request"
-          tab="request"
-          className="pp-editor-region"
-          active={requestTab === 'request'}
-        >
-          <div className="pp-editor-toolbar">
-            <span>
-              <Braces aria-hidden="true" /> JSON
-            </span>
-            <div>
-              <span className={parsedRequest.error ? 'pp-json-invalid' : 'pp-json-valid'}>
-                {parsedRequest.error ? 'Invalid JSON' : 'Valid JSON'}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!parsedRequest.error) onRequestChange(prettyJson(parsedRequest.value));
-                }}
-                disabled={Boolean(parsedRequest.error)}
-              >
-                Format
-              </button>
-              <button type="button" onClick={onResetRequest}>
-                Reset
-              </button>
-            </div>
-          </div>
-          <div className="pp-json-editor">
-            <div className="pp-line-numbers" aria-hidden="true">
-              {Array.from({ length: lineCount }, (_, index) => (
-                <span
-                  // biome-ignore lint/suspicious/noArrayIndexKey: visual line numbers follow source order
-                  key={index}
-                >
-                  {index + 1}
-                </span>
-              ))}
-            </div>
-            <textarea
-              aria-label="Request JSON"
-              spellCheck={false}
-              value={requestText}
-              onChange={(event) => onRequestChange(event.target.value)}
-            />
-          </div>
-          <div className="pp-schema-note">
-            {schema.requestStream ? 'Send a JSON array' : schema.requestType}
-          </div>
-        </TabPanel>
-        <TabPanel
-          id="grpc-request"
-          tab="metadata"
-          className="pp-metadata-editor"
-          active={requestTab === 'metadata'}
-        >
-          <MetadataEditor
-            metadata={metadata}
-            onMetadataChange={onMetadataChange}
-            onAddMetadata={onAddMetadata}
-            onRemoveMetadata={onRemoveMetadata}
+        <div className="pp-rpc-pane-content">
+          <AccessibleTabs
+            id="grpc-request"
+            label="Request input"
+            orientation="vertical"
+            className="pp-workbench-side-tabs"
+            tabs={[
+              { value: 'request' as const, label: 'Request' },
+              {
+                value: 'metadata' as const,
+                label: (
+                  <>
+                    Metadata{' '}
+                    <span className="pp-count">{metadata.filter((item) => item.name).length}</span>
+                  </>
+                ),
+              },
+            ]}
+            value={requestTab}
+            onChange={setRequestTab}
           />
-        </TabPanel>
 
+          <TabPanel
+            id="grpc-request"
+            tab="request"
+            className="pp-editor-region"
+            active={requestTab === 'request'}
+          >
+            <div className="pp-editor-toolbar">
+              <span>
+                <Braces aria-hidden="true" /> JSON
+              </span>
+              <div>
+                <span className={parsedRequest.error ? 'pp-json-invalid' : 'pp-json-valid'}>
+                  {parsedRequest.error ? 'Invalid JSON' : 'Valid JSON'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!parsedRequest.error) onRequestChange(prettyJson(parsedRequest.value));
+                  }}
+                  disabled={Boolean(parsedRequest.error)}
+                >
+                  Format
+                </button>
+                <button type="button" onClick={onResetRequest}>
+                  Reset
+                </button>
+              </div>
+            </div>
+            <div className="pp-json-editor">
+              <div className="pp-line-numbers" aria-hidden="true">
+                {Array.from({ length: lineCount }, (_, index) => (
+                  <span
+                    // biome-ignore lint/suspicious/noArrayIndexKey: visual line numbers follow source order
+                    key={index}
+                  >
+                    {index + 1}
+                  </span>
+                ))}
+              </div>
+              <textarea
+                aria-label="Request JSON"
+                spellCheck={false}
+                value={requestText}
+                onChange={(event) => onRequestChange(event.target.value)}
+              />
+            </div>
+            <div className="pp-schema-note">
+              {schema.requestStream ? 'Send a JSON array' : schema.requestType}
+            </div>
+          </TabPanel>
+          <TabPanel
+            id="grpc-request"
+            tab="metadata"
+            className="pp-metadata-editor"
+            active={requestTab === 'metadata'}
+          >
+            <MetadataEditor
+              metadata={metadata}
+              onMetadataChange={onMetadataChange}
+              onAddMetadata={onAddMetadata}
+              onRemoveMetadata={onRemoveMetadata}
+            />
+          </TabPanel>
+        </div>
         <div className="pp-invoke-bar">
           <label>
             <span>Deadline</span>
@@ -407,12 +436,7 @@ export function CallWorkspace({
             className="pp-response-action"
             aria-label="Copy response JSON"
             disabled={!response}
-            onClick={() =>
-              response &&
-              void navigator.clipboard.writeText(
-                prettyJson(sanitizeInvokeResponseForExport(response))
-              )
-            }
+            onClick={() => void copyResponse()}
           >
             <Copy aria-hidden="true" />
           </button>
@@ -433,6 +457,13 @@ export function CallWorkspace({
           </button>
         </div>
 
+        {copyState ? (
+          <p className="pp-rpc-copy-notice" role={copyState === 'error' ? 'alert' : 'status'}>
+            {copyState === 'error'
+              ? 'Could not copy response. Check clipboard permission.'
+              : 'Response JSON copied.'}
+          </p>
+        ) : null}
         {response?.localLimit ? (
           <div className="pp-response-error" role="alert">
             <CircleAlert aria-hidden="true" />
@@ -443,26 +474,29 @@ export function CallWorkspace({
           </div>
         ) : null}
 
-        <AccessibleTabs
-          id="grpc-response"
-          label="RPC response"
-          tabs={responseTabs}
-          value={responseTab}
-          onChange={setResponseTab}
-          className="pp-response-tabs"
-        />
-
-        {(['messages', 'headers', 'trailers', 'status'] as const).map((tab) => (
-          <TabPanel
-            key={tab}
+        <div className="pp-rpc-pane-content">
+          <AccessibleTabs
             id="grpc-response"
-            tab={tab}
-            className="pp-response-content"
-            active={responseTab === tab}
-          >
-            {responseTab === tab ? renderResponseTab(tab) : null}
-          </TabPanel>
-        ))}
+            label="RPC response"
+            orientation="vertical"
+            tabs={responseTabs}
+            value={responseTab}
+            onChange={setResponseTab}
+            className="pp-response-tabs pp-workbench-side-tabs"
+          />
+
+          {(['messages', 'headers', 'trailers', 'status'] as const).map((tab) => (
+            <TabPanel
+              key={tab}
+              id="grpc-response"
+              tab={tab}
+              className="pp-response-content"
+              active={responseTab === tab}
+            >
+              {responseTab === tab ? renderResponseTab(tab) : null}
+            </TabPanel>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -553,12 +587,14 @@ function ResponseMessages({
   selectedIndex,
   selected,
   onSelect,
+  onCopy,
 }: {
   responses: InvokeResponse['responses'];
   filtered: Array<{ item: InvokeResponse['responses'][number]; index: number }>;
   selectedIndex: number;
   selected: InvokeResponse['responses'][number] | null;
   onSelect: (index: number) => void;
+  onCopy: () => void;
 }) {
   if (!responses.length) return <ResponsePlaceholder>No response messages.</ResponsePlaceholder>;
 
@@ -606,10 +642,7 @@ function ResponseMessages({
         <div className="pp-selected-message">
           <div className="pp-editor-toolbar">
             <span>Message {selected.sequence || selectedIndex + 1}</span>
-            <button
-              type="button"
-              onClick={() => void navigator.clipboard.writeText(prettyJson(selected.message))}
-            >
+            <button type="button" onClick={onCopy}>
               <Copy aria-hidden="true" /> Copy JSON
             </button>
           </div>

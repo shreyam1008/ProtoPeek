@@ -870,6 +870,29 @@ describe('safeParseJson', () => {
 });
 
 describe('generateRequestTemplate', () => {
+  it.each([
+    ['Timestamp', '1970-01-01T00:00:00Z'],
+    ['Duration', '0s'],
+    ['StringValue', ''],
+    ['BytesValue', ''],
+    ['BoolValue', false],
+    ['DoubleValue', 0],
+    ['Int64Value', '0'],
+    ['Struct', {}],
+    ['ListValue', []],
+    ['Value', null],
+    ['FieldMask', ''],
+    ['Any', { '@type': 'type.googleapis.com/google.protobuf.Empty' }],
+  ])('uses the native ProtoJSON shape for %s', (name, expected) => {
+    const schema = {
+      requestType: `google.protobuf.${name}`,
+      requestStream: false,
+      messageTypes: {},
+      enumTypes: {},
+    };
+    expect(generateRequestTemplate(schema)).toEqual(expected);
+    expect(generateRequestTemplate({ ...schema, requestStream: true })).toEqual([expected]);
+  });
   it('creates nested payloads from schema metadata', () => {
     const schema = {
       requestType: 'demo.Request',
@@ -901,7 +924,7 @@ describe('generateRequestTemplate', () => {
             isEnum: false,
             isArray: false,
             isMap: false,
-            isRequired: false,
+            isRequired: true,
             defaultVal: null,
             description: '',
           },
@@ -930,6 +953,8 @@ describe('generateRequestTemplate', () => {
       },
       id: '',
     });
+    schema.messageTypes['demo.Request'][1].isRequired = false;
+    expect(generateRequestTemplate(schema)).toEqual({ id: '' });
   });
 });
 

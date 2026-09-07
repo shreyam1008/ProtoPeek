@@ -10,6 +10,32 @@ import {
   SecurityAPIError,
 } from './security-api';
 
+it('retains bounded unverified certificate evidence from a rejected handshake', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () =>
+      Response.json(
+        {
+          error: 'Certificate rejected',
+          tlsFailure: {
+            reason: 'Certificate is expired or not yet valid',
+            subject: 'CN=example.com',
+            issuer: 'CN=Fixture CA',
+            notBefore: '2024-01-01T00:00:00Z',
+            notAfter: '2025-01-01T00:00:00Z',
+            dnsNames: ['example.com'],
+          },
+        },
+        { status: 502 }
+      )
+    )
+  );
+  await expect(fetchWebsiteObservation('https://example.com')).rejects.toMatchObject({
+    status: 502,
+    tlsFailure: { subject: 'CN=example.com', reason: 'Certificate is expired or not yet valid' },
+  });
+});
+
 const validResult = {
   apex: 'example.com',
   source: 'https://crt.name/v1/search?apex=example.com',

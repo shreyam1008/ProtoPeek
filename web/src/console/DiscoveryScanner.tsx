@@ -172,13 +172,16 @@ export function DiscoveryScanner({
 
   return (
     <div className="pp-discovery-scanner">
-      <p className="pp-scan-policy">
-        Common local checks use six fixed local endpoints: localhost ports 50051, 9090, 6565, 7000,
-        and 8080, plus an IPv4 fallback on 127.0.0.1:50051. An entered host checks only its supplied
-        port, or 50051 and 443 when no port is given. Probes are HEAD, gRPC reflection, and TCP
-        connect; redirects are never followed. Hostnames are resolved once before dialing, and
-        private or link-local results require the opt-in below.
-      </p>
+      <details className="pp-scan-policy">
+        <summary>What gets checked</summary>
+        <p>
+          Common local checks use six fixed local endpoints: localhost ports 50051, 9090, 6565,
+          7000, and 8080, plus an IPv4 fallback on 127.0.0.1:50051. An entered host checks only its
+          supplied port, or 50051 and 443 when no port is given. Probes are HEAD, gRPC reflection,
+          and TCP connect; redirects are never followed. Hostnames are resolved once before dialing,
+          and private or link-local results require the opt-in below.
+        </p>
+      </details>
       <div className="pp-discovery-controls">
         <input
           ref={inputRef}

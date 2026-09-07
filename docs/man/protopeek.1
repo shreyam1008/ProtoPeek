@@ -1,4 +1,4 @@
-.TH PROTOPEEK 1 "August 2026" "ProtoPeek 0.5.0" "User Commands"
+.TH PROTOPEEK 1 "September 2026" "ProtoPeek 0.6.0" "User Commands"
 .SH NAME
 protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .SH SYNOPSIS
@@ -116,14 +116,13 @@ TLS, authentication, and rate-limit boundary.
 .SH DOWNLOADER COMMAND
 The
 .B download
-subcommand ships in ProtoPeek v0.5.0. Homebrew and Scoop install v0.5.0 and
-declare aria2 as an external package dependency, so both package-manager
-channels provide this command.
+subcommand is available through release archives, Homebrew and Scoop.
 .PP
 It accepts exactly one absolute HTTP(S) URL without user information and uses
 an explicitly configured or system-installed
 .BR aria2c .
-ProtoPeek does not bundle aria2. URL fragments are ignored.
+Windows x64 includes pinned aria2 1.37.0 as a fallback after configured and PATH
+engines. Other platforms require installed aria2. URL fragments are ignored.
 .TP
 .BI --output " NAME"
 Use one safe output filename, at most 255 characters, with no directory

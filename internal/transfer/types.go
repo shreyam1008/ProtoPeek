@@ -155,6 +155,10 @@ func (patch HostConfigPatch) Apply(config HostConfig) HostConfig {
 	}
 	if patch.MaxConnectionsPerHost != nil {
 		config.MaxConnectionsPerHost = *patch.MaxConnectionsPerHost
+		// The browser exposes one connection control. aria2 also caps the number
+		// of segments with split; retaining its old value silently caps a 16-way
+		// setting at the previous default of eight. Unrelated patches preserve it.
+		config.Split = *patch.MaxConnectionsPerHost
 	}
 	if patch.MaxDownloadBytesPerSecond != nil {
 		config.MaxDownloadBytesPerSecond = *patch.MaxDownloadBytesPerSecond
@@ -212,6 +216,8 @@ const (
 )
 
 type Job struct {
+	Historical      bool      `json:"historical,omitempty"`
+	CompletedAt     string    `json:"completedAt,omitempty"`
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
 	Status          JobStatus `json:"status"`
@@ -247,12 +253,13 @@ type Metrics struct {
 }
 
 type Snapshot struct {
-	ObservedAt     time.Time  `json:"observedAt"`
-	Health         Health     `json:"health"`
-	Config         HostConfig `json:"config"`
-	ConfigRevision string     `json:"configRevision"`
-	Metrics        Metrics    `json:"metrics"`
-	Jobs           []Job      `json:"jobs"`
+	PersistenceWarning string     `json:"persistenceWarning,omitempty"`
+	ObservedAt         time.Time  `json:"observedAt"`
+	Health             Health     `json:"health"`
+	Config             HostConfig `json:"config"`
+	ConfigRevision     string     `json:"configRevision"`
+	Metrics            Metrics    `json:"metrics"`
+	Jobs               []Job      `json:"jobs"`
 }
 
 type AddRequest struct {
@@ -308,12 +315,14 @@ type Engine interface {
 }
 
 type Runtime struct {
-	Engine        Engine
-	BinaryPath    string
-	EngineVersion string
-	Done          <-chan struct{}
-	Stop          func(context.Context) error
-	Err           func() error
+	observeCompletions bool
+	observationWake    chan struct{}
+	Engine             Engine
+	BinaryPath         string
+	EngineVersion      string
+	Done               <-chan struct{}
+	Stop               func(context.Context) error
+	Err                func() error
 }
 
 type Launcher interface {

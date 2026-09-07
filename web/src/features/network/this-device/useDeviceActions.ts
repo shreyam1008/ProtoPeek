@@ -22,9 +22,6 @@ type DeviceAction = {
 
 export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
   const [activity, setActivity] = useState<IdleResource<ThisPCActivity>>({ status: 'idle' });
-  const [activityConsent, setActivityConsent] = useState(false);
-  const [activityAcknowledged, setActivityAcknowledged] = useState(false);
-  const [activityPurpose, setActivityPurpose] = useState<'listeners' | 'connections'>('listeners');
   const [traffic, setTraffic] = useState<IdleResource<ThisPCTrafficSample>>({ status: 'idle' });
   const [selectedTrafficDuration, setTrafficDuration] = useState<500 | 1000 | 2000>(1000);
   const [publicIdentity, setPublicIdentity] = useState<IdleResource<ThisPCPublicIdentity>>({
@@ -95,15 +92,7 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     commit();
   }
 
-  function openActivityConsent(purpose: 'listeners' | 'connections') {
-    setActivityPurpose(purpose);
-    setActivityAcknowledged(false);
-    setActivityConsent(true);
-  }
-
   function inspectActivity() {
-    setActivityConsent(false);
-    setActivityAcknowledged(false);
     const action = beginAction('activity');
     setActivity({ status: 'loading' });
     void inspectThisPCActivity(action.controller.signal).then(
@@ -115,6 +104,15 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
         );
       }
     );
+  }
+
+  function cancelActivity() {
+    const action = actionControllerRef.current;
+    if (action?.kind !== 'activity') return;
+    actionGenerationRef.current++;
+    actionControllerRef.current = null;
+    action.controller.abort();
+    setActivity({ status: 'idle' });
   }
 
   function sampleTraffic() {
@@ -154,19 +152,14 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
 
   return {
     activity,
-    activityConsent,
-    activityAcknowledged,
-    activityPurpose,
     traffic,
     trafficDuration,
     publicIdentity,
     publicConsent,
     publicAcknowledged,
     publicFamilies,
-    openActivityConsent,
-    setActivityAcknowledged,
-    setActivityConsent,
     inspectActivity,
+    cancelActivity,
     setTrafficDuration,
     sampleTraffic,
     openPublicConsent,

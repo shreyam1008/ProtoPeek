@@ -1,5 +1,86 @@
 # ProtoPeek network workbench
 
+## Current-source packet inspection
+
+**Network → Packets** reads `.pcap`, `.pcapng` and `.cap` files without installing Wireshark.
+Select a file and click **Inspect file**. The file is sent to the local ProtoPeek server for
+analysis; captured endpoints are never contacted. The table shows endpoints, ports, packet sizes,
+DNS questions, HTTP method/status, TCP flags or TLS record signatures where decoding is possible.
+Filter by protocol, IP, port or decoded text; select a packet for its recorded UTC timestamp and
+details. **Save metadata** exports this report; **Clear results** leaves the original file intact.
+
+The reader accepts 16 MiB, parses at most 20,000 packet records and retains the first 2,000 rows.
+Counters describe parsed records, and a limit notice identifies a stopped prefix. Tables paginate
+50 rows at a time. PCAP supports little/big endian and micro/nanosecond timestamps. PCAPNG supports
+multiple sections, interface timestamp resolution/offsets, enhanced, simple and legacy packet
+blocks. Unknown block types are skipped with a notice. Link decoding covers Ethernet with up to
+two VLAN tags, raw IPv4/IPv6, loopback, Linux cooked v1/v2, ARP, TCP, UDP and ICMP.
+
+This is a header/signature reader: no TCP reassembly, checksum validation, decryption, process
+attribution or raw payload export. Non-initial IP fragments are labeled without invented ports.
+HTTP request targets and headers are omitted; DNS question names remain visible. TLS record
+signatures do not establish the protocol inside encryption. Use the original capture in Wireshark
+when deeper analysis is needed. Files, decoded rows and capture settings are session-only.
+
+### Explicit capture through installed dumpcap
+
+**Capture this host** uses Wireshark's separately installed `dumpcap`. Refresh interfaces, select
+one local interface, enter one IP and/or port, choose 1–30 seconds, confirm permission and click
+**Start capture**. Both filters combine with AND. The adapter requests non-promiscuous mode,
+at most 2,000 packets, 512 bytes per packet and a 1 MiB capture buffer. Output travels through a
+bounded pipe into the reader; ProtoPeek creates no capture file. Results appear after the run ends.
+Cancel or navigation kills this invocation and discards the interrupted run while retaining any
+earlier displayed result. Permission and driver failures remain errors; ProtoPeek does not elevate
+or install a driver. See [Wireshark's capture guide](https://www.wireshark.org/docs/wsug_html_chunked/ChapterCapture.html)
+and the [dumpcap manual](https://www.wireshark.org/docs/man-pages/dumpcap.html).
+
+Parser, typed arguments, cancellation and output limits have automated coverage. Browser testing
+on the current Windows host confirmed the real missing-tool state and a clearly labeled generated
+packet fixture; native live capture with installed OS capture support remains a platform acceptance
+gap. It is not a claim that this machine's real traffic has been captured successfully.
+
+## Current-source host port scanner
+
+Network → Port scanner checks one hostname or IP on explicitly chosen TCP ports. Common-service
+and development presets are editable, and ranges such as `8000-8010` are supported. Each run allows
+1024 unique ports, 32 concurrent connections, and 30 seconds. DNS resolves once; Auto prefers IPv4,
+and results identify the pinned address. IPv6 can be selected explicitly. Cancel or leaving the page
+aborts remaining attempts. Two scans can run per server.
+
+Open means TCP connected. Closed means a refusal. No response means a timeout, not proof of a closed
+port; routing and other errors remain unreachable. Interrupted ports are marked not scanned.
+Service names are port-number hints. **Inspect service** opens a separate protocol probe before
+handing confirmed HTTP/gRPC into Inspect. No application payload is sent during the port scan.
+This is current-source functionality after v0.5.0. Scan only authorized hosts.
+
+The scanner keeps settings and the last result in bounded browser storage. Restored results retain
+their observation time and are not automatically refreshed. Clear results removes the retained scan.
+
+## Windows path probes in current source
+
+Windows now uses the built-in IP Helper ICMP echo APIs for IPv4 and IPv6 hop tracing. Auto selects ICMP on
+Windows and UDP on Linux. No traceroute executable, packet-capture driver, or elevation is requested.
+The same per-hop, probe-count, rate, and wall-time limits apply. Cancellation stops after the current
+native call returns (within its chosen per-probe timeout, at most two seconds). Scoped link-local
+IPv6 destinations and macOS probes remain unavailable. Native IPv4 and IPv6 loopback tests run on Windows.
+
+Windows reply status and millisecond RTT are retained as native evidence. A timeout has no invented
+responder or latency. Hop RTT includes the path from this PC to that responder and back; it cannot
+identify per-link latency, prove the return path, or locate a datacenter by itself.
+
+### Optional provider and location labels
+
+After tracing, review responding IPs and choose **Look up hop labels**. Only public addresses go
+to IPWHOIS (`ipwho.is`); private, loopback, link-local, carrier NAT and reserved addresses are skipped
+locally. This uses at most 32 unique IPs, two concurrent requests and 30 seconds total. Successful
+labels have a bounded 128-entry, 15-minute in-process cache. Nothing polls in the background.
+
+Labels retain the provider source and observation time. They can include ASN, organization, ISP,
+country, region and city. Anycast addresses may be registered far from the responding machine;
+these are approximate IP labels, not measured datacenter locations or return-route evidence.
+**Save trace** carries labels into the map as separate inferred provenance, while path replies
+remain observed evidence. Export/import preserves both. Cancel leaves existing hop measurements intact.
+
 ProtoPeek's network workbench answers four different questions without blending their evidence:
 
 1. What did the system resolver return for this target?
@@ -80,8 +161,8 @@ The backend keeps one stable UDP five-tuple where possible so load balancing is 
 probe-port changes into an artificial route change. The default destination port is `33434`.
 ICMP-only and TCP path methods are not implemented in this slice.
 
-Active hop probing is currently unsupported on Darwin and Windows because ProtoPeek does not yet
-have a verified unprivileged native backend for those platforms. The capability panel explains the
+Active hop probing is currently unsupported on Darwin because ProtoPeek does not yet
+have a verified unprivileged native backend for that platform. The capability panel explains the
 boundary; ProtoPeek does not offer a package-manager button or request administrator access. The
 read-only kernel next-hop lookup remains a separate cross-platform feature.
 
@@ -282,14 +363,42 @@ disclose those losses before a user treats GraphML as a backup.
 
 ## Nmap remains optional external evidence
 
-ProtoPeek still accepts bounded XML previously produced by `nmap -oX`. It does not bundle,
-auto-install, locate, or execute Nmap, Npcap, `traceroute`, or `tracepath`. Existing Nmap XML import
-is useful without Nmap being present on the machine that opens the file.
+ProtoPeek accepts bounded XML previously produced by `nmap -oX`. Existing XML import works
+without Nmap installed and never executes an imported command. The stable v0.5.0 workflow is
+offline import. Current source also includes the explicit installed-tool workflow below.
 
 Imported Nmap service and device labels are untrusted hints. A literal open TCP endpoint must be
 verified through ProtoPeek's bounded scanner before opening gRPC or HTTP. A future optional path
 from Nmap XML into a network workspace can preserve that provenance, but it must not turn file
 import into hidden command execution.
+
+### Installed Nmap in current source
+
+Open **Network → Nmap** (or search for Nmap). ProtoPeek checks PATH and, on Windows, the standard
+Program Files Nmap directories. It does not install Nmap or Npcap. Missing-engine guidance links to
+the official download and the built-in port scanner. The availability check never starts a scan.
+
+Enter a literal IPv4/IPv6 address or an RFC 1918 IPv4 `/24`-or-smaller subnet and selected TCP ports.
+The preview shows the canonical subnet, address count and host-port count before authorization.
+Nmap's `-Pn` visits every address in the selected CIDR, including network/broadcast endpoints.
+Limits are 1,024 distinct ports, 4,096 host-port pairs, 32 parallel connections, 15 seconds per host
+and 30 seconds for the command. Broad subnets can return partial evidence; narrow the scope when
+that happens. DNS hostnames, arbitrary flags and scripts are not accepted.
+
+**TCP connect** uses `-sT -Pn -n --unprivileged`. **Light service detection** additionally sends
+application probes through `-sV --version-light`; it can return unknown or uncertain service labels.
+Both modes use ordinary TCP sockets and do not require raw capture privileges. The executed
+argument list remains available with the result. Nmap's service database guesses are marked
+separately from probed service evidence. An open port alone does not identify its application.
+
+Cancel or navigating away aborts the request and terminates its process. XML is capped at 8 MiB
+and stderr at 16 KiB. Only complete host elements can be shown after an interrupted command;
+an absent host is not proof it is offline. Search and 50-row pagination keep large results usable.
+**Inspect service** prepares the selected endpoint for explicit protocol verification.
+
+Target and port preferences are bounded browser-local drafts. Scans never resume automatically;
+results remain in memory until cleared or exported as JSON. No packet capture, firewall changes,
+OS fingerprinting, vulnerability scripts or hidden follow-up scans are included in this adapter.
 
 ## Now, soon, and later
 
@@ -303,7 +412,7 @@ import into hidden command execution.
 
 ### Soon — deepen evidence without pretending certainty
 
-- Verified unprivileged native active-hop backends for Darwin and Windows.
+- A verified unprivileged native active-hop backend for Darwin.
 - Source-labelled passive enrichment and user-editable region/provider evidence; aliases remain suggestions, not automatic datacenter claims.
 - Snapshot comparison that shows added, removed, and changed observed evidence without calling an unobserved host offline.
 - Better topology grouping and manual subnet/VLAN documentation without scan-derived VLAN claims.

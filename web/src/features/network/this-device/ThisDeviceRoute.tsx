@@ -1,17 +1,6 @@
-import {
-  Activity,
-  ArrowRight,
-  CircleAlert,
-  Gauge,
-  Globe2,
-  Monitor,
-  Network,
-  Radio,
-  RefreshCw,
-  ShieldCheck,
-} from 'lucide-react';
+import { Activity, CircleAlert, Gauge, Monitor, Radio, RefreshCw, Timer } from 'lucide-react';
 import { type KeyboardEvent, useContext, useState } from 'react';
-
+import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
 import type { ThisPCSocket } from '@/console/this-pc-api';
 
@@ -32,6 +21,7 @@ const sectionViews = [
   { id: 'overview', label: 'Overview', icon: Monitor },
   { id: 'listeners', label: 'Listeners', icon: Radio },
   { id: 'activity', label: 'Activity', icon: Activity },
+  { id: 'traffic', label: 'Traffic', icon: Timer },
   { id: 'benchmark', label: 'Benchmark', icon: Gauge },
 ] as const;
 
@@ -45,10 +35,16 @@ function DeviceSectionTabs({
   mobile?: boolean;
 }) {
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, current: number) {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
+      return;
     event.preventDefault();
-    const direction = event.key === 'ArrowRight' ? 1 : -1;
-    const nextIndex = (current + direction + sectionViews.length) % sectionViews.length;
+    const direction = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1;
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? sectionViews.length - 1
+          : (current + direction + sectionViews.length) % sectionViews.length;
     const next = sectionViews[nextIndex];
     onChange(next.id);
     const buttons =
@@ -75,7 +71,12 @@ function DeviceSectionTabs({
     );
   }
   return (
-    <div className="this-pc-tabs" role="tablist" aria-label="This Device sections">
+    <div
+      className="this-pc-tabs"
+      role="tablist"
+      aria-label="This Device sections"
+      aria-orientation="vertical"
+    >
       {sectionViews.map((section, index) => (
         <button
           key={section.id}
@@ -83,6 +84,7 @@ function DeviceSectionTabs({
           type="button"
           role="tab"
           aria-selected={active === section.id}
+          tabIndex={active === section.id ? 0 : -1}
           aria-controls={`this-pc-panel-${section.id}`}
           className={active === section.id ? 'is-active' : undefined}
           onClick={() => onChange(section.id)}
@@ -96,40 +98,6 @@ function DeviceSectionTabs({
   );
 }
 
-function EvidenceSpine({
-  snapshotReady,
-  exposureReady,
-  internetReady,
-  onChange,
-}: {
-  snapshotReady: boolean;
-  exposureReady: boolean;
-  internetReady: boolean;
-  onChange: (view: DeviceView) => void;
-}) {
-  const steps = [
-    { label: 'Device', icon: Monitor, ready: snapshotReady, view: 'overview' as const },
-    { label: 'Interfaces', icon: Network, ready: snapshotReady, view: 'overview' as const },
-    { label: 'Exposure', icon: ShieldCheck, ready: exposureReady, view: 'listeners' as const },
-    { label: 'Internet', icon: Globe2, ready: internetReady, view: 'benchmark' as const },
-  ];
-  return (
-    <ol className="this-pc-evidence-spine" aria-label="Evidence path">
-      {steps.map((step, index) => (
-        <li key={step.label}>
-          <button type="button" onClick={() => onChange(step.view)}>
-            <step.icon aria-hidden="true" />
-            <span>{step.label}</span>
-            <i className={step.ready ? 'is-ready' : undefined} aria-hidden="true" />
-            <span className="sr-only">{step.ready ? 'Observed' : 'Not observed'}</span>
-          </button>
-          {index < steps.length - 1 ? <ArrowRight aria-hidden="true" /> : null}
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 export function ThisDeviceRoute() {
   const shell = useContext(ProtocolShellContext);
   const [view, setView] = useState<DeviceView>('overview');
@@ -137,9 +105,6 @@ export function ThisDeviceRoute() {
   const { capabilities, snapshot, loadSnapshot } = useDeviceCapabilities();
   const actions = useDeviceActions(capabilities);
   const quality = useQualityPlan(() => setView('benchmark'));
-  const snapshotReady = snapshot.status === 'ready';
-  const exposureReady = actions.activity.status === 'ready';
-  const internetReady = actions.publicIdentity.status === 'ready' || quality.stage === 'finished';
   const currentSection = sectionViews.find((section) => section.id === view) ?? sectionViews[0];
 
   function openListenerHandoff(socket: ThisPCSocket, kind: ListenerHandoffKind) {
@@ -162,7 +127,7 @@ export function ThisDeviceRoute() {
         <header className="this-pc-hero">
           <div>
             <h1>This Device</h1>
-            <p>See what this machine exposes — and how it reaches the internet.</p>
+            <ProtocolInfo protocol="device" />
           </div>
           <div>
             <button
@@ -174,22 +139,9 @@ export function ThisDeviceRoute() {
               <RefreshCw aria-hidden="true" />
               {snapshot.status === 'loading' ? 'Reading local snapshot…' : 'Refresh local snapshot'}
             </button>
-            <small>Captures state once. Nothing runs in background.</small>
           </div>
         </header>
 
-        <EvidenceSpine
-          snapshotReady={snapshotReady}
-          exposureReady={exposureReady}
-          internetReady={internetReady}
-          onChange={setView}
-        />
-        <p className="this-pc-perspective-note">
-          Device, interface, exposure, and public-IP evidence describe the ProtoPeek process/network
-          namespace. A benchmark measures this browser's selected network path, which can differ
-          under containers, proxies, VPNs, or remote browsing.
-        </p>
-        <DeviceSummary snapshot={snapshot} />
         {capabilities.status === 'error' ? (
           <section
             className="this-pc-unavailable"
@@ -218,7 +170,7 @@ export function ThisDeviceRoute() {
             </div>
           </section>
         ) : (
-          <>
+          <div className="this-pc-section-layout">
             <DeviceSectionTabs active={view} onChange={setView} />
 
             <section
@@ -228,49 +180,48 @@ export function ThisDeviceRoute() {
               className="this-pc-view"
             >
               {view === 'overview' ? (
-                <div className="this-pc-overview-grid">
-                  <div className="this-pc-stack">
-                    <InterfacesPanel snapshot={snapshot} />
-                    {snapshot.status === 'ready' && snapshot.value.notes.length ? (
-                      <aside className="this-pc-notes">
-                        {snapshot.value.notes.map((note) => (
-                          <p key={note}>{note}</p>
-                        ))}
-                      </aside>
-                    ) : null}
+                <>
+                  <DeviceSummary snapshot={snapshot} />
+                  <div className="this-pc-overview-grid">
+                    <div className="this-pc-stack">
+                      <InterfacesPanel snapshot={snapshot} />
+                      {snapshot.status === 'ready' && snapshot.value.notes.length ? (
+                        <aside className="this-pc-notes">
+                          {snapshot.value.notes.map((note) => (
+                            <p key={note}>{note}</p>
+                          ))}
+                        </aside>
+                      ) : null}
+                    </div>
+                    <aside className="this-pc-stack">
+                      <PublicAddressPanel
+                        capabilities={capabilities}
+                        state={actions.publicIdentity}
+                        consentOpen={actions.publicConsent}
+                        acknowledged={actions.publicAcknowledged}
+                        families={actions.publicFamilies}
+                        onOpen={actions.openPublicConsent}
+                        onAcknowledged={actions.setPublicAcknowledged}
+                        onFamilies={actions.setPublicFamilies}
+                        onConfirm={actions.checkPublicIdentity}
+                        onCancel={() => actions.setPublicConsent(false)}
+                      />
+                      <QualityPlanSummary onOpen={quality.openPlan} />
+                      <EvidenceBoundaries />
+                    </aside>
                   </div>
-                  <aside className="this-pc-stack">
-                    <PublicAddressPanel
-                      capabilities={capabilities}
-                      state={actions.publicIdentity}
-                      consentOpen={actions.publicConsent}
-                      acknowledged={actions.publicAcknowledged}
-                      families={actions.publicFamilies}
-                      onOpen={actions.openPublicConsent}
-                      onAcknowledged={actions.setPublicAcknowledged}
-                      onFamilies={actions.setPublicFamilies}
-                      onConfirm={actions.checkPublicIdentity}
-                      onCancel={() => actions.setPublicConsent(false)}
-                    />
-                    <QualityPlanSummary onOpen={quality.openPlan} />
-                    <EvidenceBoundaries />
-                  </aside>
-                </div>
+                </>
               ) : view === 'listeners' ? (
                 <SocketsPanel
                   kind="listeners"
                   capabilities={capabilities}
                   activity={actions.activity}
-                  consentOpen={actions.activityConsent && actions.activityPurpose === 'listeners'}
-                  acknowledged={actions.activityAcknowledged}
                   handoffError={handoffError}
                   onOpen={() => {
                     setHandoffError('');
-                    actions.openActivityConsent('listeners');
+                    actions.inspectActivity();
                   }}
-                  onAcknowledged={actions.setActivityAcknowledged}
-                  onConfirm={actions.inspectActivity}
-                  onCancel={() => actions.setActivityConsent(false)}
+                  onCancel={actions.cancelActivity}
                   onHandoff={shell ? openListenerHandoff : undefined}
                 />
               ) : view === 'activity' ? (
@@ -279,23 +230,18 @@ export function ThisDeviceRoute() {
                     kind="connections"
                     capabilities={capabilities}
                     activity={actions.activity}
-                    consentOpen={
-                      actions.activityConsent && actions.activityPurpose === 'connections'
-                    }
-                    acknowledged={actions.activityAcknowledged}
-                    onOpen={() => actions.openActivityConsent('connections')}
-                    onAcknowledged={actions.setActivityAcknowledged}
-                    onConfirm={actions.inspectActivity}
-                    onCancel={() => actions.setActivityConsent(false)}
-                  />
-                  <InterfaceLoadPanel
-                    capabilities={capabilities}
-                    state={actions.traffic}
-                    duration={actions.trafficDuration}
-                    onDuration={actions.setTrafficDuration}
-                    onSample={actions.sampleTraffic}
+                    onOpen={actions.inspectActivity}
+                    onCancel={actions.cancelActivity}
                   />
                 </div>
+              ) : view === 'traffic' ? (
+                <InterfaceLoadPanel
+                  capabilities={capabilities}
+                  state={actions.traffic}
+                  duration={actions.trafficDuration}
+                  onDuration={actions.setTrafficDuration}
+                  onSample={actions.sampleTraffic}
+                />
               ) : (
                 <QualityPlanPanel
                   stage={quality.stage}
@@ -319,9 +265,12 @@ export function ThisDeviceRoute() {
             <footer className="this-pc-footer">
               <span>
                 <b>Observed</b>
-                {snapshot.status === 'ready'
-                  ? formatObservedAt(snapshot.value.observedAt)
-                  : 'Not available'}
+                {(view === 'listeners' || view === 'activity') &&
+                actions.activity.status === 'ready'
+                  ? formatObservedAt(actions.activity.value.observedAt)
+                  : snapshot.status === 'ready'
+                    ? formatObservedAt(snapshot.value.observedAt)
+                    : 'Not available'}
               </span>
               <span>
                 <b>Scope</b>
@@ -332,7 +281,7 @@ export function ThisDeviceRoute() {
                 Local view only. No guarantee of completeness.
               </span>
             </footer>
-          </>
+          </div>
         )}
       </div>
       {capabilities.status === 'ready' ? (

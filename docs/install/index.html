@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Install ProtoPeek","description":"Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker.","url":"https://protopeek.shreyam1008.com.np/install/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/install/","dateModified":"2026-09-03","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/INSTALLING.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Install ProtoPeek","item":"https://protopeek.shreyam1008.com.np/install/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Install ProtoPeek","description":"Install, upgrade, roll back, or remove ProtoPeek on macOS, Linux, and Windows with verified releases, Homebrew, Scoop, direct scripts, or Docker.","url":"https://protopeek.shreyam1008.com.np/install/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/install/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/INSTALLING.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Install ProtoPeek","item":"https://protopeek.shreyam1008.com.np/install/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -70,7 +70,7 @@
               <p>How do I install ProtoPeek?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.5.0
+      <i aria-hidden="true"></i>Stable · v0.6.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -140,18 +140,18 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>&gt; v0.5.0 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
+                <p>&gt; v0.6.0 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
 <h2 id="install-through-an-owned-package-channel">Install through an owned package channel</h2>
 <p>Homebrew on macOS or Linux installs both <code>protopeek</code> and <code>pp</code>, plus both manpages:</p>
 <pre class="pp-doc-code"><code data-lang="sh">brew install shreyam1008/tap/protopeek</code></pre>
 <p>Scoop on Windows installs both executable shims from the owned bucket:</p>
 <pre class="pp-doc-code"><code data-lang="powershell">scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek</code></pre>
-<p>The formula and manifest pin the public v0.5.0 archives by SHA-256 and declare aria2 as an external package dependency. They provide the v0.5.0 Downloader without bundling aria2 into ProtoPeek. Update with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>; uninstall with <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>.</p>
+<p>The formula and manifest pin release archives by SHA-256 and declare aria2 as a package dependency. Check the manifest for its packaged version; the direct resolver selects latest stable. Update with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>; uninstall with <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>.</p>
 <h2 id="install-through-the-release-resolver">Install through the release resolver</h2>
 <pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh</code></pre>
 <p>The installer verifies the selected archive against the matching <code>checksums.txt</code> before extraction. It provides <code>protopeek</code> and the short <code>pp</code> command unless an unrelated <code>pp</code> already occupies the install directory; that file is never overwritten. Older verified archives that contain only <code>protopeek</code> are supported by deriving the alias from that verified binary.</p>
-<p>The v0.5.0 archive does not bundle aria2. Install <code>aria2c</code> separately or configure its executable path before using Downloader or <code>pp download</code>; every other v0.5.0 workbench area remains usable without starting the transfer engine.</p>
+<p>v0.6.0 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.</p>
 <p>Windows PowerShell installs per user and updates the user PATH without requiring administrator access:</p>
 <pre class="pp-doc-code"><code data-lang="powershell">irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>To inspect the script first:</p>
@@ -159,9 +159,11 @@ scoop install shreyam/protopeek</code></pre>
 Get-Content .\install.ps1
 .\install.ps1</code></pre>
 <h2 id="install-a-pinned-release">Install a pinned release</h2>
+<p>The Windows PowerShell 5.1 and PowerShell 7 compatible per-user installer adds a <strong>ProtoPeek</strong> Start-menu shortcut. It opens the browser and minimizes the console. The shortcut uses loopback port <code>8844</code>, keeping the browser origin stable so drafts and appearance survive a restart. Use <code>-UIPort</code> to choose another port if it is occupied, or <code>-NoShortcuts</code> for a CLI-only installation. <code>-ShortcutDir</code> supports a custom Start-menu destination. A shortcut pointing at a different installation is preserved. The console process remains the server: closing the browser leaves downloads running; stopping the server requires queue recovery on next start. Reopen the existing browser address while the server is running instead of starting a second copy.</p>
+<p>The bundled engine adds about 2.36 MiB compressed to Windows x64 builds. Its upstream Windows TLS implementation does not support TLS 1.3-only servers; configure another aria2 build if needed. Source and notices are documented in <code>internal/bundledaria2/README.md</code> and accompany the release.</p>
 <p>The installers accept a pinned immutable tag:</p>
-<pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.5.0 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
-<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.5.0&#39;
+<pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.6.0 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
+<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.0&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>Use <code>PROTOPEEK_CHANNEL=edge</code> only when intentionally testing the rolling edge prerelease. A stable-resolution failure never falls back to edge.</p>
 <h2 id="upgrade-and-rollback">Upgrade and rollback</h2>
@@ -170,6 +172,7 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 <p>Saved launcher targets live in the local browser profile. Back up browser site data before a major launcher migration.</p>
 <h2 id="uninstall">Uninstall</h2>
 <p>For package-manager installs, use <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>. For a Unix release-resolver install, remove <code>protopeek</code>, the ProtoPeek-owned <code>pp</code>, <code>.protopeek-install</code>, and the <code>protopeek.1</code> and <code>pp.1</code> files from the configured install/man directories. For a PowerShell release-resolver install, remove <code>%LOCALAPPDATA%\Programs\ProtoPeek</code> and remove that directory from the user PATH. Never remove an unrelated <code>pp</code> command. Browser-saved targets remain until cleared through browser site-data controls.</p>
+<p>For the Windows installer, also remove the owned <code>%APPDATA%\Microsoft\Windows\Start Menu\Programs\ProtoPeek\ProtoPeek.lnk</code> shortcut (or the custom shortcut location). The PATH entry is the <code>bin</code> directory inside the installation.</p>
 <h2 id="docker">Docker</h2>
 <p>No public container image is claimed. Build the local development image, then keep its published host port on loopback:</p>
 <pre class="pp-doc-code"><code data-lang="sh">make docker
@@ -194,7 +197,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>The owned Homebrew and Scoop channels and verified release resolvers install v0.5.0.</p>
+                <p>Verified resolvers select stable releases; package manifests identify their packaged version.</p>
               </section>
             </aside>
           </div>
@@ -205,9 +208,9 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
         <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
         <strong>VS Code and Open VSX spec</strong>
       </a>
-      <a href="/grpc-workbench/">
+      <a href="/capnp-workbench/">
         <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
-        <strong>gRPC workbench</strong>
+        <strong>Cap’n Proto workbench</strong>
       </a>
     </nav>
 
@@ -221,7 +224,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.5.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

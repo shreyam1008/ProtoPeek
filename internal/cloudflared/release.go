@@ -32,16 +32,16 @@ func safeReleaseClient(client *http.Client) *http.Client {
 	if client == nil {
 		client = http.DefaultClient
 	}
-	copy := *client
-	copy.Timeout = releaseTimeout
-	copy.Jar = nil
-	copy.CheckRedirect = func(request *http.Request, via []*http.Request) error {
+	safeClient := *client
+	safeClient.Timeout = releaseTimeout
+	safeClient.Jar = nil
+	safeClient.CheckRedirect = func(request *http.Request, via []*http.Request) error {
 		if len(via) >= 3 || request.URL.Scheme != "https" || !strings.EqualFold(request.URL.Hostname(), "api.github.com") || request.URL.User != nil {
 			return http.ErrUseLastResponse
 		}
 		return nil
 	}
-	return &copy
+	return &safeClient
 }
 
 // LatestRelease performs one explicit unauthenticated request to the fixed

@@ -4,13 +4,7 @@ export function StatusRail({ currentLabel }: { currentLabel: string }) {
       <span>
         <b>View</b> {currentLabel}
       </span>
-      <span>
-        <b>Operations</b> Manual and bounded
-      </span>
-      <span>
-        <b>Refresh</b> No background polling
-      </span>
-      <span className="pp-status-rail-local">Local-first · cross-platform shell</span>
+      <span className="pp-status-rail-local">Local workspace</span>
     </section>
   );
 }
