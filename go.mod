@@ -1,6 +1,6 @@
 module github.com/shreyam1008/ProtoPeek
 
-go 1.26.0
+go 1.26.8
 
 require (
 	capnproto.org/go/capnp/v3 v3.1.0-alpha.2

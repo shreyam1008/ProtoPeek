@@ -450,3 +450,17 @@ These gaps do not erase the implemented and exercised workflows recorded above.
 - Native capture, browser file uploads and native macOS/Linux interactive acceptance remain the
   limitations recorded above. User authorized commit and publication; CI/release results follow in
   GitHub rather than being inferred from local checks.
+
+### Publication hardening — 7 September
+
+- Cross-platform checks caught a Cap'n Proto socket deadline racing context cancellation and macOS
+  fixture paths using the system `/var` symlink. Both were corrected; all three OS Go jobs passed.
+- Source packaging now preserves archive bytes when servers advertise gzip content encoding and
+  uses the official GNU GMP mirror after repeated primary-host timeouts. Every pinned hash remains
+  unchanged. Reading the full source listing fixes a `tar | grep -q` broken-pipe failure in CI.
+- Artifact inspection caught the edge publisher selecting an annotated stable tag on the same
+  commit. Both publishers now explicitly set `GORELEASER_CURRENT_TAG`. The affected v0.6.0
+  candidate was returned to draft; its tag is preserved rather than rewritten.
+- Another Windows run hit an access violation matching Go's known 1.26.0/1.26.1 runtime crash
+  (golang/go#77975, fixed by #78041 in 1.26.2). The module, development tools and container build
+  now require Go 1.26.8. v0.6.1 supersedes the candidate and will receive fresh artifact acceptance.

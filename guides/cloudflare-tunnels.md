@@ -7,7 +7,7 @@ locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, net
 tools: the [HTTP workbench](/http-workbench/), [gRPC workbench](/grpc-workbench/),
 [network workbench](/network-workbench/), and [This Device](/this-pc/).
 
-This page describes the local operations available in v0.6.0. ProtoPeek is not affiliated with
+This page describes the local operations available in v0.6.1. ProtoPeek is not affiliated with
 or endorsed by Cloudflare, Inc., and this guide does not make pricing or plan-limit claims.
 
 ## What works now

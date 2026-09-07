@@ -1,6 +1,6 @@
 # This Device evidence and connection-quality boundary
 
-Status: **available under Network in v0.6.0**.
+Status: **available under Network in v0.6.1**.
 
 The current-source v0.7 foundation adds native Windows activity/counters and typed listener drafts;
 it is not a completed or shipped v0.7 claim. The versioned handoff, freshness, and no-automatic-I/O
@@ -88,7 +88,7 @@ evidence remains labelled. Neither backend requests elevation. macOS reports act
 unsupported, and ProtoPeek never falls back to `lsof`, `netstat`, PowerShell, WMI, or another
 executable.
 
-In v0.6.0, an eligible TCP listener whose evidence is no more than five
+In v0.6.1, an eligible TCP listener whose evidence is no more than five
 minutes old and whose selected host is unscoped can create typed HTTP, gRPC, next-hop, and Publish
 drafts. A wildcard bind derives a same-family loopback host as an explicitly inferred draft. UDP
 rows never become service drafts. A scoped IPv6 listener remains visible evidence and may produce
@@ -206,7 +206,7 @@ loss, a universal quality score, and destination-independent performance are not
 | PID/process attribution | Best effort, same effective user | Unavailable | Best-effort basename with limited query rights |
 | Elevation or shell fallback | Never | Never | Never |
 
-The Windows backend has real-host and synthetic acceptance recorded in the v0.6.0 overhaul guide. macOS activity,
+The Windows backend has real-host and synthetic acceptance recorded in the v0.6.1 overhaul guide. macOS activity,
 interface counters, and process ownership remain outside the current contract until durable native
 implementations pass the same capability, permission, truncation, and real-host tests. This matrix
 is separate from Network Path: active-hop probing supports Linux UDP and Windows IPv4/IPv6 ICMP.

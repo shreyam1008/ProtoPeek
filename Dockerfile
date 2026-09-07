@@ -17,7 +17,7 @@ COPY web/vite.html.ts ./web/vite.html.ts
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 RUN bun run build:app
 
-FROM golang:1.26-alpine AS go-builder
+FROM golang:1.26.8-alpine AS go-builder
 WORKDIR /src
 ARG VERSION=docker
 RUN addgroup -S protopeek && adduser -S -D -u 10001 protopeek -G protopeek

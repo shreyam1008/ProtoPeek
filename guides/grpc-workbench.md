@@ -60,5 +60,5 @@ When the selected service exposes canonical `grpc.health.v1.Health`, ProtoPeek c
 
 - [Learn the protocol concepts behind the workbench](/learn-grpc/).
 - [See the shared transport and safety boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.6.0](/install/).
+- [Install stable ProtoPeek v0.6.1](/install/).
 

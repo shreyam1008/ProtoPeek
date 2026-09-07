@@ -70,7 +70,7 @@
               <p>How do I install ProtoPeek?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.0
+      <i aria-hidden="true"></i>Stable · v0.6.1
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -140,7 +140,7 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>&gt; v0.6.0 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
+                <p>&gt; v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
 <h2 id="install-through-an-owned-package-channel">Install through an owned package channel</h2>
 <p>Homebrew on macOS or Linux installs both <code>protopeek</code> and <code>pp</code>, plus both manpages:</p>
 <pre class="pp-doc-code"><code data-lang="sh">brew install shreyam1008/tap/protopeek</code></pre>
@@ -151,7 +151,7 @@ scoop install shreyam/protopeek</code></pre>
 <h2 id="install-through-the-release-resolver">Install through the release resolver</h2>
 <pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh</code></pre>
 <p>The installer verifies the selected archive against the matching <code>checksums.txt</code> before extraction. It provides <code>protopeek</code> and the short <code>pp</code> command unless an unrelated <code>pp</code> already occupies the install directory; that file is never overwritten. Older verified archives that contain only <code>protopeek</code> are supported by deriving the alias from that verified binary.</p>
-<p>v0.6.0 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.</p>
+<p>v0.6.1 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.</p>
 <p>Windows PowerShell installs per user and updates the user PATH without requiring administrator access:</p>
 <pre class="pp-doc-code"><code data-lang="powershell">irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>To inspect the script first:</p>
@@ -162,8 +162,8 @@ Get-Content .\install.ps1
 <p>The Windows PowerShell 5.1 and PowerShell 7 compatible per-user installer adds a <strong>ProtoPeek</strong> Start-menu shortcut. It opens the browser and minimizes the console. The shortcut uses loopback port <code>8844</code>, keeping the browser origin stable so drafts and appearance survive a restart. Use <code>-UIPort</code> to choose another port if it is occupied, or <code>-NoShortcuts</code> for a CLI-only installation. <code>-ShortcutDir</code> supports a custom Start-menu destination. A shortcut pointing at a different installation is preserved. The console process remains the server: closing the browser leaves downloads running; stopping the server requires queue recovery on next start. Reopen the existing browser address while the server is running instead of starting a second copy.</p>
 <p>The bundled engine adds about 2.36 MiB compressed to Windows x64 builds. Its upstream Windows TLS implementation does not support TLS 1.3-only servers; configure another aria2 build if needed. Source and notices are documented in <code>internal/bundledaria2/README.md</code> and accompany the release.</p>
 <p>The installers accept a pinned immutable tag:</p>
-<pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.6.0 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
-<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.0&#39;
+<pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.6.1 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
+<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.1&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>Use <code>PROTOPEEK_CHANNEL=edge</code> only when intentionally testing the rolling edge prerelease. A stable-resolution failure never falls back to edge.</p>
 <h2 id="upgrade-and-rollback">Upgrade and rollback</h2>
@@ -224,7 +224,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

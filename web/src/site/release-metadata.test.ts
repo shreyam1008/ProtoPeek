@@ -16,11 +16,11 @@ describe('release metadata', () => {
     );
 
     expect(product.latestRelease).toEqual({
-      version: '0.6.0',
+      version: '0.6.1',
       status: 'published',
-      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0',
+      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1',
     });
-    expect(packageVersions['GitHub Releases']).toBe('0.6.0');
+    expect(packageVersions['GitHub Releases']).toBe('0.6.1');
     expect(packageVersions['Homebrew Tap']).toBe('0.5.0');
     expect(packageVersions['Scoop Bucket']).toBe('0.5.0');
     expect(
@@ -42,8 +42,8 @@ describe('release metadata', () => {
     };
 
     expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
-    expect(siteIndex).toContain('"softwareVersion": "0.6.0"');
-    expect(siteIndex).toContain('/releases/tag/v0.6.0');
+    expect(siteIndex).toContain('"softwareVersion": "0.6.1"');
+    expect(siteIndex).toContain('/releases/tag/v0.6.1');
     expect(siteIndex).toContain('six areas: Home, Inspect, Network, Publish, Files, and Settings');
     expect(siteIndex).toContain(
       '<meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />'
@@ -51,7 +51,7 @@ describe('release metadata', () => {
     expect(siteIndex).toContain('<meta property="og:image:width" content="1200" />');
     expect(siteIndex).toContain('<meta property="og:image:height" content="630" />');
     expect(manifest.theme_color).toBe('#0b5cff');
-    expect(llms).toContain('v0.6.0 is the current stable release');
+    expect(llms).toContain('v0.6.1 is the current stable release');
     expect(llms).toContain('Homebrew and Scoop manifests identify their package versions');
     expect(llms).toContain('Windows x64 includes pinned aria2 1.37.0');
     expect(llms).toContain('Headscale, NetBird, integrated elevation/sign-in');
@@ -80,8 +80,8 @@ describe('release metadata', () => {
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');
-    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "September 2026" "ProtoPeek 0\.6\.0"/);
-    expect(ppMan).toMatch(/^\.TH PP 1 "September 2026" "ProtoPeek 0\.6\.0"/);
+    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "September 2026" "ProtoPeek 0\.6\.1"/);
+    expect(ppMan).toMatch(/^\.TH PP 1 "September 2026" "ProtoPeek 0\.6\.1"/);
     expect(protopeekMan).toContain('.B protopeek download');
     expect(protopeekMan).toContain('subcommand ships in ProtoPeek v0.5.0');
     expect(protopeekMan).toContain('Windows x64 includes pinned aria2 1.37.0');

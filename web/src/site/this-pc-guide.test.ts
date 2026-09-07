@@ -15,12 +15,12 @@ describe('This Device release guide', () => {
     const guide = readRepositoryFile('guides/this-pc.md');
     const generator = readRepositoryFile('scripts/generate-site-docs.mjs');
 
-    expect(readme).toContain('**Latest stable: v0.6.0.**');
-    expect(readme).toContain('v0.6.0 has six permanent destinations');
+    expect(readme).toContain('**Latest stable: v0.6.1.**');
+    expect(readme).toContain('v0.6.1 has six permanent destinations');
     expect(readme).toContain('**This Device** under Network');
     expect(readme).not.toContain('seventh, route-lazy **This PC** workspace');
     expect(readme).not.toContain('eighth **Cloudflare Tunnel** workspace');
-    expect(guide).toContain('available under Network in v0.6.0');
+    expect(guide).toContain('available under Network in v0.6.1');
     expect(guide).toContain('**This Device** is ProtoPeek');
     expect(guide).toContain('canonical `/this-pc` route');
     expect(guide).toContain('`/api/this-pc/*` endpoints');
@@ -39,7 +39,7 @@ describe('This Device release guide', () => {
     expect(guide).not.toContain('for the planned native Windows backend');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');
     expect(generator).toContain(
-      'v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings'
+      'v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings'
     );
     expect(generator).not.toContain('Current source adds a seventh route-lazy area, This PC');
     expect(generator).not.toContain('Current source also adds an eighth route-lazy area');

@@ -9,7 +9,7 @@ local Tailscale and Cloudflare tools; and queue resumable downloads without an e
 
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
-> **Latest stable: v0.6.0.** Six permanent destinations: **Home, Inspect, Network, Publish, Files and
+> **Latest stable: v0.6.1.** Six permanent destinations: **Home, Inspect, Network, Publish, Files and
 > Settings**. The verified installers resolve stable releases; edge remains an explicit opt-in.
 > Windows x64 includes aria2 inside the executable. Other platforms use installed aria2.
 
@@ -24,7 +24,7 @@ See the [release notes](CHANGELOG.md), [feature roadmap](guides/feature-roadmap.
 
 ## Product contract
 
-v0.6.0 has six permanent destinations:
+v0.6.1 has six permanent destinations:
 
 | Destination | Responsibility | Current and compatibility paths retained |
 | --- | --- | --- |
@@ -107,10 +107,10 @@ pp https://api.example.test       # Home + inspection of the stated/default veri
 pp -plaintext localhost:50051     # exact direct mode in gRPC under Inspect
 ```
 
-In v0.6.0, Home opens at `/` with side navigation for Home, Inspect, Network, Publish, Files and
+In v0.6.1, Home opens at `/` with side navigation for Home, Inspect, Network, Publish, Files and
 Settings. Legacy `/grpc`, `/http`, `/routes` and `/downloads` links remain compatible.
 
-v0.6.0 retains `/this-pc` as the canonical deep link for **This Device** under Network. Its
+v0.6.1 retains `/this-pc` as the canonical deep link for **This Device** under Network. Its
 first render is local-only: it reads capabilities, hostname/OS/architecture, and bounded interface
 evidence from the running ProtoPeek process. Linux and native Windows can explicitly inspect bounded
 TCP/UDP socket ownership and sample aggregate interface counters; macOS reports both operations as
@@ -126,7 +126,7 @@ presented as per-process traffic, and provider throughput is never presented as 
 See the [This Device boundary](guides/this-pc.md) and
 [Connected Workbench contract](guides/connected-workbench-integration-plan.md).
 
-v0.6.0 retains `/tunnels` as the canonical deep link for the domain-native **Cloudflare
+v0.6.1 retains `/tunnels` as the canonical deep link for the domain-native **Cloudflare
 Tunnel** workspace under Publish. It performs no work until **Inspect this host** is chosen, then
 uses the real host adapter to read only the canonical `cloudflared` OS service, documented config
 candidates, and bounded executable metadata. An absent executable or service is a valid empty
@@ -405,23 +405,23 @@ adapter owns discovery, schema, invocation, cancellation, and its native inspect
 | Adapter | Status | First useful slice |
 |---|---|---|
 | gRPC | Stable · v0.3.0 | Reflection, temporary browser-folder snapshots, host `.proto`/protoset sources, unary and streaming calls, canonical Health Check/Watch, metadata, headers, trailers, status, callback-observed handler lifecycle timing, and bounded Unary Repeat |
-| HTTP / REST | Stable · v0.6.0 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, bounded text/base64 response bodies, and explicit OpenAPI 3.x or Swagger 2.0 JSON import |
-| WebSocket / SSE | Stable · v0.6.0 | Inspect → Event streams: real text/binary WebSocket sends, named SSE events and IDs, headers, subprotocols, verified TLS, bounded timelines, disconnect and navigation cleanup |
-| Host port scanner | Stable · v0.6.0 | Up to 1024 chosen TCP ports on one local or remote IP, presets/ranges, open/refused/timeout results, IPv4/IPv6, cancellation, and a protocol-inspection handoff |
+| HTTP / REST | Stable · v0.6.1 | Standard-library HTTP(S), method, URL, headers, body, timeout, redirect choice, cancellation, status, protocol, timing, bounded text/base64 response bodies, and explicit OpenAPI 3.x or Swagger 2.0 JSON import |
+| WebSocket / SSE | Stable · v0.6.1 | Inspect → Event streams: real text/binary WebSocket sends, named SSE events and IDs, headers, subprotocols, verified TLS, bounded timelines, disconnect and navigation cleanup |
+| Host port scanner | Stable · v0.6.1 | Up to 1024 chosen TCP ports on one local or remote IP, presets/ranges, open/refused/timeout results, IPv4/IPv6, cancellation, and a protocol-inspection handoff |
 | Next-hop route evidence | Shipped · v0.3.0 | Read-only Linux netlink, Darwin routing socket, or Windows `GetBestRoute2`; one process-perspective route per resolved address, no hop probes |
 | Network Path | Shipped · v0.4.0 · Linux | Built-in unprivileged UDP error-queue tracing with separate DNS, route, per-TTL sample, and source-RTT evidence; active probes require explicit consent |
-| Windows Network Path | Stable · v0.6.0 | Native IPv4/IPv6 ICMP echo tracing, automatic backend choice, per-hop RTT/status, bounded probes and cancellation without installing traceroute or requesting elevation |
+| Windows Network Path | Stable · v0.6.1 | Native IPv4/IPv6 ICMP echo tracing, automatic backend choice, per-hop RTT/status, bounded probes and cancellation without installing traceroute or requesting elevation |
 | Private-network discovery | Shipped · v0.4.0 | Authorized RFC 1918 IPv4 `/24`-or-smaller profiles with exact application-inspection versus TCP-connect-only ports, full-probe duration, cancellation, positive evidence only, and a 64 KiB aggregate verbose-detail budget |
 | Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Bounded streaming offline import; Nmap is not required to import a file |
-| Installed Nmap | Stable · v0.6.0 | Explicit bounded TCP connect or light service scans, private subnet scope preview, cancellation, paginated evidence, export and Inspect handoff |
+| Installed Nmap | Stable · v0.6.1 | Explicit bounded TCP connect or light service scans, private subnet scope preview, cancellation, paginated evidence, export and Inspect handoff |
 | Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; bundled Windows x64 aria2 fallback |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
-| This Device | Stable · v0.6.0 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
-| Cloudflare Tunnel | Stable · v0.6.0 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
-| Tailscale client | Stable · v0.6.0 | Network → Tailscale reads installed-client peers, accounts and routes; prepared service inspection, reviewed connection/account/exit-node actions, diagnostics and Taildrop. Integrated sign-in/elevation, Headscale administration and NetBird remain open work |
-| [Cap’n Proto](guides/capnp-workbench.md) | Stable · v0.6.0 | Source/compiled schema loading, concrete bootstrap RPC, exact integers, verified TLS, cancellation and JSON export; optional external source compiler |
-| [Packet inspection](guides/network-workbench.md#current-source-packet-inspection) | Stable · v0.6.0 | PCAP/PCAPNG metadata, packet filtering/details/export; explicit installed dumpcap adapter with native live-capture acceptance still pending |
+| This Device | Stable · v0.6.1 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
+| Cloudflare Tunnel | Stable · v0.6.1 · local operations foundation | Manual real-host discovery of `cloudflared`, canonical service state, effective and competing YAML, ingress routes, redacted credential source, and optional Wrangler/Docker; explicit latest-release comparison and confirmed, stale-guarded canonical-service start/stop/restart; installation/update, route/config mutation, credentials, and account/cloud access remain user-owned or gated |
+| Tailscale client | Stable · v0.6.1 | Network → Tailscale reads installed-client peers, accounts and routes; prepared service inspection, reviewed connection/account/exit-node actions, diagnostics and Taildrop. Integrated sign-in/elevation, Headscale administration and NetBird remain open work |
+| [Cap’n Proto](guides/capnp-workbench.md) | Stable · v0.6.1 | Source/compiled schema loading, concrete bootstrap RPC, exact integers, verified TLS, cancellation and JSON export; optional external source compiler |
+| [Packet inspection](guides/network-workbench.md#current-source-packet-inspection) | Stable · v0.6.1 | PCAP/PCAPNG metadata, packet filtering/details/export; explicit installed dumpcap adapter with native live-capture acceptance still pending |
 | Darwin active hop probes | Remaining work | Windows IPv4/IPv6 and Linux UDP are implemented; Darwin needs a verified native backend |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
 | Broader or public range discovery | Not planned for the core flow | Current discovery remains selected TCP ports inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope |

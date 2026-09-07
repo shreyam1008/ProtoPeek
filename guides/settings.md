@@ -57,5 +57,5 @@ Explicit retry retains the chosen output name and partial-download behavior.
 
 - [Use Downloader and inspect its external aria2 boundary](/downloader/).
 - [Read the GoBarryGo consolidation record](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md).
-- [Install stable ProtoPeek v0.6.0](/install/).
+- [Install stable ProtoPeek v0.6.1](/install/).
 

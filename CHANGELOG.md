@@ -5,8 +5,11 @@ version source of truth.
 
 ## Unreleased
 
-## v0.6.0 — 2026-09-07
+## v0.6.1 — 2026-09-07
 
+- Supersedes the v0.6.1 release candidate with Go 1.26.8, including the upstream Windows runtime
+  crash fix. Stable and edge publishing now pin their intended tags so coincident tags cannot
+  overwrite another channel. The source-archive check consumes the full listing before matching.
 - Rebuilt the workbench around Home, Inspect, Network, Publish, Files and Settings. Side navigation,
   vertical request/response and settings tabs, independent scrolling, fuzzy commands and saved HTTP
   requests use the available desktop space. Drafts and appearance remain local; failed saves report

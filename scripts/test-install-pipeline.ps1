@@ -11,7 +11,7 @@ $Installer = [IO.Path]::GetFullPath($Installer)
 $env:PROTOPEEK_DOWNLOAD_URL = [IO.Path]::GetFullPath($Archive)
 $env:PROTOPEEK_CHECKSUM_URL = [IO.Path]::GetFullPath($Checksums)
 $env:PROTOPEEK_INSTALL_DIR = Join-Path ([IO.Path]::GetFullPath($FixtureRoot)) 'pipeline install with spaces'
-$env:PROTOPEEK_VERSION = 'v0.6.0'
+$env:PROTOPEEK_VERSION = 'v0.6.1'
 $env:PROTOPEEK_NO_PATH_UPDATE = '1'
 $env:PROTOPEEK_NO_SHORTCUTS = '1'
 Set-Location (Join-Path $env:WINDIR 'System32')

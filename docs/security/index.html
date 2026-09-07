@@ -70,7 +70,7 @@
               <p>What can I verify about this public website?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.0
+      <i aria-hidden="true"></i>Stable · v0.6.1
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -155,8 +155,8 @@
 <p>Website observation has a separate acknowledgement because it contacts the target and may create a server log. Each accepted operation performs exactly one credential-free <code>HEAD</code> request:</p>
 <ul><li>absolute HTTP or HTTPS only; user information, query strings, and fragments are rejected;</li><li>the hostname is normalized with the IDNA lookup profile;</li><li>DNS is resolved once, at most eight answers are retained by default, and every answer must be an ordinary public address; mixed public/blocked results fail closed;</li><li>dials use only the validated numeric pin set while the original hostname remains the HTTP Host, TLS SNI, and certificate-verification name;</li><li>environment proxies are disabled, compression and keep-alives are disabled, and HTTPS uses verified TLS 1.2 or newer;</li><li>redirects are returned as bounded evidence but never followed or resolved;</li><li>no cookie, authorization header, request body, retry, or response-body read is used;</li><li>the default whole-operation wall is 15 seconds and the outer process admits at most two website observations concurrently;</li><li>the result retains the observed URL, complete pinned address set, bounded selected headers, status/protocol, safe redirect location, successful TLS certificate evidence when HTTPS applies, and DNS/connect/TLS/first-byte/total timing where observed.</li></ul>
 <p>The result is one source-perspective observation at one time. A missing header, failed request, redirect, hostname, route, or timing value is not a universal vulnerability verdict. ProtoPeek does not emit a security score and does not infer a CVE from a <code>Server</code> header.</p>
-<h3 id="v0-6-0-local-head-evidence-report">v0.6.0 local HEAD evidence report</h3>
-<p>In v0.6.0, after one successful website observation, the Security page now runs a pure deterministic analyzer over the already retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect follow, body read, crawl, login attempt, or port connection.</p>
+<h3 id="v0-6-1-local-head-evidence-report">v0.6.1 local HEAD evidence report</h3>
+<p>In v0.6.1, after one successful website observation, the Security page now runs a pure deterministic analyzer over the already retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect follow, body read, crawl, login attempt, or port connection.</p>
 <p>The report uses only <code>observed</code>, <code>not observed</code>, and <code>attention</code> labels for:</p>
 <ul><li>HTTPS, verified TLS-chain evidence, and certificate validity at the observation time;</li><li><code>Strict-Transport-Security</code>, <code>Content-Security-Policy</code>, <code>X-Content-Type-Options</code>, <code>Referrer-Policy</code>, and <code>Permissions-Policy</code> response-header evidence;</li><li>frame-embedding evidence from CSP <code>frame-ancestors</code> or <code>X-Frame-Options</code>;</li><li>retained <code>Server</code> disclosure without treating a product string as a vulnerability;</li><li>the requested HTTP/HTTPS scheme and any retained redirect location, without following it.</li></ul>
 <p>The user can copy a versioned JSON report containing the normalized observation, fixed one-HEAD boundary, derived labels, and source-field references. Header names and duplicate values are canonicalized for deterministic output; the original selected evidence remains bounded by the observer and UI response limits. No score, grade, pass/fail state, CVE, or exploit claim is added.</p>
@@ -186,7 +186,7 @@
               <section class="pp-doc-side-card">
                 <div class="pp-doc-side-label">On this page</div>
                 <div class="pp-doc-toc">
-                  <a class="level-2" href="#current-build">Current build</a><a class="level-3" href="#historical-indexed-names">Historical indexed names</a><a class="level-3" href="#current-source-standard-path-plan-and-failed-certificates">Current source: standard path plan and failed certificates</a><a class="level-3" href="#one-public-website-response">One public website response</a><a class="level-3" href="#v0-6-0-local-head-evidence-report">v0.6.0 local HEAD evidence report</a><a class="level-3" href="#shared-destination-guard">Shared destination guard</a><a class="level-3" href="#current-source-failure-and-response-interpretation">Current-source failure and response interpretation</a><a class="level-2" href="#planned-not-shipped">Planned, not shipped</a><a class="level-2" href="#authorization-tiers-for-future-work">Authorization tiers for future work</a><a class="level-2" href="#excluded-behavior">Excluded behavior</a><a class="level-2" href="#evidence-and-test-contract">Evidence and test contract</a>
+                  <a class="level-2" href="#current-build">Current build</a><a class="level-3" href="#historical-indexed-names">Historical indexed names</a><a class="level-3" href="#current-source-standard-path-plan-and-failed-certificates">Current source: standard path plan and failed certificates</a><a class="level-3" href="#one-public-website-response">One public website response</a><a class="level-3" href="#v0-6-1-local-head-evidence-report">v0.6.1 local HEAD evidence report</a><a class="level-3" href="#shared-destination-guard">Shared destination guard</a><a class="level-3" href="#current-source-failure-and-response-interpretation">Current-source failure and response interpretation</a><a class="level-2" href="#planned-not-shipped">Planned, not shipped</a><a class="level-2" href="#authorization-tiers-for-future-work">Authorization tiers for future work</a><a class="level-2" href="#excluded-behavior">Excluded behavior</a><a class="level-2" href="#evidence-and-test-contract">Evidence and test contract</a>
                 </div>
               </section>
 
@@ -225,7 +225,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -77,9 +77,9 @@ The result is one source-perspective observation at one time. A missing header, 
 redirect, hostname, route, or timing value is not a universal vulnerability verdict. ProtoPeek does
 not emit a security score and does not infer a CVE from a `Server` header.
 
-### v0.6.0 local HEAD evidence report
+### v0.6.1 local HEAD evidence report
 
-In v0.6.0, after one successful
+In v0.6.1, after one successful
 website observation, the Security page now runs a pure deterministic analyzer over the already
 retained result. It makes no DNS lookup, HTTP request to the target or a third party, redirect
 follow, body read, crawl, login attempt, or port connection.

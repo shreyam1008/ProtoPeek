@@ -93,4 +93,4 @@ ProtoPeek does not currently provide cURL import, automatic OpenAPI endpoint dis
 
 - [See how network path evidence stays separate](/network-workbench/).
 - [Read the transport and workspace boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.6.0](/install/).
+- [Install stable ProtoPeek v0.6.1](/install/).

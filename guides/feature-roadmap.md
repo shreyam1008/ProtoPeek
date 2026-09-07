@@ -1,9 +1,9 @@
 # ProtoPeek roadmap
 
-Updated for v0.6.0 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
+Updated for v0.6.1 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
 the [acceptance record](workbench-overhaul-2026-09.md) records tests, observations and remaining gaps.
 
-## Available in v0.6.0
+## Available in v0.6.1
 
 Six permanent destinations keep related tools together. Existing deep links remain compatible.
 

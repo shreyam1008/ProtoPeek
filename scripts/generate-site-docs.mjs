@@ -114,7 +114,7 @@ Repository: ${repoRootURL}
 
 - Downloader product page: ${siteRoot}/downloader/
 
-- v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
 - Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
 - Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
 - Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
@@ -156,7 +156,7 @@ async function writeDownloaderPage() {
     operatingSystem: ['Linux', 'macOS', 'Windows'],
     isAccessibleForFree: true,
     softwareRequirements:
-      'ProtoPeek v0.6.0 with bundled aria2 on Windows x64; installed aria2 on other platforms.',
+      'ProtoPeek v0.6.1 with bundled aria2 on Windows x64; installed aria2 on other platforms.',
     screenshot: [
       `${siteRoot}/assets/protopeek-downloader-development.jpg`,
       `${siteRoot}/assets/protopeek-downloader-development-mobile.jpg`,
@@ -255,7 +255,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-hero-copy">
               <h1 id="downloader-title">Download locally. Keep every decision visible.</h1>
               <p>
-                ProtoPeek v0.6.0 gives users one explicit local queue for
+                ProtoPeek v0.6.1 gives users one explicit local queue for
                 HTTP(S) transfers: queue one or up to 32 independent jobs, see partial success,
                 pause or resume one job or the whole queue, retry, cancel, choose the destination,
                 and enforce a single-job expected SHA-256 without sending transfer details to a hosted service.
@@ -263,13 +263,13 @@ async function writeDownloaderPage() {
               ${renderStatus(downloaderPage.status)}
               <p class="pp-download-boundary">${escapeHtml(downloaderPage.status.detail)}</p>
               <div class="pp-download-actions">
-                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Open v0.6.0 release</a>
+                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Open v0.6.1 release</a>
                 <a class="pp-download-action-secondary" href="${siteBase}/install/">Read installation boundaries</a>
               </div>
               <dl class="pp-download-truth">
                 <div>
                   <dt>Available now</dt>
-                  <dd>Stable ProtoPeek v0.6.0</dd>
+                  <dd>Stable ProtoPeek v0.6.1</dd>
                 </div>
                 <div>
                   <dt>Package channels</dt>
@@ -357,7 +357,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-requirement-links">
               <a href="${siteBase}/docs/">Published documentation</a>
               <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Release setup</a>
-              <a href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Stable v0.6.0 release</a>
+              <a href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Stable v0.6.1 release</a>
             </div>
           </section>
 
@@ -1000,7 +1000,7 @@ function renderFooter() {
       <nav aria-label="Footer">
         <a href="${siteBase}/docs/">Guides</a>
         <a href="${siteBase}/install/">Download</a>
-        <a href="${repoRootURL}/releases/tag/v0.6.0" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
         <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

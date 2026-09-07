@@ -1,6 +1,6 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.6.0 is the current stable release. The default resolver installs it from immutable GitHub release
+> v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release
 > assets and never falls back to edge.
 
 ## Install through an owned package channel
@@ -35,7 +35,7 @@ command unless an unrelated `pp` already occupies the install directory; that
 file is never overwritten. Older verified archives that contain only
 `protopeek` are supported by deriving the alias from that verified binary.
 
-v0.6.0 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted
+v0.6.1 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted
 only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64
 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.
 
@@ -72,11 +72,11 @@ Source and notices are documented in `internal/bundledaria2/README.md` and accom
 The installers accept a pinned immutable tag:
 
 ```sh
-PROTOPEEK_VERSION=v0.6.0 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
+PROTOPEEK_VERSION=v0.6.1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
 ```
 
 ```powershell
-$env:PROTOPEEK_VERSION = 'v0.6.0'
+$env:PROTOPEEK_VERSION = 'v0.6.1'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 

@@ -85,7 +85,7 @@
       "section": "Install guide",
       "sourcePath": "guides/INSTALLING.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
         "detail": "Verified resolvers select stable releases; package manifests identify their packaged version."
       },
@@ -129,7 +129,7 @@
       "sourcePath": "guides/capnp-workbench.md",
       "visual": "capnp",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
         "detail": "Concrete bootstrap RPC is available; generic bindings and returned-capability workflows remain planned."
       },
@@ -175,9 +175,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/grpc-workbench.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Reflection or proto files",
@@ -222,9 +222,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/http-workbench.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Explicit request", "TLS and redirects", "Timing and response evidence"],
       "visual": "http",
@@ -265,9 +265,9 @@
       "section": "Technical guide",
       "sourcePath": "guides/learn-grpc.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Proto contract", "Four RPC shapes", "HTTP/2 and trailers"],
       "visual": "learn-grpc",
@@ -291,9 +291,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/network-workbench.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "DNS and selected route",
@@ -338,9 +338,9 @@
       "section": "Evidence guide",
       "sourcePath": "guides/route-and-nmap-evidence.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Source RTT", "Authorized discovery", "No hidden Nmap execution"],
       "visual": "network-boundary",
@@ -372,9 +372,9 @@
         "public IP BGP origin"
       ],
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Linux and Windows sockets",
@@ -413,7 +413,7 @@
       "group": "publish",
       "title": "Manage Cloudflare Tunnel locally",
       "documentTitle": "Manage Cloudflare Tunnel Locally | ProtoPeek",
-      "description": "ProtoPeek v0.6.0 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
+      "description": "ProtoPeek v0.6.1 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
       "question": "Is cloudflared installed, current, and running on this host?",
       "section": "Current-source feature",
       "sourcePath": "guides/cloudflare-tunnels.md",
@@ -428,9 +428,9 @@
         "Windows cloudflared service"
       ],
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Real host and version evidence",
@@ -474,11 +474,11 @@
       "group": "files",
       "title": "Downloader",
       "documentTitle": "ProtoPeek Downloader | Local aria2c Transfer Workbench",
-      "description": "ProtoPeek v0.6.0 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.",
+      "description": "ProtoPeek v0.6.1 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.",
       "question": "Can I manage this download locally?",
       "section": "Stable feature",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
         "detail": "Local queue and history with bundled Windows x64 aria2; other platforms use installed aria2."
       },
@@ -521,7 +521,7 @@
       "section": "Stable core and report",
       "sourcePath": "guides/website-analysis-security.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
         "detail": "Explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup."
       },
@@ -564,9 +564,9 @@
       "section": "Stable core and controls",
       "sourcePath": "guides/settings.md",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": [
         "Browser-only preferences",
@@ -612,9 +612,9 @@
       "sourcePath": "guides/feature-roadmap.md",
       "lastModified": "2026-09-07",
       "status": {
-        "label": "Stable · v0.6.0",
+        "label": "Stable · v0.6.1",
         "tone": "stable",
-        "detail": "Available in v0.6.0. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
       "visual": "roadmap",

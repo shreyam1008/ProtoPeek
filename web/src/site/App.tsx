@@ -444,7 +444,7 @@ function Install() {
           </a>
           <a
             className="mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
           >
             Download a release archive
             <Download className="size-4" aria-hidden="true" />
@@ -509,7 +509,7 @@ function Install() {
               {copyState === 'manual'
                 ? 'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
                 : activeId === 'windows'
-                  ? 'Installs stable ProtoPeek v0.6.0. Windows x64 includes aria2 and a Start-menu shortcut.'
+                  ? 'Installs stable ProtoPeek v0.6.1. Windows x64 includes aria2 and a Start-menu shortcut.'
                   : 'Installs ProtoPeek. Homebrew supplies aria2; Linux release archives use installed aria2.'}
             </p>
           </div>
@@ -592,7 +592,7 @@ function Footer() {
           </a>
           <a
             className="hover:text-black"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.0"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
             target="_blank"
             rel="noreferrer"
           >

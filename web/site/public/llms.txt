@@ -10,7 +10,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 - Downloader product page: https://protopeek.shreyam1008.com.np/downloader/
 
-- v0.6.0 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
 - Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
 - Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
 - Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
@@ -24,19 +24,19 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 ## Public features and guides
 
-- Install ProtoPeek: https://protopeek.shreyam1008.com.np/install/ — Stable · v0.6.0
-- Cap’n Proto workbench: https://protopeek.shreyam1008.com.np/capnp-workbench/ — Stable · v0.6.0
-- gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.6.0
-- HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.6.0
-- Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Stable · v0.6.0
-- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.6.0
-- Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable · v0.6.0
-- This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Stable · v0.6.0
-- Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable · v0.6.0
-- Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.0
-- Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable · v0.6.0
-- Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.0
-- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Stable · v0.6.0
+- Install ProtoPeek: https://protopeek.shreyam1008.com.np/install/ — Stable · v0.6.1
+- Cap’n Proto workbench: https://protopeek.shreyam1008.com.np/capnp-workbench/ — Stable · v0.6.1
+- gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.6.1
+- HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.6.1
+- Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Stable · v0.6.1
+- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.6.1
+- Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable · v0.6.1
+- This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Stable · v0.6.1
+- Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable · v0.6.1
+- Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.1
+- Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable · v0.6.1
+- Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.1
+- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Stable · v0.6.1
 - Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide
 - Competitive workflow decisions: https://protopeek.shreyam1008.com.np/competitive-landscape/ — Research record
 - VS Code and Open VSX spec: https://protopeek.shreyam1008.com.np/vscode-extension-spec/ — Planned · not shipped
