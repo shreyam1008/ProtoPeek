@@ -9,7 +9,7 @@ account or send telemetry. Your agent and browser share the running workbench's 
 1. Start ProtoPeek and open **Settings → AI agents → Enable agent connection**.
    Leave **Allow write actions** off for inspection. Enable it for HTTP POST/PUT/PATCH/DELETE
    and download controls. Disable the connection to change that choice.
-2. Copy the MCP configuration from this page into your agent. It includes the running binary's
+2. Copy the MCP configuration from **AI agents in the running workbench** into your agent. It includes the running binary's
    absolute path and its pairing-file location, so it also works with a custom install or profile.
    The generic configuration below works when `protopeek` is on PATH and uses the default profile.
 3. Keep ProtoPeek running. Ask your agent to inspect a service and watch its calls in **Activity**.
@@ -35,9 +35,11 @@ resources and cancellation. There is no separate Node.js service or MCP proxy to
 
 ## Showcase a real workflow
 
-> Use ProtoPeek to inspect my local listeners. Ask which service to check if several match.
-> Inspect that HTTP service, explain its status and timing, and show the evidence in ProtoPeek.
-> Do not change services or download files.
+```text
+Use ProtoPeek to inspect my local listeners. Ask which service to check if several match.
+Inspect that HTTP service, explain its status and timing, and show the evidence in ProtoPeek.
+Do not change services or download files.
+```
 
 This produces actual `device_snapshot`, `device_listeners`, optional `scan_ports`, and `http_request` calls.
 A port is evidence, not proof of a protocol. Each admitted call returns a receipt ID that also
