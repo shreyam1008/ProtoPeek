@@ -101,6 +101,9 @@ func New(version string) *Engine {
 }
 
 func defaultChannel(version string) string {
+	if strings.Contains(version, "nightly") {
+		return "nightly"
+	}
 	if strings.Contains(version, "edge") {
 		return "edge"
 	}
@@ -134,7 +137,7 @@ func Inspect(version string) Installation {
 		return i
 	}
 	name := strings.TrimSuffix(filepath.Base(p), ".exe")
-	if (name != "protopeek" && name != "pp") || (!stableVersion.MatchString(version) && version != "v0.0.0-edge") {
+	if (name != "protopeek" && name != "pp") || (!stableVersion.MatchString(version) && version != "v0.0.0-edge" && version != "v0.0.0-nightly") {
 		i.Manager = "source or custom build"
 		i.Reason = "Rebuild this source/custom installation, or install an official release first."
 		return i
@@ -257,14 +260,14 @@ func (e *Engine) Check(ctx context.Context, channel string) (plan *Plan, err err
 	if channel == "" {
 		channel = i.Channel
 	}
-	if channel != "stable" && channel != "edge" {
-		return nil, errors.New("channel must be stable or edge")
+	if channel != "stable" && channel != "edge" && channel != "nightly" {
+		return nil, errors.New("channel must be stable, nightly or edge")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	endpoint := "/releases/latest"
-	if channel == "edge" {
-		endpoint = "/releases/tags/v0.0.0-edge"
+	if channel != "stable" {
+		endpoint = "/releases/tags/v0.0.0-" + channel
 	}
 	var release struct {
 		Tag        string `json:"tag_name"`
@@ -279,7 +282,7 @@ func (e *Engine) Check(ctx context.Context, channel string) (plan *Plan, err err
 	if err = e.json(ctx, e.api+endpoint, &release); err != nil {
 		return
 	}
-	if release.Draft || (channel == "stable" && (release.Prerelease || !stableVersion.MatchString(release.Tag))) || (channel == "edge" && (release.Tag != "v0.0.0-edge" || !release.Prerelease)) {
+	if release.Draft || (channel == "stable" && (release.Prerelease || !stableVersion.MatchString(release.Tag))) || (channel != "stable" && (release.Tag != "v0.0.0-"+channel || !release.Prerelease)) {
 		return nil, errors.New("release does not match the selected channel")
 	}
 	arch := map[string]string{"amd64": "x86_64", "386": "x86_32", "arm64": "arm64"}[i.Arch]
@@ -314,23 +317,23 @@ func (e *Engine) Check(ctx context.Context, channel string) (plan *Plan, err err
 	if plan.digest != "" && !digestPattern.MatchString(plan.digest) {
 		return nil, errors.New("invalid release asset digest")
 	}
-	if channel == "edge" {
+	if channel != "stable" {
 		var ref struct {
 			Object struct {
 				SHA  string `json:"sha"`
 				Type string `json:"type"`
 			} `json:"object"`
 		}
-		if err = e.json(ctx, e.api+"/git/ref/tags/v0.0.0-edge", &ref); err != nil {
+		if err = e.json(ctx, e.api+"/git/ref/tags/"+release.Tag, &ref); err != nil {
 			return
 		}
 		if ref.Object.Type != "commit" || len(ref.Object.SHA) != 40 {
-			return nil, errors.New("edge tag has no valid source revision")
+			return nil, errors.New("prerelease tag has no valid source revision")
 		}
 		plan.Revision = ref.Object.SHA
-		plan.Available = i.Channel != "edge" || i.Revision != plan.Revision
+		plan.Available = i.Channel != channel || i.Revision != plan.Revision
 	} else {
-		plan.Available = i.Channel == "edge" || newer(release.Tag, i.Version)
+		plan.Available = i.Channel != "stable" || newer(release.Tag, i.Version)
 	}
 	if i.CanUpdate {
 		plan.installedDigest, err = fileDigest(i.Executable)
@@ -570,7 +573,7 @@ func validateBinary(p, revision string) error {
 			}
 		}
 		if actual != revision {
-			return errors.New("edge archive source does not match the preview; check again")
+			return errors.New("prerelease archive source does not match the preview; check again")
 		}
 	}
 	return nil

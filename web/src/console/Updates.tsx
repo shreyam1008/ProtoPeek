@@ -195,7 +195,11 @@ export function Updates() {
                 <h2>ProtoPeek {installation.version}</h2>
               </div>
               <span className="updates-chip">
-                {installation.channel === 'edge' ? 'Edge preview' : 'Stable'}
+                {installation.channel === 'nightly'
+                  ? 'Nightly preview'
+                  : installation.channel === 'edge'
+                    ? 'Edge preview'
+                    : 'Stable'}
               </span>
             </div>
             <dl className="updates-facts">
@@ -273,7 +277,8 @@ export function Updates() {
                     }}
                   >
                     <option value="stable">Stable</option>
-                    <option value="edge">Edge preview</option>
+                    <option value="nightly">Nightly preview</option>
+                    <option value="edge">Edge (legacy preview)</option>
                   </select>
                 </label>
                 <button
@@ -286,18 +291,20 @@ export function Updates() {
                   Check for updates
                 </button>
               </div>
-              {channel === 'edge' && (
+              {channel !== 'stable' && (
                 <div className="updates-callout updates-warning">
                   <TriangleAlert size={18} />
                   <p>
-                    Edge is a rolling prerelease. It gets new features first and may be less stable.
+                    {channel === 'nightly'
+                      ? 'Nightly follows successful main/master builds. It may be less stable and updates do not change the stable release.'
+                      : 'Edge is a legacy prerelease channel, refreshed manually. Choose Nightly for new branch builds.'}
                   </p>
                 </div>
               )}
               {channel !== installation.channel && (
                 <p className="updates-muted">
                   You are choosing a different release channel. Review the version before
-                  installing; switching from edge to stable can remove preview features.
+                  installing; switching from a preview to stable can remove preview features.
                 </p>
               )}
               {active && (
@@ -333,7 +340,7 @@ export function Updates() {
                     </a>
                   </div>
                   <p>
-                    {plan.channel === 'edge' ? `Source ${plan.revision.slice(0, 12)} · ` : ''}
+                    {plan.channel !== 'stable' ? `Source ${plan.revision.slice(0, 12)} · ` : ''}
                     {(plan.size / 1048576).toFixed(1)} MiB · checked{' '}
                     {new Date(plan.checkedAt).toLocaleString()}
                   </p>

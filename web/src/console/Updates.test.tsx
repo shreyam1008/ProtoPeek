@@ -79,7 +79,10 @@ describe('Updates', () => {
     });
     expect(screen.queryByRole('button', { name: 'Install update' })).not.toBeInTheDocument();
   });
-  it('invalidates a preview when the channel changes and warns about edge', async () => {
+  it.each([
+    'nightly',
+    'edge',
+  ])('invalidates a preview when switching to %s and warns', async (channel) => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) =>
@@ -90,10 +93,16 @@ describe('Updates', () => {
     await screen.findByText('ProtoPeek v0.6.1');
     fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }));
     await screen.findByText('Update available: v0.7.0');
-    fireEvent.change(screen.getByLabelText('Release channel'), { target: { value: 'edge' } });
-    expect(screen.getByText(/Edge is a rolling prerelease/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Release channel'), { target: { value: channel } });
+    expect(
+      screen.getByText(
+        channel === 'nightly'
+          ? /Nightly follows successful main\/master builds/
+          : /Edge is a legacy prerelease/
+      )
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Install update' })).not.toBeInTheDocument();
-    expect(screen.getByText('pp update --channel edge')).toBeInTheDocument();
+    expect(screen.getByText(`pp update --channel ${channel}`)).toBeInTheDocument();
   });
   it('shows package-manager instructions without offering direct replacement', async () => {
     const managed = {

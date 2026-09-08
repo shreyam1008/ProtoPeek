@@ -31,6 +31,22 @@ describe('release metadata', () => {
     ).toBe('2026-09-07');
   });
 
+  it('publishes branch builds only to Nightly and keeps stable promotion explicit', () => {
+    const nightly = readRepositoryFile('.github/workflows/release-nightly.yml');
+    const edge = readRepositoryFile('.github/workflows/release-edge.yml');
+    const stable = readRepositoryFile('.github/workflows/release.yml');
+    const packaging = readRepositoryFile('.goreleaser.edge.yml');
+    expect(nightly).toContain('    branches:\n      - main\n      - master');
+    expect(nightly).toContain('GORELEASER_CURRENT_TAG: v0.0.0-nightly');
+    expect(nightly).toContain('subject-checksums: ./dist/checksums.txt');
+    expect(nightly).not.toContain('config .goreleaser.yml');
+    expect(edge).not.toContain('  push:');
+    expect(stable).toContain("      - '!v*-*'");
+    expect(packaging).toContain('prerelease: true');
+    expect(packaging).toContain('make_latest: false');
+    expect(packaging).not.toMatch(/^(brews|scoops|dockers):/m);
+  });
+
   it('aligns public discovery metadata and packaged manual headers', () => {
     const siteIndex = readRepositoryFile('web/site/index.html');
     const llms = readRepositoryFile('web/site/public/llms.txt');

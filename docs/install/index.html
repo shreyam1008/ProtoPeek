@@ -140,7 +140,7 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>&gt; v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to edge.</p>
+                <p>&gt; v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to a prerelease.</p>
 <h2 id="install-through-an-owned-package-channel">Install through an owned package channel</h2>
 <p>Homebrew on macOS or Linux installs both <code>protopeek</code> and <code>pp</code>, plus both manpages:</p>
 <pre class="pp-doc-code"><code data-lang="sh">brew install shreyam1008/tap/protopeek</code></pre>
@@ -165,14 +165,26 @@ Get-Content .\install.ps1
 <pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.6.1 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
 <pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.1&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
-<p>Use <code>PROTOPEEK_CHANNEL=edge</code> only when intentionally testing the rolling edge prerelease. A stable-resolution failure never falls back to edge.</p>
-<h2 id="upgrade-from-the-cli-or-ui-new-on-edge">Upgrade from the CLI or UI (new on edge)</h2>
-<p>These commands are included in current edge builds, not the v0.6.1 stable binary. Existing older installs need one installer run to obtain them. Then either name works:</p>
+<h2 id="nightly-builds">Nightly builds</h2>
+<p>Every successful push build from <code>main</code> or <code>master</code> refreshes the single <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly prerelease</a>. It carries the latest development work without changing stable v0.6.1, GitHub Latest, Homebrew, Scoop, or a numbered stable version. Nightly is opt-in and may contain regressions. No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.</p>
+<p>Windows PowerShell (also works from System32):</p>
+<pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_CHANNEL = &#39;nightly&#39;
+Remove-Item Env:PROTOPEEK_VERSION -ErrorAction SilentlyContinue
+try {
+    irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
+} finally {
+    Remove-Item Env:PROTOPEEK_CHANNEL -ErrorAction SilentlyContinue
+}</code></pre>
+<p>macOS / Linux:</p>
+<pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | PROTOPEEK_CHANNEL=nightly PROTOPEEK_VERSION= sh</code></pre>
+<p>A pinned <code>PROTOPEEK_VERSION</code> overrides the channel, which is why these examples clear it. Subsequent <code>pp update</code> or <code>protopeek update</code> commands follow the installed Nightly channel. Use <code>--channel stable</code> to return to stable; stable v0.6.1 does not include the updater yet. Legacy <code>PROTOPEEK_CHANNEL=edge</code> remains supported, but Edge is now published manually. Stable resolution never falls back to either preview channel.</p>
+<h2 id="upgrade-from-the-cli-or-ui-new-on-nightly">Upgrade from the CLI or UI (new on Nightly)</h2>
+<p>These commands are included in Nightly builds, not the v0.6.1 stable binary. Existing older installs need one installer run to obtain them. Then either name works:</p>
 <pre class="pp-doc-code"><code data-lang="sh">pp update
 protopeek update --check
-pp update --channel edge
+pp update --channel nightly
 protopeek update --channel stable</code></pre>
-<p>Without a channel flag, the updater follows the running release&#39;s stable or edge channel. Stable checks never fall back to edge and never silently downgrade a newer stable version. An explicit edge-to-stable switch can remove preview features. Edge compares the source revision, since its version tag is reused.</p>
+<p>Without a channel flag, the updater follows the running release&#39;s stable, nightly or legacy edge channel. Stable checks never fall back to edge and never silently downgrade a newer stable version. An explicit preview-to-stable switch can remove preview features. Nightly and Edge compare the source revision, since its version tag is reused.</p>
 <p>Open <strong>Settings → Updates</strong> for installed version/platform, release notes, an update-available notice and a checked release preview. Checking contacts GitHub only when requested. Installation requires a separate confirmation. Cancel stops checking or downloading; once file replacement starts, it completes or rolls back safely.</p>
 <p>Direct installs download a size-bounded official archive, verify SHA-256, validate both Go executables, and stage replacements beside the install directory. An installation lock prevents concurrent updaters; stale previews and changed archives require a fresh check. Both <code>protopeek</code> and the owned <code>pp</code> are replaced; an unrelated <code>pp</code> is preserved. No shell installer runs, no privilege escalation is attempted, and browser/host preferences and transfer files are not changed. Existing manpages are maintained by the original installer.</p>
 <p>Homebrew, Scoop, detected system packages, Go-install paths, Nix, Snap and container images keep their own ownership. The CLI/UI shows the applicable manager command instead of replacing managed files. A read-only direct install must be updated by its installation owner.</p>
@@ -196,7 +208,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
               <section class="pp-doc-side-card">
                 <div class="pp-doc-side-label">On this page</div>
                 <div class="pp-doc-toc">
-                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#upgrade-from-the-cli-or-ui-new-on-edge">Upgrade from the CLI or UI (new on edge)</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
+                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#nightly-builds">Nightly builds</a><a class="level-2" href="#upgrade-from-the-cli-or-ui-new-on-nightly">Upgrade from the CLI or UI (new on Nightly)</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
                 </div>
               </section>
 

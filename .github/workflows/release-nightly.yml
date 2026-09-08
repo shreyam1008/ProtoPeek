@@ -1,10 +1,14 @@
-name: Edge Release
+name: Nightly Release
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 concurrency:
-  group: edge-release
+  group: nightly-release
   cancel-in-progress: false
 
 permissions:
@@ -13,7 +17,7 @@ permissions:
   attestations: write
 
 jobs:
-  edge:
+  nightly:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,24 +54,24 @@ jobs:
           bun scripts/package-aria2-sources.ts .local/aria2-sources
           tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
 
-      - name: Validate edge packaging before changing the public edge release
+      - name: Validate nightly packaging before changing the public nightly release
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           distribution: goreleaser
           version: v2.17.1
           args: release --snapshot --clean --config .goreleaser.edge.yml
 
-      - name: Refresh edge tag
+      - name: Refresh nightly tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          gh release delete v0.0.0-edge --yes --cleanup-tag || true
-          git tag -f v0.0.0-edge
-          git push origin refs/tags/v0.0.0-edge --force
+          gh release delete v0.0.0-nightly --yes --cleanup-tag || true
+          git tag -f v0.0.0-nightly
+          git push origin refs/tags/v0.0.0-nightly --force
 
-      - name: Publish edge binaries
+      - name: Publish nightly binaries
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           distribution: goreleaser
@@ -76,10 +80,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # A stable tag may point to the same commit. Never let tag sorting
-          # select that release for the rolling edge publisher.
-          GORELEASER_CURRENT_TAG: v0.0.0-edge
+          # select that release for the rolling nightly publisher.
+          GORELEASER_CURRENT_TAG: v0.0.0-nightly
 
-      - name: Attest edge archives
+      - name: Attest nightly archives
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: ./dist/checksums.txt
+
+      - name: Describe the rolling Nightly build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          cat > .local/nightly-notes.md <<'NOTES'
+          Rolling development preview from main/master. This replaces the previous Nightly; it does not promote a stable release or update package-manager manifests.
+
+          Install with `PROTOPEEK_CHANNEL=nightly` using the verified installer. Once installed, run `pp update` or `protopeek update`, or open Settings → Updates. Both commands follow the installed channel by default. Updates verify SHA-256 and require restarting existing servers after active work finishes.
+
+          Nightly may contain regressions. Stable remains available through the default installer; use `pp update --channel stable` to switch back. Stable v0.6.1 does not include the update command yet, so switching back requires an installer run to get Nightly again.
+
+          Windows, macOS and Linux archives, checksums, SBOMs and build attestations accompany this build. See the repository CHANGELOG for development changes and the installation guide for recovery instructions.
+          NOTES
+          printf '\nSource: [`%s`](https://github.com/%s/commit/%s)\n' "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA" >> .local/nightly-notes.md
+          gh release edit v0.0.0-nightly --title "Nightly" --prerelease --latest=false --notes-file .local/nightly-notes.md

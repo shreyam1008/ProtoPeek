@@ -10,7 +10,7 @@ local Tailscale and Cloudflare tools; and queue resumable downloads without an e
 Built by [Shreyam Adhikari](https://shreyam1008.com.np/) · [Website](https://protopeek.shreyam1008.com.np/) · [Docs](https://protopeek.shreyam1008.com.np/docs/) · [Learn gRPC](https://protopeek.shreyam1008.com.np/learn-grpc/)
 
 > **Latest stable: v0.6.1.** Six permanent destinations: **Home, Inspect, Network, Publish, Files and
-> Settings**. The verified installers resolve stable releases; edge remains an explicit opt-in.
+> Settings**. The verified installers resolve stable releases; Nightly is an explicit opt-in.
 > Windows x64 includes aria2 inside the executable. Other platforms use installed aria2.
 
 Vertical protocol/settings tabs, independent scrolling, recoverable drafts and fuzzy command search
@@ -105,12 +105,15 @@ packaging. A configured executable takes priority, followed by PATH and then the
 and Scoop can supply aria2 as a package dependency; see their manifests for the packaged version.
 The [install guide](guides/INSTALLING.md) covers updates, pinned releases, PATH, rollback and uninstall.
 
-**New on edge:** run `pp update` or `protopeek update` on Windows, macOS, or Linux.
-Use `--check` to check only and `--channel stable|edge` to choose a channel; the default
+**New on [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly):** run `pp update` or `protopeek update` on Windows, macOS, or Linux.
+Use `--check` to check only and `--channel stable|nightly|edge` to choose a channel; the default
 follows the installed channel. **Settings → Updates** provides the same release preview,
 explicit install confirmation, cancellation and restart guidance. Direct installs verify
 SHA-256 and update both owned commands; managed installs show the manager's commands.
-Older binaries need one installer upgrade to an edge build containing this command first.
+Older binaries need one installer upgrade to a Nightly build containing this command first.
+Set `PROTOPEEK_CHANNEL=nightly` when running the installer; see [Nightly setup](guides/INSTALLING.md#nightly-builds).
+Pushes to `main`/`master` refresh one rolling Nightly prerelease. Stable stays v0.6.1;
+new stable versions and package updates require explicit promotion. Legacy Edge is manual-only.
 
 
 Go fallback:

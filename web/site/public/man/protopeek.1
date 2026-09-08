@@ -235,14 +235,16 @@ the project documentation at https://protopeek.shreyam1008.com.np/docs/
 .SH AUTHOR
 Shreyam Adhikari.
 
-.SH UPDATES (EDGE)
+.SH UPDATES (NIGHTLY)
 .B protopeek update
 updates a direct installation on Windows, macOS or Linux after SHA-256 verification.
 Both owned commands are updated; unrelated aliases and local user data are preserved.
 .B --check
 checks only.
-.B --channel stable|edge
+.B --channel stable|nightly|edge
 selects a release channel; the default follows the installed release.
+Nightly tracks successful main/master builds using source revisions. Stable promotion is separate.
+Legacy Edge remains available through manual publication.
 Managed installations show their package-manager commands.
 Settings > Updates provides the same explicit preview, confirmation and cancellation.
 Restart running servers after active work finishes; browser reload alone is insufficient.

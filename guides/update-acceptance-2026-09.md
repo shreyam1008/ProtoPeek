@@ -1,16 +1,16 @@
 # CLI and UI updates — 8 September 2026
 
-Scope: `pp update`, `protopeek update`, and Settings → Updates. This is an edge
+Scope: `pp update`, `protopeek update`, and Settings → Updates. This is a Nightly
 addition; v0.6.1 stable binaries do not contain the command and need one installer
 upgrade first. Both aliases dispatch to the same Go engine.
 
 ## Observed acceptance
 
-- 781 UI tests pass. Coverage includes no automatic release request on page load,
+- 783 UI tests pass. Coverage includes no automatic release request on page load,
   explicit preview/confirmation, stale channel selection, manager instructions,
   cancellation recovery, and failed-checksum retry without false success.
 - `go test ./...` passes on the Windows development host. Updater tests exercise
-  Windows ZIP and macOS/Linux tar archives, bad/duplicate checksums, edge revisions,
+  Windows ZIP and macOS/Linux tar archives, bad/duplicate checksums, Nightly/Edge revisions,
   stable-channel prerelease rejection, changed installations, bad plan IDs,
   cancellation during download, cross-process locking, rollback after the first
   replacement, unrelated alias preservation and a real running-executable replacement.
@@ -29,6 +29,13 @@ upgrade first. Both aliases dispatch to the same Go engine.
 - Browser checks covered stable/edge selection, revision preview, invalidating the
   install control after a channel change, and 390×844 mobile plus desktop dark/light
   layouts. The mobile page had no horizontal overflow.
+- Nightly browser checks verified automatic selection for a Nightly installation,
+  the development-build warning, and the feature-loss warning plus matching command
+  when switching to stable. Installer fixtures resolve the Nightly tag independently
+  of the stable endpoint; Windows was exercised locally and all native platforms run in CI.
+- Release contract checks keep branch publishing in Nightly, Edge manual-only,
+  prereleases excluded from stable tag publishing, and preview packaging outside
+  GitHub Latest and the package-manager manifests.
 
 ## Cost and operational limits
 

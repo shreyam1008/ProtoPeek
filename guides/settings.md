@@ -65,10 +65,10 @@ See the [local AI agent guide](/ai-agents/). This is not included in v0.6.1 stab
 - [Install stable ProtoPeek v0.6.1](/install/).
 
 
-## Updates (new on edge)
+## Updates (new on Nightly)
 
 Choose **Settings → Updates** to inspect the installed version, platform and installation
-method. **Check for updates** contacts GitHub on demand and shows the selected stable/edge
+method. **Check for updates** contacts GitHub on demand and shows the selected stable/nightly/legacy-edge
 release, download size and release notes. Nothing checks or installs automatically.
 Direct installations offer a separate confirmation and **Install update**, with progress,
 cancellation and an explicit server-restart notice. Managed installations show the correct

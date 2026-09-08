@@ -16,9 +16,9 @@ func updateCommand(args []string, stdout, stderr io.Writer) int {
 	f := flag.NewFlagSet("update", flag.ContinueOnError)
 	f.SetOutput(stderr)
 	check := f.Bool("check", false, "Check only; do not download or replace executables.")
-	channel := f.String("channel", "", "Release channel: stable or edge (default: installed channel).")
+	channel := f.String("channel", "", "Release channel: stable, nightly or edge (default: installed channel).")
 	f.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: protopeek update [--check] [--channel stable|edge]\n       pp update [--check] [--channel stable|edge]\n\nDirect installs update both commands with SHA-256 verification. Managed installs\nshow their package-manager commands. Running servers keep their current version\nuntil restarted; wait for transfers to finish before stopping them.")
+		fmt.Fprintln(stderr, "Usage: protopeek update [--check] [--channel stable|nightly|edge]\n       pp update [--check] [--channel stable|nightly|edge]\n\nDirect installs update both commands with SHA-256 verification. Managed installs\nshow their package-manager commands. Running servers keep their current version\nuntil restarted; wait for transfers to finish before stopping them.")
 		f.PrintDefaults()
 	}
 	if err := f.Parse(args); err != nil {
@@ -31,8 +31,8 @@ func updateCommand(args []string, stdout, stderr io.Writer) int {
 		f.Usage()
 		return 2
 	}
-	if *channel != "" && *channel != "stable" && *channel != "edge" {
-		fmt.Fprintln(stderr, "Channel must be stable or edge.")
+	if *channel != "" && *channel != "stable" && *channel != "edge" && *channel != "nightly" {
+		fmt.Fprintln(stderr, "Channel must be stable, nightly or edge.")
 		return 2
 	}
 	e := selfupdate.New(Version)
@@ -68,8 +68,8 @@ func updateCommand(args []string, stdout, stderr io.Writer) int {
 		}
 		return 0
 	}
-	if p.Channel == "edge" {
-		fmt.Fprintln(stdout, "Edge is a rolling prerelease; it may be less stable.")
+	if p.Channel != "stable" {
+		fmt.Fprintf(stdout, "%s is a prerelease; it may be less stable. Source: %s\n", p.Channel, p.Revision)
 	}
 	fmt.Fprintln(stdout, "Downloading and verifying the archive. Ctrl+C cancels before installation.\nExisting servers continue running. Restart them after active transfers finish.")
 	if err = e.Apply(ctx, p.ID); err != nil {

@@ -5,6 +5,11 @@ version source of truth.
 
 ## Unreleased
 
+- Branch pushes now publish one rolling `v0.0.0-nightly` prerelease with Windows, macOS
+  and Linux archives, checksums and attestations. Stable versions, GitHub Latest and package
+  manifests remain separately promoted. Nightly is opt-in through both installers, the CLI
+  and Settings → Updates; rolling updates compare source commits. Edge is manual-only.
+
 - Added `pp update` / `protopeek update` for direct Windows, macOS and Linux installs,
   with explicit check/channel flags, SHA-256 verification, bounded extraction, installation
   locking, stale-preview protection, owned-alias preservation and rollback on failure.

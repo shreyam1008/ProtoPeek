@@ -18,6 +18,7 @@ $Repo = if ($env:PROTOPEEK_REPO) { $env:PROTOPEEK_REPO } else { "shreyam1008/Pro
 $ApiRoot = if ($env:PROTOPEEK_API_ROOT) { $env:PROTOPEEK_API_ROOT } else { "https://api.github.com/repos/$Repo" }
 $DownloadBaseUrl = if ($env:PROTOPEEK_DOWNLOAD_BASE_URL) { $env:PROTOPEEK_DOWNLOAD_BASE_URL } else { "https://github.com/$Repo/releases/download" }
 $EdgeTag = "v0.0.0-edge"
+$NightlyTag = "v0.0.0-nightly"
 
 if (-not $Channel) { $Channel = if ($env:PROTOPEEK_CHANNEL) { $env:PROTOPEEK_CHANNEL } else { "stable" } }
 if (-not $Version) { $Version = $env:PROTOPEEK_VERSION }
@@ -43,8 +44,9 @@ function Resolve-Tag {
         Assert-Tag $Version
         return $Version
     }
+    if ($Channel -eq "nightly") { return $NightlyTag }
     if ($Channel -eq "edge") { return $EdgeTag }
-    if ($Channel -ne "stable") { throw "PROTOPEEK_CHANNEL must be 'stable' or 'edge'." }
+    if ($Channel -ne "stable") { throw "PROTOPEEK_CHANNEL must be 'stable', 'nightly' or 'edge'." }
     try {
         $Release = Invoke-RestMethod -Uri "$ApiRoot/releases/latest" -Headers @{ Accept = "application/vnd.github+json" }
     } catch {
@@ -243,8 +245,10 @@ try {
     }
     Write-Host "Open now: & `"$ProtoPeekTarget`" -open-browser=true -port $UIPort"
     Write-Host 'Keep the ProtoPeek process running while downloads are active; closing the browser is fine.'
-    if ($ReleaseArch -eq 'x86_64' -and $ResolvedTag -match '^v(\d+)\.(\d+)\.(\d+)$' -and
-        ([version]$ResolvedTag.TrimStart('v')) -ge [version]'0.6.0') {
+    $IncludesBundledAria = $ResolvedTag -in @('v0.0.0-nightly', 'v0.0.0-edge') -or
+        ($ResolvedTag -match '^v(\d+)\.(\d+)\.(\d+)$' -and
+        ([version]$ResolvedTag.TrimStart('v')) -ge [version]'0.6.0')
+    if ($ReleaseArch -eq 'x86_64' -and $IncludesBundledAria) {
         Write-Host 'Downloader includes aria2; start it from Files. No separate engine install is needed.'
     } elseif (-not (Get-Command aria2c -ErrorAction SilentlyContinue)) {
         Write-Host 'Downloader needs aria2. With Scoop: scoop install aria2. Configure its path in Settings if needed.'

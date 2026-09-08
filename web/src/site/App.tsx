@@ -246,17 +246,17 @@ function Hero() {
         </p>
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-neutral-700">
           <strong className="block text-neutral-950">
-            New on edge: a consistent workspace and local AI agents.
+            Nightly: the latest workspace, local AI agents and easy updates.
           </strong>
           <p className="mt-1">
             Keep your place across tools, use command search, and connect your own agent through MCP
-            or the JSON CLI. Edge is an opt-in prerelease.
+            or the JSON CLI. Nightly follows branch builds; stable remains v0.6.1.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
             <a href={publicPagePath('workspace-ui')}>Explore the new workspace</a>
             <a href={publicPagePath('ai-agents')}>Connect an agent</a>
-            <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge">
-              Download edge
+            <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly">
+              Download Nightly
             </a>
           </div>
         </div>

@@ -1,7 +1,7 @@
 # Install, upgrade, uninstall, and rollback
 
 > v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release
-> assets and never falls back to edge.
+> assets and never falls back to a prerelease.
 
 ## Install through an owned package channel
 
@@ -80,24 +80,53 @@ $env:PROTOPEEK_VERSION = 'v0.6.1'
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
 ```
 
-Use `PROTOPEEK_CHANNEL=edge` only when intentionally testing the rolling edge
-prerelease. A stable-resolution failure never falls back to edge.
+## Nightly builds
 
-## Upgrade from the CLI or UI (new on edge)
+Every successful push build from `main` or `master` refreshes the single
+[Nightly prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly).
+It carries the latest development work without changing stable v0.6.1, GitHub Latest,
+Homebrew, Scoop, or a numbered stable version. Nightly is opt-in and may contain regressions.
+No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.
 
-These commands are included in current edge builds, not the v0.6.1 stable binary.
+Windows PowerShell (also works from System32):
+
+```powershell
+$env:PROTOPEEK_CHANNEL = 'nightly'
+Remove-Item Env:PROTOPEEK_VERSION -ErrorAction SilentlyContinue
+try {
+    irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex
+} finally {
+    Remove-Item Env:PROTOPEEK_CHANNEL -ErrorAction SilentlyContinue
+}
+```
+
+macOS / Linux:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | PROTOPEEK_CHANNEL=nightly PROTOPEEK_VERSION= sh
+```
+
+A pinned `PROTOPEEK_VERSION` overrides the channel, which is why these examples clear it.
+Subsequent `pp update` or `protopeek update` commands follow the installed Nightly channel.
+Use `--channel stable` to return to stable; stable v0.6.1 does not include the updater yet.
+Legacy `PROTOPEEK_CHANNEL=edge` remains supported, but Edge is now published manually.
+Stable resolution never falls back to either preview channel.
+
+## Upgrade from the CLI or UI (new on Nightly)
+
+These commands are included in Nightly builds, not the v0.6.1 stable binary.
 Existing older installs need one installer run to obtain them. Then either name works:
 
 ```sh
 pp update
 protopeek update --check
-pp update --channel edge
+pp update --channel nightly
 protopeek update --channel stable
 ```
 
-Without a channel flag, the updater follows the running release's stable or edge channel.
+Without a channel flag, the updater follows the running release's stable, nightly or legacy edge channel.
 Stable checks never fall back to edge and never silently downgrade a newer stable version.
-An explicit edge-to-stable switch can remove preview features. Edge compares the source
+An explicit preview-to-stable switch can remove preview features. Nightly and Edge compare the source
 revision, since its version tag is reused.
 
 Open **Settings → Updates** for installed version/platform, release notes, an update-available

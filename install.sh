@@ -13,6 +13,7 @@ VERSION="${PROTOPEEK_VERSION:-}"
 API_ROOT="${PROTOPEEK_API_ROOT:-https://api.github.com/repos/$REPO}"
 DOWNLOAD_BASE_URL="${PROTOPEEK_DOWNLOAD_BASE_URL:-https://github.com/$REPO/releases/download}"
 EDGE_TAG="v0.0.0-edge"
+NIGHTLY_TAG="v0.0.0-nightly"
 
 supports_color() {
   [ -t 1 ] && [ "${TERM:-}" != "dumb" ]
@@ -104,6 +105,10 @@ resolve_tag() {
   fi
 
   case "$CHANNEL" in
+    nightly)
+      say "$NIGHTLY_TAG"
+      return
+      ;;
     edge)
       say "$EDGE_TAG"
       return
@@ -111,7 +116,7 @@ resolve_tag() {
     stable)
       ;;
     *)
-      fail "PROTOPEEK_CHANNEL must be 'stable' or 'edge'."
+      fail "PROTOPEEK_CHANNEL must be 'stable', 'nightly' or 'edge'."
       ;;
   esac
 

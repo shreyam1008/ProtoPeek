@@ -142,6 +142,23 @@ jobs:
           test -f "$man_dir/protopeek.1"
           test -f "$man_dir/pp.1"
 
+          # Resolve the rolling channel from a local release-shaped fixture, without
+          # using an explicit download URL or consulting the stable GitHub endpoint.
+          nightly_os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          [ "$nightly_os" != darwin ] || nightly_os=osx
+          case "$(uname -m)" in arm64|aarch64) nightly_arch=arm64 ;; *) nightly_arch=x86_64 ;; esac
+          nightly_name="protopeek_0.0.0-nightly_${nightly_os}_${nightly_arch}.tar.gz"
+          mkdir -p "$fixture/releases/v0.0.0-nightly"
+          cp "$archive" "$fixture/releases/v0.0.0-nightly/$nightly_name"
+          printf '%s  %s\n' "$hash" "$nightly_name" > "$fixture/releases/v0.0.0-nightly/checksums.txt"
+          PROTOPEEK_CHANNEL=nightly \
+          PROTOPEEK_DOWNLOAD_BASE_URL="file://$fixture/releases" \
+          PROTOPEEK_INSTALL_DIR="$fixture/nightly-install" \
+          PROTOPEEK_MAN_DIR="$man_dir" \
+          sh ./install.sh
+          "$fixture/nightly-install/protopeek" -version
+          "$fixture/nightly-install/pp" -version
+
           printf 'replaced after install\n' > "$fixture/replaced-pp"
           chmod +x "$fixture/replaced-pp"
           mv -f "$fixture/replaced-pp" "$install_dir/pp"
@@ -229,6 +246,20 @@ jobs:
           & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate
           & (Join-Path $installDir 'protopeek.exe') -version
           & (Join-Path $installDir 'pp.exe') -version
+
+          $nightlyDir = Join-Path $fixture 'releases/v0.0.0-nightly'
+          New-Item -ItemType Directory -Path $nightlyDir -Force | Out-Null
+          $nightlyName = 'protopeek_0.0.0-nightly_windows_x86_64.zip'
+          Copy-Item -LiteralPath $archive -Destination (Join-Path $nightlyDir $nightlyName)
+          Set-Content -LiteralPath (Join-Path $nightlyDir 'checksums.txt') -Value "$hash  $nightlyName"
+          $env:PROTOPEEK_DOWNLOAD_BASE_URL = Join-Path $fixture 'releases'
+          try {
+            & ./install.ps1 -Channel nightly -InstallDir (Join-Path $fixture 'nightly-install') -NoPathUpdate
+            & (Join-Path $fixture 'nightly-install/protopeek.exe') -version
+            & (Join-Path $fixture 'nightly-install/pp.exe') -version
+          } finally {
+            Remove-Item Env:PROTOPEEK_DOWNLOAD_BASE_URL
+          }
 
           # Windows PowerShell 5.1 and pwsh must both support the documented
           # pipeline invocation, including running from System32.

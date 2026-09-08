@@ -281,37 +281,42 @@ func TestCancellationWhileDownloadingPreservesFiles(t *testing.T) {
 	}
 }
 
-func TestEdgeChecksCompareSourceRevision(t *testing.T) {
-	e, _ := engineFixture(t, "windows", false)
-	oldInspect := e.inspect
-	e.inspect = func() Installation {
-		i := oldInspect()
-		i.Version = "v0.0.0-edge"
-		i.Channel = "edge"
-		i.Revision = strings.Repeat("a", 40)
-		return i
-	}
-	revision := strings.Repeat("b", 40)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/git/ref/") {
-			fmt.Fprintf(w, `{"object":{"type":"commit","sha":%q}}`, revision)
-			return
-		}
-		fmt.Fprint(w, `{"tag_name":"v0.0.0-edge","prerelease":true,"assets":[{"name":"protopeek_0.0.0-edge_windows_x86_64.zip","size":100},{"name":"checksums.txt","size":100}]}`)
-	}))
-	defer srv.Close()
-	e.api = srv.URL
-	p, err := e.Check(context.Background(), "")
-	if err != nil || !p.Available || p.Channel != "edge" {
-		t.Fatalf("%+v %v", p, err)
-	}
-	revision = strings.Repeat("a", 40)
-	p, err = e.Check(context.Background(), "")
-	if err != nil || p.Available {
-		t.Fatalf("same edge revision: %+v %v", p, err)
-	}
-	if _, err = e.Check(context.Background(), "stable"); err == nil {
-		t.Fatal("stable accepted prerelease")
+func TestPreviewChecksCompareSourceRevision(t *testing.T) {
+	for _, channel := range []string{"edge", "nightly"} {
+		t.Run(channel, func(t *testing.T) {
+			e, _ := engineFixture(t, "windows", false)
+			oldInspect := e.inspect
+			e.inspect = func() Installation {
+				i := oldInspect()
+				i.Version = "v0.0.0-" + channel
+				i.Channel = channel
+				i.Revision = strings.Repeat("a", 40)
+				return i
+			}
+			revision := strings.Repeat("b", 40)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasPrefix(r.URL.Path, "/git/ref/") {
+					fmt.Fprintf(w, `{"object":{"type":"commit","sha":%q}}`, revision)
+					return
+				}
+				fmt.Fprintf(w, `{"tag_name":"v0.0.0-%s","prerelease":true,"assets":[{"name":"protopeek_0.0.0-%s_windows_x86_64.zip","size":100},{"name":"checksums.txt","size":100}]}`, channel, channel)
+			}))
+			defer srv.Close()
+			e.api = srv.URL
+			p, err := e.Check(context.Background(), "")
+			if err != nil || !p.Available || p.Channel != channel {
+				t.Fatalf("%+v %v", p, err)
+			}
+			revision = strings.Repeat("a", 40)
+			p, err = e.Check(context.Background(), "")
+			if err != nil || p.Available {
+				t.Fatalf("same preview revision: %+v %v", p, err)
+			}
+			if _, err = e.Check(context.Background(), "stable"); err == nil {
+				t.Fatal("stable accepted prerelease")
+			}
+
+		})
 	}
 }
 func TestRunningExecutableReplacement(t *testing.T) {
@@ -364,6 +369,14 @@ func TestRunningExecutableReplacement(t *testing.T) {
 	for _, name := range []string{"protopeek", "pp"} {
 		if _, err = os.Stat(filepath.Join(dir, name+suffix)); err != nil {
 			t.Fatal(err)
+		}
+	}
+}
+
+func TestDefaultChannel(t *testing.T) {
+	for version, want := range map[string]string{"v0.6.1": "stable", "v0.0.0-nightly": "nightly", "v0.0.0-edge": "edge"} {
+		if got := defaultChannel(version); got != want {
+			t.Fatalf("%s: %s, want %s", version, got, want)
 		}
 	}
 }
