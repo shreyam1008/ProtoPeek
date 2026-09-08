@@ -100,7 +100,7 @@ Six permanent destinations keep related tools together. Existing deep links rema
 | 3 | Extend publishing | Reviewed config writes, Quick Tunnel and Tailscale Serve/Funnel with clear audience, lifecycle and rollback |
 
 No date is promised for these items. Headscale and NetBird are not interchangeable Tailscale adapters.
-GoBarryGo and TailScout public retirement/redirects remain separate decisions.
+TailScout remains an active standalone app; Tailscale workflows are also available in the full ProtoPeek package. GoBarryGo public retirement/redirects remain a separate decision.
 
 ## Verification and performance gates
 

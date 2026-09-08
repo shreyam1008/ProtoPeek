@@ -1,5 +1,11 @@
 # Private networking inside ProtoPeek
 
+> **Owner decision — 8 September 2026:** TailScout remains an active standalone native app.
+> Tailscale workflows are also available in the full ProtoPeek package. Earlier TailScout
+> retirement, redirect and consolidation gates below are superseded; they do not authorize
+> deprecating TailScout or removing its independent site, releases or roadmap.
+
+
 > **Release checkpoint â€” 7 September 2026:** stable is v0.6.1, including the installed Tailscale
 > foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
 > agents are published on edge. [Current feature status](feature-roadmap.md) and
