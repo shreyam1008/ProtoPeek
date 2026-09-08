@@ -83,6 +83,47 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 Use `PROTOPEEK_CHANNEL=edge` only when intentionally testing the rolling edge
 prerelease. A stable-resolution failure never falls back to edge.
 
+## Upgrade from the CLI or UI (new on edge)
+
+These commands are included in current edge builds, not the v0.6.1 stable binary.
+Existing older installs need one installer run to obtain them. Then either name works:
+
+```sh
+pp update
+protopeek update --check
+pp update --channel edge
+protopeek update --channel stable
+```
+
+Without a channel flag, the updater follows the running release's stable or edge channel.
+Stable checks never fall back to edge and never silently downgrade a newer stable version.
+An explicit edge-to-stable switch can remove preview features. Edge compares the source
+revision, since its version tag is reused.
+
+Open **Settings → Updates** for installed version/platform, release notes, an update-available
+notice and a checked release preview. Checking contacts GitHub only when requested.
+Installation requires a separate confirmation. Cancel stops checking or downloading;
+once file replacement starts, it completes or rolls back safely.
+
+Direct installs download a size-bounded official archive, verify SHA-256, validate both
+Go executables, and stage replacements beside the install directory. An installation lock
+prevents concurrent updaters; stale previews and changed archives require a fresh check.
+Both `protopeek` and the owned `pp` are replaced; an unrelated `pp` is preserved. No shell
+installer runs, no privilege escalation is attempted, and browser/host preferences and
+transfer files are not changed. Existing manpages are maintained by the original installer.
+
+Homebrew, Scoop, detected system packages, Go-install paths, Nix, Snap and container images
+keep their own ownership. The CLI/UI shows the applicable manager command instead of
+replacing managed files. A read-only direct install must be updated by its installation owner.
+
+**Restart required:** existing servers keep their current code and active transfers.
+Finish or pause work, stop the old process, then run `pp` or `protopeek` again; reloading
+the browser alone does not restart the server. Windows may retain previous executable
+backups in the reported `.protopeek-update-*` directory while old processes are running.
+Remove that exact backup directory after those processes exit. A failed replacement rolls
+back; if rollback is blocked, the error identifies retained recovery files. After a crash
+mid-replacement, stop old processes and rerun the verified installer to repair the pair.
+
 ## Upgrade and rollback
 
 Upgrade a package-manager installation with `brew upgrade protopeek` or

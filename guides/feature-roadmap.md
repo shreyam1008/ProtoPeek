@@ -1,5 +1,12 @@
 # ProtoPeek roadmap
 
+
+**8 September 2026 · edge update workflow:** `pp update` and `protopeek update` share a
+bounded, verified updater across Windows/macOS/Linux. Settings → Updates adds manual
+checks, stable/edge previews, availability warnings, confirmation, cancellation and restart
+guidance. Package-managed installations retain their manager. Existing v0.6.1 installations
+need an initial installer upgrade to obtain the command.
+
 Updated for v0.6.1 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
 the [acceptance record](workbench-overhaul-2026-09.md) records tests, observations and remaining gaps.
 

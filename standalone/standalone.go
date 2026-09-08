@@ -53,7 +53,7 @@ const (
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
 	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/network/route", "/security", "/settings",
-		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap":
+		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap", "/updates":
 		return true
 	default:
 		return false
@@ -116,6 +116,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 
 	var mux http.ServeMux
 	registerAgentLink(&mux, uiOpts.version, uiOpts.basePath)
+	registerUpdates(&mux, uiOpts.version)
 
 	// Add optional resources to mux
 	for _, res := range uiOpts.addlServedResources() {

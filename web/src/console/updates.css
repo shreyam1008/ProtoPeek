@@ -1,0 +1,220 @@
+.updates-workspace {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 16px;
+  min-width: 0;
+  width: 100%;
+}
+.updates-card {
+  padding: 20px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 10px;
+  background: var(--pp-surface);
+  min-width: 0;
+}
+.updates-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.updates-card h2,
+.updates-callout h2 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.updates-card h3 {
+  font-size: 15px;
+  margin: 0;
+}
+.updates-card p,
+.updates-callout p {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 7px 0;
+}
+.updates-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  opacity: 0.65;
+  display: block;
+  margin-bottom: 8px;
+}
+.updates-chip {
+  font-size: 11px;
+  padding: 5px 9px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 20px;
+}
+.updates-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  font-size: 12px;
+  margin: 20px 0 0;
+}
+.updates-facts div:last-child {
+  grid-column: 1 / -1;
+}
+.updates-facts dt {
+  opacity: 0.65;
+  margin-bottom: 5px;
+}
+.updates-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.updates-workspace button,
+.updates-workspace select {
+  border: 1px solid var(--pp-stroke);
+  background: var(--pp-surface);
+  color: inherit;
+  border-radius: 6px;
+  min-height: 34px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+}
+.updates-workspace button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.updates-workspace button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.updates-workspace button:focus-visible,
+.updates-workspace select:focus-visible,
+.updates-workspace input:focus-visible {
+  outline: 2px solid #6297ed;
+  outline-offset: 3px;
+}
+.updates-workspace .updates-primary {
+  background: #245baf;
+  border-color: #3976cc;
+  color: #fff;
+}
+.updates-actions {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.updates-actions label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.updates-actions select {
+  min-width: 180px;
+}
+.updates-callout {
+  display: flex;
+  gap: 12px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+  min-width: 0;
+  background: color-mix(in srgb, #6297ed 6%, transparent);
+}
+.updates-callout > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.updates-callout > div {
+  min-width: 0;
+}
+.updates-warning {
+  border-color: color-mix(in srgb, #d29a37 55%, transparent);
+  background: color-mix(in srgb, #d29a37 8%, transparent);
+}
+.updates-success {
+  border-color: color-mix(in srgb, #489b74 60%, transparent);
+  background: color-mix(in srgb, #489b74 8%, transparent);
+}
+.updates-command {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 6px;
+  margin-top: 12px;
+  min-width: 0;
+}
+.updates-command code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.updates-command button {
+  flex-shrink: 0;
+}
+.updates-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 16px 0;
+}
+.updates-progress button {
+  margin-left: auto;
+}
+.updates-result {
+  margin-top: 20px;
+  border-top: 1px solid var(--pp-stroke);
+  padding-top: 20px;
+}
+.updates-available h3 {
+  color: var(--pp-warning-signal);
+}
+.updates-confirm {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  margin: 18px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.updates-confirm input {
+  margin-top: 4px;
+}
+.updates-muted {
+  opacity: 0.7;
+}
+.updates-spin {
+  animation: updates-spin 1s linear infinite;
+}
+@keyframes updates-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .updates-spin {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .updates-card {
+    padding: 14px;
+  }
+  .updates-facts {
+    grid-template-columns: 1fr;
+  }
+  .updates-command {
+    flex-wrap: wrap;
+  }
+}
+
+.updates-callout p {
+  overflow-wrap: anywhere;
+}

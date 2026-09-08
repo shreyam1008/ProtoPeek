@@ -23,6 +23,20 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  // Updates is loaded only when opened: measured 8,494 JS / 3,132 CSS raw,
+  // 3,057 JS / 1,062 CSS gzip bytes. Startup budgets remain unchanged.
+  {
+    label: 'Update workspace JavaScript',
+    pattern: /^Updates-.+\.js$/,
+    maxRawBytes: 10 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'Update workspace CSS',
+    pattern: /^Updates-.+\.css$/,
+    maxRawBytes: 4 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
   {
     label: 'AI agent workspace JavaScript',
     pattern: /^AgentWorkbench-.+\.js$/,
@@ -284,9 +298,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
     // No model runtime, polling in other routes, or additional startup dependency.
     // Navigation resume and searchable roadmap: 1,125,024 raw / 370,820 gzip.
-    maxRawBytes: 1104 * kibibyte,
+    maxRawBytes: 1114 * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 364 * kibibyte,
+    maxGzipBytes: 368 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -298,7 +312,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // bytes; keep small explicit headroom without hiding route growth.
     // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
     // No dependency added; startup JS limits remain unchanged.
-    maxRawBytes: 336 * kibibyte,
+    maxRawBytes: 340 * kibibyte,
     maxGzipBytes: 67 * kibibyte,
   },
 ];

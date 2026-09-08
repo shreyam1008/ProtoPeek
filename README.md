@@ -105,6 +105,14 @@ packaging. A configured executable takes priority, followed by PATH and then the
 and Scoop can supply aria2 as a package dependency; see their manifests for the packaged version.
 The [install guide](guides/INSTALLING.md) covers updates, pinned releases, PATH, rollback and uninstall.
 
+**New on edge:** run `pp update` or `protopeek update` on Windows, macOS, or Linux.
+Use `--check` to check only and `--channel stable|edge` to choose a channel; the default
+follows the installed channel. **Settings → Updates** provides the same release preview,
+explicit install confirmation, cancellation and restart guidance. Direct installs verify
+SHA-256 and update both owned commands; managed installs show the manager's commands.
+Older binaries need one installer upgrade to an edge build containing this command first.
+
+
 Go fallback:
 
 ```sh

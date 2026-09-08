@@ -96,6 +96,11 @@ const agentsRoute = createRoute({
   path: '/agents',
   component: lazyRouteComponent(() => import('./AgentWorkbench'), 'AgentWorkbench'),
 });
+const updatesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/updates',
+  component: lazyRouteComponent(() => import('./Updates'), 'Updates'),
+});
 const networkComponent = lazyRouteComponent(() => import('./NetworkWorkbench'), 'NetworkWorkbench');
 const networkRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -186,6 +191,7 @@ const routeTree = rootRoute.addChildren([
   securityRoute,
   settingsRoute,
   agentsRoute,
+  updatesRoute,
   networkRouteTree,
   roadmapRoute,
   grpcCompatibilityRoute,

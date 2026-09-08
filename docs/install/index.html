@@ -166,6 +166,17 @@ Get-Content .\install.ps1
 <pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.1&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>Use <code>PROTOPEEK_CHANNEL=edge</code> only when intentionally testing the rolling edge prerelease. A stable-resolution failure never falls back to edge.</p>
+<h2 id="upgrade-from-the-cli-or-ui-new-on-edge">Upgrade from the CLI or UI (new on edge)</h2>
+<p>These commands are included in current edge builds, not the v0.6.1 stable binary. Existing older installs need one installer run to obtain them. Then either name works:</p>
+<pre class="pp-doc-code"><code data-lang="sh">pp update
+protopeek update --check
+pp update --channel edge
+protopeek update --channel stable</code></pre>
+<p>Without a channel flag, the updater follows the running release&#39;s stable or edge channel. Stable checks never fall back to edge and never silently downgrade a newer stable version. An explicit edge-to-stable switch can remove preview features. Edge compares the source revision, since its version tag is reused.</p>
+<p>Open <strong>Settings → Updates</strong> for installed version/platform, release notes, an update-available notice and a checked release preview. Checking contacts GitHub only when requested. Installation requires a separate confirmation. Cancel stops checking or downloading; once file replacement starts, it completes or rolls back safely.</p>
+<p>Direct installs download a size-bounded official archive, verify SHA-256, validate both Go executables, and stage replacements beside the install directory. An installation lock prevents concurrent updaters; stale previews and changed archives require a fresh check. Both <code>protopeek</code> and the owned <code>pp</code> are replaced; an unrelated <code>pp</code> is preserved. No shell installer runs, no privilege escalation is attempted, and browser/host preferences and transfer files are not changed. Existing manpages are maintained by the original installer.</p>
+<p>Homebrew, Scoop, detected system packages, Go-install paths, Nix, Snap and container images keep their own ownership. The CLI/UI shows the applicable manager command instead of replacing managed files. A read-only direct install must be updated by its installation owner.</p>
+<p><strong>Restart required:</strong> existing servers keep their current code and active transfers. Finish or pause work, stop the old process, then run <code>pp</code> or <code>protopeek</code> again; reloading the browser alone does not restart the server. Windows may retain previous executable backups in the reported <code>.protopeek-update-*</code> directory while old processes are running. Remove that exact backup directory after those processes exit. A failed replacement rolls back; if rollback is blocked, the error identifies retained recovery files. After a crash mid-replacement, stop old processes and rerun the verified installer to repair the pair.</p>
 <h2 id="upgrade-and-rollback">Upgrade and rollback</h2>
 <p>Upgrade a package-manager installation with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>. To switch to a pinned rollback, first uninstall that package through the same manager so command paths do not conflict.</p>
 <p>For a release-resolver installation, repeat the verified install for the target version. To roll back, set <code>PROTOPEEK_VERSION</code> to the previous tag and rerun the matching installer after stopping ProtoPeek. Launch on loopback and reconnect a non-production target before normal use.</p>
@@ -185,7 +196,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
               <section class="pp-doc-side-card">
                 <div class="pp-doc-side-label">On this page</div>
                 <div class="pp-doc-toc">
-                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
+                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#upgrade-from-the-cli-or-ui-new-on-edge">Upgrade from the CLI or UI (new on edge)</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
                 </div>
               </section>
 

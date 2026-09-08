@@ -952,6 +952,10 @@ const rootUsageFormat = `Usage:
 
 Starts the ProtoPeek web console.
 
+Update a direct installation with "protopeek update" or "pp update". Use
+"update --check" to check only, or "update --channel edge" to choose the rolling
+preview. Package-managed installations show their own update commands.
+
 Connect local AI agents with "protopeek mcp" (MCP over stdio). Pair the running
 workbench from Settings > AI agents first. "protopeek agent tools" prints JSON
 schemas; "protopeek agent guide" teaches the workflows. Use "protopeek agent

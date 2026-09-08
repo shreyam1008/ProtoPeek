@@ -305,6 +305,17 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'updates',
+    destination: 'settings',
+    label: 'Updates',
+    route: '/updates',
+    order: 156,
+    command: {
+      label: 'Check for ProtoPeek updates',
+      keywords: 'update upgrade version release stable edge install restart',
+    },
+  },
+  {
     id: 'roadmap',
     destination: 'settings',
     label: 'Roadmap',

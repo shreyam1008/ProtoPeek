@@ -5,6 +5,12 @@ version source of truth.
 
 ## Unreleased
 
+- Added `pp update` / `protopeek update` for direct Windows, macOS and Linux installs,
+  with explicit check/channel flags, SHA-256 verification, bounded extraction, installation
+  locking, stale-preview protection, owned-alias preservation and rollback on failure.
+  Managed installations show their own update commands. Settings → Updates adds release
+  availability, channel warnings, confirmation, cancellation and restart guidance.
+
 - Redesigned every embedded workspace around a permanent destination rail and grouped tool navigator.
   Destination switches resume the last tool, with validated browser-session route references.
   Network tools retain their navigation across device, scanner, path, map and history routes.

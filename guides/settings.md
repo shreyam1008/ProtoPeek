@@ -63,3 +63,14 @@ See the [local AI agent guide](/ai-agents/). This is not included in v0.6.1 stab
 - [Use Downloader and inspect its external aria2 boundary](/downloader/).
 - [Read the GoBarryGo consolidation record](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md).
 - [Install stable ProtoPeek v0.6.1](/install/).
+
+
+## Updates (new on edge)
+
+Choose **Settings → Updates** to inspect the installed version, platform and installation
+method. **Check for updates** contacts GitHub on demand and shows the selected stable/edge
+release, download size and release notes. Nothing checks or installs automatically.
+Direct installations offer a separate confirmation and **Install update**, with progress,
+cancellation and an explicit server-restart notice. Managed installations show the correct
+manager command. `pp update` and `protopeek update` use the same backend on Windows, macOS
+and Linux. See the [installation guide](../install/) for first-time bootstrap and recovery.

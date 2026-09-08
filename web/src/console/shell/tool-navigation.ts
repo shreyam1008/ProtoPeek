@@ -26,7 +26,7 @@ export const toolGroups: Record<
   publish: [{ label: 'Local publishing', ids: ['tunnels'] }],
   files: [{ label: 'Transfers', ids: ['downloader'] }],
   settings: [
-    { label: 'Preferences', ids: ['settings'] },
+    { label: 'Preferences', ids: ['settings', 'updates'] },
     { label: 'Integrations & help', ids: ['agents', 'roadmap'] },
   ],
 };
