@@ -6,8 +6,10 @@ Reserved `ProtoPeek` as MSIX product `9MXQ75XW900Q`, created Submission 1, and s
 Properties (Developer tools / Networking, support and privacy). Stable v0.6.1 was
 checksummed, packaged as 0.6.1.0, registered for development, and tested through its
 console alias and a real browser HTTP request. Original logo and genuine screenshots
-are prepared. Upload remains blocked by Chrome extension file-URL access; certification
-has not been submitted. See [full record and remaining gates](microsoft-store.md).
+were uploaded after the owner enabled Chrome extension file-URL access. Microsoft
+validated the CI package; all required sections are Complete. Submission 1 is now
+In certification (preprocessing), with publishing after approval. It is not yet live.
+See [full record and remaining gates](microsoft-store.md).
 
 ## Verified edge overhaul — 7 September 2026
 

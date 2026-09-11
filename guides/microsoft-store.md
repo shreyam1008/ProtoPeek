@@ -1,6 +1,6 @@
 # Microsoft Store preparation
 
-Checkpoint: 11 September 2026. **Reserved and in draft; not published or in certification.**
+Checkpoint: 11 September 2026. **Submitted: Partner Center shows In certification, preprocessing in progress; not yet published.**
 
 ## Identity and package
 
@@ -42,13 +42,13 @@ Development registration is not a Store-signed installation test. Still test Sta
 
 - Name reserved and draft created.
 - Properties saved and shown Complete: Developer tools / Networking, canonical site, GitHub support, personal-information access declaration and full privacy text. v0.6.1 does not include generative AI. OneDrive backup/recording declarations disabled.
-- MSIX and two screenshots prepared. Chrome file selection was blocked by extension file-URL access (`Not allowed`); no upload accepted at that checkpoint.
-- English (United States) listing created and description, short description, primary feature and developer name saved. Listing remains Incomplete because screenshots have not been uploaded.
+- Owner enabled Chrome extension file-URL access. The CI MSIX was uploaded, validated by Microsoft and saved; Packages is Complete. Windows Desktop is the supported device family.
+- English (United States) description, short description, primary feature, developer name and two captioned screenshots saved; Store listings is Complete. Screenshot inputs were converted from JPEG bytes to real PNG without content changes: `protopeek-v0.6.1-home-store.png` and `protopeek-v0.6.1-http-store.png` in `dist/store/listing/`.
 - Free USD 0 pricing, public worldwide availability (240 markets) saved; Pricing and availability is Complete.
-- IARC questionnaire preview returned ESRB Everyone and PEGI/Store 3+. Final Save requires the owner's IARC Terms of Use/adult declaration; checkbox left untouched and review tab retained. Ratings are not yet saved.
+- Owner completed age ratings; Partner Center shows Complete. The questionnaire preview returned ESRB Everyone and PEGI/Store 3+.
 - Store description, features, keywords, captions, release notes and full-trust certification explanation are in [listing copy](../packaging/windows/store/listing.md).
 - Privacy text saved in [privacy-policy.txt](../packaging/windows/store/privacy-policy.txt).
-- Finish pricing/markets, age ratings, package upload/device families, English listing and certification notes. Review any presented agreements with the owner before their acceptance.
+- All five required sections showed Complete before submission. Submit for certification succeeded; the overview now shows In certification, Submission complete and Pre-processing in progress. Automatic publishing after certification is selected. Await Microsoft's result and verify the public listing before adding a Store download link.
 
 ## Release automation
 
