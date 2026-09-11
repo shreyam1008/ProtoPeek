@@ -2,6 +2,8 @@
 
 Official downloads and package links: [ProtoPeek distribution tracker](https://shreyam1008.com.np/projects/#distribution-protopeek). Stable release, Homebrew and Scoop links are kept separate from planned distribution channels.
 
+Microsoft Store: [MSIX preparation and release automation](guides/microsoft-store.md) are in progress. The name is reserved; there is no published Store download yet.
+
 ProtoPeek (Protocol Peek) is a lightweight local workbench for finding, reaching, inspecting and
 publishing services. Inspect gRPC, HTTP, WebSocket, SSE and Cap’n Proto; discover ports and private
 network services; follow network hops; examine packet metadata and this device’s activity; manage

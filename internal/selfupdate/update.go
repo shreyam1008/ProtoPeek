@@ -153,6 +153,8 @@ func Inspect(version string) Installation {
 func managedInstallation(p, goos string) (string, []string) {
 	lower := strings.ToLower(filepath.ToSlash(p))
 	switch {
+	case goos == "windows" && strings.Contains(lower, "/windowsapps/"):
+		return "Microsoft Store", []string{"Open Microsoft Store, go to Library, and check for updates."}
 	case strings.Contains(lower, "/cellar/protopeek/"):
 		return "Homebrew", []string{"brew update", "brew upgrade protopeek"}
 	case strings.Contains(lower, "/scoop/apps/protopeek/"):

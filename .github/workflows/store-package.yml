@@ -1,0 +1,53 @@
+name: Microsoft Store package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published stable release tag (for example v0.6.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-package-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+      - name: Download and verify stable release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RELEASE_TAG -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Exact stable SemVer tag required.' }
+          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json tagName,isDraft,isPrerelease | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.isDraft -or $release.isPrerelease -or $release.tagName -cne $env:RELEASE_TAG) { throw 'Release must already be public and stable.' }
+          $archive = 'protopeek_' + $env:RELEASE_TAG.Substring(1) + '_windows_x86_64.zip'
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern $archive --pattern checksums.txt --dir .local/store-input
+          if ($LASTEXITCODE -ne 0) { throw 'Release download failed.' }
+          ./packaging/windows/store/build-store.ps1 -Tag $env:RELEASE_TAG -ReleaseArchive ".local/store-input/$archive" -Checksums .local/store-input/checksums.txt -OutputDirectory dist/store-ci
+      - name: Retain package and provenance receipt for Partner Center
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: protopeek-store-${{ github.event.release.tag_name || inputs.tag }}
+          path: |
+            dist/store-ci/*.msix
+            dist/store-ci/build-receipt.json
+          if-no-files-found: error
+
+# Upload/certification is a separate step until Partner Center Entra API access
+# and the first Store submission are configured. Never promote a rolling build.

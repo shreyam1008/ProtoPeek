@@ -215,6 +215,18 @@ func TestRollbackRestoresBothCommands(t *testing.T) {
 		}
 	}
 }
+func TestMicrosoftStoreManagedPaths(t *testing.T) {
+	for _, path := range []string{
+		"C:/Program Files/WindowsApps/shreyam1008.ProtoPeek_0.6.1.0_x64__ax0kgekbzfne6/protopeek.exe",
+		"D:/WindowsApps/shreyam1008.ProtoPeek_0.7.0.0_x64__ax0kgekbzfne6/pp.exe",
+	} {
+		manager, commands := managedInstallation(path, "windows")
+		if manager != "Microsoft Store" || len(commands) != 1 || !strings.Contains(commands[0], "Microsoft Store") {
+			t.Fatalf("%s: manager=%q commands=%v", path, manager, commands)
+		}
+	}
+}
+
 func TestManagedPathsAndVersionOrdering(t *testing.T) {
 	for p, want := range map[string]string{"/opt/homebrew/Cellar/protopeek/0.6.1/bin/pp": "Homebrew", "C:/Users/name/scoop/apps/protopeek/current/pp.exe": "Scoop", "/nix/store/hash/bin/pp": "Nix", "/snap/protopeek/current/pp": "Snap"} {
 		got, _ := managedInstallation(p, "windows")

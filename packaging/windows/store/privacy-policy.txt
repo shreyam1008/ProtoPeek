@@ -1,0 +1,13 @@
+ProtoPeek privacy policy — 11 September 2026
+
+ProtoPeek is a local service and protocol inspection workbench maintained by Shreyam Adhikari (shreyam1008). This policy describes the v0.6.1 Windows application.
+
+The application runs on your computer and serves its interface to your browser over a local loopback connection. A ProtoPeek account is not required. There is no ProtoPeek cloud synchronization or built-in advertising analytics.
+
+Information you choose to inspect can include endpoint addresses, request headers and bodies, authentication values, responses, device names, IP addresses, local network status and file paths. ProtoPeek processes this information locally and sends requests to the endpoints and services you choose. Those endpoints may receive request contents and your network address. Optional external network checks and installed Tailscale or Cloudflare tools communicate with their respective services when used; those services have their own privacy policies.
+
+The browser stores interface preferences and saved request information for the local origin. Download configuration, resumable jobs, history and downloaded files can be stored on your computer. Do not include secrets in screenshots, exports or public issue reports. You control saved browser data through browser site-data settings and local files through your operating system. Uninstalling the app may leave browser data and files you saved outside its package; remove those separately if desired.
+
+If you contact the maintainer for support, information you voluntarily provide is used to investigate and respond. GitHub issues are public, so remove credentials and private data before posting. Support: https://github.com/shreyam1008/ProtoPeek/issues . The product website and Microsoft Store are separate services governed by their own applicable privacy notices.
+
+Changes to this policy will be dated and included with the app documentation.

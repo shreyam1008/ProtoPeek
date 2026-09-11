@@ -1,5 +1,14 @@
 # ProtoPeek distribution log
 
+## Microsoft Store preparation — 11 September 2026
+
+Reserved `ProtoPeek` as MSIX product `9MXQ75XW900Q`, created Submission 1, and saved
+Properties (Developer tools / Networking, support and privacy). Stable v0.6.1 was
+checksummed, packaged as 0.6.1.0, registered for development, and tested through its
+console alias and a real browser HTTP request. Original logo and genuine screenshots
+are prepared. Upload remains blocked by Chrome extension file-URL access; certification
+has not been submitted. See [full record and remaining gates](microsoft-store.md).
+
 ## Verified edge overhaul — 7 September 2026
 
 Implementation `197033801f7b2a229018d26937627e9dd53f0249` published through

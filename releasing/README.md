@@ -3,6 +3,10 @@
 GitHub Actions is the only publishing path. Local commands validate snapshots;
 they do not publish releases.
 
+Microsoft Store packaging follows published stable releases, not rolling builds. See
+[Store preparation and automation](../guides/microsoft-store.md) and the
+`Microsoft Store package` workflow. Store upload/API setup remains separate.
+
 ## Stable release
 
 1. Land a clean, reviewed commit on `master` with generated website and embedded

@@ -5,6 +5,11 @@ version source of truth.
 
 ## Unreleased
 
+- Added Microsoft Store MSIX packaging for published stable Windows x64 releases,
+  with the existing logo and `protopeek`/`pp` console aliases. Newer self-updater
+  builds direct WindowsApps installations to Microsoft Store updates. Store
+  reservation and package preparation do not imply certification or availability.
+
 - Branch pushes now publish one rolling `v0.0.0-nightly` prerelease with Windows, macOS
   and Linux archives, checksums and attestations. Stable versions, GitHub Latest and package
   manifests remain separately promoted. Nightly is opt-in through both installers, the CLI
