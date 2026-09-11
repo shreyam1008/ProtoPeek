@@ -44,6 +44,8 @@ Development registration is not a Store-signed installation test. Still test Sta
 - Properties saved and shown Complete: Developer tools / Networking, canonical site, GitHub support, personal-information access declaration and full privacy text. v0.6.1 does not include generative AI. OneDrive backup/recording declarations disabled.
 - MSIX and two screenshots prepared. Chrome file selection was blocked by extension file-URL access (`Not allowed`); no upload accepted at that checkpoint.
 - English (United States) listing created and description, short description, primary feature and developer name saved. Listing remains Incomplete because screenshots have not been uploaded.
+- Free USD 0 pricing, public worldwide availability (240 markets) saved; Pricing and availability is Complete.
+- IARC questionnaire preview returned ESRB Everyone and PEGI/Store 3+. Final Save requires the owner's IARC Terms of Use/adult declaration; checkbox left untouched and review tab retained. Ratings are not yet saved.
 - Store description, features, keywords, captions, release notes and full-trust certification explanation are in [listing copy](../packaging/windows/store/listing.md).
 - Privacy text saved in [privacy-policy.txt](../packaging/windows/store/privacy-policy.txt).
 - Finish pricing/markets, age ratings, package upload/device families, English listing and certification notes. Review any presented agreements with the owner before their acceptance.
@@ -53,6 +55,8 @@ Development registration is not a Store-signed installation test. Still test Sta
 `.github/workflows/store-package.yml` packages **published stable releases**, or an explicitly selected existing stable tag through workflow_dispatch. Waiting for `release.published` avoids the race where a tag exists but the release workflow is still building its draft. Rolling Nightly/Edge never enter this lane. The package is uploaded as a GitHub Actions artifact with an input/output checksum receipt; published GitHub release assets are not rewritten.
 
 The checked-out packaging recipe comes from master and wraps unchanged release binaries. Record the workflow commit alongside the source release tag. This first lane builds artifacts only; it does not claim that automatic Store upload is configured.
+
+First hosted run [34576442795](https://github.com/shreyam1008/ProtoPeek/actions/runs/34576442795) passed at workflow commit `763af48`. Its retained v0.6.1 MSIX SHA-256 is `a1bda2d48a4b27806ba784d75116d97e06dd3673e8e6b485ba6648db9ef103de`. The CI artifact was downloaded with its receipt. Local and CI package hashes differ because package generation is not claimed reproducible; both wrap the same verified release archive. Local source validation passed all 783 UI tests and `go test ./...`; lint reported existing warnings without errors.
 
 For automatic Store updates, finish the first submission, associate a Microsoft Entra tenant with Partner Center, configure app-scoped API access, and store tenant/client credentials as GitHub environment secrets. Then add an environment-gated `msstore` upload/submission job and poll certification. Never put a client secret or an interactive Microsoft-account password into a workflow or documentation. Account verification alone does not provide this API setup.
 
