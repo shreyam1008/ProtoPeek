@@ -80,7 +80,9 @@ function registerWebMCP() {
   if (context.provideContext) void context.provideContext({ tools });
 }
 
-window.setTimeout(registerWebMCP, 0);
+// Register before hydration so browser agents can discover the read-only tools
+// during the initial page-load pass.
+registerWebMCP();
 
 const rootElement = document.getElementById('root');
 
