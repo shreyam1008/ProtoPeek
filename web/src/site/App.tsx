@@ -541,6 +541,10 @@ function Install() {
           available. Snap candidates are attached to the release; Snap Store and Flatpak are not
           available yet.
         </p>
+        <p className="mt-3 text-neutral-600">
+          Microsoft Store certification is in progress. The listing will publish automatically after
+          approval.
+        </p>
         <a
           className="mt-3 block text-[#0b5cff] underline"
           href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/apt.md"

@@ -1,5 +1,10 @@
 # ProtoPeek
 
+Distribution checked 12 September 2026: GitHub, signed APT, Homebrew and Scoop are
+live. Microsoft Store is in certification and will publish automatically after
+approval. Snap is a GitHub candidate; Snap Store and Flatpak are not published.
+See the [shared publication status](https://shreyam1008.com.np/projects/#distribution-protopeek).
+
 Official downloads and package links: [ProtoPeek distribution tracker](https://shreyam1008.com.np/projects/#distribution-protopeek). Stable release, Homebrew and Scoop links are kept separate from planned distribution channels.
 
 Microsoft Store: [MSIX preparation and release automation](guides/microsoft-store.md) are in progress. The name is reserved; there is no published Store download yet.
