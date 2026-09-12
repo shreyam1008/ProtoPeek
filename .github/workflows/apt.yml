@@ -1,0 +1,92 @@
+name: Publish signed APT
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable release
+        default: v0.6.1
+        required: true
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: protopeek-apt
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      APT_SIGNING_KEY_ID: ${{ vars.APT_SIGNING_KEY_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - name: Verify packages and sign repository
+        env:
+          APT_SIGNING_PRIVATE_KEY: ${{ secrets.APT_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          export GNUPGHOME="$RUNNER_TEMP/apt-gnupg"
+          install -d -m 700 "$GNUPGHOME"
+          printf '%s' "$APT_SIGNING_PRIVATE_KEY" | gpg --batch --import
+          mkdir -p apt-dist
+          gh release download "$TAG" --pattern 'protopeek_*.deb' --pattern checksums.txt --dir apt-dist
+          cd apt-dist
+          grep -E '  protopeek_[0-9.]+_(amd64|arm64|i386)\.deb$' checksums.txt > deb-checksums.txt
+          test "$(wc -l < deb-checksums.txt)" -eq 3
+          sha256sum --strict --check deb-checksums.txt
+          for arch in amd64 arm64 i386; do
+            asset="protopeek_${TAG#v}_${arch}.deb"
+            test "$(dpkg-deb -f "$asset" Package)" = protopeek
+            test "$(dpkg-deb -f "$asset" Version)" = "${TAG#v}"
+            test "$(dpkg-deb -f "$asset" Architecture)" = "$arch"
+          done
+          cd ..
+          bash scripts/build-apt-repo.sh web/site/public/apt apt-dist
+      - name: Install and remove from signed local repository
+        run: |
+          set -euo pipefail
+          sudo install -m 644 web/site/public/apt/key.gpg /usr/share/keyrings/protopeek.gpg
+          echo "deb [signed-by=/usr/share/keyrings/protopeek.gpg] file:$GITHUB_WORKSPACE/web/site/public/apt stable main" | sudo tee /etc/apt/sources.list.d/protopeek.list
+          sudo apt-get -o APT::Update::Error-Mode=any update
+          sudo apt-get install -y "protopeek=${TAG#v}"
+          protopeek --version
+          pp --version
+          sudo apt-get remove -y protopeek
+      - name: Publish public repository with site sources and output
+        run: |
+          set -euo pipefail
+          mkdir -p docs/apt
+          cp -a web/site/public/apt/. docs/apt/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/site/public/apt docs/apt
+          git commit -m "distribution: publish signed APT for $TAG"
+          git pull --rebase origin master
+          git push origin HEAD:master
+      - name: Verify anonymous HTTPS installation
+        run: |
+          set -euo pipefail
+          base=https://protopeek.shreyam1008.com.np/apt
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$base/dists/stable/main/binary-amd64/Packages" -o /tmp/protopeek-Packages && grep -qx "Version: ${TAG#v}" /tmp/protopeek-Packages; then break; fi
+            sleep 10
+          done
+          curl -fsS "$base/key.asc" -o /tmp/protopeek-key.asc
+          gpg --show-keys --with-colons /tmp/protopeek-key.asc | grep -q "fpr:::::::::$APT_SIGNING_KEY_ID:"
+          sudo install -m 644 /tmp/protopeek-key.asc /usr/share/keyrings/protopeek.asc
+          echo "deb [signed-by=/usr/share/keyrings/protopeek.asc] $base stable main" | sudo tee /etc/apt/sources.list.d/protopeek.list
+          sudo apt-get -o APT::Update::Error-Mode=any update
+          sudo apt-get install -y "protopeek=${TAG#v}"
+          protopeek --version
+          pp --version
+          sudo apt-get remove -y protopeek
