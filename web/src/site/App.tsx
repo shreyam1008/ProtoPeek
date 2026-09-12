@@ -537,10 +537,16 @@ function Install() {
           APT, Snap, Flatpak and other downloads
         </summary>
         <p className="mt-4 text-neutral-600">
-          The GitHub installer above is the default. Homebrew and Scoop are also available. Debian
-          packages and Snap candidates are attached to the release; an APT repository, Snap Store
-          listing and Flatpak are not available yet.
+          The GitHub installer above is the default. Signed APT, Homebrew and Scoop are also
+          available. Snap candidates are attached to the release; Snap Store and Flatpak are not
+          available yet.
         </p>
+        <a
+          className="mt-3 block text-[#0b5cff] underline"
+          href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/apt.md"
+        >
+          Set up APT, then sudo apt install protopeek
+        </a>
         <a
           className="mt-3 inline-block text-[#0b5cff] underline"
           href="https://github.com/shreyam1008/ProtoPeek/releases/latest"

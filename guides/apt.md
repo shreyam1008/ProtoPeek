@@ -1,5 +1,7 @@
 # Install ProtoPeek with APT
 
+Live and verified on 12 September 2026: [Ubuntu install/remove check](https://github.com/shreyam1008/ProtoPeek/actions/runs/34683703441).
+
 The signed repository supports amd64, arm64 and i386. Add it once on Debian or
 Ubuntu, then use normal APT updates. The package is named `protopeek` and includes
 both `protopeek` and `pp` commands.

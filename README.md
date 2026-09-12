@@ -81,6 +81,11 @@ Downloader captures.
 
 ## Install
 
+Debian / Ubuntu: [add the signed APT repository once](guides/apt.md), then run
+`sudo apt update && sudo apt install protopeek`. Includes the `pp` alias.
+Ubuntu amd64 installation and removal through the public HTTPS repository passed
+on 12 September 2026. Snap Store publication is still pending.
+
 Homebrew on macOS or Linux:
 
 ```sh

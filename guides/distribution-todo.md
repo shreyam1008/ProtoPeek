@@ -11,7 +11,7 @@ Updated: 2026-09-12.
   or runtime test.
 - [x] Publish checksummed packages with v0.6.1 and GitHub provenance. Existing
   stable assets and tags were not rewritten.
-- [ ] Establish a persistent APT signing key and signed repository, preserving
+- [x] Establish a persistent APT signing key and signed repository, preserving
   it across website deployments; test anonymous HTTPS installation.
 - [ ] Only then advertise APT in the portfolio control plane.
 - [x] Add a tag-driven classic Snap candidate build and attach its checksum to
