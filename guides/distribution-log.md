@@ -1,5 +1,12 @@
 # ProtoPeek distribution log
 
+## Personal Ubuntu publication checkpoint — 12 September 2026
+
+PR #22 merged after all CI checks passed (including Windows/macOS/Linux, installers and release contract). The metadata-only corrected `protopeek_0.6.1_amd64-store1.snap` and SHA-256/provenance receipts are attached to v0.6.1. Registration returned `reserved_name` for exact name `protopeek`; no alternative was registered. Name resolution, classic review and runtime acceptance remain. Microsoft submission 1 was rechecked: In certification, automatic publication after approval.
+
+The owner approved the Canonical requests, but separate forum authentication has not completed; do not claim a submitted topic. [Windows continuation](https://github.com/shreyam1008/buggy/blob/master/docs/projects/flagship-windows-handoff-2026-09-12.md). The Snap workflow selects the corrected asset for this exact release and verifies its receipt.
+
+
 ## Agent discovery and Snap automation — 12 September 2026
 
 The website now publishes the API catalog, OpenAPI document, ARD capability

@@ -538,8 +538,9 @@ function Install() {
         </summary>
         <p className="mt-4 text-neutral-600">
           The GitHub installer above is the default. Signed APT, Homebrew and Scoop are also
-          available. Snap candidates are attached to the release; Snap Store and Flatpak are not
-          available yet.
+          available. The corrected Snap artifact is attached to the release; the exact protopeek
+          name needs Canonical resolution and classic review. Snap Store and Flatpak are not
+          published.
         </p>
         <p className="mt-3 text-neutral-600">
           Microsoft Store certification is in progress. The listing will publish automatically after
