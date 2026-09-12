@@ -85,6 +85,11 @@ jobs:
           gpg --show-keys --with-colons /tmp/protopeek-key.asc | grep -q "fpr:::::::::$APT_SIGNING_KEY_ID:"
           sudo install -m 644 /tmp/protopeek-key.asc /usr/share/keyrings/protopeek.asc
           echo "deb [signed-by=/usr/share/keyrings/protopeek.asc] $base stable main" | sudo tee /etc/apt/sources.list.d/protopeek.list
+          # Different CDN edges can become ready at different times.
+          for attempt in $(seq 1 18); do
+            if sudo apt-get -o APT::Update::Error-Mode=any update; then break; fi
+            sleep 10
+          done
           sudo apt-get -o APT::Update::Error-Mode=any update
           sudo apt-get install -y "protopeek=${TAG#v}"
           protopeek --version
