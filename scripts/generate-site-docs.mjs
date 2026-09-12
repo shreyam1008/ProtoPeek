@@ -77,6 +77,10 @@ async function writeDiscoveryMetadata() {
     // response metadata in sync with the source-site headers so discovery
     // documents receive their declared media types and Link signals.
     fs.copyFile(path.join(repoRoot, 'web', 'site', '_headers'), path.join(docsRoot, '_headers')),
+    // Cloudflare Pages uses the generated docs directory as its output. Keep
+    // the edge worker beside the static assets so Markdown negotiation works
+    // on the deployed site as well as in the source site.
+    fs.copyFile(path.join(repoRoot, 'web', 'site', '_worker.js'), path.join(docsRoot, '_worker.js')),
   ]);
 }
 
