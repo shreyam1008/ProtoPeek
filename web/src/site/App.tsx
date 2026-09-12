@@ -78,7 +78,8 @@ const installOptions = [
   {
     id: 'macos',
     label: 'macOS',
-    command: 'brew install shreyam1008/tap/protopeek',
+    command:
+      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
   },
   {
     id: 'linux',
@@ -526,11 +527,27 @@ function Install() {
                 ? 'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
                 : activeId === 'windows'
                   ? 'Installs stable ProtoPeek v0.6.1. Windows x64 includes aria2 and a Start-menu shortcut.'
-                  : 'Installs ProtoPeek. Homebrew supplies aria2; Linux release archives use installed aria2.'}
+                  : 'Downloads the stable GitHub release. Uses your installed aria2 for downloads.'}
             </p>
           </div>
         </div>
       </div>
+      <details className="mx-auto max-w-7xl px-5 pb-12 sm:px-8 lg:px-12">
+        <summary className="cursor-pointer font-semibold">
+          APT, Snap, Flatpak and other downloads
+        </summary>
+        <p className="mt-4 text-neutral-600">
+          The GitHub installer above is the default. Homebrew and Scoop are also available. Debian
+          packages and Snap candidates are attached to the release; an APT repository, Snap Store
+          listing and Flatpak are not available yet.
+        </p>
+        <a
+          className="mt-3 inline-block text-[#0b5cff] underline"
+          href="https://github.com/shreyam1008/ProtoPeek/releases/latest"
+        >
+          Browse release packages
+        </a>
+      </details>
     </section>
   );
 }

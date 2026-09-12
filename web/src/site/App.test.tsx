@@ -98,7 +98,7 @@ describe('public site', () => {
       'true'
     );
     expect(within(install).getByRole('textbox', { name: 'macOS install command' })).toHaveValue(
-      'brew install shreyam1008/tap/protopeek'
+      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh'
     );
     expect(within(install).getAllByRole('textbox')).toHaveLength(1);
 
@@ -128,7 +128,9 @@ describe('public site', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy macOS command' }));
     expect(screen.queryByRole('button', { name: 'macOS command copied' })).not.toBeInTheDocument();
-    expect(writeText).toHaveBeenCalledWith('brew install shreyam1008/tap/protopeek');
+    expect(writeText).toHaveBeenCalledWith(
+      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh'
+    );
 
     resolveWrite?.();
     expect(await screen.findByRole('button', { name: 'macOS command copied' })).toBeVisible();
