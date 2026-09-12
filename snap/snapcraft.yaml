@@ -1,0 +1,58 @@
+name: protopeek
+base: core24
+adopt-info: protopeek
+summary: Local service inspection workbench
+description: |
+  ProtoPeek is a local-first workbench for finding, reaching, and inspecting
+  gRPC, HTTP, WebSocket, SSE and Cap'n Proto services. It provides bounded
+  network evidence, a browser console, and local command-line workflows.
+grade: stable
+confinement: classic
+license: MIT
+
+parts:
+  protopeek:
+    plugin: nil
+    source: .
+    build-snaps:
+      - go/1.26/stable
+    override-build: |
+      tag="${GITHUB_REF_NAME:-}"
+      if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        tag="$(git describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null || true)"
+      fi
+      if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        version="${tag#v}"
+      else
+        version="$(sed -n 's/^[[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\"\([0-9][0-9.]*\)\".*/\1/p' product.json | head -n 1)"
+      fi
+      if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "stable ProtoPeek tag is required to build the Snap" >&2
+        exit 1
+      fi
+      craftctl set version="$version"
+      mkdir -p "$CRAFT_PART_INSTALL/bin"
+      CGO_ENABLED=0 go build -trimpath -buildvcs=false \
+        -ldflags="-s -w -X main.version=v$version" \
+        -o "$CRAFT_PART_INSTALL/bin/protopeek" ./cmd/protopeek
+      CGO_ENABLED=0 go build -trimpath -buildvcs=false \
+        -ldflags="-s -w -X main.version=v$version" \
+        -o "$CRAFT_PART_INSTALL/bin/pp" ./cmd/pp
+      install -Dm644 LICENSE "$CRAFT_PART_INSTALL/usr/share/doc/protopeek/copyright"
+      install -Dm644 THIRD_PARTY_NOTICES.md "$CRAFT_PART_INSTALL/usr/share/doc/protopeek/THIRD_PARTY_NOTICES.md"
+      install -Dm644 web/site/public/man/protopeek.1 "$CRAFT_PART_INSTALL/usr/share/man/man1/protopeek.1"
+      install -Dm644 web/site/public/man/pp.1 "$CRAFT_PART_INSTALL/usr/share/man/man1/pp.1"
+
+apps:
+  protopeek:
+    command: bin/protopeek
+    plugs:
+      - home
+      - network
+      - removable-media
+  pp:
+    command: bin/pp
+    plugs:
+      - home
+      - network
+      - removable-media

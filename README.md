@@ -4,6 +4,17 @@ Official downloads and package links: [ProtoPeek distribution tracker](https://s
 
 Microsoft Store: [MSIX preparation and release automation](guides/microsoft-store.md) are in progress. The name is reserved; there is no published Store download yet.
 
+Stable GitHub releases also include `protopeek_<version>_amd64.snap`. The
+candidate uses classic confinement so ProtoPeek can inspect local sockets and
+invoke explicitly installed tools such as Tailscale, Nmap, dumpcap, aria2, and
+cloudflared. The Snap Store candidate workflow is manual and credential-gated;
+publication is not claimed until the package has passed a Linux desktop smoke
+test.
+
+Agent discovery resources are published with the website: the [API catalog](https://protopeek.shreyam1008.com.np/.well-known/api-catalog),
+[OpenAPI document](https://protopeek.shreyam1008.com.np/openapi.json), [ARD manifest](https://protopeek.shreyam1008.com.np/.well-known/ai-catalog.json),
+[MCP Server Card](https://protopeek.shreyam1008.com.np/.well-known/mcp/server-card.json), and [Auth metadata](https://protopeek.shreyam1008.com.np/auth.md).
+
 ProtoPeek (Protocol Peek) is a lightweight local workbench for finding, reaching, inspecting and
 publishing services. Inspect gRPC, HTTP, WebSocket, SSE and Cap’n Proto; discover ports and private
 network services; follow network hops; examine packet metadata and this device’s activity; manage

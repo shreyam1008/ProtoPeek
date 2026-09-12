@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "2026-06-11",
+  "serverInfo": {
+    "name": "protopeek-local-agents",
+    "title": "ProtoPeek local agent integrations",
+    "version": "0.6.1",
+    "description": "ProtoPeek's agent and CLI integrations run against a local workbench. The public website does not provide a hosted MCP transport."
+  },
+  "publisher": { "name": "Shreyam Adhikari", "url": "https://shreyam1008.com.np/" },
+  "transports": [],
+  "capabilities": {
+    "resources": [
+      {
+        "name": "llms.txt",
+        "uri": "https://protopeek.shreyam1008.com.np/llms.txt",
+        "mimeType": "text/markdown"
+      },
+      {
+        "name": "agent guide",
+        "uri": "https://protopeek.shreyam1008.com.np/ai-agents/",
+        "mimeType": "text/html"
+      }
+    ],
+    "tools": [],
+    "localOnly": true
+  },
+  "documentation": "https://protopeek.shreyam1008.com.np/ai-agents/"
+}

@@ -139,6 +139,15 @@ ${pages}
 - Scoop: \`scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket\`, then \`scoop install shreyam/protopeek\`
 - Unix resolver: \`curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh\`
 - PowerShell resolver: \`irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex\`
+
+## Agent discovery
+
+- API catalog: ${siteRoot}/.well-known/api-catalog
+- OpenAPI document: ${siteRoot}/openapi.json
+- ARD capability manifest: ${siteRoot}/.well-known/ai-catalog.json
+- MCP Server Card: ${siteRoot}/.well-known/mcp/server-card.json
+- Auth metadata: ${siteRoot}/auth.md
+- Agent Skill index: ${siteRoot}/.well-known/agent-skills/index.json
 `;
 }
 

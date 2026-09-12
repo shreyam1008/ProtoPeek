@@ -90,3 +90,35 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-checksums: ./dist/checksums.txt
+
+  snap:
+    name: Attach Snap candidate
+    runs-on: ubuntu-24.04
+    needs: release
+    if: needs.release.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Build classic Snap candidate
+        id: snapcraft
+        uses: snapcore/action-build@v1
+        with:
+          snapcraft-args: --destructive-mode
+
+      - name: Attach verified Snap and checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          mkdir -p dist
+          asset="protopeek_${version}_amd64.snap"
+          cp "${{ steps.snapcraft.outputs.snap }}" "dist/$asset"
+          sha256sum "dist/$asset" | sed 's#dist/##' > "dist/${asset}.sha256"
+          gh release upload "$TAG" "dist/$asset" "dist/${asset}.sha256" \
+            --repo "$GITHUB_REPOSITORY" --clobber

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agentskills.io/schemas/agent-skills-discovery-0.2.0.json",
+  "name": "ProtoPeek agent skills",
+  "description": "Public agent-readable documentation for the local ProtoPeek workbench.",
+  "publisher": { "name": "Shreyam Adhikari", "url": "https://shreyam1008.com.np/" },
+  "skills": [
+    {
+      "name": "protopeek-docs",
+      "type": "documentation",
+      "description": "Read ProtoPeek product, installation, local-agent, and evidence-boundary documentation.",
+      "url": "https://protopeek.shreyam1008.com.np/.well-known/agent-skills/protopeek-docs.md",
+      "sha256": "5f59759ca65ac73f905341dc9394f4a8182303e59896b49a2e4652350ceafd4f"
+    }
+  ]
+}

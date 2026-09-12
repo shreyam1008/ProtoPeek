@@ -48,6 +48,12 @@
       "url": "https://github.com/shreyam1008/scoop-bucket/blob/main/bucket/protopeek.json",
       "version": "0.6.1",
       "verifiedAt": "2026-09-07"
+    },
+    {
+      "channel": "Snap candidate",
+      "status": "prepared",
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1",
+      "version": "0.6.1"
     }
   ]
 }

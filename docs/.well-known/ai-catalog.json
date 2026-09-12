@@ -1,0 +1,40 @@
+{
+  "specVersion": "1.0",
+  "host": { "displayName": "ProtoPeek", "identifier": "https://protopeek.shreyam1008.com.np/" },
+  "entries": [
+    {
+      "identifier": "urn:air:protopeek.shreyam1008.com.np:skill:protopeek-docs",
+      "displayName": "ProtoPeek documentation skill",
+      "type": "application/ai-skill",
+      "url": "https://protopeek.shreyam1008.com.np/.well-known/agent-skills/protopeek-docs.md",
+      "description": "Public product, installation, local-agent, and evidence-boundary guidance for ProtoPeek.",
+      "representativeQueries": [
+        "what is ProtoPeek",
+        "install ProtoPeek",
+        "use ProtoPeek's local agent integration"
+      ]
+    },
+    {
+      "identifier": "urn:air:protopeek.shreyam1008.com.np:api:public-discovery",
+      "displayName": "ProtoPeek public documentation resources",
+      "type": "application/openapi+json",
+      "url": "https://protopeek.shreyam1008.com.np/openapi.json",
+      "description": "OpenAPI description for public guides and discovery files; it does not expose a remote workbench API.",
+      "representativeQueries": [
+        "find ProtoPeek's machine-readable resources",
+        "read the ProtoPeek agent guide"
+      ]
+    },
+    {
+      "identifier": "urn:air:protopeek.shreyam1008.com.np:mcp:local-card",
+      "displayName": "ProtoPeek local agent discovery card",
+      "type": "application/mcp-server-card+json",
+      "url": "https://protopeek.shreyam1008.com.np/.well-known/mcp/server-card.json",
+      "description": "Static card describing ProtoPeek's local and opt-in agent integrations; no hosted MCP endpoint is advertised.",
+      "representativeQueries": [
+        "does ProtoPeek expose a remote MCP server",
+        "connect an agent to ProtoPeek locally"
+      ]
+    }
+  ]
+}

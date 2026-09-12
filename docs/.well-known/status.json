@@ -1,0 +1,7 @@
+{
+  "service": "ProtoPeek public documentation",
+  "status": "operational",
+  "version": "0.6.1",
+  "updated": "2026-09-12",
+  "scope": "static discovery resources; protocol inspection and host integrations run locally"
+}

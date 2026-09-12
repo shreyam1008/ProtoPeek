@@ -1,5 +1,17 @@
 # ProtoPeek distribution log
 
+## Agent discovery and Snap automation — 12 September 2026
+
+The website now publishes the API catalog, OpenAPI document, ARD capability
+manifest, MCP Server Card, Auth metadata, Agent Skill index, and read-only WebMCP
+tools. These resources describe the local-only boundary accurately; no hosted
+MCP or OAuth endpoint is invented.
+
+The stable tag workflow now builds a classic-confinement Snap for both `protopeek`
+and `pp`, attaches `protopeek_<version>_amd64.snap` and its checksum to the draft
+GitHub release, and leaves Store promotion to the credential-gated candidate
+workflow. A Linux desktop smoke test and Store review remain open gates.
+
 ## Microsoft Store preparation — 11 September 2026
 
 Reserved `ProtoPeek` as MSIX product `9MXQ75XW900Q`, created Submission 1, and saved

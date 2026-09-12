@@ -1,0 +1,10 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://protopeek.shreyam1008.com.np/",
+      "service-desc": [{ "href": "https://protopeek.shreyam1008.com.np/openapi.json", "type": "application/openapi+json", "title": "ProtoPeek public documentation resources" }],
+      "service-doc": [{ "href": "https://protopeek.shreyam1008.com.np/llms.txt", "type": "text/markdown", "title": "ProtoPeek agent-readable guide" }],
+      "status": [{ "href": "https://protopeek.shreyam1008.com.np/.well-known/status.json", "type": "application/json", "title": "ProtoPeek site status" }]
+    }
+  ]
+}
