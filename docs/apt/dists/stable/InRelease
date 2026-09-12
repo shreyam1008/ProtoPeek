@@ -8,25 +8,25 @@ Codename: stable
 Architectures: amd64 arm64 i386
 Components: main
 Description: APT repository for protopeek
-Date: Sat, 12 Sep 2026 08:34:55 +0000
+Date: Sat, 12 Sep 2026 08:36:35 +0000
 MD5Sum:
  d96197752f2da70d34e0df143d80854b              566 main/binary-amd64/Packages
- 42b0212daaf3ea00110177c698b14795              413 main/binary-amd64/Packages.gz
+ ec4026e8e257771abd6773c3f9cafd90              413 main/binary-amd64/Packages.gz
  0f022cf2a1f15f89b53f040aa2886e76              536 main/binary-arm64/Packages
- 6909f62a925253acc5dc0be43394bf13              398 main/binary-arm64/Packages.gz
+ e3802cce60c2dc4e69f22c5a37e72272              398 main/binary-arm64/Packages.gz
  2ffce592dcd7aafd07c49fe81dfb7c5a              534 main/binary-i386/Packages
- 68dc11fa958f84e179ae08d6bcfb6b92              395 main/binary-i386/Packages.gz
+ 1f130aeb1abc67f1f7c5d8a111df9a62              395 main/binary-i386/Packages.gz
 SHA256:
  65c95ffb1750a8d231f36eac8cb1fca559c8b744d73e94577d9f22cc0f4b1a37              566 main/binary-amd64/Packages
- 22b5d1abf140e4d3790e29a023a851b58f82c3f8b60e7119731dc67b80d1b9f5              413 main/binary-amd64/Packages.gz
+ bae0824eb00ec8ecfa188b08231a4585a3d776f7fc7a7b351e9e7042bd994b14              413 main/binary-amd64/Packages.gz
  8908e4205e93bbf20137bde71f6f90661cae895592911c02c24cb91eb66cd835              536 main/binary-arm64/Packages
- 8aa1d47fbe85f10fde8de3d9484b76a8040eefdb412acc76b490e07094bfe239              398 main/binary-arm64/Packages.gz
+ b24cba40a76232a2ce8c9cb4dfb413d7d0e49407286a254c517a2907e6bd1596              398 main/binary-arm64/Packages.gz
  981fa04c336e00e9e5e73ec7b338011def82d41d4f7afb808e039fa8930b6db2              534 main/binary-i386/Packages
- 94031b00f1768b458499e7270a9db8a4d158b28d5a32e1d147f8c1b06ed122c5              395 main/binary-i386/Packages.gz
+ d7e76598161934fbb5e497c492577dbcfa35c093a849a3df1e651a5ad626d0fe              395 main/binary-i386/Packages.gz
 -----BEGIN PGP SIGNATURE-----
 
-iHUEARYIAB0WIQRWqgcLoV6Ys/OoJ8K5mQbkT0vPfwUCaqUOrwAKCRC5mQbkT0vP
-f/24AQCH9cOfJh8yf7NjplblBk+t8KEMi7kw8Si91uK2naRY9gEAj9lVHVIJjn42
-Z8ahwx0d0CxNnKHJ856p5NiuLCG0NAc=
-=+WwX
+iHUEARYIAB0WIQRWqgcLoV6Ys/OoJ8K5mQbkT0vPfwUCaqUPEwAKCRC5mQbkT0vP
+f/poAP9K8ICbrrgKnL43Q87PtTfviU0F/RdVPEZ9p4S8kaX66QEA+dDKWCErXzoE
+3+8JQ902gCxdK1ewz8g06YVjBIZfkws=
+=QKdK
 -----END PGP SIGNATURE-----
