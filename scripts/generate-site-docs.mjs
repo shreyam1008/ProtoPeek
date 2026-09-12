@@ -73,6 +73,10 @@ async function writeDiscoveryMetadata() {
     fs.writeFile(path.join(docsRoot, 'sitemap.xml'), sitemap),
     fs.writeFile(path.join(publicRoot, 'llms.txt'), llms),
     fs.writeFile(path.join(docsRoot, 'llms.txt'), llms),
+    // Cloudflare Pages serves the generated `docs` directory. Keep its
+    // response metadata in sync with the source-site headers so discovery
+    // documents receive their declared media types and Link signals.
+    fs.copyFile(path.join(repoRoot, 'web', 'site', '_headers'), path.join(docsRoot, '_headers')),
   ]);
 }
 
