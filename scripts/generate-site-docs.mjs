@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveDocumentLink } from './site-doc-links.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
@@ -493,6 +494,7 @@ async function writeDocsHubPage() {
 }
 
 function renderMarkdownPage(markdown, page) {
+  const renderInline = (text) => renderPageInline(text, page);
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   let index = 0;
   let title = page.title;
@@ -1035,9 +1037,10 @@ function externalIcon() {
   return '<svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg>';
 }
 
-function renderInline(text) {
+function renderPageInline(text, page) {
   const tokens = [];
   let value = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
+    href = resolveDocumentLink(href, page.sourcePath, publicPages, repoRootURL);
     const key = `__PP_TOKEN_${tokens.length}__`;
     tokens.push(
       `<a href="${escapeAttr(href)}"${isExternal(href) ? ' rel="noreferrer" target="_blank"' : ''}>${escapeHtml(label)}</a>`
