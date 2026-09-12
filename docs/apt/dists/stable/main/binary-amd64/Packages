@@ -1,0 +1,16 @@
+Package: protopeek
+Version: 0.6.1
+Architecture: amd64
+Maintainer: Shreyam Adhikari <shreyam1008@gmail.com>
+Installed-Size: 69617
+Filename: pool/main/d/protopeek/protopeek_0.6.1_amd64.deb
+Size: 23475248
+MD5sum: 3663f407b23a9cb318ea071fc6ba8a5b
+SHA1: f055377ea82264fe17840d4874179d7805d502f7
+SHA256: 0726903c4c3e59ac06dedf25d33f9fde30e3ce79aa4358fe3d3b3f4678afdc60
+Section: net
+Priority: optional
+Homepage: https://protopeek.shreyam1008.com.np/
+Description: Local-first service inspection workbench with terminal and browser interfaces.
+Architecture-Variant: amd64v1
+

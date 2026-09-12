@@ -1,0 +1,15 @@
+Package: protopeek
+Version: 0.6.1
+Architecture: i386
+Maintainer: Shreyam Adhikari <shreyam1008@gmail.com>
+Installed-Size: 65745
+Filename: pool/main/d/protopeek/protopeek_0.6.1_i386.deb
+Size: 22069376
+MD5sum: dd2224b5f0515e22a1ecc39616b87cfc
+SHA1: d296627a6f2dd82371f0513f43e7a1cb05b0982e
+SHA256: b4c85089136ba0d36d2b0977a6e451d75758d2f6e575d636ee1276b197e9967c
+Section: net
+Priority: optional
+Homepage: https://protopeek.shreyam1008.com.np/
+Description: Local-first service inspection workbench with terminal and browser interfaces.
+
