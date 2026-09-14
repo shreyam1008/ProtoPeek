@@ -53,27 +53,38 @@ function SocketTable({
   setQuery: (query: string) => void;
 }) {
   const [shown, setShown] = useState(50);
+  const [protocol, setProtocol] = useState('all');
+  const [sort, setSort] = useState('port');
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return sockets;
-    return sockets.filter((socket) =>
-      [
-        socket.protocol,
-        socket.state,
-        formatEndpoint(socket.local),
-        formatEndpoint(socket.remote),
-        socket.exposure,
-        socket.ownerStatus,
-        ...socket.processes.flatMap((process) => [process.comm, String(process.pid)]),
-      ].some((value) => value.toLowerCase().includes(needle))
-    );
-  }, [query, sockets]);
+    return sockets
+      .filter(
+        (socket) =>
+          (protocol === 'all' || socket.protocol.startsWith(protocol)) &&
+          [
+            socket.protocol,
+            socket.state,
+            formatEndpoint(socket.local),
+            formatEndpoint(socket.remote),
+            socket.exposure,
+            socket.ownerStatus,
+            ...socket.processes.flatMap((process) => [process.comm, String(process.pid)]),
+          ].some((value) => value.toLowerCase().includes(needle))
+      )
+      .sort((a, b) =>
+        sort === 'process'
+          ? processLabel(a).localeCompare(processLabel(b)) || a.local.port - b.local.port
+          : sort === 'port-desc'
+            ? b.local.port - a.local.port
+            : a.local.port - b.local.port
+      );
+  }, [query, sockets, protocol, sort]);
 
   if (!sockets.length) {
     return (
       <p className="this-pc-empty">
-        No {kind === 'listeners' ? 'local listeners' : 'current connections'} were observed in this
-        process/network namespace at that moment.
+        No {kind === 'listeners' ? 'local listeners' : 'current connections'} observed in this
+        namespace.
       </p>
     );
   }
@@ -87,6 +98,23 @@ function SocketTable({
   });
   return (
     <div className="this-pc-table-region">
+      <div className="this-pc-socket-summary">
+        {[
+          [new Set(sockets.map((socket) => socket.local.port)).size, 'local ports'],
+          [
+            new Set(sockets.flatMap((socket) => socket.processes.map((owner) => owner.pid))).size,
+            'observed processes',
+          ],
+          [
+            sockets.filter((socket) => socket.exposure === 'all-interfaces').length,
+            'wildcard binds',
+          ],
+        ].map(([count, label]) => (
+          <span key={label}>
+            <strong>{count}</strong> {label}
+          </span>
+        ))}
+      </div>
       <div className="this-pc-table-tools">
         <label>
           <span className="sr-only">Filter {kind}</span>
@@ -97,10 +125,48 @@ function SocketTable({
               setQuery(event.target.value);
               setShown(50);
             }}
-            placeholder={`Filter ${kind}`}
+            placeholder="Search port, process, PID or address"
           />
         </label>
-        <span>
+        {[
+          {
+            label: 'Protocol filter',
+            value: protocol,
+            change: setProtocol,
+            options: [
+              ['all', 'TCP + UDP'],
+              ['tcp', 'TCP only'],
+              ['udp', 'UDP only'],
+            ],
+          },
+          {
+            label: 'Sort sockets',
+            value: sort,
+            change: setSort,
+            options: [
+              ['port', 'Port: low to high'],
+              ['port-desc', 'Port: high to low'],
+              ['process', 'Process name'],
+            ],
+          },
+        ].map((control) => (
+          <select
+            key={control.label}
+            aria-label={control.label}
+            value={control.value}
+            onChange={(event) => {
+              control.change(event.target.value);
+              setShown(50);
+            }}
+          >
+            {control.options.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ))}
+        <span role="status">
           Showing {visible.length} of {filtered.length}
           {filtered.length !== sockets.length ? ` filtered from ${sockets.length}` : ''}
         </span>
@@ -109,6 +175,7 @@ function SocketTable({
         <table className="this-pc-table">
           <thead>
             <tr>
+              <th>Port</th>
               <th>Protocol</th>
               <th>Local endpoint</th>
               {kind === 'connections' ? <th>Remote endpoint</th> : null}
@@ -121,6 +188,9 @@ function SocketTable({
           <tbody>
             {keyedVisible.map(({ key, socket }) => (
               <tr key={key}>
+                <td data-label="Port">
+                  <strong className="this-pc-socket-port">{socket.local.port}</strong>
+                </td>
                 <td data-label="Protocol">
                   <code>{socket.protocol.toUpperCase()}</code>
                 </td>
@@ -132,7 +202,9 @@ function SocketTable({
                     <code>{formatEndpoint(socket.remote)}</code>
                   </td>
                 ) : null}
-                <td data-label="State">{socket.state || 'Not reported'}</td>
+                <td data-label="State">
+                  <span className="this-pc-socket-state">{socket.state || 'Not reported'}</span>
+                </td>
                 <td data-label="Process">{processLabel(socket)}</td>
                 {kind === 'listeners' ? (
                   <td data-label="Bind scope">{listenerExposure(socket)}</td>
@@ -173,6 +245,22 @@ function SocketTable({
           </tbody>
         </table>
       </div>
+      {!filtered.length ? (
+        <div className="this-pc-empty" role="status">
+          <p>No sockets match your filters.</p>
+          <button
+            type="button"
+            className="this-pc-button is-quiet"
+            onClick={() => {
+              setQuery('');
+              setProtocol('all');
+              setShown(50);
+            }}
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : null}
       {visible.length < filtered.length ? (
         <button
           type="button"
@@ -247,8 +335,8 @@ export function SocketsPanel({
           <h2 id={listeners ? 'listeners-title' : 'connections-title'}>{title}</h2>
           <p>
             {listeners
-              ? 'What this process/network namespace reports as bound locally at one moment.'
-              : 'A one-time socket view initiated locally; it is not a background monitor.'}
+              ? 'Ports bound in the local process/network namespace at observation time.'
+              : 'A local socket snapshot. Refresh to observe changes.'}
           </p>
         </div>
         {activity.status === 'loading' ? (
@@ -304,8 +392,8 @@ export function SocketsPanel({
       ) : (
         <p className="this-pc-empty">
           {listeners
-            ? 'Not inspected. No local listener or process information is read on page load.'
-            : 'Not inspected. No current-connection or process information is read on page load.'}
+            ? 'Inspect to read local listeners and owners.'
+            : 'Inspect to read current connections and owners.'}
           {listeners && !capability?.supported && capability?.reason ? ` ${capability.reason}` : ''}
         </p>
       )}

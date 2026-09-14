@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { attributionSource, type IPAttribution } from './ip-attribution';
 import { fetchIPAttribution } from './ip-attribution-api';
+import { OperationStatus } from './shell/OperationStatus';
 import './hop-attribution.css';
 
 export default function HopAttribution({
@@ -12,7 +13,6 @@ export default function HopAttribution({
   result?: IPAttribution;
   onResult: (result: IPAttribution) => void;
 }) {
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const controller = useRef<AbortController | null>(null);
@@ -25,11 +25,11 @@ export default function HopAttribution({
   );
   const plan = [...new Set(addresses)].slice(0, 32);
   async function run() {
-    if (!consent || busy || !plan.length) return;
+    if (busy || !plan.length) return;
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
-    setConsent(false);
+
     setMessage('');
     try {
       const next = await fetchIPAttribution(plan, current.signal);
@@ -70,25 +70,18 @@ export default function HopAttribution({
         {addresses.length > 32 ? <p>Only the first 32 unique responders are included.</p> : null}
       </details>
       <div className="pp-hop-attribution-actions">
-        <label>
-          <input
-            type="checkbox"
-            checked={consent}
-            disabled={busy || !plan.length}
-            onChange={(event) => setConsent(event.target.checked)}
-          />{' '}
-          Send public responder IPs to ipwho.is
-        </label>
+        <div> Send public responder IPs to ipwho.is</div>
         {busy ? (
           <button type="button" onClick={cancel}>
             Cancel attribution
           </button>
         ) : (
-          <button type="button" disabled={!consent || !plan.length} onClick={() => void run()}>
+          <button type="button" disabled={!plan.length} onClick={() => void run()}>
             {result ? 'Refresh hop labels' : 'Look up hop labels'}
           </button>
         )}
       </div>
+      <OperationStatus busy={busy} label="Looking up hop labels" />
       {busy || message ? (
         <p role="status">{busy ? 'Looking up responder labels…' : message}</p>
       ) : null}

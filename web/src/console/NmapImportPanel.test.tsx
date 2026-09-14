@@ -117,7 +117,7 @@ describe('NmapImportPanel', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
       addresses: ['[2001:db8::10]:443'],
-      allowPrivateNetwork: false,
+      allowPrivateNetwork: true,
       explicit: true,
     });
   });

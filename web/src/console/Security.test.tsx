@@ -31,7 +31,7 @@ it('shows certificate failure evidence without presenting a successful website r
   fireEvent.change(screen.getByRole('textbox', { name: 'Public website URL' }), {
     target: { value: 'https://example.com' },
   });
-  fireEvent.click(screen.getByRole('checkbox', { name: /Make one public HEAD request/ }));
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
   const evidence = await screen.findByRole('region', { name: 'Unverified certificate evidence' });
   expect(within(evidence).getByText('CN=Fixture CA')).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe('Security', () => {
     render(<Security />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Security' })).toBeVisible();
-    expect(screen.getByLabelText(/Make one public HEAD request/i)).not.toBeChecked();
+    expect(screen.getByText(/Make one public HEAD request/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Observe website' })).toBeDisabled();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(
@@ -126,7 +126,7 @@ describe('Security', () => {
     );
     fireEvent.click(screen.getByRole('tab', { name: 'Subdomains' }));
     expect(screen.getByText('Nothing runs on page load.')).toBeVisible();
-    expect(screen.getByLabelText(/Send this registrable domain to crt\.name/i)).not.toBeChecked();
+    expect(screen.getByText(/Send this registrable domain to crt\.name/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Find historical names' })).toBeDisabled();
     fireEvent.click(screen.getByRole('tab', { name: 'Related tools' }));
     expect(screen.getByRole('complementary', { name: 'Not in this build' })).toHaveTextContent(
@@ -159,15 +159,15 @@ describe('Security', () => {
     fireEvent.change(screen.getByLabelText('Apex or host'), {
       target: { value: 'WWW.Example.com.' },
     });
-    const disclosure = screen.getByLabelText(/Send this registrable domain to crt\.name/i);
-    fireEvent.click(disclosure);
+    const disclosure = screen.getByText(/Send this registrable domain to crt\.name/i);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Find historical names' }));
 
     expect(await screen.findByText('*.api.example.com')).toBeVisible();
     expect(screen.getByText('app.example.com')).toBeVisible();
     expect(screen.getByText('Wildcard pattern')).toBeVisible();
     expect(screen.getByText('Historical name')).toBeVisible();
-    expect(disclosure).not.toBeChecked();
+    expect(disclosure).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(init.body))).toEqual({
@@ -189,7 +189,7 @@ describe('Security', () => {
     ).toBeVisible();
   });
 
-  it('cancels an in-flight lookup and requires a fresh acknowledgement', async () => {
+  it('cancels an in-flight lookup and allows another explicit request', async () => {
     const fetchMock = vi.fn(
       async (_input: RequestInfo | URL, init?: RequestInit) =>
         new Promise<Response>((_resolve, reject) => {
@@ -203,8 +203,8 @@ describe('Security', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Subdomains' }));
     fireEvent.change(screen.getByLabelText('Apex or host'), { target: { value: 'example.com' } });
-    const disclosure = screen.getByLabelText(/Send this registrable domain to crt\.name/i);
-    fireEvent.click(disclosure);
+    const disclosure = screen.getByText(/Send this registrable domain to crt\.name/i);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Find historical names' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel lookup' }));
 
@@ -213,8 +213,8 @@ describe('Security', () => {
         'Lookup cancelled. No returned name was resolved or probed.'
       )
     );
-    expect(disclosure).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'Find historical names' })).toBeDisabled();
+    expect(disclosure).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Find historical names' })).toBeEnabled();
   });
 
   it('runs one separately acknowledged website observation and renders evidence without a verdict', async () => {
@@ -229,15 +229,15 @@ describe('Security', () => {
     fireEvent.change(screen.getByLabelText('Public website URL'), {
       target: { value: 'HTTPS://EXAMPLE.com/health' },
     });
-    const disclosure = screen.getByLabelText(/Make one public HEAD request/i);
-    fireEvent.click(disclosure);
+    const disclosure = screen.getByText(/Make one public HEAD request/i);
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
 
     expect(await screen.findByText('204 No Content')).toBeVisible();
     expect(screen.getByText('203.0.113.20')).toBeVisible();
     expect(screen.getByText('TLS 1.3')).toBeVisible();
     expect(screen.getByText(/1 verified chain reported/i)).toBeVisible();
-    expect(disclosure).not.toBeChecked();
+    expect(disclosure).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(init.body))).toEqual({
@@ -292,7 +292,7 @@ describe('Security', () => {
     fireEvent.change(screen.getByLabelText('Public website URL'), {
       target: { value: 'https://example.com/health' },
     });
-    fireEvent.click(screen.getByLabelText(/Make one public HEAD request/i));
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
     await screen.findByRole('heading', { name: 'HEAD evidence report' });
 
@@ -336,7 +336,7 @@ describe('Security', () => {
     fireEvent.change(screen.getByLabelText('Public website URL'), {
       target: { value: 'https://example.com/health' },
     });
-    fireEvent.click(screen.getByLabelText(/Make one public HEAD request/i));
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
     await screen.findByRole('heading', { name: 'HEAD evidence report' });
     fireEvent.click(screen.getByRole('button', { name: 'Copy JSON report' }));

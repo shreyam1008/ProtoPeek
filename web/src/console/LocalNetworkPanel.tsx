@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
-
 import {
   buildLocalNetworkPlanPreview,
   discoverLocalNetwork,
@@ -11,6 +10,7 @@ import {
   localNetworkDiscoveryToSnapshot,
 } from './local-network';
 import type { NetworkSnapshot } from './network-model';
+import { OperationStatus } from './shell/OperationStatus';
 
 type HostDraft = {
   label: string;
@@ -25,7 +25,6 @@ export function LocalNetworkPanel({
   const [capabilities, setCapabilities] = useState<LocalNetworkCapabilities | null>(null);
   const [cidr, setCIDR] = useState('');
   const [profileID, setProfileID] = useState('');
-  const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState<LocalNetworkDiscovery | null>(null);
@@ -82,7 +81,7 @@ export function LocalNetworkPanel({
   }, [capabilities, cidr, profileID]);
 
   async function startScan() {
-    if (!authorized || !previewState.plan || scanning || scanAbortRef.current) return;
+    if (!previewState.plan || scanning || scanAbortRef.current) return;
     const controller = new AbortController();
     scanAbortRef.current = controller;
     setScanning(true);
@@ -120,7 +119,7 @@ export function LocalNetworkPanel({
 
   function updateScope(nextCIDR: string) {
     setCIDR(nextCIDR);
-    setAuthorized(false);
+
     setResult(null);
     setHostDrafts({});
     setMessage('');
@@ -128,7 +127,7 @@ export function LocalNetworkPanel({
 
   function updateProfile(nextProfile: string) {
     setProfileID(nextProfile);
-    setAuthorized(false);
+
     setResult(null);
     setHostDrafts({});
     setMessage('');
@@ -279,27 +278,23 @@ export function LocalNetworkPanel({
             </p>
           ) : null}
 
-          <label className="pp-private-scan-toggle">
-            <input
-              type="checkbox"
-              checked={authorized}
-              disabled={!previewState.plan || scanning}
-              onChange={(event) => setAuthorized(event.target.checked)}
-            />{' '}
-            I am authorized to probe this private CIDR. On application-inspection ports, ProtoPeek
-            may send bounded gRPC reflection and HTTP HEAD / requests; redirects are not followed.
-            Every other listed port receives TCP connect only.
-          </label>
+          <div className="pp-private-scan-toggle">
+            {' '}
+            Scan network probes this private CIDR. On application-inspection ports, ProtoPeek may
+            send bounded gRPC reflection and HTTP HEAD / requests; redirects are not followed. Every
+            other listed port receives TCP connect only.
+          </div>
 
           <button
             type="button"
             className={scanning ? 'pp-button-secondary' : 'pp-button-primary'}
-            disabled={scanning ? false : !authorized || !previewState.plan}
+            disabled={scanning ? false : !previewState.plan}
             onClick={scanning ? () => scanAbortRef.current?.abort() : () => void startScan()}
           >
             {scanning ? 'Cancel scan' : 'Scan network'}
           </button>
 
+          <OperationStatus busy={scanning} label="Discovering local devices" />
           <CapabilityWarnings capabilities={capabilities} />
         </>
       ) : null}
@@ -429,6 +424,12 @@ function DiscoveryResult({
           return (
             <article key={host.address} className="pp-discovery-result" aria-label={host.address}>
               <strong>{host.address}</strong>
+              <a
+                className="pp-button"
+                href={`#/network/ports?host=${encodeURIComponent(host.address)}`}
+              >
+                Scan ports on {host.address}
+              </a>
               <label className="pp-label" htmlFor={`host-label-${host.address}`}>
                 Host label
               </label>

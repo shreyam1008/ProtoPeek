@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { OperationStatus } from './shell/OperationStatus';
 import { readWebsiteTargets, rememberWebsiteTarget } from './website-draft';
 import { fetchWebsitePaths, type WebsitePathsResult, websitePaths } from './website-paths-api';
 
 export default function WebsitePathsPanel({ active }: { active: boolean }) {
   const [url, setURL] = useState(() => readWebsiteTargets().origin ?? '');
   const [storageError, setStorageError] = useState('');
-  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<WebsitePathsResult | null>(null);
@@ -32,11 +32,11 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
     setMessage('Path checks cancelled. Requests already sent cannot be recalled.');
   }
   async function run() {
-    if (!consent || busy) return;
+    if (busy) return;
     const current = new AbortController();
     controller.current = current;
     setBusy(true);
-    setConsent(false);
+
     setResult(null);
     setMessage('');
     try {
@@ -112,7 +112,7 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
             disabled={busy}
             onChange={(event) => {
               setURL(event.target.value);
-              setConsent(false);
+
               setResult(null);
               setMessage('');
             }}
@@ -122,7 +122,7 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
               Cancel checks
             </button>
           ) : (
-            <button type="submit" disabled={!consent || !url.trim()}>
+            <button type="submit" disabled={!url.trim()}>
               Check five paths
             </button>
           )}
@@ -142,16 +142,11 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
             following them. No cookies, credentials, or response bodies.
           </p>
         </details>
-        <label className="pp-security-disclosure">
-          <input
-            type="checkbox"
-            checked={consent}
-            disabled={busy}
-            onChange={(event) => setConsent(event.target.checked)}
-          />
+        <div className="pp-security-disclosure">
           <span>Send these five requests from this PC to the public website.</span>
-        </label>
+        </div>
       </form>
+      <OperationStatus busy={busy} label="Checking website paths" />
       <div className="pp-security-remember">
         <span>{storageError || 'Only the website origin is remembered.'}</span>
         <button
@@ -159,7 +154,7 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
           disabled={busy || !url}
           onClick={() => {
             setURL('');
-            setConsent(false);
+
             setResult(null);
             setMessage('');
             setStorageError(

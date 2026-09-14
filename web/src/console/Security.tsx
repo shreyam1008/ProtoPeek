@@ -89,7 +89,6 @@ export function Security() {
   const disclosureID = useId();
   const [host, setHost] = useState(() => readWebsiteTargets().domain ?? '');
   const [storageError, setStorageError] = useState('');
-  const [acknowledged, setAcknowledged] = useState(false);
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<DomainCandidatesResult | null>(null);
   const [message, setMessage] = useState('');
@@ -106,7 +105,7 @@ export function Security() {
 
   function changeHost(value: string) {
     setHost(value);
-    setAcknowledged(false);
+
     setResult(null);
     setMessage('');
     setPhase('idle');
@@ -123,11 +122,6 @@ export function Security() {
       setPhase('error');
       return;
     }
-    if (!acknowledged) {
-      setMessage('Acknowledge the crt.name disclosure before this lookup.');
-      setPhase('error');
-      return;
-    }
 
     const controller = new AbortController();
     controllerRef.current?.abort();
@@ -138,7 +132,7 @@ export function Security() {
         ? ''
         : 'This browser could not remember the domain.'
     );
-    setAcknowledged(false);
+
     setResult(null);
     setMessage('');
     setPhase('loading');
@@ -167,7 +161,7 @@ export function Security() {
     const controller = controllerRef.current;
     controllerRef.current = null;
     controller?.abort();
-    setAcknowledged(false);
+
     setMessage('Lookup cancelled. No returned name was resolved or probed.');
     setPhase('cancelled');
   }
@@ -234,19 +228,12 @@ export function Security() {
                       <Square aria-hidden="true" /> Cancel lookup
                     </button>
                   ) : (
-                    <button type="submit" disabled={!host.trim() || !acknowledged}>
+                    <button type="submit" disabled={!host.trim()}>
                       <Search aria-hidden="true" /> Find historical names
                     </button>
                   )}
                 </div>
-                <label className="pp-security-disclosure" htmlFor={`${inputID}-disclosure`}>
-                  <input
-                    id={`${inputID}-disclosure`}
-                    type="checkbox"
-                    checked={acknowledged}
-                    disabled={phase === 'loading'}
-                    onChange={(event) => setAcknowledged(event.currentTarget.checked)}
-                  />
+                <div className="pp-security-disclosure">
                   <span id={disclosureID}>
                     <strong>Send this registrable domain to crt.name for this operation.</strong>
                     <small>
@@ -254,7 +241,7 @@ export function Security() {
                       names are listed here without DNS resolution, port checks, or requests.
                     </small>
                   </span>
-                </label>
+                </div>
               </form>
               <div className="pp-security-remember">
                 <span>
@@ -399,7 +386,6 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
   const disclosureID = useId();
   const [url, setURL] = useState(() => readWebsiteTargets().origin ?? '');
   const [storageError, setStorageError] = useState('');
-  const [acknowledged, setAcknowledged] = useState(false);
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<WebsiteObservationResult | null>(null);
   const [tlsFailure, setTLSFailure] = useState<WebsiteTLSFailure | null>(null);
@@ -410,7 +396,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
     if (!active && controllerRef.current) {
       controllerRef.current.abort();
       controllerRef.current = null;
-      setAcknowledged(false);
+
       setPhase('cancelled');
       setMessage('Observation cancelled when leaving this section.');
     }
@@ -428,7 +414,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
   function changeURL(value: string) {
     setTLSFailure(null);
     setURL(value);
-    setAcknowledged(false);
+
     setResult(null);
     setMessage('');
     setPhase('idle');
@@ -445,11 +431,6 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
       setPhase('error');
       return;
     }
-    if (!acknowledged) {
-      setMessage('Acknowledge the public HEAD request before this observation.');
-      setPhase('error');
-      return;
-    }
 
     const controller = new AbortController();
     controllerRef.current?.abort();
@@ -461,7 +442,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
         : 'This browser could not remember the website origin.'
     );
     setTLSFailure(null);
-    setAcknowledged(false);
+
     setResult(null);
     setMessage('');
     setPhase('loading');
@@ -491,7 +472,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
     const controller = controllerRef.current;
     controllerRef.current = null;
     controller?.abort();
-    setAcknowledged(false);
+
     setMessage('Observation cancelled. No redirect was followed and no body was read.');
     setPhase('cancelled');
   }
@@ -530,19 +511,12 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
               <Square aria-hidden="true" /> Cancel observation
             </button>
           ) : (
-            <button type="submit" disabled={!url.trim() || !acknowledged}>
+            <button type="submit" disabled={!url.trim()}>
               <Activity aria-hidden="true" /> Observe website
             </button>
           )}
         </div>
-        <label className="pp-security-disclosure" htmlFor={`${inputID}-disclosure`}>
-          <input
-            id={`${inputID}-disclosure`}
-            type="checkbox"
-            checked={acknowledged}
-            disabled={phase === 'loading'}
-            onChange={(event) => setAcknowledged(event.currentTarget.checked)}
-          />
+        <div className="pp-security-disclosure">
           <span id={disclosureID}>
             <strong>Make one public HEAD request from this ProtoPeek host.</strong>
             <small>
@@ -551,7 +525,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
               and does not follow redirects.
             </small>
           </span>
-        </label>
+        </div>
       </form>
 
       <div className="pp-security-remember">

@@ -105,8 +105,12 @@ it('requires an interface, scoped filter and permission before capture', async (
   await screen.findByRole('option', { name: 'QA fixture' });
   fireEvent.change(screen.getByLabelText('Interface'), { target: { value: 'qa' } });
   fireEvent.change(screen.getByLabelText('IP filter'), { target: { value: '127.0.0.1' } });
-  expect(screen.getByRole('button', { name: 'Start capture' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('checkbox'));
+  expect(screen.getByRole('button', { name: 'Start capture' })).toBeEnabled();
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Start capture' }));
   await screen.findByRole('table');
   expect(

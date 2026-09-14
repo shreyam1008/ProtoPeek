@@ -73,7 +73,11 @@ it('runs an explicit plan and hands open endpoints into inspection without probi
   fireEvent.change(screen.getByRole('textbox', { name: 'TCP ports' }), {
     target: { value: '8080' },
   });
-  fireEvent.click(screen.getByRole('checkbox', { name: /I authorize/ }));
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Run Nmap' }));
   expect(await screen.findByText('Nmap scan complete.')).toBeInTheDocument();
   expect(screen.getByText(/http · port hint/)).toBeInTheDocument();
@@ -100,7 +104,11 @@ it('cancels a running process request and rejects its late response', async () =
   );
   render(<NmapScanner />);
   await screen.findByText('Installed Nmap available');
-  fireEvent.click(screen.getByRole('checkbox', { name: /I authorize/ }));
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Run Nmap' }));
   await waitFor(() => expect(signal).toBeDefined());
   fireEvent.click(screen.getByRole('button', { name: 'Cancel Nmap scan' }));

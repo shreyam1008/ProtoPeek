@@ -173,6 +173,19 @@ traffic rate uses the measured interval between representative counter reads rat
 selected wait; partial reads compare only interfaces present in both observations and remain
 labelled. A local listener is never presented as an Internet-open port, interface counters are never
 presented as per-process traffic, and provider throughput is never presented as the ISP line maximum.
+Current-source scan and inspection actions start directly from their action buttons,
+with visible request disclosures, elapsed-time feedback, progress, and cancellation.
+
+The current-source port scanner supports all 65,535 TCP ports on one IP through
+cancellable batches with progress and partial results. Large results remain in the tab.
+
+The current-source port scanner connects loopback checks, private-network discovery,
+and single-IP scans. Discovered devices can prefill a port scan, and “What can I scan?”
+explains the available checks before you run them.
+
+The current-source socket table adds port-first rows, numeric sorting, combined
+search and TCP/UDP filters, and snapshot counts for ports and observed processes.
+
 See the [This Device boundary](guides/this-pc.md) and
 [Connected Workbench contract](guides/connected-workbench-integration-plan.md).
 

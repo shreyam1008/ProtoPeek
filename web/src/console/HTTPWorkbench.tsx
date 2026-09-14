@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
-
 import type { HTTPHistoryEntry, HTTPResponse, MetadataEntry } from '@/shared/types';
 import {
   appStorageKeys,
@@ -29,7 +28,6 @@ import {
   storeValue,
   toHTTPHistoryEntry,
 } from '@/shared/utils';
-
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { handoffEvidence } from './app/handoff-display';
@@ -47,6 +45,7 @@ import {
 import type { OpenAPICollection, OpenAPIOperation } from './openapi';
 import { ProtocolInfo } from './ProtocolInfo';
 import { protocolShellEvents } from './ProtocolShellContext';
+import { OperationStatus } from './shell/OperationStatus';
 
 const OpenAPIImportPanel = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIImportPanel }))
@@ -760,6 +759,7 @@ export function HTTPWorkbench() {
         </button>
       </div>
 
+      <OperationStatus busy={requestPending} label="Sending HTTP request" />
       {draftSaveError || draftNotice ? (
         <div className="pp-http-replay-notice" role="status">
           <span>{draftSaveError ?? draftNotice}</span>

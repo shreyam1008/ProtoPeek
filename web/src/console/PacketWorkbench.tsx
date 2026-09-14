@@ -17,6 +17,7 @@ import {
   packetRequest,
   parsePacketReport,
 } from './packet-api';
+import { OperationStatus } from './shell/OperationStatus';
 import './packets.css';
 
 const features = tableFeatures({
@@ -36,7 +37,6 @@ export function PacketWorkbench() {
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [seconds, setSeconds] = useState('5');
-  const [consent, setConsent] = useState(false);
   const [capability, setCapability] = useState('Checking capture support…');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -124,7 +124,7 @@ export function PacketWorkbench() {
                 port: Number(port),
                 seconds: Number(seconds),
                 packets: 2000,
-                consent,
+                consent: true,
               };
       const result = await packetRequest(operation, input, controller.signal);
       if (active.current !== controller) return;
@@ -251,7 +251,6 @@ export function PacketWorkbench() {
                 disabled={Boolean(busy)}
                 onChange={(event) => {
                   setIface(event.target.value);
-                  setConsent(false);
                 }}
               >
                 <option value="">Choose an interface</option>
@@ -303,18 +302,12 @@ export function PacketWorkbench() {
                 does not request promiscuous mode. Results appear when the run ends.
               </p>
             </details>
-            <label className="pp-packet-consent">
-              <input
-                type="checkbox"
-                checked={consent}
-                disabled={Boolean(busy)}
-                onChange={(event) => setConsent(event.target.checked)}
-              />
-              I have permission to capture this traffic.
-            </label>
+            <div className="pp-packet-consent">
+              Start capture records traffic matching the selected interface and filter.
+            </div>
             <button
               type="button"
-              disabled={!iface || !consent || (!host.trim() && !port) || Boolean(busy)}
+              disabled={!iface || (!host.trim() && !port) || Boolean(busy)}
               onClick={() => void run('capture')}
             >
               Start capture
@@ -347,6 +340,7 @@ export function PacketWorkbench() {
       </aside>
       <section className="pp-packet-results" aria-label="Packet results">
         {error ? <p role="alert">{error}</p> : null}
+        <OperationStatus busy={Boolean(busy)} label={busy || 'Inspecting packets'} />
         {busy || notice ? <p role="status">{busy || notice}</p> : null}
         {report ? (
           <>

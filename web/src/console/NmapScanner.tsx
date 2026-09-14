@@ -13,6 +13,7 @@ import { fetchJSON, type NmapImportResponse } from './api';
 import { previewNmapPlan } from './nmap-plan';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
+import { OperationStatus } from './shell/OperationStatus';
 import './port-scan.css';
 
 type Capability = { available: boolean; message: string; path: string };
@@ -65,7 +66,6 @@ export function NmapScanner() {
   const [target, setTarget] = useState(initial.target);
   const [ports, setPorts] = useState(initial.ports);
   const [detectServices, setDetectServices] = useState(false);
-  const [consent, setConsent] = useState(false);
   const [capability, setCapability] = useState<Capability | null>(null);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<Scan | null>(null);
@@ -109,7 +109,6 @@ export function NmapScanner() {
     } catch {
       setStorageWarning('Scan preferences could not be saved in this browser.');
     }
-    setConsent(false);
   }, [target, ports]);
   const preview = useMemo(() => {
     try {
@@ -160,7 +159,7 @@ export function NmapScanner() {
     initialState: { pagination: { pageSize: 50, pageIndex: 0 } },
   });
   async function scan() {
-    if (controller.current || !consent || preview.error || !capability?.available) return;
+    if (controller.current || preview.error || !capability?.available) return;
     const request = new AbortController();
     controller.current = request;
     setBusy(true);
@@ -171,7 +170,7 @@ export function NmapScanner() {
         method: 'POST',
         signal: request.signal,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target: preview.target, ports, detectServices, consent }),
+        body: JSON.stringify({ target: preview.target, ports, detectServices, consent: true }),
       });
       if (!request.signal.aborted) {
         setResult(next);
@@ -261,7 +260,6 @@ export function NmapScanner() {
             disabled={busy}
             onChange={(event) => {
               setDetectServices(event.target.value === 'services');
-              setConsent(false);
             }}
           >
             <option value="connect">TCP connect</option>
@@ -273,11 +271,7 @@ export function NmapScanner() {
             Cancel Nmap scan
           </button>
         ) : (
-          <button
-            key="scan"
-            type="submit"
-            disabled={!consent || !!preview.error || !capability?.available}
-          >
+          <button key="scan" type="submit" disabled={!!preview.error || !capability?.available}>
             Run Nmap
           </button>
         )}
@@ -286,18 +280,12 @@ export function NmapScanner() {
             `${preview.target} · ${preview.hosts} addresses × ${preview.ports.length} TCP ports = ${preview.pairs.toLocaleString()} checks · 30 s limit`}
         </p>
       </form>
-      <label>
-        <span>
-          <input
-            type="checkbox"
-            checked={consent}
-            disabled={busy}
-            onChange={(event) => setConsent(event.target.checked)}
-          />{' '}
-          I authorize this target and these{' '}
-          {detectServices ? 'TCP connections and light application probes' : 'TCP connections'}.
-        </span>
-      </label>
+      <p>
+        Run Nmap sends{' '}
+        {detectServices ? 'TCP connections and light application probes' : 'TCP connections'} to the
+        selected target.
+      </p>
+      <OperationStatus busy={busy} label="Running Nmap" />
       <span role="status">{message || 'Ready. No scan has run.'}</span>
       {error ? <p role="alert">{error}</p> : null}
       {storageWarning ? <p role="status">{storageWarning}</p> : null}
@@ -306,8 +294,8 @@ export function NmapScanner() {
           title={busy ? 'Scanning the selected network' : 'Discover hosts and services'}
           busy={busy}
         >
-          Choose a target and ports, review the check count, and authorize the scan. Observations
-          and service evidence will appear here.
+          Choose a target and ports, review the check count, and run the scan. Observations and
+          service evidence will appear here.
         </EmptyState>
       )}
       {result ? (

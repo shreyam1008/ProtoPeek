@@ -69,7 +69,6 @@ export function DiscoveryScanner({
   const [scanInput, setScanInput] = useState(initialTarget);
   const [scanning, setScanning] = useState(false);
   const [results, setResults] = useState<ScanResult[]>([]);
-  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
   const [lastScanWasExplicit, setLastScanWasExplicit] = useState(false);
   const [scanCompleted, setScanCompleted] = useState(false);
   const [scanMessage, setScanMessage] = useState('');
@@ -93,7 +92,7 @@ export function DiscoveryScanner({
     try {
       const nextResults = await scanAddresses(
         addresses,
-        allowPrivateNetwork,
+        explicit && Boolean(address),
         explicit && Boolean(address),
         controller.signal
       );
@@ -207,14 +206,6 @@ export function DiscoveryScanner({
           {scanning ? 'Cancel scan' : scanInput.trim() ? 'Scan target' : 'Scan common local'}
         </button>
       </div>
-      <label className="pp-private-scan-toggle">
-        <input
-          type="checkbox"
-          checked={allowPrivateNetwork}
-          onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
-        />
-        Allow this target to reach private or link-local IPs
-      </label>
       {scanMessage ? (
         <p className="pp-scan-message" role="status">
           {scanMessage}

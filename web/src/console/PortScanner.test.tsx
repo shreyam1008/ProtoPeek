@@ -24,8 +24,8 @@ describe('port scanner', () => {
       durationMs: 10,
       complete: true,
       results: [
-        { port: 443, state: 'open', durationMs: 2 },
         { port: 80, state: 'closed', durationMs: 1 },
+        { port: 443, state: 'open', durationMs: 2 },
       ],
     });
     render(
@@ -35,6 +35,7 @@ describe('port scanner', () => {
     );
     expect(await screen.findByRole('heading', { name: 'Port scanner' })).toBeVisible();
     expect(scanHostPorts).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Ports'), { target: { value: '80,443' } });
     fireEvent.click(screen.getByRole('button', { name: 'Scan ports' }));
     expect(await screen.findByText('443/tcp')).toBeVisible();
     expect(screen.queryByText('80/tcp')).not.toBeInTheDocument();
@@ -64,4 +65,50 @@ describe('port scanner', () => {
     expect(screen.getByText('Scan cancelled')).toBeVisible();
     expect(scanHostPorts).toHaveBeenCalledTimes(1);
   });
+});
+
+it('prefills a discovered IP without scanning and lets the user select loopback', async () => {
+  render(
+    <RouterProvider
+      router={createProtoPeekRouter(
+        createMemoryHistory({ initialEntries: ['/network/ports?host=192.168.44.1'] })
+      )}
+    />
+  );
+  expect(await screen.findByLabelText('Host or IP')).toHaveValue('192.168.44.1');
+  expect(scanHostPorts).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: /This device/ }));
+  expect(screen.getByLabelText('Host or IP')).toHaveValue('127.0.0.1');
+  expect(screen.getByLabelText('IP family')).toHaveValue('ipv4');
+  expect(scanHostPorts).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: /One IP or hostname/ }));
+  expect(screen.getByLabelText('Host or IP')).toHaveFocus();
+});
+
+it('explains remote scan capabilities and links to subnet discovery', async () => {
+  render(
+    <RouterProvider
+      router={createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/network/ports'] }))}
+    />
+  );
+  fireEvent.click(await screen.findByText('What can I scan?'));
+  expect(screen.getByText(/Remote scans cannot report PIDs/)).toBeVisible();
+  expect(screen.getByRole('link', { name: /My network/ })).toHaveAttribute(
+    'href',
+    '#/network/local'
+  );
+  expect(screen.getByRole('link', { name: 'Open Nmap' })).toBeVisible();
+  expect(scanHostPorts).not.toHaveBeenCalled();
+});
+
+it('selects all TCP ports without starting a scan', async () => {
+  render(
+    <RouterProvider
+      router={createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/network/ports'] }))}
+    />
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'All ports (1–65535)' }));
+  expect(screen.getByLabelText('Ports')).toHaveValue('1-65535');
+  expect(screen.getByRole('button', { name: 'Scan ports' })).toBeEnabled();
+  expect(scanHostPorts).not.toHaveBeenCalled();
 });

@@ -121,15 +121,10 @@ describe('LocalNetworkPanel', () => {
     expect(boundaries).not.toHaveAttribute('open');
 
     const scan = screen.getByRole('button', { name: 'Scan network' });
-    expect(scan).toBeDisabled();
-    fireEvent.click(scan);
+    expect(scan).toBeEnabled();
     expect(fetchMock).toHaveBeenCalledOnce();
 
-    fireEvent.click(
-      screen.getByRole('checkbox', {
-        name: /I am authorized to probe this private CIDR/i,
-      })
-    );
+    expect(screen.queryByRole('checkbox', { name: /I am authorized/ })).not.toBeInTheDocument();
     fireEvent.click(scan);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -160,10 +155,7 @@ describe('LocalNetworkPanel', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<LocalNetworkPanel onSaveSnapshot={vi.fn()} />);
-    const authorization = await screen.findByRole('checkbox', {
-      name: /I am authorized to probe this private CIDR/i,
-    });
-    fireEvent.click(authorization);
+    await screen.findByRole('button', { name: 'Scan network' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel scan' }));
 
@@ -186,11 +178,7 @@ describe('LocalNetworkPanel', () => {
     );
 
     render(<LocalNetworkPanel onSaveSnapshot={onSaveSnapshot} />);
-    fireEvent.click(
-      await screen.findByRole('checkbox', {
-        name: /I am authorized to probe this private CIDR/i,
-      })
-    );
+    await screen.findByRole('button', { name: 'Scan network' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
 
     expect(
@@ -203,6 +191,10 @@ describe('LocalNetworkPanel', () => {
     );
     expect(screen.getByText(/Inferred · low confidence · gRPC endpoint/)).toBeInTheDocument();
     expect(screen.getByText(/3 ms application probe/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Scan ports on 192.168.44.1' })).toHaveAttribute(
+      'href',
+      '#/network/ports?host=192.168.44.1'
+    );
     expect(
       screen.getByLabelText('Evidence plan: 192.168.44.0/24, Quick services')
     ).toBeInTheDocument();
@@ -249,10 +241,7 @@ describe('LocalNetworkPanel', () => {
     );
 
     render(<LocalNetworkPanel onSaveSnapshot={vi.fn()} />);
-    const authorization = await screen.findByRole('checkbox', {
-      name: /I am authorized to probe this private CIDR/i,
-    });
-    fireEvent.click(authorization);
+    await screen.findByRole('button', { name: 'Scan network' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
     expect(
       await screen.findByLabelText('Evidence plan: 192.168.44.0/24, Quick services')
@@ -262,7 +251,7 @@ describe('LocalNetworkPanel', () => {
       target: { value: 'grpc' },
     });
 
-    expect(authorization).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Scan network' })).toBeEnabled();
     expect(screen.queryByRole('heading', { name: 'Observed endpoint evidence' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Save snapshot' })).toBeNull();
   });
@@ -286,11 +275,7 @@ describe('LocalNetworkPanel', () => {
     );
 
     render(<LocalNetworkPanel onSaveSnapshot={vi.fn()} />);
-    fireEvent.click(
-      await screen.findByRole('checkbox', {
-        name: /I am authorized to probe this private CIDR/i,
-      })
-    );
+    await screen.findByRole('button', { name: 'Scan network' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
 
     expect(

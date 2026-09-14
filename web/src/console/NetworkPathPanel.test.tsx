@@ -152,10 +152,10 @@ it('retains bounded, source-labelled attribution when saving a measured trace', 
   const save = vi.fn();
   render(<NetworkPathPanel onSaveTrace={save} />);
   await screen.findByText('Built in · no elevation');
-  fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+  await screen.findByRole('button', { name: 'Trace path' });
   fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
   const controls = await screen.findByRole('region', { name: 'Optional hop attribution' });
-  fireEvent.click(within(controls).getByRole('checkbox'));
+  expect(within(controls).queryByRole('checkbox')).not.toBeInTheDocument();
   fireEvent.click(within(controls).getByRole('button', { name: 'Look up hop labels' }));
   await screen.findByText(/AS13335 · Cloudflare · Australia/);
   fireEvent.click(screen.getByRole('button', { name: 'Save trace' }));
@@ -187,7 +187,7 @@ describe('NetworkPathPanel', () => {
     render(<NetworkPathPanel />);
     expect(await screen.findByText('Built in · no elevation')).toBeVisible();
     expect(screen.getByRole('option', { name: 'Auto · native ICMP' })).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/authorize these active ICMP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
     expect(screen.getByRole('button', { name: 'Trace path' })).toBeEnabled();
     expect(screen.getByRole('option', { name: 'UDP · unavailable' })).toBeDisabled();
     fireEvent.change(screen.getByLabelText('Address family'), { target: { value: 'ipv6' } });
@@ -208,12 +208,11 @@ describe('NetworkPathPanel', () => {
 
     expect(await screen.findByText('Built in · no elevation')).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(screen.getByRole('button', { name: 'Trace path' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Trace path' })).toBeEnabled();
     expect(screen.getByText(/24 hops × 3 probes.*72 maximum probes.*20 s wall/i)).toBeVisible();
     fireEvent.click(screen.getByText('Example targets · Cloudflare / Google DNS'));
     expect(screen.getByText(/Anycast.*not a fixed datacenter/i)).toBeVisible();
-
-    fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
     fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
@@ -292,7 +291,7 @@ describe('NetworkPathPanel', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<NetworkPathPanel />);
     await screen.findByText('Built in · no elevation');
-    fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
     fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Cancel trace' }));
 
@@ -309,13 +308,13 @@ describe('NetworkPathPanel', () => {
     await screen.findByText('Built in · no elevation');
     fireEvent.change(screen.getByLabelText('Max hops'), { target: { value: '32' } });
     fireEvent.change(screen.getByLabelText('Probes / hop'), { target: { value: '4' } });
-    fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
 
     expect(screen.getByText(/128-probe plan exceeds the 96-probe backend limit/i)).toBeVisible();
     expect(screen.getByRole('button', { name: 'Trace path' })).toBeDisabled();
   });
 
-  it('binds consent and displayed evidence to one exact editable probe plan', async () => {
+  it('binds displayed evidence to one exact editable probe plan', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) =>
@@ -327,22 +326,17 @@ describe('NetworkPathPanel', () => {
     render(<NetworkPathPanel />);
 
     await screen.findByText('Built in · no elevation');
-    const consent = screen.getByLabelText(/authorize these active UDP path probes/i);
-    fireEvent.click(consent);
-    expect(consent).toBeChecked();
+    expect(screen.queryByRole('checkbox', { name: /authorize/ })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Hostname or IP'), {
       target: { value: 'example.test' },
     });
-    expect(consent).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'Trace path' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Trace path' })).toBeEnabled();
 
-    fireEvent.click(consent);
     fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
     expect(await screen.findByText('Hop evidence from this machine')).toBeVisible();
 
     fireEvent.change(screen.getByLabelText('Max hops'), { target: { value: '12' } });
-    expect(consent).not.toBeChecked();
     expect(screen.queryByText('Hop evidence from this machine')).not.toBeInTheDocument();
   });
 });

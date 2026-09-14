@@ -29,12 +29,10 @@ describe('ScanTargetDialog', () => {
     await waitFor(() => expect(input).toHaveFocus());
 
     const closeButton = screen.getAllByRole('button', { name: 'Close scan target dialog' })[1];
-    const privateToggle = screen.getByRole('checkbox', {
-      name: 'Allow this target to reach private or link-local IPs',
-    });
+    const scanButton = screen.getByRole('button', { name: 'Scan common local' });
     closeButton.focus();
     fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
-    expect(privateToggle).toHaveFocus();
+    expect(scanButton).toHaveFocus();
 
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledOnce();

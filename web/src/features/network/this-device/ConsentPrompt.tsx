@@ -4,8 +4,6 @@ import { type ReactNode, useEffect, useRef } from 'react';
 export function ConsentPrompt({
   title,
   children,
-  acknowledged,
-  onAcknowledged,
   acknowledgement,
   onConfirm,
   onCancel,
@@ -22,8 +20,8 @@ export function ConsentPrompt({
   confirmLabel: string;
   disabled?: boolean;
 }) {
-  const checkboxRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => checkboxRef.current?.focus(), []);
+  const confirmRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => confirmRef.current?.focus(), []);
 
   return (
     <section className="this-pc-consent" role="dialog" aria-modal="false" aria-label={title}>
@@ -35,15 +33,7 @@ export function ConsentPrompt({
         </div>
       </header>
       <div className="this-pc-consent-copy">{children}</div>
-      <label>
-        <input
-          ref={checkboxRef}
-          type="checkbox"
-          checked={acknowledged}
-          onChange={(event) => onAcknowledged(event.target.checked)}
-        />
-        <span>{acknowledgement}</span>
-      </label>
+      <p>{acknowledgement}</p>
       <footer>
         <button type="button" className="this-pc-button is-quiet" onClick={onCancel}>
           Not now
@@ -51,7 +41,8 @@ export function ConsentPrompt({
         <button
           type="button"
           className="this-pc-button"
-          disabled={!acknowledged || disabled}
+          ref={confirmRef}
+          disabled={disabled}
           onClick={onConfirm}
         >
           {confirmLabel}

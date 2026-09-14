@@ -427,3 +427,45 @@ OS fingerprinting, vulnerability scripts or hidden follow-up scans are included 
 See [Route, path, discovery, and Nmap evidence boundaries](/route-and-nmap-evidence/) for the lower
 level API and trust contracts, and [the feature roadmap](/feature-roadmap/) for the wider protocol
 direction.
+
+### Scan a device or IP (current source)
+
+The port scanner offers entry points for loopback, a private network, and one IP
+or hostname. “What can I scan?” explains built-in TCP checks, local discovery,
+HTTP/gRPC inspection and optional Nmap service detection. Discovery results have
+“Scan ports on” links that prefill that device's IP without starting a scan.
+Incoming targets reset the IP-family selector to Auto and do not reuse old results.
+Results show their original host and resolved IP even if the next scan's input changes.
+
+Local process owners and UDP bindings are available through This Device where the
+host supports them. Remote TCP scans cannot identify PIDs or establish UDP state.
+Subnet discovery still requires an explicit plan and start; selecting a target does
+not generate network probes. All existing scan bounds remain in force.
+
+### All TCP ports (current source)
+
+Select **All ports (1–65535)** to scan the complete TCP port range on one IP.
+Larger selections run sequentially in 256-port batches, with at most 32 concurrent
+connections inside each batch and a 30-second deadline per batch. Later batches
+use the first resolved IP. The full run can take several minutes, depending on the
+per-port timeout and how the target responds; it has no 30-second whole-run cutoff.
+Progress and completed batches remain visible. Cancel stops further batches and
+retains completed results; remaining ports are labelled not scanned. Large results
+stay in the current tab only, while scan settings are saved. Nmap and subnet limits
+are unchanged. This is a TCP scan, not a UDP scan.
+
+### Starting and cancelling work (current source)
+
+Routine scanning, path tracing, packet capture and website inspection use the
+explicit action button as the acknowledgement. The plan and external-request
+disclosures remain visible; there is no additional permission checkbox. Choosing
+a target or editing a plan does not start probes. Explicit service inspection can
+reach the entered private or link-local target; ambient discovery remains loopback-only.
+
+Active operations show elapsed time and an indeterminate progress indicator when
+the backend cannot report a total. TCP batches show the number of ports actually
+checked. Existing cancel actions abort their requests. Completed port batches remain
+available after cancellation; other tools report the evidence they actually received.
+Device benchmark and public-identity plan reviews retain their start buttons but
+no longer require an extra acknowledgement checkbox. Feature switches such as upload
+sampling, access grants, and consequential install/rollback confirmations remain distinct.

@@ -280,3 +280,12 @@ independent bundle budgets.
   [`GetExtendedUdpTable`](https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getextendedudptable),
   and [`GetIfEntry2`](https://learn.microsoft.com/en-us/windows/win32/api/netioapi/nf-netioapi-getifentry2)
   for the current-source native Windows backend.
+
+### Local socket table (current source)
+
+Listeners and Activity put the local port first, with numeric ascending/descending
+sorting or process-name sorting. Search matches port, address, state, protocol,
+process name and PID, and combines with the TCP/UDP filter. Summary counts cover
+the entire observed snapshot; the result count reflects the filters. Wildcard binds
+are local binding evidence, not proof of Internet reachability. Results are shown
+in batches of 50. Use Clear filters to recover from an empty search.

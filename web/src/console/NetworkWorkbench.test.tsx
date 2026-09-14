@@ -463,7 +463,7 @@ describe('NetworkWorkbench persistence protections', () => {
       await router.navigate({ to: '/network/path' });
     });
     expect(await screen.findByText('Built in · no elevation')).toBeVisible();
-    fireEvent.click(screen.getByLabelText(/authorize these active UDP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
     fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save trace' }));
 
@@ -782,7 +782,7 @@ describe('NetworkWorkbench persistence protections', () => {
     await act(async () => {
       await router.navigate({ to: '/network/path' });
     });
-    fireEvent.click(await screen.findByLabelText(/authorize these active UDP path probes/i));
+    await screen.findByRole('button', { name: 'Trace path' });
     fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save trace' }));
     await pendingGet.started.promise;
@@ -826,11 +826,7 @@ describe('NetworkWorkbench persistence protections', () => {
     await act(async () => {
       await router.navigate({ to: '/network/local' });
     });
-    fireEvent.click(
-      await screen.findByRole('checkbox', {
-        name: /I am authorized to probe this private CIDR/i,
-      })
-    );
+    await screen.findByRole('button', { name: 'Scan network' });
     fireEvent.click(screen.getByRole('button', { name: 'Scan network' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Save snapshot' }));
     await pendingGet.started.promise;

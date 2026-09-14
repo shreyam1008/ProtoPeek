@@ -11,7 +11,6 @@ import {
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
-
 import { classNames, compactDate } from '@/shared/runtime';
 import type { IPAttribution } from './ip-attribution';
 import {
@@ -23,6 +22,7 @@ import {
 } from './network-path';
 import { fetchPathCapabilities, type PathTraceRequest, traceNetworkPath } from './network-path-api';
 import { ProtocolInfo } from './ProtocolInfo';
+import { OperationStatus } from './shell/OperationStatus';
 
 const HopAttribution = lazy(() => import('./HopAttribution'));
 
@@ -36,7 +36,6 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
   const [probesPerHop, setProbesPerHop] = useState(3);
   const [perProbeTimeoutMs, setPerProbeTimeoutMs] = useState(750);
   const [wallTimeoutMs, setWallTimeoutMs] = useState(20_000);
-  const [consent, setConsent] = useState(false);
   const [trace, setTrace] = useState<PathTrace | null>(null);
   const [traceError, setTraceError] = useState('');
   const [running, setRunning] = useState(false);
@@ -106,14 +105,14 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
   function updatePlan(update: () => void) {
     if (running) return;
     update();
-    setConsent(false);
+
     setTrace(null);
     setTraceError('');
     setSaved(false);
   }
 
   async function runTrace() {
-    if (!consent || !selectedCapability || !planValid || running || !destination.trim()) return;
+    if (!selectedCapability || !planValid || running || !destination.trim()) return;
     const controller = new AbortController();
     traceAbortRef.current = controller;
     setRunning(true);
@@ -271,9 +270,7 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
         <button
           type="button"
           className={classNames('pp-path-run', running && 'is-cancel')}
-          disabled={
-            !running && (!consent || !selectedCapability || !planValid || !destination.trim())
-          }
+          disabled={!running && (!selectedCapability || !planValid || !destination.trim())}
           onClick={running ? () => traceAbortRef.current?.abort() : () => void runTrace()}
         >
           {running ? <Square aria-hidden="true" /> : <Route aria-hidden="true" />}
@@ -338,20 +335,15 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
         </div>
       </details>
 
+      <OperationStatus busy={running} label="Tracing network path" />
       <div className="pp-path-consent">
-        <label>
-          <input
-            type="checkbox"
-            checked={consent}
-            disabled={running || !planValid || !selectedCapability || !destination.trim()}
-            onChange={(event) => setConsent(event.target.checked)}
-          />
-          I authorize these active{' '}
+        <div>
+          Run sends active{' '}
           {method === 'auto'
             ? (selectedCapability?.method.toUpperCase() ?? 'native')
             : method.toUpperCase()}{' '}
           path probes, including probes to public Internet targets.
-        </label>
+        </div>
         <span>
           {maxHops} hops × {probesPerHop} probes · {maximumProbes} maximum probes ·{' '}
           {perProbeTimeoutMs} ms each · {wallTimeoutMs / 1_000} s wall

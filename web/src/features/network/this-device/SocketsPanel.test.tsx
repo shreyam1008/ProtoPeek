@@ -143,3 +143,51 @@ it('does not offer drafts when link-local IPv6 evidence lacks an interface scope
   expect(screen.queryByText('Open draft')).not.toBeInTheDocument();
   expect(screen.queryByText('Open gRPC / Route draft')).not.toBeInTheDocument();
 });
+
+it('combines search and protocol filters and recovers from no matches', () => {
+  render(
+    <SocketsPanel
+      kind="listeners"
+      capabilities={capabilities}
+      activity={activity}
+      onOpen={vi.fn()}
+      onCancel={vi.fn()}
+    />
+  );
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'demo' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Protocol filter' }), {
+    target: { value: 'udp' },
+  });
+  expect(screen.queryByText('8080')).not.toBeInTheDocument();
+  expect(screen.getByText('5353')).toBeVisible();
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'missing' } });
+  expect(screen.getByText('No sockets match your filters.')).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+  expect(screen.getByText('8080')).toBeVisible();
+  expect(screen.getByText('5353')).toBeVisible();
+});
+
+it('sorts ports numerically and keeps handoffs attached to their socket', () => {
+  const lower = { ...tcp, local: { ...tcp.local, port: 90 } };
+  const onHandoff = vi.fn();
+  render(
+    <SocketsPanel
+      kind="listeners"
+      capabilities={capabilities}
+      activity={{ ...activity, value: { ...activity.value, listeners: [tcp, lower] } }}
+      onOpen={vi.fn()}
+      onCancel={vi.fn()}
+      onHandoff={onHandoff}
+    />
+  );
+  let rows = screen.getAllByRole('row').slice(1);
+  expect(within(rows[0]).getByText('90')).toBeVisible();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Sort sockets' }), {
+    target: { value: 'port-desc' },
+  });
+  rows = screen.getAllByRole('row').slice(1);
+  expect(within(rows[0]).getByText('8080')).toBeVisible();
+  fireEvent.click(within(rows[0]).getByText('Open draft'));
+  fireEvent.click(within(rows[0]).getByRole('button', { name: 'HTTP' }));
+  expect(onHandoff).toHaveBeenLastCalledWith(tcp, 'http-url-draft');
+});

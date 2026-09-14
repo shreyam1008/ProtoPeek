@@ -26,11 +26,15 @@ it('runs the fixed plan at the origin and reports partial evidence and fallback 
   fireEvent.change(screen.getByRole('textbox', { name: 'Website for path checks' }), {
     target: { value: 'https://example.com/ignored/path' },
   });
-  fireEvent.click(screen.getByRole('checkbox'));
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Check five paths' }));
   expect(await screen.findByText('Connection timed out')).toBeVisible();
   expect(screen.getByText(/missing-path comparison also returned 200/)).toBeVisible();
-  expect(screen.getByRole('checkbox')).not.toBeChecked();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   const options = (fetchMock.mock.calls as unknown as [unknown, RequestInit][])[0]?.[1];
   expect(JSON.parse(String(options?.body))).toEqual({
     url: 'https://example.com',
@@ -49,7 +53,11 @@ it('aborts on leaving the section and ignores a late response', async () => {
   vi.stubGlobal('fetch', fetchMock);
   const view = render(<WebsitePathsPanel active />);
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'https://example.com' } });
-  fireEvent.click(screen.getByRole('checkbox'));
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Check five paths' }));
   view.rerender(<WebsitePathsPanel active={false} />);
   expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);

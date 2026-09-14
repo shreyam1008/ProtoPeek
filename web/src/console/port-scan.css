@@ -68,7 +68,7 @@
   align-items: end;
 }
 .pp-ports form p {
-  flex: 1;
+  flex: 1 1 240px;
   font-size: 12px;
   color: var(--pp-muted);
 }
@@ -110,4 +110,53 @@
 .pp-ports footer a {
   color: var(--pp-accent);
   text-decoration: underline;
+}
+
+.pp-scan-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+.pp-scan-targets > * {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  text-align: left;
+  text-decoration: none;
+  font-size: 13px;
+}
+.pp-scan-targets span,
+.pp-scan-capabilities dd {
+  color: var(--pp-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-scan-capabilities {
+  padding: 12px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+}
+.pp-scan-capabilities summary {
+  cursor: pointer;
+}
+.pp-scan-capabilities dt {
+  margin-top: 12px;
+  font-weight: 600;
+}
+.pp-scan-capabilities dd {
+  margin: 4px 0;
+}
+.pp-scan-capabilities a {
+  text-decoration: underline;
+}
+
+.pp-ports-presets {
+  flex-basis: 100%;
 }

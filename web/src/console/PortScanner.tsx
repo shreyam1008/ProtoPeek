@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useSearch } from '@tanstack/react-router';
 import {
   type ColumnDef,
   createPaginatedRowModel,
@@ -18,8 +18,9 @@ import {
   previewPorts,
   serviceHint,
 } from './port-scan';
-import { scanHostPorts } from './port-scan-api';
+import { scanPortBatches } from './port-scan-batches';
 import { readPortScannerDraft, writePortScannerDraft } from './port-scan-store';
+import { OperationStatus } from './shell/OperationStatus';
 import './port-scan.css';
 
 const features = tableFeatures({
@@ -35,7 +36,13 @@ const emptyResults: PortResult[] = [];
 
 export function PortScanner() {
   const { openScan } = useProtocolShell();
-  const [initial] = useState(readPortScannerDraft);
+  const incoming = useSearch({ from: '/network/ports' });
+  const [initial] = useState(() => {
+    const saved = readPortScannerDraft();
+    return incoming.host
+      ? { ...saved, host: incoming.host, family: 'auto', result: null, observedAt: '' }
+      : saved;
+  });
   const [host, setHost] = useState(initial.host);
   const [ports, setPorts] = useState(initial.ports);
   const [family, setFamily] = useState(initial.family);
@@ -51,6 +58,7 @@ export function PortScanner() {
   const [filter, setFilter] = useState('open');
   const [query, setQuery] = useState('');
   const controller = useRef<AbortController | null>(null);
+  const hostInput = useRef<HTMLInputElement>(null);
   useEffect(() => () => controller.current?.abort(), []);
   useEffect(() => {
     const save = () =>
@@ -68,7 +76,7 @@ export function PortScanner() {
   }, [host, ports, family, timeout, result, observedAt]);
   const preview = useMemo(() => {
     try {
-      return { ports: previewPorts(ports), error: '' };
+      return { ports: previewPorts(ports, 65535), error: '' };
     } catch (cause) {
       return { ports: [], error: cause instanceof Error ? cause.message : 'Invalid ports' };
     }
@@ -102,9 +110,17 @@ export function PortScanner() {
     setNotice('Scanning the selected host…');
     setResult(null);
     try {
-      const response = await scanHostPorts(
-        { host: host.trim(), ports, family, timeoutMs: Number(timeout) },
-        abort.signal
+      const response = await scanPortBatches(
+        { host: host.trim(), family, timeoutMs: Number(timeout) },
+        preview.ports,
+        abort.signal,
+        (partial, checked) => {
+          setResult(partial);
+          setObservedAt(new Date().toISOString());
+          setNotice(
+            `Scanning ${partial.address}: ${checked.toLocaleString()} / ${preview.ports.length.toLocaleString()} ports checked`
+          );
+        }
       );
       if (!abort.signal.aborted) {
         setResult(response);
@@ -112,7 +128,7 @@ export function PortScanner() {
         setNotice(
           response.complete
             ? 'Scan complete'
-            : '30-second limit reached. Some ports were not scanned.'
+            : 'Batch time limit reached. Some ports were not scanned.'
         );
         table.setPageIndex(0);
       }
@@ -139,6 +155,57 @@ export function PortScanner() {
         <h1>Port scanner</h1>
         <ProtocolInfo protocol="tcp" />
       </PageHeader>
+      <section className="pp-scan-targets" aria-label="Choose a scan target">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setHost('127.0.0.1');
+            setFamily('ipv4');
+          }}
+        >
+          <strong>This device</strong>
+          <span>Check TCP ports on loopback</span>
+        </button>
+        <a href="#/network/local">
+          <strong>My network</strong>
+          <span>Discover devices in a private subnet</span>
+        </a>
+        <button type="button" disabled={busy} onClick={() => hostInput.current?.focus()}>
+          <strong>One IP or hostname</strong>
+          <span>Enter the address below to inspect its ports</span>
+        </button>
+      </section>
+      <details className="pp-scan-capabilities">
+        <summary>What can I scan?</summary>
+        <dl>
+          <dt>TCP ports · built in</dt>
+          <dd>
+            One IPv4, IPv6 or hostname; all 65,535 TCP ports, processed in bounded batches. Open,
+            refused, unreachable and no-response results.
+          </dd>
+          <dt>Local network · built in</dt>
+          <dd>
+            Select a private subnet and a bounded discovery profile. Open a discovered device here
+            to check more ports.
+          </dd>
+          <dt>HTTP and gRPC · built in</dt>
+          <dd>
+            Inspect an open endpoint for protocol evidence. A port number alone does not identify a
+            service.
+          </dd>
+          <dt>Service detection · optional Nmap</dt>
+          <dd>
+            TCP connect and light service detection for an IP or private IPv4 subnet. Requires Nmap
+            on the host. <Link to="/network/nmap">Open Nmap</Link>
+          </dd>
+          <dt>Processes and UDP binds · local only</dt>
+          <dd>
+            <Link to="/this-pc">This Device</Link> can report local owners where supported. Remote
+            scans cannot report PIDs. The built-in port scanner does not probe UDP.
+          </dd>
+        </dl>
+      </details>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -148,6 +215,7 @@ export function PortScanner() {
         <label>
           Host or IP
           <input
+            ref={hostInput}
             value={host}
             onChange={(event) => setHost(event.target.value)}
             maxLength={253}
@@ -199,13 +267,16 @@ export function PortScanner() {
           <button type="button" disabled={busy} onClick={() => setPorts(portPresets.development)}>
             Development
           </button>
+          <button type="button" disabled={busy} onClick={() => setPorts('1-65535')}>
+            All ports (1–65535)
+          </button>
           <button type="button" disabled={busy} onClick={() => setPorts('1-1024')}>
             Ports 1–1024
           </button>
         </div>
         <p>
           {preview.error ||
-            `${preview.ports.length} TCP ports · one resolved IP · at most 30 seconds. Use a host you own or are authorized to inspect.`}
+            `${preview.ports.length.toLocaleString()} TCP ports · one resolved IP · ${preview.ports.length > 1024 ? '256-port batches; may take several minutes. Cancel keeps completed batches.' : 'at most 30 seconds.'} Use a host you own or are authorized to inspect.`}
         </p>
         {busy ? (
           <button
@@ -224,6 +295,12 @@ export function PortScanner() {
           </button>
         )}
       </form>
+      <OperationStatus
+        busy={busy}
+        label="Scanning TCP ports"
+        completed={result?.results.filter((row) => row.state !== 'not-scanned').length ?? 0}
+        total={preview.ports.length}
+      />
       <div className="pp-ports-status">
         <span role="status">{notice || 'Ready. No scan has run.'}</span>
         {result && (
@@ -243,7 +320,12 @@ export function PortScanner() {
           and service inspection actions.
         </EmptyState>
       )}
-      {result && observedAt && <small>Observed {new Date(observedAt).toLocaleString()}</small>}
+      {result && observedAt && (
+        <small>
+          Results for {result.host} ({result.address}) · Observed{' '}
+          {new Date(observedAt).toLocaleString()}
+        </small>
+      )}
       {result && (
         <>
           <div className="pp-ports-filters">

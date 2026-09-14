@@ -1279,3 +1279,67 @@
   text-transform: none;
   letter-spacing: 0;
 }
+
+.pp-operation-status {
+  padding: 12px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  font-size: 12px;
+}
+.pp-operation-status > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pp-operation-status progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 10px 0;
+  accent-color: var(--pp-accent);
+}
+.pp-operation-status small {
+  color: var(--pp-text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-workbench-shell [data-loading],
+  .pp-empty-state [data-loading] {
+    animation: none;
+  }
+}
+
+.pp-operation-status progress {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--pp-color-stroke);
+}
+.pp-operation-status progress::-webkit-progress-bar {
+  background: transparent;
+}
+.pp-operation-status progress::-webkit-progress-value {
+  background: var(--pp-color-accent-strong);
+}
+.pp-operation-status progress::-moz-progress-bar {
+  background: var(--pp-color-accent-strong);
+}
+.pp-operation-status progress:indeterminate {
+  background:
+    linear-gradient(90deg, transparent, var(--pp-color-accent-strong), transparent) -100% 0 / 45%
+    100% no-repeat var(--pp-color-stroke);
+  animation: pp-operation-progress 1.6s ease-in-out infinite;
+}
+@keyframes pp-operation-progress {
+  to {
+    background-position: 200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-operation-status progress:indeterminate {
+    animation: none;
+    background-position: 50% 0;
+  }
+}

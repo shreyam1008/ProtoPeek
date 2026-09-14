@@ -352,11 +352,9 @@ describe('This PC workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Check public identity' }));
     const dialog = screen.getByRole('dialog', { name: 'Check public IPv4 and IPv6' });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', {
-        name: /I understand this makes the disclosed external requests once/i,
-      })
-    );
+    expect(
+      within(dialog).queryByRole('checkbox', { name: /I understand/ })
+    ).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Check selected families' }));
 
     expect(await screen.findByText('203.0.113.8')).toBeVisible();
@@ -390,11 +388,9 @@ describe('This PC workspace', () => {
       within(dialog).getByText(/ordinary request metadata such as its local origin/i)
     ).toBeVisible();
 
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', {
-        name: /I understand this sends the selected synthetic traffic/i,
-      })
-    );
+    expect(
+      within(dialog).queryByRole('checkbox', { name: /I understand/ })
+    ).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Start one run' }));
 
     await waitFor(() => expect(speedtestMock.instances).toHaveLength(1));
@@ -529,11 +525,9 @@ describe('This PC workspace', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Overview' }));
     fireEvent.click(screen.getByRole('button', { name: 'Check public identity' }));
     const dialog = screen.getByRole('dialog', { name: 'Check public IPv4 and IPv6' });
-    fireEvent.click(
-      within(dialog).getByRole('checkbox', {
-        name: /I understand this makes the disclosed external requests once/i,
-      })
-    );
+    expect(
+      within(dialog).queryByRole('checkbox', { name: /I understand/ })
+    ).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Check selected families' }));
     expect(trafficSignal?.aborted).toBe(true);
 

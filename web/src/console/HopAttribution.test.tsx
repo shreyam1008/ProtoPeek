@@ -15,14 +15,18 @@ const entry = {
 };
 const response = { source: attributionSource, entries: [entry] };
 
-it('runs only after consent and preserves the attribution source', async () => {
+it('runs only after an explicit click and preserves the attribution source', async () => {
   const fetchMock = vi.fn(async (_url: unknown, _options?: RequestInit) => Response.json(response));
   vi.stubGlobal('fetch', fetchMock);
   const onResult = vi.fn();
   render(<HopAttribution addresses={['1.1.1.1', '1.1.1.1']} onResult={onResult} />);
   expect(fetchMock).not.toHaveBeenCalled();
-  expect(screen.getByRole('button', { name: 'Look up hop labels' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('checkbox'));
+  expect(screen.getByRole('button', { name: 'Look up hop labels' })).toBeEnabled();
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Look up hop labels' }));
   await waitFor(() => expect(onResult).toHaveBeenCalledOnce());
   expect(onResult.mock.calls[0]?.[0].source).toBe(attributionSource);
@@ -31,7 +35,7 @@ it('runs only after consent and preserves the attribution source', async () => {
     addresses: ['1.1.1.1'],
     acknowledgeThirdParty: true,
   });
-  expect(screen.getByRole('checkbox')).not.toBeChecked();
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
 });
 
 it('cancel aborts transport and a late response cannot add labels', async () => {
@@ -45,7 +49,11 @@ it('cancel aborts transport and a late response cannot add labels', async () => 
   vi.stubGlobal('fetch', fetchMock);
   const onResult = vi.fn();
   render(<HopAttribution addresses={['1.1.1.1']} onResult={onResult} />);
-  fireEvent.click(screen.getByRole('checkbox'));
+  expect(
+    screen.queryByRole('checkbox', {
+      name: /I authorize|Send public|permission to capture|Send these five/,
+    })
+  ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Look up hop labels' }));
   fireEvent.click(screen.getByRole('button', { name: 'Cancel attribution' }));
   expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);

@@ -47,7 +47,7 @@ const services: Record<number, string> = {
 export function serviceHint(port: number) {
   return services[port] ?? 'Unknown';
 }
-export function previewPorts(value: string): number[] {
+export function previewPorts(value: string, maximum = 1024): number[] {
   if (!value.trim() || value.length > 8192)
     throw new Error('Enter comma-separated ports or ranges.');
   const ports = new Set<number>();
@@ -58,10 +58,10 @@ export function previewPorts(value: string): number[] {
     const last = Number(match[2] ?? first);
     if (first < 1 || last > 65535 || last < first)
       throw new Error('Ports must be 1–65535, with ranges in ascending order.');
-    if (last - first + 1 > 1024) throw new Error('Choose at most 1024 ports per scan.');
+    if (last - first + 1 > maximum) throw new Error(`Choose at most ${maximum} ports per scan.`);
     for (let port = first; port <= last; port++) {
       ports.add(port);
-      if (ports.size > 1024) throw new Error('Choose at most 1024 ports per scan.');
+      if (ports.size > maximum) throw new Error(`Choose at most ${maximum} ports per scan.`);
     }
   }
   return [...ports].sort((a, b) => a - b);

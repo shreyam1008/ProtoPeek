@@ -32,7 +32,6 @@ export function NmapImportPanel({
   const [message, setMessage] = useState('');
   const [importing, setImporting] = useState(false);
   const [activeEndpoint, setActiveEndpoint] = useState('');
-  const [allowPrivateNetwork, setAllowPrivateNetwork] = useState(false);
   const [hostPage, setHostPage] = useState(0);
   const [verified, setVerified] = useState<Record<string, ScanResult[]>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -110,7 +109,7 @@ export function NmapImportPanel({
     setActiveEndpoint(endpoint);
     setMessage('');
     try {
-      const results = await scanAddresses([endpoint], allowPrivateNetwork, true, controller.signal);
+      const results = await scanAddresses([endpoint], true, true, controller.signal);
       setVerified((current) => ({ ...current, [endpoint]: results }));
       onResults(results);
     } catch (reason) {
@@ -192,14 +191,6 @@ export function NmapImportPanel({
           {importing ? 'Cancel import' : 'Import evidence'}
         </button>
       </div>
-      <label className="pp-private-scan-toggle">
-        <input
-          type="checkbox"
-          checked={allowPrivateNetwork}
-          onChange={(event) => setAllowPrivateNetwork(event.target.checked)}
-        />
-        Allow verification of imported private IPs
-      </label>
       <aside className="pp-nmap-trust-note">
         <ShieldCheck aria-hidden="true" />
         <p>

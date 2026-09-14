@@ -49,6 +49,10 @@ const downloaderRoute = createRoute({
 const portScannerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/ports',
+  validateSearch: (search: Record<string, unknown>): { host?: string } => ({
+    host: typeof search.host === 'string' && search.host.length <= 253 ? search.host : undefined,
+  }),
+  remountDeps: ({ search }) => search.host,
   component: lazyRouteComponent(() => import('./PortScanner'), 'PortScanner'),
 });
 const nmapScannerRoute = createRoute({

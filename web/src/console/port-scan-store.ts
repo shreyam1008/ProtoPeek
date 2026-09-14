@@ -93,13 +93,19 @@ export function writePortScannerDraft(draft: PortScannerDraft) {
   try {
     // Invalid in-progress authorities may contain credentials; retain only ordinary host text.
     const host = ordinaryHost(draft.host) ? draft.host : '';
-    const value = JSON.stringify({ version: 1, ...draft, host });
+    const large = (draft.result?.results.length ?? 0) > 1024;
+    const value = JSON.stringify({
+      version: 1,
+      ...draft,
+      host,
+      ...(large ? { result: null, observedAt: '' } : {}),
+    });
     if (new TextEncoder().encode(value).byteLength > limit) {
       localStorage.removeItem(key);
       throw new Error('size');
     }
     localStorage.setItem(key, value);
-    return '';
+    return large ? 'Large scan results stay in this tab only. Your scan settings are saved.' : '';
   } catch {
     return 'This scan could not be saved in this browser. Results remain available until you leave.';
   }

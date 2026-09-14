@@ -1346,38 +1346,6 @@
     width: 100%;
   }
 
-  .this-pc-table thead {
-    display: none;
-  }
-
-  .this-pc-table,
-  .this-pc-table tbody,
-  .this-pc-table tr,
-  .this-pc-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .this-pc-table tr {
-    border-bottom: 1px solid var(--pp-stroke-strong);
-    padding: 0.45rem 0;
-  }
-
-  .this-pc-table td {
-    display: grid;
-    grid-template-columns: 7rem minmax(0, 1fr);
-    gap: 0.5rem;
-    border-right: 0;
-    border-bottom: 0;
-    padding: 0.28rem 0.7rem;
-  }
-
-  .this-pc-table td::before {
-    color: var(--pp-text-faint);
-    font-size: 0.625rem;
-    content: attr(data-label);
-  }
-
   .this-pc-traffic-results,
   .this-pc-benchmark-results {
     grid-template-columns: 1fr;
@@ -1459,5 +1427,75 @@
 @media (prefers-reduced-motion: reduce) {
   .this-pc-benchmark-state > i.is-running {
     animation: none;
+  }
+}
+
+.this-pc-socket-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--pp-stroke);
+}
+.this-pc-socket-summary strong {
+  font-size: 20px;
+  margin-right: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.this-pc-table-tools {
+  flex-wrap: wrap;
+}
+.this-pc-table-tools select {
+  min-height: 36px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 6px;
+  background: var(--pp-surface);
+  color: inherit;
+  font: inherit;
+}
+.this-pc-socket-port {
+  font-family: monospace;
+  font-size: 15px;
+}
+.this-pc-socket-state {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 5px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.this-pc-table-region {
+  container-type: inline-size;
+}
+@container (max-width: 600px) {
+  .this-pc-table thead {
+    display: none;
+  }
+  .this-pc-table,
+  .this-pc-table tbody,
+  .this-pc-table tr,
+  .this-pc-table td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .this-pc-table tr {
+    border-bottom: 1px solid var(--pp-stroke-strong);
+    padding: 8px 0;
+  }
+  .this-pc-table td {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: 8px;
+    border: 0;
+    padding: 4px 12px;
+  }
+  .this-pc-table td::before {
+    content: attr(data-label);
+    color: var(--pp-text-faint);
+    font-size: 11px;
   }
 }
