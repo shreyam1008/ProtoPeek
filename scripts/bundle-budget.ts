@@ -23,6 +23,20 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  // Opt-in local transfer: 11,630 JS / 4,466 CSS raw bytes in its lazy route.
+  // No frontend dependency or startup allowance is added for the transport.
+  {
+    label: 'Local transfer JavaScript',
+    pattern: /^LocalTransfer-.+\.js$/,
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Local transfer CSS',
+    pattern: /^LocalTransfer-.+\.css$/,
+    maxRawBytes: 5 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
   // Updates is loaded only when opened: measured 8,494 JS / 3,132 CSS raw,
   // 3,057 JS / 1,062 CSS gzip bytes. Startup budgets remain unchanged.
   {
@@ -298,9 +312,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
     // No model runtime, polling in other routes, or additional startup dependency.
     // Navigation resume and searchable roadmap: 1,125,024 raw / 370,820 gzip.
-    maxRawBytes: 1114 * kibibyte,
+    // Local transfer adds a separately capped ~11 KiB route plus navigation metadata.
+    maxRawBytes: 1126 * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 368 * kibibyte,
+    maxGzipBytes: 373 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -312,8 +327,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // bytes; keep small explicit headroom without hiding route growth.
     // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
     // No dependency added; startup JS limits remain unchanged.
-    maxRawBytes: 340 * kibibyte,
-    maxGzipBytes: 67 * kibibyte,
+    // Includes the separately capped ~4.5 KiB local-transfer stylesheet.
+    maxRawBytes: 346 * kibibyte,
+    maxGzipBytes: 69 * kibibyte,
   },
 ];
 

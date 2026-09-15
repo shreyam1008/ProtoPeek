@@ -73,6 +73,12 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://protopeek.shreyam1008.com.np/local-transfer/</loc>
+    <lastmod>2026-09-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://protopeek.shreyam1008.com.np/security/</loc>
     <lastmod>2026-09-07</lastmod>
     <changefreq>weekly</changefreq>
@@ -92,7 +98,7 @@
   </url>
   <url>
     <loc>https://protopeek.shreyam1008.com.np/feature-roadmap/</loc>
-    <lastmod>2026-09-07</lastmod>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

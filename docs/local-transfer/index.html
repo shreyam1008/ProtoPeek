@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProtoPeek Local Transfer | Direct LAN and VPN File Sharing</title>
+    <meta name="description" content="Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/local-transfer/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="ProtoPeek Local Transfer | Direct LAN and VPN File Sharing" />
+    <meta property="og:description" content="Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/local-transfer/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ProtoPeek Local Transfer | Direct LAN and VPN File Sharing" />
+    <meta name="twitter:description" content="Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Local transfer","description":"Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality.","url":"https://protopeek.shreyam1008.com.np/local-transfer/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/local-transfer/","dateModified":"2026-09-15","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/local-transfer.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Local transfer","item":"https://protopeek.shreyam1008.com.np/local-transfer/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Local transfer</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Local transfer</h1>
+              <p>How can I send files to a nearby device or an existing VPN peer?</p>
+
+    <span class="pp-page-status is-guide is-full">
+      <i aria-hidden="true"></i>Current source
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Nearby device discovery</li><li>Encrypted direct transfers</li><li>Existing VPN routes</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-downloader">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How can I send files to a nearby device or an existing VPN peer?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-local-transfer-title visual-local-transfer-description">
+        <title id="visual-local-transfer-title">Local transfer evidence path</title>
+        <desc id="visual-local-transfer-description">Queue to Control to Verify</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Queue</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Control</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Verify</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Open <strong>Files → Local transfer</strong> on both devices. Give each device a recognizable name, choose its receive folder, and select <strong>Enable local transfer</strong>. The session lasts one hour; <strong>Stop sharing</strong> ends it immediately and cancels unfinished jobs. The workbench controls require a direct loopback browser connection.</p>
+<ol><li><div class="pp-doc-list-title">Select the receiving device under <strong>Choose a device</strong>.</div></li><li><div class="pp-doc-list-title">Compare its full fingerprint with the receiver&#39;s <strong>Connection details</strong>. Names</div><p>and discovery announcements are self-reported, not authenticated identities.</p></li><li><div class="pp-doc-list-title">Choose up to 32 files, then send. The receiver accepts or declines each file.</div></li><li><div class="pp-doc-list-title">Watch progress and average speed. Completed sends include a SHA-256 match</div><p>against the receiver&#39;s streamed digest. Incoming files show their saved path.</p></li></ol>
+<p>Files stream directly over TLS 1.3 without staging the whole file in memory or using the Downloader/aria2 engine. There is no bandwidth throttle. The network, VPN route, encryption, and storage determine throughput; unlimited speed is not possible. Four transfers may be active, and the session retains 64 recent jobs.</p>
+<h2 id="lan-discovery-and-private-networks">LAN discovery and private networks</h2>
+<p>Nearby discovery uses IPv4 multicast <code>224.0.0.168:53318</code>; transfers use TCP 53318. Allow those ports for ProtoPeek on the intended network if the firewall blocks them. Guest Wi-Fi isolation and multicast filtering can prevent discovery. ProtoPeek discovers participating transfer devices, not people or every LAN host.</p>
+<p>For a VPN or discovery failure, open the receiver&#39;s <strong>Connection details</strong> and copy a reachable <code>IP:port#fingerprint</code> connection. Paste it into <strong>Connect by address / VPN</strong> on the sender. IPv6 uses <code>[address]:53318#fingerprint</code>. Installed Tailscale devices are available under <strong>Network → Tailscale</strong>.</p>
+<p>Both devices need this ProtoPeek implementation. Existing Tailscale or WireGuard routes can carry it, subject to their firewall and access policy. Multicast usually does not cross those routes. ProtoPeek does not set up a VPN, punch through NAT, or provide a relay. This is independent of Tailscale Taildrop and is not a LocalSend-compatible client. LocalSend&#39;s <a href="https://github.com/localsend/protocol" rel="noreferrer" target="_blank">protocol</a> informed the discovery → offer → streaming flow; the implementation is native Go.</p>
+<h2 id="storage-cancellation-and-identity">Storage, cancellation, and identity</h2>
+<p>The receiver accepts metadata before any file is saved. A single-use random token authorizes that file&#39;s upload; unsolicited uploads are refused. Offers expire in two minutes. TLS certificates are temporary and change when sharing restarts; sender connections pin the selected fingerprint and reject changed certificates.</p>
+<p>Files are written to private temporary files inside the chosen folder, flushed, and published without overwriting an existing file. Collisions receive a suffix. On filesystems without hard-link support, the file goes into a newly reserved <code>ProtoPeek-…</code> subfolder. Paths are confined to the receive directory. Incomplete and cancelled files are removed; already completed files remain. Interrupted transfers restart from the beginning; resuming partial files is not implemented. Closing the sending view cancels its sends. A receiving session remains enabled until stopped or expired; keep its view open to answer incoming offers.</p>
+<p>This is current-source functionality, not a claim about an existing public release. Real two-device LAN discovery and VPN throughput still depend on the actual interfaces, firewalls, and route and should be tested on each deployment.</p>
+<h2 id="development-verification">Development verification</h2>
+<p>The transport tests use real TLS listeners and real files on the test OS. They cover accepted and empty files, collisions, rejection, cancellation and cleanup, certificate pinning, invalid tokens, path validation, and restart. CI runs these on Windows, Linux, and macOS, plus the Go race detector on Linux.</p>
+<p>A single 64 MiB loopback benchmark on the development Windows machine measured 261.85 MB/s with approximately 1.03 MB allocated during the operation (the source buffer was allocated before timing). This is local test evidence, not a LAN/VPN speed promise. Run <code>go test ./internal/localshare -run &#39;^__PP_TOKEN_0__#39; -bench BenchmarkStreamingTransfer -benchtime=1x</code> to measure your machine.</p>
+<p>The frontend adds a route-lazy 11.6 KB JS / 4.5 KB CSS slice, without new package dependencies or increased startup bundle ceilings. Dedicated feature caps and a small aggregate allowance keep future growth visible.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#lan-discovery-and-private-networks">LAN discovery and private networks</a><a class="level-2" href="#storage-cancellation-and-identity">Storage, cancellation, and identity</a><a class="level-2" href="#development-verification">Development verification</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/local-transfer.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/local-transfer.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>Implemented on the feature branch; not included in an existing public release.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/downloader/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Downloader</strong>
+      </a>
+      <a href="/security/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Website security evidence</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

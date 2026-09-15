@@ -12,6 +12,26 @@ the [acceptance record](workbench-overhaul-2026-09.md) records tests, observatio
 
 ## Current source after v0.6.1
 
+### Local transfer · 15 September 2026
+
+[Files → Local transfer](local-transfer.md) now sends files directly between
+ProtoPeek devices. Enable a one-hour session, discover nearby participating devices
+or paste a reachable VPN address and fingerprint, choose files, and let the receiver
+accept each offer. TLS 1.3 streams files with progress, cancellation and SHA-256
+receipts. Existing Tailscale or WireGuard routes can carry the same transfer.
+
+This feature is implemented on the feature branch and documented on GitHub; it is
+not included in an existing public release. It has no bandwidth throttle, but
+network, storage and encryption still determine speed. It is independent of
+Downloader, Taildrop and the LocalSend protocol. VPN provisioning, NAT traversal,
+relays and partial-file resume are not implemented.
+
+Real TLS/file tests run across Windows, Linux and macOS; browser send/receive was
+verified against a separate local process. Real two-device multicast discovery and
+VPN throughput remain the next acceptance work. See the guide for setup, identity
+checks, storage behavior and the limits of the loopback benchmark.
+
+
 **Published on the explicit [edge channel](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge), after v0.6.1:** [local AI agents](/ai-agents/) adds MCP over stdio,
 a JSON CLI and visible activity in the running workbench. Eleven bounded tools cover HTTP,
 listeners, ports, routes, Tailscale inspection and downloads. Agent adapters for gRPC,
@@ -90,6 +110,7 @@ Six permanent destinations keep related tools together. Existing deep links rema
 
 | Priority | Work | Completion evidence |
 | --- | --- | --- |
+| 1 | Validate Local transfer across devices | Two-device LAN discovery, multicast-blocked manual connections, real Tailscale/WireGuard routes, firewall behavior and measured throughput on Windows/Linux |
 | 1 | Broaden native OS and installed-tool acceptance | Linux/macOS runtime runs, real capture backend, Cloudflare service fixtures and more Tailscale action scenarios |
 | 1 | Improve desktop launch/recovery | Stable single-instance launch, clear occupied-port recovery and optional native service lifecycle |
 | 2 | Extend saved request workflows | Import/export round trips, environment profiles and clear secret/persistence behavior |

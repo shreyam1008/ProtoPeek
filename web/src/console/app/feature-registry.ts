@@ -265,6 +265,21 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'local-transfer',
+    destination: 'files',
+    label: 'Local transfer',
+    route: '/files/local',
+    order: 125,
+    command: {
+      label: 'Send files to a nearby device',
+      keywords: 'local transfer lan send receive peer wireguard files',
+    },
+    homeEntry: {
+      label: 'Send a local file',
+      detail: 'Transfer directly to another ProtoPeek device on LAN or VPN.',
+    },
+  },
+  {
     id: 'security',
     destination: 'inspect',
     label: 'Security',

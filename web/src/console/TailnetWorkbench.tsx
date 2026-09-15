@@ -310,6 +310,7 @@ export function TailnetWorkbench() {
                   {peer ? (
                     <aside aria-label={`Device ${peer.name}`}>
                       <h2>{peer.name}</h2>
+                      <a href="#/files/local">Send files with ProtoPeek local transfer</a>
                       <p>{peer.dnsName || 'No DNS name reported'}</p>
                       <dl>
                         <dt>Addresses</dt>

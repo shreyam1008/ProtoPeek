@@ -66,7 +66,7 @@ v0.6.1 has six permanent destinations:
 | Inspect | gRPC, HTTP, WebSocket/SSE, Cap’n Proto, website and TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security`, `/grpc`, `/http` |
 | Network | this device, next hop, path, authorized discovery, map, and history | `/network/*`, `/this-pc`, `/routes` |
 | Publish | Cloudflare host evidence and guarded service actions | `/tunnels` |
-| Files | Downloader and artifact evidence | `/downloader`, `/downloads` |
+| Files | Downloader, local transfer, and artifact evidence | `/downloader`, `/downloads`, `/files/local` |
 | Settings | appearance, local dependencies, host policy, and About | `/settings`, `/roadmap` |
 
 Existing deep links remain valid. Installed Tailscale status, peers, netcheck and reviewed CLI
@@ -216,6 +216,12 @@ is optional—invalid JSON remains sendable verbatim. You can also import an exp
 bounded OpenAPI 3.x or Swagger 2.0 JSON definition by file or URL, including a Swagger UI or Scalar
 page that exposes its linked JSON definition. Light is the first-run theme; dark mode and local
 histories are stored only in the browser profile.
+
+Current source adds **Files → Local transfer**: discover nearby ProtoPeek devices,
+accept incoming files, and stream over encrypted LAN or existing VPN connections,
+with progress, cancellation, and SHA-256 verification. Enable a temporary session
+on both devices. [Setup and boundaries](guides/local-transfer.md). This is separate
+from the existing Taildrop integration and is not yet a public-release claim.
 
 v0.5.0 adds a local Downloader surface plus one explicit one-shot transfer command. The browser
 queues one URL or up to 32 independent jobs, reports partial batch success
@@ -478,6 +484,7 @@ adapter owns discovery, schema, invocation, cancellation, and its native inspect
 | Network topology | Shipped · v0.4.0 | Inference-labelled logical canvas, complete paged-list fallback, immutable snapshots, manual-field preservation, unsaved-edit/stale-tab guards, bounded browser persistence, canonical JSON, strict disclosed-loss GraphML, and CSV inventory |
 | Nmap XML evidence | Shipped · v0.3.0 · optional input | Bounded streaming offline import; Nmap is not required to import a file |
 | Installed Nmap | Stable · v0.6.1 | Explicit bounded TCP connect or light service scans, private subnet scope preview, cancellation, paginated evidence, export and Inspect handoff |
+| Local transfer | Current source · not released | Nearby ProtoPeek discovery, direct TLS files, receiver approval, SHA-256 receipts and manual existing-VPN connections. [Setup and boundaries](guides/local-transfer.md) |
 | Downloader | Shipped · v0.5.0 | Configured or system `aria2c`; 1–32 independent jobs, partial-success reporting, per-job destination/headers/User-Agent, job and whole-queue controls, single-job SHA-256 evidence, and one explicit `pp download`; bundled Windows x64 aria2 fallback |
 | Security evidence | Shipped · v0.5.0 | Disclosed `crt.name` historical candidates plus a separate consented, public-only, non-following one-HEAD observation with pinned DNS/TLS/HTTP evidence and no score |
 | This Device | Stable · v0.6.1 | Device-centred identity/interfaces, bounded Linux or native Windows local socket/process evidence and one-shot interface load, eligible fresh TCP-listener drafts, explicit public IPv4/IPv6 and BGP-origin observation, and a route-lazy bounded Cloudflare quality plan; macOS activity/counters remain unsupported, with no background work, privilege, automatic handoff action, or public-port verdict |
