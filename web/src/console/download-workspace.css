@@ -1,0 +1,24 @@
+.pp-download-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.pp-download-modes {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--pp-stroke);
+}
+.pp-download-modes button {
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+.pp-download-modes button[aria-pressed="true"] {
+  color: var(--pp-accent);
+  background: color-mix(in srgb, var(--pp-accent) 12%, transparent);
+  border-color: var(--pp-accent);
+}

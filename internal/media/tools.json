@@ -1,0 +1,112 @@
+[
+  {
+    "engine": "yt-dlp",
+    "platform": "windows/amd64",
+    "version": "2026.08.19",
+    "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp.exe",
+    "sha256": "66674953fe251b89f4d08c5f0e35e0728679bd67ab3d7d05c0562af101dd3e7a",
+    "size": 17840399
+  },
+  {
+    "engine": "yt-dlp",
+    "platform": "linux/amd64",
+    "version": "2026.08.19",
+    "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux",
+    "sha256": "58162f9bfdc27458ea47bfcb311cf47028f17d8154a8bf7d689861d46399230a",
+    "size": 40446224
+  },
+  {
+    "engine": "yt-dlp",
+    "platform": "linux/arm64",
+    "version": "2026.08.19",
+    "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_linux_aarch64",
+    "sha256": "b16e4dab368a816cd05d477d698a605a6ae87ccee1c8ffd38fa21d7254141fcc",
+    "size": 40167448
+  },
+  {
+    "engine": "yt-dlp",
+    "platform": "darwin/amd64",
+    "version": "2026.08.19",
+    "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos",
+    "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+    "size": 37146048
+  },
+  {
+    "engine": "yt-dlp",
+    "platform": "darwin/arm64",
+    "version": "2026.08.19",
+    "url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19/yt-dlp_macos",
+    "sha256": "0f192b7ec147ab6288885d6351d9ab67367640029b4377576ef46dd79cf7b202",
+    "size": 37146048
+  },
+  {
+    "engine": "gallery-dl",
+    "platform": "windows/amd64",
+    "version": "v1.32.12",
+    "url": "https://codeberg.org/mikf/gallery-dl/releases/download/v1.32.12/gallery-dl.exe",
+    "sha256": "0b36ae6734ed41e12be6be1b33d3165a450b3e0a811fc1b8c664c032f7f13b2c",
+    "size": 22541572
+  },
+  {
+    "engine": "gallery-dl",
+    "platform": "linux/amd64",
+    "version": "v1.32.12",
+    "url": "https://codeberg.org/mikf/gallery-dl/releases/download/v1.32.12/gallery-dl.bin",
+    "sha256": "fc1566e27100a3f1fa9e9c1d2c44860d0a96be236b290f72cac0e6f5be395bfb",
+    "size": 24064864
+  },
+  {
+    "engine": "deno",
+    "platform": "windows/amd64",
+    "version": "v2.9.6",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-pc-windows-msvc.zip",
+    "sha256": "15e5300b0ba3c3695a7621d90160a746ec9e710228cee639afa9d580f6e3cd11",
+    "size": 42601047,
+    "archive": "zip"
+  },
+  {
+    "engine": "deno",
+    "platform": "linux/amd64",
+    "version": "v2.9.6",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip",
+    "sha256": "394f07f4da2bebe6ce6f1e7ce0fa16429b29b08c35e3fac3fe25972676dff4b2",
+    "size": 41582794,
+    "archive": "zip"
+  },
+  {
+    "engine": "deno",
+    "platform": "linux/arm64",
+    "version": "v2.9.6",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-aarch64-unknown-linux-gnu.zip",
+    "sha256": "9a46afc6c392c7cd2ff71a31558935545b46408d0e87f7a86908c712721c046e",
+    "size": 39818676,
+    "archive": "zip"
+  },
+  {
+    "engine": "deno",
+    "platform": "darwin/amd64",
+    "version": "v2.9.6",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-apple-darwin.zip",
+    "sha256": "7d4524b82bcc557fe020a1a5b56956ed42b992ae5b28026e8ad5d17329533f5f",
+    "size": 42264433,
+    "archive": "zip"
+  },
+  {
+    "engine": "deno",
+    "platform": "darwin/arm64",
+    "version": "v2.9.6",
+    "url": "https://github.com/denoland/deno/releases/download/v2.9.6/deno-aarch64-apple-darwin.zip",
+    "sha256": "213a2f304f04d3c9cb5220669afad138f60a5aab1fe80962abdeb8f35807a472",
+    "size": 38446106,
+    "archive": "zip"
+  },
+  {
+    "engine": "ffmpeg",
+    "platform": "windows/amd64",
+    "version": "autobuild-2026-09-14-19-25",
+    "url": "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/autobuild-2026-09-14-19-25/ffmpeg-N-126556-g639ee84952-win64-gpl.zip",
+    "sha256": "758e7f0b936ce73212bee55c5f9a1dc3a783c1891b2c7aff51cdf81ec8b553ed",
+    "size": 194575431,
+    "archive": "zip"
+  }
+]

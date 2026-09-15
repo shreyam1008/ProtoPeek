@@ -160,6 +160,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		panic(err)
 	}
 	registerTransferHandlers(&mux, uiOpts.transferService)
+	registerMediaHandlers(&mux, uiOpts.mediaService)
 	registerThisPCHandlers(&mux, uiOpts.thisPCService)
 	registerTunnelHandlers(&mux, uiOpts.tunnelService)
 	domainCandidatesOperation := DomainCandidatesOperationHandler(domainCandidatesClient)

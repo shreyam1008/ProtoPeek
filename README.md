@@ -228,6 +228,14 @@ after queueing and queue/API results never return them, but ProtoPeek and aria2c
 values in private local host state (mode 0600 where supported). Do not use credentials on a machine
 whose local account or transfer-state directory you do not trust.
 
+Current source adds **Media, galleries & webpages** inside Downloader. Go handles direct files,
+HTML media discovery and original HTML snapshots without installing another engine. YouTube and
+supported social sites use optional one-click, SHA-256-verified yt-dlp or gallery-dl installation.
+The local media queue supports bounded playlist/gallery ranges, progress, cancellation and retry.
+ArchiveBox is an optional separate application for richer webpage captures; it is not bundled
+and native Windows is unavailable. See [media downloads](guides/media-downloads.md) for exact
+capabilities, dependencies and limitations. These additions are not in the v0.6.1 release.
+
 The CLI contract remains deliberately smaller:
 
 ```sh

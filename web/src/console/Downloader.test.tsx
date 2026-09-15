@@ -1,13 +1,11 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import {
+import Downloader, {
   batchResultMessage,
-  Downloader,
   parseBatchSources,
   safeSourceLabel,
   transferProgressLabel,
-} from './Downloader';
+} from './FileDownloader';
 import type { TransferJob } from './transfer-api';
 
 const stoppedSnapshot = {

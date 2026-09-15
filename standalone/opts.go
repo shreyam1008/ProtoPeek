@@ -3,6 +3,7 @@ package standalone
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shreyam1008/ProtoPeek/internal/media"
 	"html/template"
 	"io"
 	"net/http"
@@ -324,6 +325,7 @@ type handlerOptions struct {
 	pathCapabilitiesHandler http.Handler
 	pathTraceHandler        http.Handler
 	transferService         TransferService
+	mediaService            *media.Service
 	thisPCService           ThisPCService
 	tunnelService           TunnelService
 }
