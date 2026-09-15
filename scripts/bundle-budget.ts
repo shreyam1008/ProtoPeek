@@ -173,17 +173,29 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 6 * kibibyte,
   },
   {
-    label: 'Downloader workspace JavaScript',
-    pattern: /^Downloader-.+\.js$/,
+    label: 'File downloader workspace JavaScript',
+    pattern: /^FileDownloader-.+\.js$/,
     // Host history, restore/stop controls and foreground progress: 24,860 raw bytes.
     maxRawBytes: 25 * kibibyte,
     maxGzipBytes: 8 * kibibyte,
   },
   {
-    label: 'Downloader workspace CSS',
-    pattern: /^Downloader-.+\.css$/,
+    label: 'File downloader workspace CSS',
+    pattern: /^FileDownloader-.+\.css$/,
     maxRawBytes: 16 * kibibyte,
     maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'Downloader navigation JavaScript',
+    pattern: /^Downloader-.+\.js$/,
+    maxRawBytes: 3 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'Media downloader JavaScript',
+    pattern: /^MediaDownloader-.+\.js$/,
+    maxRawBytes: 18 * kibibyte,
+    maxGzipBytes: 6 * kibibyte,
   },
   {
     label: 'Downloader advanced-options CSS',
@@ -298,7 +310,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
     // No model runtime, polling in other routes, or additional startup dependency.
     // Navigation resume and searchable roadmap: 1,125,024 raw / 370,820 gzip.
-    maxRawBytes: 1114 * kibibyte,
+    // Media adds an independently lazy 18 KiB allowance; file and startup caps stay unchanged.
+    maxRawBytes: (1114 + 18) * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
     maxGzipBytes: 368 * kibibyte,
   },
@@ -312,7 +325,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // bytes; keep small explicit headroom without hiding route growth.
     // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
     // No dependency added; startup JS limits remain unchanged.
-    maxRawBytes: 340 * kibibyte,
+    // Native/media workspace CSS and navigation: 4 KiB additional route-only allowance.
+    maxRawBytes: (340 + 4) * kibibyte,
     maxGzipBytes: 67 * kibibyte,
   },
 ];

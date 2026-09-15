@@ -46,6 +46,7 @@ import (
 	_ "google.golang.org/grpc/xds"
 
 	"github.com/shreyam1008/ProtoPeek/internal"
+	"github.com/shreyam1008/ProtoPeek/internal/media"
 	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
@@ -585,9 +586,19 @@ func Run() {
 	if err != nil {
 		fail(err, "Failed to load downloader host configuration")
 	}
+	var processMediaService *media.Service
+	if !*unsafeAllowRemote {
+		processMediaService, err = media.New()
+		if err != nil {
+			warn("Media downloader unavailable: %v", err)
+		}
+	}
 	var transferShutdownOnce sync.Once
 	shutdownTransfers := func() {
 		transferShutdownOnce.Do(func() {
+			if processMediaService != nil {
+				processMediaService.Close()
+			}
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), downloadCommandShutdownTime)
 			defer cancel()
 			if err := processTransferService.Shutdown(shutdownCtx); err != nil {
@@ -647,7 +658,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
-		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService), standalone.WithMediaService(processMediaService))
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
 		}
@@ -799,7 +810,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
-		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService), standalone.WithMediaService(processMediaService))
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
 		}

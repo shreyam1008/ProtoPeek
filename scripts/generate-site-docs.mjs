@@ -318,6 +318,13 @@ async function writeDownloaderPage() {
             </figure>
           </section>
 
+          <section class="pp-download-section" aria-labelledby="media-source-title">
+            <div class="pp-download-section-heading">
+              <h2 id="media-source-title">Current source: media, galleries and webpages.</h2>
+              <p>Native Go saves direct files, discovers media links in HTML and saves original HTML snapshots. Optional yt-dlp and gallery-dl engines install with one click and verified checksums for supported social sites. Media jobs have bounded item ranges, cancellation and progress. ArchiveBox remains a separate optional application; native Windows is unsupported. This source work is not included in the v0.6.1 download above.</p>
+            </div>
+          </section>
+
           <section class="pp-download-section" aria-labelledby="workflow-title">
             <div class="pp-download-section-heading">
               <h2 id="workflow-title">A bounded transfer workflow, not a hidden service.</h2>
