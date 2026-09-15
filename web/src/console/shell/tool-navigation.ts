@@ -24,7 +24,7 @@ export const toolGroups: Record<
     { label: 'Saved evidence', ids: ['network-map', 'network-history'] },
   ],
   publish: [{ label: 'Local publishing', ids: ['tunnels'] }],
-  files: [{ label: 'Transfers', ids: ['downloader'] }],
+  files: [{ label: 'Transfers', ids: ['downloader', 'local-transfer'] }],
   settings: [
     { label: 'Preferences', ids: ['settings', 'updates'] },
     { label: 'Integrations & help', ids: ['agents', 'roadmap'] },

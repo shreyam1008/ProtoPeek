@@ -66,7 +66,7 @@ v0.6.1 has six permanent destinations:
 | Inspect | gRPC, HTTP, WebSocket/SSE, Cap’n Proto, website and TLS evidence | `/protocols`, `/protocols/grpc`, `/protocols/http`, `/security`, `/grpc`, `/http` |
 | Network | this device, next hop, path, authorized discovery, map, and history | `/network/*`, `/this-pc`, `/routes` |
 | Publish | Cloudflare host evidence and guarded service actions | `/tunnels` |
-| Files | Downloader and artifact evidence | `/downloader`, `/downloads` |
+| Files | Downloader, local transfer, and artifact evidence | `/downloader`, `/downloads`, `/files/local` |
 | Settings | appearance, local dependencies, host policy, and About | `/settings`, `/roadmap` |
 
 Existing deep links remain valid. Installed Tailscale status, peers, netcheck and reviewed CLI
@@ -216,6 +216,12 @@ is optional—invalid JSON remains sendable verbatim. You can also import an exp
 bounded OpenAPI 3.x or Swagger 2.0 JSON definition by file or URL, including a Swagger UI or Scalar
 page that exposes its linked JSON definition. Light is the first-run theme; dark mode and local
 histories are stored only in the browser profile.
+
+Current source adds **Files → Local transfer**: discover nearby ProtoPeek devices,
+accept incoming files, and stream over encrypted LAN or existing VPN connections,
+with progress, cancellation, and SHA-256 verification. Enable a temporary session
+on both devices. [Setup and boundaries](guides/local-transfer.md). This is separate
+from the existing Taildrop integration and is not yet a public-release claim.
 
 v0.5.0 adds a local Downloader surface plus one explicit one-shot transfer command. The browser
 queues one URL or up to 32 independent jobs, reports partial batch success

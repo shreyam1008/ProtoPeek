@@ -70,6 +70,7 @@ export const releaseCapabilities = [
   },
   { featureId: 'tailnet', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'downloader', releaseStatus: 'stable', docsSlug: 'downloader' },
+  { featureId: 'local-transfer', releaseStatus: 'source', docsSlug: 'downloader' },
   { featureId: 'network-ports', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-nmap', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-packets', releaseStatus: 'stable', docsSlug: 'network-workbench' },

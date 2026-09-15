@@ -97,8 +97,8 @@ describe('feature registry', () => {
     expect(new Set(orders).size).toBe(orders.length);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(commandDestinationFeatures.map((feature) => feature.order)).toEqual([
-      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 130, 140, 150, 155, 156,
-      160,
+      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 125, 130, 140, 150, 155,
+      156, 160,
     ]);
     expect(aliases.every((alias) => !routeSet.has(alias))).toBe(true);
   });
@@ -148,6 +148,7 @@ describe('feature registry', () => {
       'Open This Device',
       'Open Tailscale workbench',
       'Open Downloader',
+      'Send files to a nearby device',
       'Open Cloudflare tunnel operations',
       'Open Security evidence',
       'Open Settings',
@@ -161,6 +162,7 @@ describe('feature registry', () => {
       'Check this device',
       'Inspect Cloudflare tunnels',
       'Download a file',
+      'Send a local file',
       'Check a public website',
     ]);
     expect(inspectEntryFeatures.map((feature) => feature.label)).toEqual([

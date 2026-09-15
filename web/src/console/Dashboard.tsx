@@ -24,6 +24,7 @@ const startTaskIcons = {
   'this-pc': Monitor,
   tunnels: Cloud,
   downloader: Download,
+  'local-transfer': Download,
   security: ShieldCheck,
 } as const;
 

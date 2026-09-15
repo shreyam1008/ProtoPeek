@@ -330,6 +330,16 @@ async function writeDownloaderPage() {
             </ol>
           </section>
 
+          <section aria-labelledby="local-transfer-title">
+            <h2 id="local-transfer-title">Current source: direct device-to-device transfer.</h2>
+            <p>Files → Local transfer discovers nearby ProtoPeek devices and streams accepted files
+            over encrypted LAN or existing VPN connections, with progress, cancellation, and SHA-256
+            verification. Both devices enable a temporary session. This is independent of Downloader
+            and Taildrop; VPN setup and internet relays remain outside this feature.</p>
+            <p>This capability is in current source, not an existing public release.
+            <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/local-transfer.md">Read the local transfer guide</a>.</p>
+          </section>
+
           <section class="pp-download-split" aria-labelledby="cli-title">
             <figure class="pp-download-media pp-download-media-mobile">
               <img
