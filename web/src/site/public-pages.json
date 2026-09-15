@@ -508,6 +508,36 @@
       "lastModified": "2026-09-07"
     },
     {
+      "id": "local-transfer",
+      "path": "/local-transfer/",
+      "slug": "local-transfer",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "files",
+      "title": "Local transfer",
+      "documentTitle": "ProtoPeek Local Transfer | Direct LAN and VPN File Sharing",
+      "description": "Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality.",
+      "question": "How can I send files to a nearby device or an existing VPN peer?",
+      "section": "Files",
+      "sourcePath": "guides/local-transfer.md",
+      "lastModified": "2026-09-15",
+      "status": {
+        "label": "Current source",
+        "tone": "guide",
+        "detail": "Implemented on the feature branch; not included in an existing public release."
+      },
+      "highlights": [
+        "Nearby device discovery",
+        "Encrypted direct transfers",
+        "Existing VPN routes"
+      ],
+      "visual": "downloader",
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.8"
+      }
+    },
+    {
       "id": "security",
       "path": "/security/",
       "slug": "security",
@@ -640,13 +670,13 @@
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
-      "lastModified": "2026-09-07",
+      "lastModified": "2026-09-15",
       "status": {
-        "label": "Stable · v0.6.1",
-        "tone": "stable",
-        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
+        "label": "Stable + current source",
+        "tone": "guide",
+        "detail": "Separates v0.6.1, later source additions and future work. Local transfer is not in an existing public release."
       },
-      "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
+      "highlights": ["Shipped capabilities", "Local transfer in source", "Next verification steps"],
       "visual": "roadmap",
       "sitemap": {
         "changefreq": "weekly",

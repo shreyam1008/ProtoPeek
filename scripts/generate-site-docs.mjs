@@ -132,7 +132,7 @@ Repository: ${repoRootURL}
 - Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
 - Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
 - The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
-- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves transfers running while the server stays open; server restart restores recoverable jobs for explicit resume.
+- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves Downloader jobs running while the server stays open; server restart restores recoverable jobs for explicit resume.
 - Nmap, dumpcap, Tailscale and cloudflared require their respective installed tools. Cap’n Proto source compilation uses the optional capnp compiler; compiled schemas work without it.
 - macOS native path probes and socket/counter activity are unsupported. Headscale, NetBird, integrated elevation/sign-in, deeper packet decoding and returned-capability RPC workflows remain planned.
 - Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
@@ -337,7 +337,7 @@ async function writeDownloaderPage() {
             verification. Both devices enable a temporary session. This is independent of Downloader
             and Taildrop; VPN setup and internet relays remain outside this feature.</p>
             <p>This capability is in current source, not an existing public release.
-            <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/local-transfer.md">Read the local transfer guide</a>.</p>
+            <a href="/local-transfer/">Read the local transfer guide</a>.</p>
           </section>
 
           <section class="pp-download-split" aria-labelledby="cli-title">

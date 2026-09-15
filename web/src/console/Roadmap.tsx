@@ -126,6 +126,11 @@ const roadmap = [
       ],
 
       [
+        'Local transfer',
+        'Direct ProtoPeek-to-ProtoPeek files with nearby discovery, TLS 1.3, receiver approval, progress, cancellation and SHA-256 receipts. Manual connections use existing VPN routes; no VPN setup, relay or partial resume.',
+      ],
+
+      [
         'Downloader',
 
         'HTTP(S) queues through configured, system or bundled Windows amd64 aria2c, bounded options, live progress, pause/resume, restart recovery, completed history, checksum evidence and one-shot CLI transfer.',
@@ -165,6 +170,11 @@ const roadmap = [
     icon: Compass,
 
     items: [
+      [
+        'Local transfer across devices',
+        'Verify multicast discovery, firewall recovery and real Tailscale/WireGuard transfers across Windows and Linux; measure network throughput beyond the existing loopback evidence.',
+      ],
+
       [
         'Incremental response-lab streams',
 
