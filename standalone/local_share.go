@@ -1,7 +1,9 @@
 package standalone
 
 import (
+	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/localshare"
@@ -24,7 +26,8 @@ func registerLocalShareHandlers(mux *http.ServeMux) {
 					// the wait for receiver acceptance. Cancellation still closes the body.
 					_ = http.NewResponseController(w).SetReadDeadline(time.Time{})
 					defer r.Body.Close()
-					err := service.Send(r.Context(), r.URL.Query().Get("peer"), r.URL.Query().Get("name"), r.ContentLength, r.Body)
+					body := &localShareBody{ReadCloser: r.Body, controller: http.NewResponseController(w)}
+					err := service.Send(r.Context(), r.URL.Query().Get("peer"), r.URL.Query().Get("name"), r.ContentLength, body)
 					if err != nil {
 						http.Error(w, err.Error(), http.StatusConflict)
 						return
@@ -71,4 +74,32 @@ func registerLocalShareHandlers(mux *http.ServeMux) {
 			}
 		})
 	}
+}
+
+// net/http's Body.Close waits for a concurrent Read. A socket deadline must
+// unblock that read first when cancellation comes from the job controls.
+type localShareBody struct {
+	io.ReadCloser
+	controller *http.ResponseController
+	mu         sync.Mutex
+	closed     bool
+}
+
+func (body *localShareBody) Read(p []byte) (int, error) {
+	body.mu.Lock()
+	if body.closed {
+		body.mu.Unlock()
+		return 0, io.ErrClosedPipe
+	}
+	_ = body.controller.SetReadDeadline(time.Now().Add(30 * time.Second))
+	body.mu.Unlock()
+	return body.ReadCloser.Read(p)
+}
+
+func (body *localShareBody) Close() error {
+	body.mu.Lock()
+	body.closed = true
+	_ = body.controller.SetReadDeadline(time.Now())
+	body.mu.Unlock()
+	return body.ReadCloser.Close()
 }

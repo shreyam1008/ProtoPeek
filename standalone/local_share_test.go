@@ -1,10 +1,13 @@
 package standalone
 
 import (
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLocalShareControlsRequireLocalCSRFBeforeBody(t *testing.T) {
@@ -39,5 +42,34 @@ func TestLocalShareControlsRequireLocalCSRFBeforeBody(t *testing.T) {
 	handler.ServeHTTP(w, req)
 	if w.Code != 200 || !strings.Contains(w.Body.String(), `"running":false`) {
 		t.Fatalf("Initial state: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestLocalShareCancellationUnblocksStalledBrowserBody(t *testing.T) {
+	done := make(chan error, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := &localShareBody{ReadCloser: r.Body, controller: http.NewResponseController(w)}
+		timer := time.AfterFunc(100*time.Millisecond, func() { _ = body.Close() })
+		defer timer.Stop()
+		_, err := io.Copy(io.Discard, body)
+		done <- err
+	}))
+	defer server.Close()
+	conn, err := net.Dial("tcp", server.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+	_, err = io.WriteString(conn, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: 1024\r\n\r\nx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("Stalled upload unexpectedly completed")
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("Cancellation left the browser body blocked")
 	}
 }

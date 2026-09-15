@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -121,7 +122,17 @@ func (s *Service) upload(w http.ResponseWriter, r *http.Request) {
 	directory := s.directory
 	s.mu.Unlock()
 	defer j.cancel()
-	stop := context.AfterFunc(j.ctx, func() { _ = r.Body.Close() })
+	var readDeadlineMu sync.Mutex
+	setReadDeadline := func() {
+		readDeadlineMu.Lock()
+		defer readDeadlineMu.Unlock()
+		deadline := time.Now()
+		if j.ctx.Err() == nil {
+			deadline = deadline.Add(30 * time.Second)
+		}
+		_ = http.NewResponseController(w).SetReadDeadline(deadline)
+	}
+	stop := context.AfterFunc(j.ctx, func() { setReadDeadline(); _ = r.Body.Close() })
 	defer stop()
 	root, err := os.OpenRoot(directory)
 	if err != nil {
@@ -139,7 +150,7 @@ func (s *Service) upload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer root.Remove(temp)
 	h := sha256.New()
-	reader := &progressReader{reader: io.LimitReader(r.Body, j.Size+1), service: s, id: j.ID, deadline: func() { _ = http.NewResponseController(w).SetReadDeadline(time.Now().Add(30 * time.Second)) }}
+	reader := &progressReader{reader: io.LimitReader(r.Body, j.Size+1), service: s, id: j.ID, deadline: setReadDeadline}
 	n, err := io.CopyBuffer(io.MultiWriter(f, h), reader, make([]byte, 256<<10))
 	if err == nil && n != j.Size {
 		err = errors.New("Incomplete file; partial data removed")
