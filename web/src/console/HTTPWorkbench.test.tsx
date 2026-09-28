@@ -772,9 +772,11 @@ describe('HTTPWorkbench', () => {
     } as Response);
     await waitFor(() => expect(screen.getAllByText('202 Current').length).toBeGreaterThan(0));
     expect(screen.queryByText('201 Old')).not.toBeInTheDocument();
-    const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
-    expect(stored).toContain('202 Current');
-    expect(stored).not.toContain('201 Old');
+    await waitFor(() => {
+      const stored = window.localStorage.getItem(appStorageKeys.httpHistory) ?? '';
+      expect(stored).toContain('202 Current');
+      expect(stored).not.toContain('201 Old');
+    });
   });
 
   it('turns a rapid second send into cancellation and returns the request to idle', async () => {
