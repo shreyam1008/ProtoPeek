@@ -93,3 +93,24 @@ func TestProviderIdentityAndEvidenceBounds(t *testing.T) {
 		t.Fatal("unrequested provider extension retained")
 	}
 }
+
+func TestProviderCoordinatesAreOptionalPairedAndBounded(t *testing.T) {
+	address := netip.MustParseAddr("1.1.1.1")
+	for _, fields := range []string{``, `,"latitude":0,"longitude":0`, `,"latitude":27.7172,"longitude":85.3240`} {
+		entry, err := decodeProvider([]byte(`{"ip":"1.1.1.1","success":true`+fields+`}`), address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if fields != "" && (entry.Latitude == nil || entry.Longitude == nil) {
+			t.Fatal("coordinates lost", entry)
+		}
+		if fields == "" && (entry.Latitude != nil || entry.Longitude != nil) {
+			t.Fatal("invented coordinates", entry)
+		}
+	}
+	for _, fields := range []string{`"latitude":91,"longitude":0`, `"latitude":0,"longitude":181`, `"latitude":0`, `"longitude":0`, `"latitude":"27","longitude":85`} {
+		if _, err := decodeProvider([]byte(`{"ip":"1.1.1.1","success":true,`+fields+`}`), address); err == nil {
+			t.Fatal("accepted invalid coordinates", fields)
+		}
+	}
+}

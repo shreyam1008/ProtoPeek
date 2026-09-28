@@ -31,6 +31,7 @@ function isNetworkWorkbenchPath(pathname: string) {
 }
 
 function sectionFromPath(pathname: string): NetworkSection {
+  if (pathname.replace(/\/+$/, '') === '/network') return 'local';
   if (!isNetworkWorkbenchPath(pathname)) return 'path';
   const candidate = pathname.split('/').filter(Boolean).at(-1);
   return candidate === 'local' || candidate === 'map' || candidate === 'history'

@@ -68,6 +68,20 @@ const tailnetRoute = createRoute({
 const packetsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/packets',
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { host?: string; port?: string; mode?: 'live' | 'file' } => ({
+    host: typeof search.host === 'string' && search.host.length <= 64 ? search.host : undefined,
+    port:
+      (typeof search.port === 'string' || typeof search.port === 'number') &&
+      /^\d{1,5}$/.test(String(search.port)) &&
+      Number(search.port) >= 1 &&
+      Number(search.port) <= 65535
+        ? String(search.port)
+        : undefined,
+    mode: search.mode === 'live' || search.mode === 'file' ? search.mode : undefined,
+  }),
+  remountDeps: ({ search }) => [search.host, search.port, search.mode],
   component: lazyRouteComponent(() => import('./PacketWorkbench'), 'PacketWorkbench'),
 });
 const thisPCRoute = createRoute({
@@ -119,7 +133,7 @@ const networkIndexRoute = createRoute({
   getParentRoute: () => networkRoute,
   path: '/',
   beforeLoad: () => {
-    throw redirect({ to: '/network/path' });
+    throw redirect({ to: '/network/local' });
   },
 });
 const networkLocalRoute = createRoute({

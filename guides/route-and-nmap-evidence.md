@@ -80,9 +80,10 @@ possible and defaults to destination port `33434`. It does not shell out, parse 
 output, install a package, or require elevation. Native ICMP and TCP trace methods are not
 implemented in this slice.
 
-Darwin and Windows compile explicit unsupported capability evidence for active hop probing. The UI
-does not offer to install Nmap, `traceroute`, `tracepath`, or another fallback, and it does not ask
-for administrator access. Their read-only next-hop backends remain available independently.
+Windows uses native IPv4/IPv6 ICMP echo APIs for active hop probing, with the same probe and time
+bounds. Darwin reports active hop probing as unsupported. The UI does not offer to install Nmap,
+`traceroute`, `tracepath`, or another fallback, and it does not ask for administrator access.
+Read-only next-hop backends remain available independently on all three platforms.
 
 ### Interpretation boundary
 

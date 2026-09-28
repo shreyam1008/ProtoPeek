@@ -62,6 +62,20 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 5 * kibibyte,
   },
   {
+    label: 'Packet report JavaScript',
+    pattern: /^PacketReportView-.+\.js$/,
+    maxRawBytes: 8 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'complete packet inspection JavaScript',
+    pattern:
+      /^(?:PacketWorkbench|PacketReportView|packet-api|packet-analysis|listener-handoff)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 21 * kibibyte,
+    maxGzipBytes: 8 * kibibyte,
+  },
+  {
     label: 'Cap’n Proto workspace JavaScript',
     pattern: /^CapnpWorkbench-.+\.js$/,
     maxRawBytes: 16 * kibibyte,
@@ -173,6 +187,61 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 6 * kibibyte,
   },
   {
+    label: 'Nearby devices inventory JavaScript',
+    pattern: /^LocalNetworkInventory-.+\.js$/,
+    maxRawBytes: 10 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'selected device actions JavaScript',
+    pattern: /^NetworkNodeActions-.+\.js$/,
+    maxRawBytes: 3 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'Nearby devices inventory model JavaScript',
+    pattern: /^local-network-inventory-.+\.js$/,
+    maxRawBytes: 6 * kibibyte,
+    maxGzipBytes: 3 * kibibyte,
+  },
+  {
+    label: 'Nearby devices inventory CSS',
+    pattern: /^LocalNetworkInventory-.+\.css$/,
+    maxRawBytes: 4 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'measured hop map JavaScript',
+    pattern: /^NetworkPathMap-.+\.js$/,
+    maxRawBytes: 5 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'approximate hop geography JavaScript',
+    pattern: /^NetworkPathGeography-.+\.js$/,
+    // Includes simplified offline land outlines; no map dependency or tile requests.
+    maxRawBytes: 16 * kibibyte,
+    maxGzipBytes: 7 * kibibyte,
+  },
+  {
+    label: 'complete network evidence JavaScript',
+    pattern:
+      /^(?:NetworkWorkbench|NetworkPathPanel|NetworkPathMap|NetworkPathGeography|NetworkNodeActions|HopAttribution|ip-attribution|LocalNetworkPanel|LocalNetworkInventory|local-network(?:-inventory|-values)?|network-path(?:-api|-draft|-geography)?|TopologyCanvas|network-model|bounded-response|listener-handoff)-.+\.js$/,
+    mode: 'aggregate',
+    // Includes every new lazy evidence stage and shared model. The existing base
+    // view budget stays above, so neither initial loading nor splitting hides growth.
+    maxRawBytes: 188 * kibibyte,
+    maxGzipBytes: 64 * kibibyte,
+  },
+  {
+    label: 'complete network evidence CSS',
+    pattern:
+      /^(?:NetworkWorkbench|NetworkPathPanel|NetworkPathMap|NetworkPathGeography|HopAttribution|LocalNetworkPanel|LocalNetworkInventory)-.+\.css$/,
+    mode: 'aggregate',
+    maxRawBytes: 44 * kibibyte,
+    maxGzipBytes: 9 * kibibyte,
+  },
+  {
     label: 'Downloader workspace JavaScript',
     pattern: /^Downloader-.+\.js$/,
     // Host history, restore/stop controls and foreground progress: 24,860 raw bytes.
@@ -220,6 +289,20 @@ export const consoleBundleBudgets: BundleBudget[] = [
     pattern: /^speedtest-.+\.js$/,
     maxRawBytes: 64 * kibibyte,
     maxGzipBytes: 18 * kibibyte,
+  },
+  {
+    label: 'This Device sockets JavaScript',
+    pattern: /^SocketsPanel-.+\.js$/,
+    maxRawBytes: 10 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'complete This Device views JavaScript',
+    pattern: /^(?:ThisPC|SocketsPanel|StatusFact|radio|listener-handoff)-.+\.js$/,
+    mode: 'aggregate',
+    // The separately budgeted benchmark engine is fetched only for that operation.
+    maxRawBytes: 62 * kibibyte,
+    maxGzipBytes: 19 * kibibyte,
   },
   {
     label: 'This Device workspace CSS',
@@ -298,9 +381,14 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Local agent setup/activity adds a ~11 KiB route and reuses the HTTP response panel.
     // No model runtime, polling in other routes, or additional startup dependency.
     // Navigation resume and searchable roadmap: 1,125,024 raw / 370,820 gzip.
-    maxRawBytes: 1114 * kibibyte,
+    // Nearby inventory, service advertisements, logical/geographic maps, website
+    // handoffs and packet conversations expand the installed feature set. Measured
+    // September 27 with pinned Bun 1.3.10: 1,196,780 raw / 398,463 gzip bytes before
+    // the logical-map split. These features have individual and complete-journey
+    // caps above. All existing startup and base-view ceilings remain unchanged.
+    maxRawBytes: 1176 * kibibyte,
     // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 368 * kibibyte,
+    maxGzipBytes: 394 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -312,8 +400,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // bytes; keep small explicit headroom without hiding route growth.
     // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
     // No dependency added; startup JS limits remain unchanged.
-    maxRawBytes: 340 * kibibyte,
-    maxGzipBytes: 67 * kibibyte,
+    // The new evidence views bring the installed total to 363,834 raw / 72,655
+    // gzip bytes (pinned Bun 1.3.10). Shared and existing base CSS caps stay fixed.
+    maxRawBytes: 358 * kibibyte,
+    maxGzipBytes: 72 * kibibyte,
   },
 ];
 

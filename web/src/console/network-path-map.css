@@ -1,0 +1,231 @@
+.pp-measured-path-map {
+  margin-block: 20px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 12px;
+  background: var(--pp-surface);
+  padding: 18px;
+}
+
+.pp-measured-path-map header {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pp-measured-path-map h3 {
+  margin: 0 0 6px;
+}
+.pp-measured-path-map p {
+  color: var(--pp-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pp-measured-path-map :where(header > span) {
+  font-size: 12px;
+  color: var(--pp-accent-signal);
+}
+.pp-measured-path-map ol {
+  display: flex;
+  overflow-x: auto;
+  gap: 28px;
+  padding: 12px 0 18px;
+  margin: 0;
+  list-style: none;
+}
+.pp-measured-path-map li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 188px;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+.pp-measured-path-map :where(li > svg) {
+  width: 20px;
+  height: 20px;
+  color: var(--pp-accent-signal);
+}
+.pp-measured-path-map li > .pp-map-connector {
+  position: absolute;
+  left: -25px;
+  top: 28px;
+  color: var(--pp-text-muted);
+}
+.pp-measured-path-map li.is-silent,
+.pp-measured-path-map li.is-unconfirmed {
+  border-style: dashed;
+}
+.pp-measured-path-map :where(li strong) {
+  font-size: 12px;
+}
+.pp-measured-path-map code,
+.pp-map-responder > span {
+  font-size: 11px;
+}
+.pp-measured-path-map small {
+  color: var(--pp-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pp-map-responder {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pp-map-responder > i {
+  height: 3px;
+  background: var(--pp-accent-signal);
+  border-radius: 2px;
+}
+.pp-measured-path-map .pp-map-limitation {
+  margin-bottom: 0;
+}
+.pp-path-next-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 12px;
+}
+.pp-path-next-actions a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pp-accent-signal);
+  font-size: 12px;
+}
+.pp-path-next-actions svg {
+  height: 14px;
+  width: 14px;
+}
+.pp-path-next-actions :focus-visible {
+  outline: 2px solid var(--pp-accent-signal);
+  outline-offset: 3px;
+}
+
+.pp-path-geography {
+  padding: 18px;
+  margin-block: 18px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 12px;
+}
+.pp-path-geography header {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pp-path-geography h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.pp-path-geography header > span,
+.pp-path-geography p,
+.pp-path-geography li {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--pp-text-muted);
+}
+.pp-path-geography svg {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 8px;
+}
+.pp-geography-ocean {
+  fill: var(--pp-surface-sunken);
+}
+.pp-geography-land {
+  fill: var(--pp-stroke-strong);
+  stroke: var(--pp-text-faint);
+  stroke-width: 0.15;
+}
+.pp-geography-grid {
+  stroke: var(--pp-stroke);
+  stroke-width: 0.25;
+}
+.pp-geography-order {
+  stroke: var(--pp-accent-signal);
+  stroke-width: 0.65;
+  stroke-dasharray: 2 2;
+}
+.pp-geography-point {
+  fill: var(--pp-accent-signal);
+  stroke: var(--pp-canvas);
+  stroke-width: 0.65;
+}
+.pp-path-geography .is-selected .pp-geography-point {
+  stroke-width: 1;
+}
+.pp-geography-marker-label {
+  fill: var(--pp-text);
+  font-size: 4px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--pp-canvas);
+  stroke-width: 1px;
+}
+.pp-geography-hops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block: 12px;
+  border: 0;
+  padding: 0;
+  min-inline-size: 0;
+}
+.pp-geography-hops legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.pp-geography-hops button {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 6px;
+  background: var(--pp-surface);
+  color: var(--pp-text);
+  text-align: left;
+}
+.pp-geography-hops button[aria-pressed="true"] {
+  border-color: var(--pp-accent-signal);
+}
+.pp-geography-hops strong,
+.pp-geography-hops span {
+  font-size: 11px;
+}
+.pp-geography-hops small {
+  color: var(--pp-text-muted);
+  font-size: 10px;
+}
+.pp-path-geography :focus-visible {
+  outline: 2px solid var(--pp-accent-signal);
+  outline-offset: 2px;
+}
+.pp-geography-selected {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  padding: 12px;
+  background: var(--pp-surface-sunken);
+  border-radius: 6px;
+}
+.pp-geography-selected small {
+  color: var(--pp-text-muted);
+}
+.pp-path-geography details {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.pp-path-geography summary {
+  cursor: pointer;
+}
+.pp-path-geography .pp-geography-source {
+  font-size: 10px;
+  margin-bottom: 0;
+}

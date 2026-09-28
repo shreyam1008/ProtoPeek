@@ -882,6 +882,227 @@
   font-size: 0.78rem;
 }
 
+.pp-local-discovery-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin: 0.65rem 0;
+  color: var(--pp-text-muted);
+  font-size: 0.72rem;
+}
+
+.pp-local-discovery-summary strong {
+  color: var(--pp-code-text);
+  font-family: var(--font-mono);
+}
+
+.pp-local-discovery-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.pp-local-discovery-filter {
+  display: grid;
+  min-width: 12rem;
+  flex: 1;
+  gap: 0.28rem;
+  color: var(--pp-text-muted);
+  font-size: 0.7rem;
+}
+
+.pp-local-discovery-filter .pp-input {
+  width: 100%;
+}
+
+.pp-local-discovery-count {
+  flex: none;
+  padding-bottom: 0.5rem;
+  color: var(--pp-text-faint);
+  font-size: 0.7rem;
+}
+
+.pp-local-discovery-layout > nav > header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--pp-stroke);
+  padding: 0.55rem 0.7rem;
+}
+
+.pp-local-discovery-layout > nav > header span {
+  color: var(--pp-text-faint);
+  font-size: 0.66rem;
+}
+
+.pp-local-discovery-detail {
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.8rem;
+}
+
+.pp-local-discovery-detail > header p {
+  color: var(--pp-text-faint);
+  font-size: 0.66rem;
+}
+
+.pp-local-discovery-detail > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.pp-local-discovery-detail > header .pp-kicker {
+  font-size: 0.62rem;
+}
+
+.pp-local-discovery-detail > header p {
+  margin: 0;
+}
+
+.pp-local-discovery-detail > header .pp-button {
+  flex: none;
+}
+
+.pp-local-discovery-observations > h5,
+.pp-local-discovery-hints > h5 {
+  margin: 0 0 0.35rem;
+  color: var(--pp-text-faint);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+.pp-local-discovery-observations > ul,
+.pp-local-discovery-hints > ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-local-port-observation {
+  min-width: 0;
+  border: 1px solid var(--pp-stroke);
+  border-radius: 0.34rem;
+  padding: 0.48rem 0.55rem;
+  background: var(--pp-surface);
+}
+
+.pp-local-port-heading {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.pp-local-port-heading > strong {
+  color: var(--pp-code-text);
+  font-size: 0.7rem;
+}
+
+.pp-local-port-heading > span,
+.pp-local-port-observation > details,
+.pp-local-discovery-hints li {
+  color: var(--pp-text-muted);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.pp-local-port-observation > details {
+  margin-top: 0.32rem;
+  border-top: 1px solid var(--pp-stroke);
+  padding-top: 0.3rem;
+}
+
+.pp-local-port-observation > details > summary,
+.pp-local-discovery-metadata > summary {
+  color: var(--pp-text-muted);
+  font-size: 0.66rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.pp-local-port-observation dl {
+  display: grid;
+  gap: 0.28rem;
+  margin: 0.45rem 0;
+}
+
+.pp-local-port-observation dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.42fr) minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.pp-local-port-observation dt {
+  color: var(--pp-text-faint);
+}
+
+.pp-local-port-observation dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--pp-code-text);
+}
+
+.pp-local-port-observation details ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1rem;
+}
+
+.pp-local-discovery-hints {
+  border-left: 2px solid var(--pp-warning-signal);
+  padding-left: 0.55rem;
+}
+
+.pp-local-discovery-hints > h5 {
+  color: var(--pp-warning-signal);
+}
+
+.pp-local-discovery-metadata {
+  border-top: 1px solid var(--pp-stroke);
+  padding-top: 0.45rem;
+}
+
+.pp-local-discovery-metadata > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.55rem;
+  margin-top: 0.45rem;
+}
+
+.pp-local-discovery-metadata .pp-label {
+  align-self: end;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .pp-local-discovery-toolbar,
+  .pp-local-discovery-detail > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pp-local-discovery-count {
+    padding-bottom: 0;
+  }
+
+  .pp-local-discovery-layout > nav > header {
+    flex: none;
+  }
+
+  .pp-local-discovery-detail > header .pp-button {
+    align-self: start;
+  }
+
+  .pp-local-discovery-metadata > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .pp-discovery-result {
   display: grid;
   gap: 0.38rem;
@@ -909,6 +1130,13 @@
   margin-top: 0.35rem;
   color: var(--pp-warning-signal);
   font-size: 0.7rem;
+}
+
+.pp-local-discovery-detail > header h4 {
+  margin: 0.15rem 0;
+  color: var(--pp-code-text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
 }
 
 .pp-workspace-picker {
@@ -1496,6 +1724,11 @@
   background: var(--pp-surface);
 }
 
+.pp-local-discovery-layout {
+  min-height: 28rem;
+  grid-template-columns: minmax(12rem, 0.72fr) minmax(0, 1.5fr);
+}
+
 .pp-history-layout > nav {
   overflow-y: auto;
   border-right: 1px solid var(--pp-stroke);
@@ -1740,6 +1973,10 @@
 
   .pp-local-network-panel .pp-status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pp-local-availability {
+    display: grid;
   }
 
   .pp-topology-toolbar {

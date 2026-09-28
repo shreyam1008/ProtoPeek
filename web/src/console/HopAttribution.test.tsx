@@ -69,9 +69,23 @@ it('rejects provider, identity, size and number mismatches while accepting mappe
     { ...response, entries: [{ ...entry, ip: '8.8.8.8' }] },
     { ...response, entries: [{ ...entry, asn: -1 }] },
     { ...response, entries: [{ ...entry, country: 'x'.repeat(129) }] },
+    { ...response, entries: [{ ...entry, latitude: 91, longitude: 0 }] },
+    { ...response, entries: [{ ...entry, latitude: 0, longitude: -181 }] },
+    { ...response, entries: [{ ...entry, latitude: 0 }] },
+    { ...response, entries: [{ ...entry, latitude: Number.NaN, longitude: 0 }] },
+    { ...response, entries: [{ ...entry, status: 'skipped', latitude: 0, longitude: 0 }] },
   ]) {
     expect(() => normalizeIPAttribution(value, ['1.1.1.1'])).toThrow();
   }
+});
+
+it('retains optional approximate coordinates including zero while preserving old evidence', () => {
+  expect(normalizeIPAttribution(response, ['1.1.1.1']).entries[0]?.latitude).toBeUndefined();
+  const result = normalizeIPAttribution(
+    { ...response, entries: [{ ...entry, latitude: 0, longitude: 0 }] },
+    ['1.1.1.1']
+  );
+  expect(result.entries[0]).toMatchObject({ latitude: 0, longitude: 0 });
 });
 
 it('retains distinct local IPv6 scopes in skipped labels', () => {

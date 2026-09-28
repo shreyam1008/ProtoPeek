@@ -75,6 +75,14 @@ it('offers draft-only destinations for TCP listeners and leaves UDP as evidence'
 
   expect(screen.getByText(/TCP binds can prefill drafts/i)).toBeVisible();
   expect(screen.getByText('UDP evidence only')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Capture traffic on port 8080' })).toHaveAttribute(
+    'href',
+    '#/network/packets?mode=live&port=8080'
+  );
+  expect(screen.getByRole('link', { name: 'Capture traffic on port 5353' })).toHaveAttribute(
+    'href',
+    '#/network/packets?mode=live&port=5353'
+  );
   const menu = screen.getByText('Open draft').closest('details');
   expect(menu).not.toBeNull();
   if (!menu) return;

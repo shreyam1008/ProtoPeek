@@ -5,6 +5,8 @@ export type IPAttributionEntry = {
   country: string;
   region: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
   asn: number;
   organization: string;
   isp: string;
@@ -66,12 +68,29 @@ export function normalizeIPAttribution(value: unknown, addresses: string[]): IPA
     const asn = entry.asn ?? 0;
     if (typeof asn !== 'number' || !Number.isInteger(asn) || asn < 0 || asn > 4294967295)
       throw new Error('Malformed ASN.');
+    const hasLatitude = entry.latitude !== undefined && entry.latitude !== null;
+    const hasLongitude = entry.longitude !== undefined && entry.longitude !== null;
+    if (
+      hasLatitude !== hasLongitude ||
+      (hasLatitude &&
+        (entry.status !== 'observed' ||
+          typeof entry.latitude !== 'number' ||
+          !Number.isFinite(entry.latitude) ||
+          Math.abs(entry.latitude) > 90 ||
+          typeof entry.longitude !== 'number' ||
+          !Number.isFinite(entry.longitude) ||
+          Math.abs(entry.longitude) > 180))
+    )
+      throw new Error('Malformed approximate location coordinates.');
     return {
       ip,
       status: entry.status as IPAttributionEntry['status'],
       country: text(entry.country, 128),
       region: text(entry.region, 128),
       city: text(entry.city, 128),
+      ...(hasLatitude
+        ? { latitude: entry.latitude as number, longitude: entry.longitude as number }
+        : {}),
       organization: text(entry.organization, 256),
       isp: text(entry.isp, 256),
       asn,

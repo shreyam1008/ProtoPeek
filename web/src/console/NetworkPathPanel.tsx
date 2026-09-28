@@ -1,13 +1,5 @@
-import {
-  ArrowRight,
-  CircleHelp,
-  LoaderCircle,
-  Network,
-  Route,
-  Save,
-  ShieldCheck,
-  Square,
-} from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { ArrowRight, LoaderCircle, Route, Save, ShieldCheck, Square } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
@@ -17,19 +9,32 @@ import {
   buildHopRows,
   type PathCapabilities,
   type PathTrace,
-  pathRegionDictionary,
   summarizePathTrace,
 } from './network-path';
 import { fetchPathCapabilities, type PathTraceRequest, traceNetworkPath } from './network-path-api';
+import { normalizePathDestination, takePathTarget } from './network-path-draft';
 import { ProtocolInfo } from './ProtocolInfo';
 import { OperationStatus } from './shell/OperationStatus';
+import { rememberPathWebsiteTarget } from './website-draft';
 
 const HopAttribution = lazy(() => import('./HopAttribution'));
+const NetworkPathMap = lazy(() => import('./NetworkPathMap'));
+const PathEvidenceNotes = lazy(() =>
+  import('./NetworkPathMap').then((module) => ({ default: module.PathEvidenceNotes }))
+);
+const NetworkPathGeography = lazy(() => import('./NetworkPathGeography'));
 
-export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTrace) => unknown }) {
+export function NetworkPathPanel({
+  onSaveTrace,
+  initialDestination,
+}: {
+  onSaveTrace?: (trace: PathTrace) => unknown;
+  initialDestination?: string;
+}) {
   const [capabilities, setCapabilities] = useState<PathCapabilities | null>(null);
   const [capabilityError, setCapabilityError] = useState('');
-  const [destination, setDestination] = useState('1.1.1.1');
+  const [capabilityAttempt, setCapabilityAttempt] = useState(0);
+  const [destination, setDestination] = useState(initialDestination || '1.1.1.1');
   const [family, setFamily] = useState<PathTraceRequest['family']>('auto');
   const [method, setMethod] = useState<PathTraceRequest['method']>('auto');
   const [maxHops, setMaxHops] = useState(24);
@@ -43,9 +48,18 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
   const traceAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    const savedTarget = takePathTarget();
+    const draft = initialDestination || savedTarget;
+    if (draft) setDestination(draft);
+  }, [initialDestination]);
+
+  useEffect(() => {
     const controller = new AbortController();
+    if (capabilityAttempt > 0) setCapabilities(null);
+    setCapabilityError('');
     void fetchPathCapabilities(controller.signal)
       .then((response) => {
+        if (controller.signal.aborted) return;
         setCapabilities(response);
         setMaxHops(response.limits.defaultMaxHops);
         setProbesPerHop(response.limits.defaultProbesPerHop);
@@ -64,7 +78,7 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
       controller.abort();
       traceAbortRef.current?.abort();
     };
-  }, []);
+  }, [capabilityAttempt]);
 
   const availableCapabilities =
     capabilities?.capabilities.filter(
@@ -113,6 +127,13 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
 
   async function runTrace() {
     if (!selectedCapability || !planValid || running || !destination.trim()) return;
+    let target: string;
+    try {
+      target = normalizePathDestination(destination);
+    } catch (error) {
+      setTraceError(error instanceof Error ? error.message : 'Enter a hostname or IP address.');
+      return;
+    }
     const controller = new AbortController();
     traceAbortRef.current = controller;
     setRunning(true);
@@ -122,7 +143,7 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
     try {
       const result = await traceNetworkPath(
         {
-          destination: destination.trim(),
+          destination: target,
           family,
           method,
           destinationPort: capabilities?.limits.defaultUdpPort ?? 33434,
@@ -135,6 +156,10 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
         controller.signal
       );
       if (traceAbortRef.current !== controller) return;
+      if (controller.signal.aborted) {
+        setTraceError('Path trace cancelled.');
+        return;
+      }
       setTrace(result);
     } catch (error) {
       if (traceAbortRef.current !== controller) return;
@@ -172,6 +197,8 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
           ) : (
             <span className="pp-path-capability is-unavailable">Trace unavailable</span>
           )
+        ) : capabilityError ? (
+          <span className="pp-path-capability is-unavailable">Capability unavailable</span>
         ) : (
           <span className="pp-path-capability">
             <LoaderCircle aria-hidden="true" /> Checking capability
@@ -182,26 +209,24 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
       <details className="pp-path-target-examples">
         <summary>Example targets · Cloudflare / Google DNS</summary>
         <section className="pp-path-presets" aria-label="Trace target presets">
-          <button
-            type="button"
-            className={destination === '1.1.1.1' ? 'is-selected' : ''}
-            disabled={running}
-            onClick={() => updatePlan(() => setDestination('1.1.1.1'))}
-          >
-            <strong>Cloudflare resolver</strong>
-            <code>1.1.1.1</code>
-            <small>Anycast target · not a fixed datacenter</small>
-          </button>
-          <button
-            type="button"
-            className={destination === '8.8.8.8' ? 'is-selected' : ''}
-            disabled={running}
-            onClick={() => updatePlan(() => setDestination('8.8.8.8'))}
-          >
-            <strong>Google resolver</strong>
-            <code>8.8.8.8</code>
-            <small>Anycast target · path can change</small>
-          </button>
+          {(
+            [
+              ['Cloudflare', '1.1.1.1', 'not a fixed datacenter'],
+              ['Google', '8.8.8.8', 'path can change'],
+            ] as const
+          ).map(([provider, address, caveat]) => (
+            <button
+              key={address}
+              type="button"
+              className={destination === address ? 'is-selected' : ''}
+              disabled={running}
+              onClick={() => updatePlan(() => setDestination(address))}
+            >
+              <strong>{provider} resolver</strong>
+              <code>{address}</code>
+              <small>Anycast target · {caveat}</small>
+            </button>
+          ))}
         </section>
       </details>
 
@@ -213,7 +238,13 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
             disabled={running}
             onChange={(event) => updatePlan(() => setDestination(event.target.value))}
             spellCheck={false}
-            placeholder="service.example.com or 203.0.113.10"
+            placeholder="example.com, a website URL, or an IP address"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                void runTrace();
+              }
+            }}
           />
         </label>
         <label>
@@ -242,29 +273,14 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
             <option value="auto">
               Auto · native {selectedCapability?.method.toUpperCase() ?? 'probe'}
             </option>
-            <option
-              value="udp"
-              disabled={!availableCapabilities.some((entry) => entry.method === 'udp')}
-            >
-              UDP{' '}
-              {availableCapabilities.some((entry) => entry.method === 'udp') ? '' : '· unavailable'}
-            </option>
-            <option
-              value="icmp"
-              disabled={!availableCapabilities.some((entry) => entry.method === 'icmp')}
-            >
-              ICMP{' '}
-              {availableCapabilities.some((entry) => entry.method === 'icmp')
-                ? ''
-                : '· unavailable'}
-            </option>
-            <option
-              value="tcp"
-              disabled={!availableCapabilities.some((entry) => entry.method === 'tcp')}
-            >
-              TCP{' '}
-              {availableCapabilities.some((entry) => entry.method === 'tcp') ? '' : '· unavailable'}
-            </option>
+            {(['udp', 'icmp', 'tcp'] as const).map((probeMethod) => {
+              const available = availableCapabilities.some((entry) => entry.method === probeMethod);
+              return (
+                <option key={probeMethod} value={probeMethod} disabled={!available}>
+                  {probeMethod.toUpperCase()} {available ? '' : '· unavailable'}
+                </option>
+              );
+            })}
           </select>
         </label>
         <button
@@ -358,9 +374,16 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
       ) : null}
 
       {capabilityError ? (
-        <p className="pp-evidence-error" role="alert">
-          {capabilityError}
-        </p>
+        <div className="pp-evidence-error" role="alert">
+          <p>Could not load path tracing capabilities.</p>
+          <details>
+            <summary>Technical detail</summary>
+            {capabilityError}
+          </details>
+          <button type="button" onClick={() => setCapabilityAttempt((attempt) => attempt + 1)}>
+            Retry capability check
+          </button>
+        </div>
       ) : null}
       {!selectedCapability && unavailableReason ? (
         <div className="pp-path-unavailable" role="status">
@@ -416,7 +439,8 @@ export function NetworkPathPanel({ onSaveTrace }: { onSaveTrace?: (trace: PathTr
 function PathEmptyState() {
   return (
     <EmptyState title="No active trace yet">
-      Choose a target, review the fixed plan, authorize it, then trace. Nothing runs on load.
+      Enter a website or IP and choose Trace path. The map shows responding routers and round-trip
+      times; nothing runs on load.
     </EmptyState>
   );
 }
@@ -512,6 +536,18 @@ function PathEvidence({
         ) : null}
       </div>
 
+      <Suspense fallback={<p role="status">Preparing the measured hop map…</p>}>
+        <NetworkPathMap trace={trace} />
+      </Suspense>
+      <nav className="pp-path-next-actions" aria-label="Explore this destination">
+        <Link to="/network/ports" search={{ host: trace.resolution.pinnedAddress }}>
+          Scan destination ports <ArrowRight aria-hidden="true" />
+        </Link>
+        <Link to="/security" onClick={() => rememberPathWebsiteTarget(trace.resolution.input)}>
+          Website response &amp; TLS <ArrowRight aria-hidden="true" />
+        </Link>
+      </nav>
+
       <Suspense fallback={<p>Loading optional hop labels…</p>}>
         <HopAttribution
           addresses={rows.flatMap((row) => row.responders)}
@@ -519,6 +555,12 @@ function PathEvidence({
           onResult={onAttribution}
         />
       </Suspense>
+
+      {trace.attribution ? (
+        <Suspense fallback={<p>Preparing the approximate location map…</p>}>
+          <NetworkPathGeography trace={trace} />
+        </Suspense>
+      ) : null}
 
       <div className="pp-hop-spine">
         {rows.map((row) => (
@@ -556,10 +598,7 @@ function PathEvidence({
                 ) : null;
               })}
               {row.rtt ? (
-                <p>
-                  RTT from this machine · min {formatMilliseconds(row.rtt.min)} · median{' '}
-                  {formatMilliseconds(row.rtt.median)} · max {formatMilliseconds(row.rtt.max)}
-                </p>
+                <p>RTT from this machine · {formatRTT(row.rtt)}</p>
               ) : row.responderRTTs.length > 1 ? (
                 <ul
                   className="pp-hop-responder-rtts"
@@ -567,8 +606,7 @@ function PathEvidence({
                 >
                   {row.responderRTTs.map(({ responder, rtt }) => (
                     <li key={responder}>
-                      <code>{responder}</code> · RTT min {formatMilliseconds(rtt.min)} · median{' '}
-                      {formatMilliseconds(rtt.median)} · max {formatMilliseconds(rtt.max)}
+                      <code>{responder}</code> · RTT {formatRTT(rtt)}
                     </li>
                   ))}
                 </ul>
@@ -588,50 +626,17 @@ function PathEvidence({
         ))}
       </div>
 
-      <div className="pp-path-truth">
-        {trace.warnings.map((warning) => (
-          <p key={warning}>{warning}</p>
-        ))}
-      </div>
-
-      <details className="pp-path-dictionary">
-        <summary>
-          <CircleHelp aria-hidden="true" /> How to read hops and region labels
-        </summary>
-        <div>
-          <p>
-            <strong>RTT</strong> is the round trip from this ProtoPeek process to a responder. A
-            difference between adjacent RTTs is not measured link latency.
-          </p>
-          <p>
-            <strong>Timeout</strong> means no matching reply arrived in the probe window. The device
-            may still forward traffic.
-          </p>
-          <p>
-            <strong>Multiple responders</strong> at one TTL can be real load balancing (ECMP), not a
-            parsing error.
-          </p>
-          <dl>
-            {Object.entries(pathRegionDictionary).map(([code, entry]) => (
-              <div key={code}>
-                <dt>{code}</dt>
-                <dd>
-                  {entry.label} · {entry.caveat}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </details>
-
-      <details className="pp-path-raw">
-        <summary>Raw normalized evidence</summary>
-        <pre>{JSON.stringify(trace, null, 2)}</pre>
-      </details>
+      <Suspense fallback={<p role="status">Loading trace notes and raw evidence…</p>}>
+        <PathEvidenceNotes trace={trace} />
+      </Suspense>
     </div>
   );
 }
 
 function formatMilliseconds(value: number) {
   return `${value < 10 ? value.toFixed(2) : value.toFixed(1)} ms`;
+}
+
+function formatRTT(rtt: { min: number; median: number; max: number }) {
+  return `min ${formatMilliseconds(rtt.min)} · median ${formatMilliseconds(rtt.median)} · max ${formatMilliseconds(rtt.max)}`;
 }

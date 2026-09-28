@@ -1,8 +1,27 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { type AnchorHTMLAttributes, type ReactNode, StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { NetworkPathPanel } from './NetworkPathPanel';
 import { normalizePathTrace } from './network-path';
+import { preparePathTarget, takePathTarget } from './network-path-draft';
+
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    to,
+    search,
+    children,
+    ...properties
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    to: string;
+    search?: Record<string, string>;
+    children: ReactNode;
+  }) => (
+    <a href={`${to}${search ? `?${new URLSearchParams(search)}` : ''}`} {...properties}>
+      {children}
+    </a>
+  ),
+}));
 
 const capabilities = {
   perspective: 'protopeek-process',
@@ -119,6 +138,33 @@ const trace = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
+
+it('uses a website handoff once without tracing until the user runs it, including in StrictMode', async () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) =>
+    Response.json(new URL(String(input)).pathname.endsWith('/capabilities') ? capabilities : trace)
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  preparePathTarget('https://example.com/some-page');
+  render(
+    <StrictMode>
+      <NetworkPathPanel />
+    </StrictMode>
+  );
+  await screen.findByText('Built in · no elevation');
+  expect(screen.getByLabelText('Hostname or IP')).toHaveValue('example.com');
+  expect(takePathTarget()).toBe('');
+  expect(fetchMock.mock.calls.every(([input]) => String(input).endsWith('/capabilities'))).toBe(
+    true
+  );
+  fireEvent.change(screen.getByLabelText('Hostname or IP'), {
+    target: { value: 'https://example.com/health' },
+  });
+  fireEvent.keyDown(screen.getByLabelText('Hostname or IP'), { key: 'Enter' });
+  await screen.findByRole('region', { name: 'Measured hop map' });
+  const request = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/trace'));
+  expect(request).toBeDefined();
 });
 
 it('retains bounded, source-labelled attribution when saving a measured trace', async () => {
@@ -131,6 +177,8 @@ it('retains bounded, source-labelled attribution when saving a measured trace', 
         country: 'Australia',
         asn: 13335,
         isp: 'Cloudflare',
+        latitude: -33.87,
+        longitude: 151.21,
         observedAt: '2026-09-06T12:00:00Z',
         cached: false,
       },
@@ -157,15 +205,61 @@ it('retains bounded, source-labelled attribution when saving a measured trace', 
   const controls = await screen.findByRole('region', { name: 'Optional hop attribution' });
   expect(within(controls).queryByRole('checkbox')).not.toBeInTheDocument();
   fireEvent.click(within(controls).getByRole('button', { name: 'Look up hop labels' }));
-  await screen.findByText(/AS13335 · Cloudflare · Australia/);
+  expect((await screen.findAllByText(/AS13335 · Cloudflare · Australia/)).length).toBeGreaterThan(
+    0
+  );
+  expect(
+    await screen.findByRole('img', { name: 'Approximate world locations of responding hops' })
+  ).toBeVisible();
+  expect(
+    screen.getByText(
+      /CDN, VPN, and anycast IPs may show a provider’s registered location rather than where packets traveled/
+    )
+  ).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Save trace' }));
   const saved = normalizePathTrace(save.mock.calls[0]?.[0]);
   expect(saved.attribution?.source).toBe('https://ipwhois.io/documentation');
   expect(saved.attribution?.entries[0]?.asn).toBe(13335);
+  expect(saved.attribution?.entries[0]?.latitude).toBe(-33.87);
   expect(saved.hops[0]?.samples[0]?.rttMs).toBe(1.1);
 });
 
 describe('NetworkPathPanel', () => {
+  it('does not show late results after the user cancels a trace', async () => {
+    let finish!: (response: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        String(input).endsWith('/capabilities')
+          ? Response.json(capabilities)
+          : new Promise<Response>((resolve) => {
+              finish = resolve;
+            })
+      )
+    );
+    render(<NetworkPathPanel />);
+    await screen.findByText('Built in · no elevation');
+    fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel trace' }));
+    finish(Response.json(trace));
+    await screen.findByText('Path trace cancelled.');
+    expect(screen.queryByRole('region', { name: 'Measured hop map' })).not.toBeInTheDocument();
+  });
+  it('recovers from an unreadable local API without sending a trace', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('<html>development server</html>'))
+      .mockResolvedValueOnce(Response.json(capabilities));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<NetworkPathPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry capability check' }));
+    await screen.findByText('Built in · no elevation');
+    expect(screen.getByRole('button', { name: 'Trace path' })).toBeEnabled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.every(([input]) => String(input).endsWith('/capabilities'))).toBe(
+      true
+    );
+  });
   it('selects native ICMP automatically on Windows and names the actual probe protocol', async () => {
     vi.stubGlobal(
       'fetch',
@@ -240,7 +334,14 @@ describe('NetworkPathPanel', () => {
     expect(screen.getAllByText(/RTT from this machine/i).length).toBeGreaterThan(0);
     expect(screen.getByText('18.0 ms median RTT')).toBeVisible();
     expect(screen.getByRole('list', { name: 'Hop 3 RTT by responder' })).toBeVisible();
-    expect(screen.getAllByText(/not per-link latency/i)[0]).toBeVisible();
+    expect((await screen.findAllByText(/not per-link latency/i))[0]).toBeVisible();
+    fireEvent.click(screen.getByText('How to read hops and region labels'));
+    expect(screen.getByText('Multiple responders')).toBeVisible();
+    const rawSummary = screen.getByText('Raw normalized evidence');
+    fireEvent.click(rawSummary);
+    const rawEvidence = rawSummary.closest('details')?.querySelector('pre');
+    expect(rawEvidence).toBeVisible();
+    expect(JSON.parse(rawEvidence?.textContent ?? '')).toEqual(normalizePathTrace(trace));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save trace' }));
     expect(onSaveTrace).toHaveBeenCalledWith(

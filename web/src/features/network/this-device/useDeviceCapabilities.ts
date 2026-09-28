@@ -15,6 +15,7 @@ export function useDeviceCapabilities() {
   });
   const [snapshot, setSnapshot] = useState<Resource<ThisPCSnapshot>>({ status: 'loading' });
   const snapshotControllerRef = useRef<AbortController | null>(null);
+  const capabilityControllerRef = useRef<AbortController | null>(null);
 
   const loadSnapshot = useCallback(() => {
     snapshotControllerRef.current?.abort();
@@ -22,29 +23,44 @@ export function useDeviceCapabilities() {
     snapshotControllerRef.current = controller;
     setSnapshot({ status: 'loading' });
     void fetchThisPCSnapshot(controller.signal).then(
-      (value) => setSnapshot({ status: 'ready', value }),
+      (value) => {
+        if (snapshotControllerRef.current === controller && !controller.signal.aborted)
+          setSnapshot({ status: 'ready', value });
+      },
       (error: unknown) => {
+        if (snapshotControllerRef.current !== controller || controller.signal.aborted) return;
         const message = deviceErrorMessage(error, 'Local machine snapshot failed.');
         if (message) setSnapshot({ status: 'error', error: message });
       }
     );
   }, []);
 
-  useEffect(() => {
+  const loadCapabilities = useCallback(() => {
+    capabilityControllerRef.current?.abort();
     const controller = new AbortController();
+    capabilityControllerRef.current = controller;
+    setCapabilities({ status: 'loading' });
     void fetchThisPCCapabilities(controller.signal).then(
-      (value) => setCapabilities({ status: 'ready', value }),
+      (value) => {
+        if (capabilityControllerRef.current === controller && !controller.signal.aborted)
+          setCapabilities({ status: 'ready', value });
+      },
       (error: unknown) => {
+        if (capabilityControllerRef.current !== controller || controller.signal.aborted) return;
         const message = deviceErrorMessage(error, 'This Device capabilities could not be loaded.');
         if (message) setCapabilities({ status: 'error', error: message });
       }
     );
+  }, []);
+
+  useEffect(() => {
+    loadCapabilities();
     loadSnapshot();
     return () => {
-      controller.abort();
+      capabilityControllerRef.current?.abort();
       snapshotControllerRef.current?.abort();
     };
-  }, [loadSnapshot]);
+  }, [loadCapabilities, loadSnapshot]);
 
-  return { capabilities, snapshot, loadSnapshot };
+  return { capabilities, snapshot, loadSnapshot, loadCapabilities };
 }

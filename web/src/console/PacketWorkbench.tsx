@@ -1,141 +1,82 @@
-import { Link } from '@tanstack/react-router';
-import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearch } from '@tanstack/react-router';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
 import { ProtocolInfo } from './ProtocolInfo';
 import {
   type CaptureInterface,
   type PacketReport,
-  type PacketRow,
   packetRequest,
   parsePacketReport,
 } from './packet-api';
 import { OperationStatus } from './shell/OperationStatus';
 import './packets.css';
 
-const features = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const columns: ColumnDef<typeof features, PacketRow>[] = [
-  { accessorKey: 'number' },
-  { accessorKey: 'protocol' },
-];
+const PacketReportView = lazy(() => import('./PacketReportView'));
 
 export function PacketWorkbench() {
-  const [mode, setMode] = useState('file');
+  const incoming = useSearch({ from: '/network/packets' });
+  const [mode, setMode] = useState(
+    incoming.mode ?? (incoming.host || incoming.port ? 'live' : 'file')
+  );
   const [file, setFile] = useState<File | null>(null);
   const [interfaces, setInterfaces] = useState<CaptureInterface[]>([]);
   const [iface, setIface] = useState('');
-  const [host, setHost] = useState('');
-  const [port, setPort] = useState('');
+  const [host, setHost] = useState(incoming.host ?? '');
+  const [port, setPort] = useState(incoming.port ?? '');
   const [seconds, setSeconds] = useState('5');
   const [capability, setCapability] = useState('Checking capture support…');
+  const [captureAvailable, setCaptureAvailable] = useState<boolean | null>(null);
+  const [interfaceBusy, setInterfaceBusy] = useState(false);
+  const [interfaceError, setInterfaceError] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [report, setReport] = useState<PacketReport | null>(null);
   const [source, setSource] = useState('');
-  const [query, setQuery] = useState('');
-  const [protocol, setProtocol] = useState('all');
-  const [selection, setSelection] = useState(0);
+  const [reportRevision, setReportRevision] = useState(0);
   const active = useRef<AbortController | null>(null);
   useEffect(() => {
+    if (captureAvailable !== null) return;
     const controller = new AbortController();
     void packetRequest('capabilities', undefined, controller.signal)
       .then((value) => {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          setCaptureAvailable(value.available === true);
           setCapability(
             value.available === true
-              ? 'Capture tool found. Refresh interfaces to check capture access.'
+              ? 'Capture tool found. Choose where traffic enters or leaves this ProtoPeek host.'
               : typeof value.reason === 'string'
                 ? value.reason
                 : 'Capture support unavailable.'
           );
+        }
       })
       .catch(() => {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          setCaptureAvailable(false);
           setCapability('Could not check capture support. Offline inspection is available.');
+        }
       });
-    return () => {
-      controller.abort();
-      active.current?.abort();
-      active.current = null;
-    };
-  }, []);
-  const rows = useMemo(
-    () =>
-      (report?.packets ?? []).filter(
-        (row) =>
-          (protocol === 'all' || row.protocol === protocol) &&
-          `${row.source} ${row.destination} ${row.sourcePort ?? ''} ${row.destinationPort ?? ''} ${row.info}`
-            .toLowerCase()
-            .includes(query.toLowerCase())
-      ),
-    [report, protocol, query]
-  );
-  const table = useTable({
-    features,
-    columns,
-    data: rows,
-    initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
-    getRowId: (row) => String(row.number),
-  });
-  const selected = report?.packets.find((row) => row.number === selection);
-  function cancel() {
-    active.current?.abort();
-    active.current = null;
-    setBusy('');
-    setNotice('Cancelled. This run was discarded; earlier results remain.');
-  }
-  async function run(operation: 'interfaces' | 'analyze' | 'capture') {
-    if (active.current) return;
-    setError('');
-    setNotice('');
-    if (operation === 'analyze' && (!file || file.size > 16 * 1024 * 1024)) {
-      setError('Choose a capture file up to 16 MiB.');
-      return;
-    }
+    return () => controller.abort();
+  }, [captureAvailable]);
+  useEffect(() => {
+    if (mode !== 'live' || captureAvailable !== true) return;
     const controller = new AbortController();
-    active.current = controller;
-    setBusy(
-      operation === 'capture'
-        ? `Capturing for up to ${seconds} seconds`
-        : operation === 'interfaces'
-          ? 'Finding interfaces'
-          : 'Reading capture'
-    );
-    try {
-      const input =
-        operation === 'analyze'
-          ? file
-          : operation === 'interfaces'
-            ? {}
-            : {
-                interface: iface,
-                host: host.trim(),
-                port: Number(port),
-                seconds: Number(seconds),
-                packets: 2000,
-                consent: true,
-              };
-      const result = await packetRequest(operation, input, controller.signal);
-      if (active.current !== controller) return;
-      if (operation === 'interfaces') {
+    setInterfaceBusy(true);
+    setInterfaceError('');
+    void packetRequest('interfaces', {}, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return;
         if (
           !Array.isArray(result) ||
           result.length > 64 ||
+          new Set(result.map((item) => item?.name)).size !== result.length ||
           result.some(
             (item) =>
               !item ||
               typeof item.name !== 'string' ||
+              !item.name ||
               item.name.length > 320 ||
               typeof item.label !== 'string' ||
               item.label.length > 512
@@ -143,27 +84,91 @@ export function PacketWorkbench() {
         )
           throw new Error('Invalid interface listing.');
         setInterfaces(result);
-        setIface((old) => (result.some((item) => item.name === old) ? old : ''));
-        setNotice(
-          result.length
-            ? 'Choose the interface you want to capture.'
-            : 'No capture interfaces are available. Check OS capture permissions.'
+        setIface((old) =>
+          result.some((item) => item.name === old) ? old : result.length === 1 ? result[0].name : ''
         );
-      } else {
-        setReport(parsePacketReport(result));
-        setSource(
-          operation === 'analyze'
-            ? (file?.name ?? 'Capture file')
-            : `Interface ${iface} · ${host || 'any host'} · port ${port || 'any'}`
-        );
-        setSelection(0);
-        setQuery('');
-        setProtocol('all');
-        table.setPageIndex(0);
-        setNotice(
-          'Inspection completed. Results stay in memory until cleared or this page closes.'
-        );
+      })
+      .catch((cause) => {
+        if (!controller.signal.aborted) {
+          setInterfaces([]);
+          setIface('');
+          setInterfaceError(cause instanceof Error ? cause.message : 'Could not read interfaces.');
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setInterfaceBusy(false);
+      });
+    return () => controller.abort();
+  }, [mode, captureAvailable]);
+  useEffect(
+    () => () => {
+      active.current?.abort();
+      active.current = null;
+    },
+    []
+  );
+  function cancel() {
+    active.current?.abort();
+    active.current = null;
+    setBusy('');
+    setNotice('Cancelled. This run was discarded; earlier results remain.');
+  }
+  async function run(operation: 'analyze' | 'capture') {
+    if (active.current) return;
+    setError('');
+    setNotice('');
+    if (operation === 'analyze' && (!file || file.size > 16 * 1024 * 1024)) {
+      setError('Choose a capture file up to 16 MiB.');
+      return;
+    }
+    if (operation === 'capture') {
+      if (
+        captureAvailable !== true ||
+        interfaceBusy ||
+        !interfaces.some((item) => item.name === iface)
+      ) {
+        setError('Choose an available local capture interface.');
+        return;
       }
+      if (!host.trim() && !port) {
+        setError('Choose one IP or port to capture.');
+        return;
+      }
+      if (
+        (port && (!Number.isInteger(Number(port)) || Number(port) < 1 || Number(port) > 65535)) ||
+        !Number.isInteger(Number(seconds)) ||
+        Number(seconds) < 1 ||
+        Number(seconds) > 30
+      ) {
+        setError('Use a port from 1–65535 and a duration from 1–30 seconds.');
+        return;
+      }
+    }
+    const controller = new AbortController();
+    active.current = controller;
+    setBusy(operation === 'capture' ? `Capturing for up to ${seconds} seconds` : 'Reading capture');
+    try {
+      const input =
+        operation === 'analyze'
+          ? file
+          : {
+              interface: iface,
+              host: host.trim(),
+              port: Number(port),
+              seconds: Number(seconds),
+              packets: 2000,
+              consent: true,
+            };
+      const result = await packetRequest(operation, input, controller.signal);
+      if (active.current !== controller) return;
+      setReport(parsePacketReport(result));
+      setSource(
+        operation === 'analyze'
+          ? (file?.name ?? 'Capture file')
+          : `${interfaces.find((item) => item.name === iface)?.label ?? iface} · ${host || 'any host'} · port ${port || 'any'}`
+      );
+      setReportRevision((revision) => revision + 1);
+      setNotice('Inspection completed. Results stay in memory until cleared or this page closes.');
     } catch (cause) {
       if (active.current === controller)
         setError(cause instanceof Error ? cause.message : 'Packet inspection failed.');
@@ -173,17 +178,6 @@ export function PacketWorkbench() {
         setBusy('');
       }
     }
-  }
-  function save() {
-    if (!report) return;
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify({ source, ...report }, null, 2)], { type: 'application/json' })
-    );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'protopeek-packet-metadata.json';
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
   return (
     <div className="pp-packets">
@@ -237,18 +231,44 @@ export function PacketWorkbench() {
           </>
         ) : (
           <>
-            <details>
-              <summary>Capture tool setup</summary>
-              <p>{capability}</p>
-            </details>
-            <button type="button" disabled={Boolean(busy)} onClick={() => void run('interfaces')}>
+            <div className="pp-packet-visibility">
+              <strong>Traffic visible to this host</strong>
+              <p>
+                Record packets on a local interface. For another device, this normally shows its
+                traffic to or from this host; a switched network does not expose all of that
+                device’s traffic here.
+              </p>
+              <p>HTTPS and other encrypted traffic remains encrypted.</p>
+            </div>
+            <p className="pp-packet-capability" role="status">
+              {capability}
+            </p>
+            <button
+              type="button"
+              disabled={Boolean(busy) || interfaceBusy}
+              onClick={() => {
+                setCaptureAvailable(null);
+                setCapability('Checking capture support…');
+              }}
+            >
               Refresh interfaces
             </button>
+            {interfaceBusy ? <p role="status">Finding local capture interfaces…</p> : null}
+            {interfaceError ? <p role="alert">{interfaceError}</p> : null}
+            {captureAvailable === true &&
+            !interfaceBusy &&
+            !interfaceError &&
+            !interfaces.length ? (
+              <p role="status">
+                No capture interfaces are available. Check the capture driver and OS permissions,
+                then refresh.
+              </p>
+            ) : null}
             <label>
               Interface
               <select
                 value={iface}
-                disabled={Boolean(busy)}
+                disabled={Boolean(busy) || interfaceBusy || !interfaces.length}
                 onChange={(event) => {
                   setIface(event.target.value);
                 }}
@@ -261,6 +281,10 @@ export function PacketWorkbench() {
                 ))}
               </select>
             </label>
+            <small>
+              Choose Wi-Fi or Ethernet for network traffic; choose loopback for connections within
+              this machine. Interfaces belong to the machine running ProtoPeek.
+            </small>
             <label>
               IP filter
               <input
@@ -271,6 +295,7 @@ export function PacketWorkbench() {
                 onChange={(event) => setHost(event.target.value)}
               />
             </label>
+            <small>Use an IP address, or leave it empty when filtering by port.</small>
             <div className="pp-packet-options">
               <label>
                 Port filter
@@ -301,24 +326,38 @@ export function PacketWorkbench() {
                 IP and port filters combine with AND. Up to 2,000 packets, 512 bytes each. Capture
                 does not request promiscuous mode. Results appear when the run ends.
               </p>
+              <p>
+                Port filters include TCP and UDP. Capture does not generate traffic; use the service
+                during the capture window.
+              </p>
             </details>
             <div className="pp-packet-consent">
               Start capture records traffic matching the selected interface and filter.
             </div>
             <button
               type="button"
-              disabled={!iface || (!host.trim() && !port) || Boolean(busy)}
+              disabled={
+                captureAvailable !== true ||
+                interfaceBusy ||
+                !iface ||
+                (!host.trim() && !port) ||
+                Boolean(busy)
+              }
               onClick={() => void run('capture')}
             >
               Start capture
             </button>
             <a
-              href="https://www.wireshark.org/docs/wsug_html_chunked/ChapterCapture.html"
+              href="https://wiki.wireshark.org/CaptureSetup/CapturePrivileges"
               target="_blank"
               rel="noreferrer"
             >
               Capture setup and permissions
             </a>
+            <small>
+              Windows needs Npcap capture support. Linux needs capture permission for dumpcap.
+              Follow the platform setup guide, then refresh interfaces.
+            </small>
           </>
         )}
         {busy ? (
@@ -343,175 +382,19 @@ export function PacketWorkbench() {
         <OperationStatus busy={Boolean(busy)} label={busy || 'Inspecting packets'} />
         {busy || notice ? <p role="status">{busy || notice}</p> : null}
         {report ? (
-          <>
-            <div className="pp-packet-summary">
-              <strong>{source}</strong>
-              <span>
-                {report.packetCount.toLocaleString()} packets · {report.wireBytes.toLocaleString()}{' '}
-                wire bytes · {report.format}
-              </span>
-              <button type="button" onClick={save}>
-                Save metadata
-              </button>
-              <button
-                type="button"
-                disabled={Boolean(busy)}
-                onClick={() => {
-                  setReport(null);
-                  setSelection(0);
-                  setSource('');
-                  setNotice('Results cleared. The original capture file is unchanged.');
-                }}
-              >
-                Clear results
-              </button>
-            </div>
-            {report.warnings.map((warning) => (
-              <small key={warning}>{warning}</small>
-            ))}
-            {report.packetCount > report.packets.length ? (
-              <small>
-                The table retains the first {report.packets.length.toLocaleString()} packets. Totals
-                include {report.packetCount.toLocaleString()} parsed records.
-              </small>
-            ) : null}
-            <div className="pp-packet-filters">
-              <label>
-                Filter packets
-                <input
-                  type="search"
-                  value={query}
-                  maxLength={128}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    table.setPageIndex(0);
-                  }}
-                />
-              </label>
-              <label>
-                Protocol
-                <select
-                  value={protocol}
-                  onChange={(event) => {
-                    setProtocol(event.target.value);
-                    table.setPageIndex(0);
-                  }}
-                >
-                  <option value="all">All protocols</option>
-                  {Object.keys(report.protocols)
-                    .sort()
-                    .map((name) => (
-                      <option key={name} value={name}>
-                        {name} ({report.protocols[name]})
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <span>{rows.length} matching rows</span>
-            </div>
-            <div className={`pp-packet-body${selected ? ' has-selection' : ''}`}>
-              <div className="pp-packet-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Packet</th>
-                      <th>Source</th>
-                      <th>Destination</th>
-                      <th>Protocol</th>
-                      <th>Bytes</th>
-                      <th>Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {table.getRowModel().rows.map(({ original: row }) => (
-                      <tr key={row.number} aria-selected={selection === row.number}>
-                        <td>
-                          <button
-                            type="button"
-                            aria-label={`Inspect packet ${row.number}`}
-                            onClick={() => setSelection(row.number)}
-                          >
-                            {row.number}
-                          </button>
-                        </td>
-                        <td>
-                          {row.source || '—'}
-                          {row.sourcePort ? ` : ${row.sourcePort}` : ''}
-                        </td>
-                        <td>
-                          {row.destination || '—'}
-                          {row.destinationPort ? ` : ${row.destinationPort}` : ''}
-                        </td>
-                        <td>{row.protocol}</td>
-                        <td>{row.length}</td>
-                        <td>{row.info}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {!rows.length ? <p>No packets match these filters.</p> : null}
-              </div>
-              {selected ? (
-                <aside aria-label={`Packet ${selected.number} details`}>
-                  <header>
-                    <strong>Packet {selected.number}</strong>
-                    <button type="button" onClick={() => setSelection(0)}>
-                      Close details
-                    </button>
-                  </header>
-                  <dl>
-                    <dt>Time (UTC)</dt>
-                    <dd>{selected.timestamp || 'Not recorded'}</dd>
-                    <dt>Source</dt>
-                    <dd>
-                      {selected.source || 'Unknown'}
-                      {selected.sourcePort ? ` : ${selected.sourcePort}` : ''}
-                    </dd>
-                    <dt>Destination</dt>
-                    <dd>
-                      {selected.destination || 'Unknown'}
-                      {selected.destinationPort ? ` : ${selected.destinationPort}` : ''}
-                    </dd>
-                    <dt>Protocol</dt>
-                    <dd>{selected.protocol}</dd>
-                    <dt>Decoded information</dt>
-                    <dd>{selected.info}</dd>
-                    <dt>Captured / wire size</dt>
-                    <dd>
-                      {selected.captured} / {selected.length} bytes
-                    </dd>
-                    <dt>Header completeness</dt>
-                    <dd>
-                      {selected.truncated
-                        ? 'Truncated or malformed; decoding may be incomplete'
-                        : 'No truncation detected'}
-                    </dd>
-                    <dt>Interface index</dt>
-                    <dd>{selected.interface}</dd>
-                  </dl>
-                </aside>
-              ) : null}
-            </div>
-            <footer>
-              <button
-                type="button"
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => table.previousPage()}
-              >
-                Previous packets
-              </button>
-              <span>
-                Page {table.state.pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
-              </span>
-              <button
-                type="button"
-                disabled={!table.getCanNextPage()}
-                onClick={() => table.nextPage()}
-              >
-                Next packets
-              </button>
-            </footer>
-          </>
+          <Suspense fallback={<p role="status">Preparing packet results…</p>}>
+            <PacketReportView
+              key={reportRevision}
+              report={report}
+              source={source}
+              busy={Boolean(busy)}
+              onClear={() => {
+                setReport(null);
+                setSource('');
+                setNotice('Results cleared. The original capture file is unchanged.');
+              }}
+            />
+          </Suspense>
         ) : (
           <EmptyState title="See what crossed a network interface">
             Open an existing capture, or explicitly capture one IP or port on this host. Choose a

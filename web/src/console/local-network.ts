@@ -1,4 +1,37 @@
 import {
+  type LocalNetworkInventory,
+  normalizeLocalNetworkInventory,
+} from '../features/network/local-network-inventory';
+import {
+  array,
+  boolean,
+  contractLimits,
+  exactKeys,
+  formatIPv4,
+  integer,
+  nonEmptyString,
+  normalizeStringArray,
+  object,
+  type ParsedIPv4CIDR,
+  parseIPv4Address,
+  parseIPv4CIDR,
+  privateIPv4,
+  string,
+  timestamp,
+  truncateUTF8,
+  utf8,
+} from './local-network-values';
+
+export {
+  defaultLocalNetworkInterface,
+  isAddressInLocalNetworkScope,
+  type LocalNetworkDevice,
+  type LocalNetworkInventory,
+  localNetworkDevicesForInterface,
+} from '../features/network/local-network-inventory';
+
+import {
+  type NetworkNode,
   type NetworkPort,
   type NetworkProvenance,
   type NetworkService,
@@ -40,6 +73,7 @@ export type LocalNetworkCapabilities = {
   readonly limits: LocalNetworkLimits;
   readonly interfaces: readonly LocalNetworkInterface[];
   readonly warnings: readonly string[];
+  readonly inventory?: LocalNetworkInventory;
 };
 
 export type LocalNetworkPlanPreview = {
@@ -97,168 +131,36 @@ export type LocalNetworkDiscovery = {
   readonly stoppedReason?: string;
   readonly hosts: readonly LocalNetworkDiscoveredHost[];
   readonly warnings: readonly string[];
+  readonly advertisements?: LocalNetworkAdvertisements;
+};
+
+export type LocalNetworkAdvertisement = {
+  readonly address: string;
+  readonly instance: string;
+  readonly serviceType: string;
+  readonly hostname: string;
+  readonly port: number;
+  readonly txt: readonly string[];
+  readonly source: 'mdns';
+};
+
+export type LocalNetworkAdvertisements = {
+  readonly status: 'available' | 'partial' | 'unavailable';
+  readonly records: readonly LocalNetworkAdvertisement[];
+  readonly warnings: readonly string[];
 };
 
 export type LocalNetworkDiscoveryRequest = {
   readonly cidr: string;
   readonly profile: string;
   readonly consent: true;
+  readonly interfaceIndex?: number;
 };
 
 export type LocalNetworkHostMetadata = {
   readonly label: string;
   readonly tags: readonly string[];
 };
-
-const contractLimits = {
-  maxProfiles: 16,
-  maxInterfaces: 32,
-  maxWarnings: 32,
-  maxStringBytes: 2 * 1024,
-  maxPorts: 18,
-  maxAttempts: 4_572,
-  maxWorkers: 32,
-  maxDeadlineMs: 15_000,
-  maxDiscoveryHosts: 254,
-  maxProtocolsPerPort: 16,
-  maxServicesPerPort: 16,
-  maxEvidenceNotes: 32,
-  maxHintsPerHost: 16,
-} as const;
-
-const utf8 = new TextEncoder();
-
-function object(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function exactKeys(value: Record<string, unknown>, allowed: readonly string[], label: string) {
-  const keys = new Set(allowed);
-  for (const key of Object.keys(value)) {
-    if (!keys.has(key)) throw new Error(`${label}.${key} is not supported.`);
-  }
-}
-
-function array(value: unknown, label: string, maximum: number) {
-  if (!Array.isArray(value) || value.length > maximum) {
-    throw new Error(`${label} must be an array with at most ${maximum} items.`);
-  }
-  return value;
-}
-
-function string(value: unknown, label: string, maximum = contractLimits.maxStringBytes) {
-  if (
-    typeof value !== 'string' ||
-    value.includes('\0') ||
-    utf8.encode(value).byteLength > maximum
-  ) {
-    throw new Error(`${label} must be a bounded string.`);
-  }
-  return value;
-}
-
-function nonEmptyString(value: unknown, label: string, maximum = contractLimits.maxStringBytes) {
-  const result = string(value, label, maximum);
-  if (!result.trim()) throw new Error(`${label} must not be empty.`);
-  return result;
-}
-
-function integer(value: unknown, label: string, minimum: number, maximum: number) {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum || value > maximum) {
-    throw new Error(`${label} must be an integer from ${minimum} through ${maximum}.`);
-  }
-  return value;
-}
-
-function normalizeStringArray(
-  value: unknown,
-  label: string,
-  maximum: number,
-  maximumStringBytes = contractLimits.maxStringBytes
-) {
-  return array(value, label, maximum).map((entry, index) =>
-    string(entry, `${label}[${index}]`, maximumStringBytes)
-  );
-}
-
-function boolean(value: unknown, label: string) {
-  if (typeof value !== 'boolean') throw new Error(`${label} must be a boolean.`);
-  return value;
-}
-
-function timestamp(value: unknown, label: string) {
-  const result = nonEmptyString(value, label, 128);
-  const parsed = new Date(result);
-  if (!Number.isFinite(parsed.getTime())) throw new Error(`${label} must be a timestamp.`);
-  return parsed.toISOString();
-}
-
-function truncateUTF8(value: string, maximum: number) {
-  if (utf8.encode(value).byteLength <= maximum) return value;
-  const suffix = '…';
-  const budget = maximum - utf8.encode(suffix).byteLength;
-  const result: string[] = [];
-  let length = 0;
-  for (const character of value) {
-    const bytes = utf8.encode(character).byteLength;
-    if (length + bytes > budget) break;
-    result.push(character);
-    length += bytes;
-  }
-  return `${result.join('')}${suffix}`;
-}
-
-type ParsedIPv4CIDR = {
-  address: number;
-  network: number;
-  prefix: number;
-  canonical: string;
-};
-
-function parseIPv4Address(value: unknown, label: string) {
-  const input = nonEmptyString(value, label, 15);
-  const octets = input.split('.');
-  if (
-    octets.length !== 4 ||
-    octets.some(
-      (octet) => !/^\d{1,3}$/.test(octet) || String(Number(octet)) !== octet || Number(octet) > 255
-    )
-  ) {
-    throw new Error(`${label} must be a valid IPv4 address.`);
-  }
-  return octets.reduce((result, octet) => (result * 256 + Number(octet)) >>> 0, 0);
-}
-
-function formatIPv4(value: number) {
-  return [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join('.');
-}
-
-function privateIPv4(value: number) {
-  const first = value >>> 24;
-  const second = (value >>> 16) & 255;
-  return (
-    first === 10 ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168)
-  );
-}
-
-function parseIPv4CIDR(value: unknown, label: string): ParsedIPv4CIDR {
-  const input = nonEmptyString(value, label, 32).trim();
-  const parts = input.split('/');
-  if (parts.length !== 2 || !/^\d{1,2}$/.test(parts[1] ?? '')) {
-    throw new Error(`${label} must be an explicit IPv4 CIDR.`);
-  }
-  const address = parseIPv4Address(parts[0], `${label} address`);
-  const prefix = Number(parts[1]);
-  if (prefix < 0 || prefix > 32) throw new Error(`${label} must use a prefix from /0 through /32.`);
-  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
-  const network = (address & mask) >>> 0;
-  return { address, network, prefix, canonical: `${formatIPv4(network)}/${prefix}` };
-}
 
 function normalizeProfile(
   value: unknown,
@@ -304,7 +206,7 @@ export function normalizeLocalNetworkCapabilities(value: unknown): LocalNetworkC
   const input = object(value, 'Network capabilities');
   exactKeys(
     input,
-    ['perspective', 'activeProbe', 'profiles', 'limits', 'interfaces', 'warnings'],
+    ['perspective', 'activeProbe', 'profiles', 'limits', 'interfaces', 'warnings', 'inventory'],
     'Network capabilities'
   );
   if (input.perspective !== 'protopeek-process') {
@@ -387,6 +289,9 @@ export function normalizeLocalNetworkCapabilities(value: unknown): LocalNetworkC
     profiles,
     limits,
     interfaces,
+    ...(input.inventory === undefined
+      ? {}
+      : { inventory: normalizeLocalNetworkInventory(input.inventory, interfaces) }),
     warnings: normalizeStringArray(
       input.warnings,
       'Network capabilities.warnings',
@@ -537,6 +442,7 @@ export function normalizeLocalNetworkDiscovery(value: unknown): LocalNetworkDisc
       'stoppedReason',
       'hosts',
       'warnings',
+      'advertisements',
     ],
     'Network discovery'
   );
@@ -640,12 +546,77 @@ export function normalizeLocalNetworkDiscovery(value: unknown): LocalNetworkDisc
     complete,
     ...(stoppedReason === undefined ? {} : { stoppedReason }),
     hosts,
+    ...(input.advertisements === undefined
+      ? {}
+      : { advertisements: normalizeNetworkAdvertisements(input.advertisements, cidr) }),
     warnings: normalizeStringArray(
       input.warnings,
       'Network discovery.warnings',
       contractLimits.maxWarnings
     ),
   };
+}
+
+function normalizeNetworkAdvertisements(
+  value: unknown,
+  cidr: ParsedIPv4CIDR
+): LocalNetworkAdvertisements {
+  const label = 'Network discovery.advertisements';
+  const input = object(value, label);
+  exactKeys(input, ['status', 'records', 'warnings'], label);
+  if (input.status !== 'available' && input.status !== 'partial' && input.status !== 'unavailable')
+    throw new Error(`${label}.status is unsupported.`);
+  const records = array(input.records, `${label}.records`, 64).map(
+    (entry, index): LocalNetworkAdvertisement => {
+      const recordLabel = `${label}.records[${index}]`;
+      const record = object(entry, recordLabel);
+      exactKeys(
+        record,
+        ['address', 'instance', 'serviceType', 'hostname', 'port', 'txt', 'source'],
+        recordLabel
+      );
+      const address = parseIPv4Address(record.address, `${recordLabel}.address`);
+      if (
+        address < cidr.network ||
+        address >= cidr.network + 2 ** (32 - cidr.prefix) ||
+        (cidr.prefix < 31 &&
+          (address === cidr.network || address === cidr.network + 2 ** (32 - cidr.prefix) - 1))
+      )
+        throw new Error(`${recordLabel}.address must be inside the requested scope.`);
+      if (record.source !== 'mdns') throw new Error(`${recordLabel}.source must be mdns.`);
+      return {
+        address: formatIPv4(address),
+        instance: advertisementText(
+          nonEmptyString(record.instance, `${recordLabel}.instance`, 253)
+        ),
+        serviceType: advertisementText(
+          nonEmptyString(record.serviceType, `${recordLabel}.serviceType`, 253)
+        ),
+        hostname: advertisementText(
+          nonEmptyString(record.hostname, `${recordLabel}.hostname`, 253)
+        ),
+        port: integer(record.port, `${recordLabel}.port`, 1, 65535),
+        txt: normalizeStringArray(record.txt, `${recordLabel}.txt`, 8, 256).map(advertisementText),
+        source: 'mdns',
+      };
+    }
+  );
+  return {
+    status: input.status,
+    records,
+    warnings: normalizeStringArray(input.warnings, `${label}.warnings`, contractLimits.maxWarnings),
+  };
+}
+
+function advertisementText(value: string) {
+  if (
+    Array.from(value).some((character) => {
+      const code = character.codePointAt(0) ?? 0;
+      return code < 32 || code === 127 || code === 0xfffe || code === 0xffff;
+    })
+  )
+    throw new Error('Advertisement text contains unsupported control characters.');
+  return value;
 }
 
 function endpoint(path: string) {
@@ -687,6 +658,16 @@ export async function discoverLocalNetwork(
       .trim()
       .toLowerCase(),
     consent: true,
+    ...(request.interfaceIndex === undefined
+      ? {}
+      : {
+          interfaceIndex: integer(
+            request.interfaceIndex,
+            'Network discovery request.interfaceIndex',
+            1,
+            1_000_000
+          ),
+        }),
   };
   const response = await fetch(endpoint('api/network/discover'), {
     method: 'POST',
@@ -830,7 +811,7 @@ export function localNetworkDiscoveryToSnapshot(
   const scanDetail = discovery.complete
     ? `All ${discovery.attemptsCompleted} selected endpoint probe calls returned to the ProtoPeek process.`
     : `Partial scan: ${discovery.attemptsCompleted} of ${discovery.attemptsPlanned} selected endpoint probe calls returned to the ProtoPeek process${discovery.stoppedReason ? `; stopped: ${discovery.stoppedReason}` : ''}.`;
-  const nodes = discovery.hosts.map((host, index) => {
+  const nodes: NetworkNode[] = discovery.hosts.map((host, index) => {
     const annotations = normalizeSnapshotMetadata(metadata[host.address], host.address);
     const label = annotations.label;
     const tags = annotations.tags;
@@ -882,8 +863,79 @@ export function localNetworkDiscoveryToSnapshot(
       provenance,
     };
   });
+  for (const advertisement of discovery.advertisements?.records ?? []) {
+    const provenance = observedProvenance(
+      observedAt,
+      `Device-provided mDNS/DNS-SD advertisement: ${advertisement.instance}; ${advertisement.serviceType}; hostname ${advertisement.hostname}; advertised port ${advertisement.port}. This does not establish an open port. ${advertisement.txt.join('; ')}`
+    );
+    let index = nodes.findIndex((node) => node.id === `host:${advertisement.address}`);
+    if (index < 0) {
+      index = nodes.length;
+      nodes.push({
+        id: `host:${advertisement.address}`,
+        label: advertisement.hostname,
+        tags: [],
+        notes: '',
+        deviceType: '',
+        firstSeen: observedAt,
+        lastSeen: observedAt,
+        identities: [{ kind: 'ipv4', value: advertisement.address, provenance: [provenance] }],
+        ports: [],
+        groupIds: [groupID],
+        position: { x: (index % 4) * 240, y: Math.floor(index / 4) * 160, pinned: false },
+        provenance: [provenance],
+      });
+    }
+    const node = nodes[index];
+    if (!node) continue;
+    const protocol = advertisement.serviceType.includes('._udp.') ? 'udp' : 'tcp';
+    const existing = node.ports.find(
+      (port) => port.number === advertisement.port && port.protocol === protocol
+    );
+    const service: NetworkService = {
+      name: advertisement.instance,
+      product: '',
+      version: '',
+      transport: advertisement.serviceType,
+      provenance: [provenance],
+    };
+    const port: NetworkPort = existing
+      ? {
+          ...existing,
+          services: [...existing.services, service].slice(
+            0,
+            networkWorkspaceLimits.maxServicesPerPort
+          ),
+          provenance: [...existing.provenance, provenance].slice(
+            0,
+            networkWorkspaceLimits.maxProvenancePerRecord
+          ),
+        }
+      : {
+          number: advertisement.port,
+          protocol,
+          state: 'unknown',
+          services: [service],
+          provenance: [provenance],
+        };
+    nodes[index] = {
+      ...node,
+      notes: truncateUTF8(
+        [
+          node.notes,
+          `mDNS: ${advertisement.hostname} advertises ${advertisement.serviceType} on ${protocol.toUpperCase()} ${advertisement.port}.`,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        networkWorkspaceLimits.maxNotesBytes
+      ),
+      ports: existing
+        ? node.ports.map((current) => (current === existing ? port : current))
+        : [...node.ports, port],
+    };
+  }
   const notes = truncateUTF8(
-    [scanDetail, ...discovery.warnings].join('\n'),
+    [scanDetail, ...discovery.warnings, ...(discovery.advertisements?.warnings ?? [])].join('\n'),
     networkWorkspaceLimits.maxNotesBytes
   );
   const snapshot: NetworkSnapshot = {

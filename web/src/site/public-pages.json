@@ -286,14 +286,14 @@
       "group": "network",
       "title": "Network workbench",
       "documentTitle": "Network Paths, Local Discovery & Evidence Maps | ProtoPeek",
-      "description": "Trace DNS, selected routes and Linux hops; discover an authorized private range; save logical evidence maps; and import bounded Nmap XML without running Nmap.",
+      "description": "Explore nearby devices, inspect ports and packets, trace measured Windows/Linux hops, and save maps with source-labelled evidence and approximate hop locations.",
       "question": "Why is this request taking that path?",
-      "section": "Stable feature",
+      "section": "Current source",
       "sourcePath": "guides/network-workbench.md",
       "status": {
-        "label": "Stable · v0.6.1",
-        "tone": "stable",
-        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
+        "label": "Current source · Nightly",
+        "tone": "current",
+        "detail": "The refined device, packet and map workflows are in current source and Nightly. Stable v0.6.1 has the earlier workbenches."
       },
       "highlights": [
         "DNS and selected route",
@@ -305,7 +305,7 @@
         {
           "verb": "Start",
           "title": "Choose one evidence source",
-          "detail": "Trace a target, authorize a private /24-or-smaller plan, or import saved Nmap XML."
+          "detail": "Open Nearby devices with a local network selected, trace a website, or import saved evidence. Active work starts with its visible action."
         },
         {
           "verb": "Observe",

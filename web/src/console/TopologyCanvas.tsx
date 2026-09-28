@@ -1,7 +1,9 @@
 import { Focus, LayoutGrid, List, Map as MapIcon, Minus, Pin, Plus } from 'lucide-react';
 import {
+  lazy,
   memo,
   type RefObject,
+  Suspense,
   useCallback,
   useEffect,
   useId,
@@ -22,6 +24,8 @@ import {
   topologyNodeSize,
   zoomTopologyAt,
 } from './topology-layout';
+
+const NetworkNodeActions = lazy(() => import('./NetworkNodeActions'));
 
 type TopologyView = 'map' | 'list';
 
@@ -750,6 +754,9 @@ function NodeInspector({
       <span className={`pp-evidence-kind is-${primaryEvidence(node)}`}>
         {capitalize(primaryEvidence(node))}
       </span>
+      <Suspense fallback={<p role="status">Preparing device actions…</p>}>
+        <NetworkNodeActions identities={node.identities} />
+      </Suspense>
       <label>
         Device label
         <input value={node.label} onChange={(event) => onChange({ label: event.target.value })} />

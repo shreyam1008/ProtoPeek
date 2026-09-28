@@ -11,10 +11,26 @@ exploitation tool. This document separates the current build from later safety r
 
 ## Current build
 
+### Follow one website through the workbench
+
+Enter a website once to prepare its response, standard-path, and historical-name views. **Trace
+route** carries its hostname into Network Path, and **Scan ports** prepares the same host in the
+TCP scanner. Each destination waits for its own explicit action. **Inspect endpoint** prepares a
+single service probe. Returning to the website keeps its origin available; nothing runs just from
+switching views.
+
+A bare domain such as `example.com` becomes `https://example.com/`. Enter an explicit `http://`
+URL when needed; a full URL retains its scheme, port, and path for the website observation.
+
+The response report derives technology hints from the headers actually received. These are
+server or intermediary claims, not verified framework or version identification. A proxy can hide
+or replace headers, and a missing hint remains unknown. ProtoPeek does not fetch page bodies or
+run a fingerprinting crawl to fill the gaps.
+
 ### Historical indexed names
 
-The user enters one hostname and must explicitly acknowledge that its normalized registrable apex
-will be sent to the named third party `crt.name`. The adapter then:
+The lookup button sends the entered hostname's normalized registrable apex to the disclosed
+third party `crt.name`; no additional checkbox is required. The adapter then:
 
 - sends one bounded request to the fixed `https://crt.name/v1/search` endpoint with `format=json`;
 - allows at most two concurrent client requests and is also wired behind a two-operation process
@@ -54,8 +70,8 @@ request is sent after that failed TLS handshake. JSON report exports retain the 
 
 ### One public website response
 
-Website observation has a separate acknowledgement because it contacts the target and may create a
-server log. Each accepted operation performs exactly one credential-free `HEAD` request:
+The website observation action contacts the target and may create a server log. Each accepted
+operation performs exactly one credential-free `HEAD` request:
 
 - absolute HTTP or HTTPS only; user information, query strings, and fragments are rejected;
 - the hostname is normalized with the IDNA lookup profile;

@@ -51,6 +51,82 @@ describe('bundle budget contract', () => {
     expect(evaluateBundleBudgets(assets, budgets)).toEqual([]);
   });
 
+  it('counts lazy evidence views in complete journeys while keeping startup ceilings fixed', () => {
+    const budget = (label: string) => {
+      const found = consoleBundleBudgets.find((candidate) => candidate.label === label);
+      expect(found).toBeDefined();
+      return found as BundleBudget;
+    };
+    const network = budget('complete network evidence JavaScript');
+    expect(network.mode).toBe('aggregate');
+    for (const name of [
+      'NetworkWorkbench',
+      'NetworkPathPanel',
+      'NetworkPathMap',
+      'NetworkPathGeography',
+      'NetworkNodeActions',
+      'HopAttribution',
+      'ip-attribution',
+      'LocalNetworkPanel',
+      'LocalNetworkInventory',
+      'local-network',
+      'local-network-inventory',
+      'local-network-values',
+      'network-path',
+      'network-path-api',
+      'network-path-draft',
+      'network-path-geography',
+      'TopologyCanvas',
+      'network-model',
+      'bounded-response',
+      'listener-handoff',
+    ]) {
+      expect(network.pattern.test(`${name}-hash.js`), name).toBe(true);
+    }
+    expect(network.pattern.test('Unrelated-hash.js')).toBe(false);
+    for (const [label, names] of [
+      [
+        'complete packet inspection JavaScript',
+        [
+          'PacketWorkbench',
+          'PacketReportView',
+          'packet-api',
+          'packet-analysis',
+          'listener-handoff',
+        ],
+      ],
+      [
+        'complete This Device views JavaScript',
+        ['ThisPC', 'SocketsPanel', 'StatusFact', 'radio', 'listener-handoff'],
+      ],
+    ] as const) {
+      expect(budget(label).mode).toBe('aggregate');
+      for (const name of names) expect(budget(label).pattern.test(`${name}-hash.js`)).toBe(true);
+    }
+    expect(budget('initial console JavaScript').maxRawBytes).toBe(340 * 1024);
+    expect(budget('initial console JavaScript').maxGzipBytes).toBe(108 * 1024);
+    expect(budget('network workbench JavaScript').maxRawBytes).toBe(144 * 1024);
+    expect(budget('network workbench JavaScript').maxGzipBytes).toBe(46 * 1024);
+    expect(budget('console CSS').maxRawBytes).toBe(155 * 1024);
+    expect(budget('console CSS').maxGzipBytes).toBe(29 * 1024);
+    expect(
+      evaluateBundleBudgets(
+        [
+          {
+            name: 'NetworkWorkbench-hash.js',
+            rawBytes: network.maxRawBytes,
+            gzipBytes: network.maxGzipBytes,
+          },
+          { name: 'NetworkPathMap-hash.js', rawBytes: 1, gzipBytes: 1 },
+        ],
+        [network]
+      )
+    ).toEqual([
+      `${network.label}: ${network.maxRawBytes + 1} raw bytes exceeds ${network.maxRawBytes}`,
+      `${network.label}: ${network.maxGzipBytes + 1} gzip bytes exceeds ${network.maxGzipBytes}`,
+    ]);
+  });
+
   it('rejects missing and ambiguous single-chunk matches', () => {
     expect(evaluateBundleBudgets([], budgets)).toEqual(['entry: no matching asset']);
 

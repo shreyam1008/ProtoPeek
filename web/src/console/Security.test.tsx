@@ -41,10 +41,15 @@ it('shows certificate failure evidence without presenting a successful website r
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     to,
+    search,
     children,
     ...properties
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string; children: ReactNode }) => (
-    <a href={to} {...properties}>
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    to: string;
+    search?: Record<string, string>;
+    children: ReactNode;
+  }) => (
+    <a href={`${to}${search ? `?${new URLSearchParams(search)}` : ''}`} {...properties}>
       {children}
     </a>
   ),
@@ -104,6 +109,30 @@ afterEach(() => {
   Reflect.deleteProperty(navigator, 'clipboard');
   // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not expose Cookie Store.
   document.cookie = '_protopeek_csrf_token=; Max-Age=0; path=/';
+});
+
+it('accepts a bare website and carries its target into paths, names, ports, and a trace draft without automatic contact', async () => {
+  const fetchMock = vi.fn(async () =>
+    Response.json({ ...websiteResult, url: 'https://example.com/' })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  render(<Security />);
+  fireEvent.change(screen.getByLabelText('Public website URL'), {
+    target: { value: 'example.com' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Observe website' }));
+  await screen.findByText('204 No Content');
+  expect(screen.getByRole('link', { name: 'Scan ports' })).toHaveAttribute(
+    'href',
+    '/network/ports?host=example.com'
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Find subdomains' }));
+  expect(screen.getByLabelText('Apex or host')).toHaveValue('example.com');
+  fireEvent.click(screen.getByRole('tab', { name: 'Standard paths' }));
+  expect(await screen.findByLabelText('Website for path checks')).toHaveValue(
+    'https://example.com/'
+  );
+  expect(fetchMock).toHaveBeenCalledOnce();
 });
 
 describe('Security', () => {
@@ -253,6 +282,7 @@ describe('Security', () => {
     expect(
       await screen.findByRole('heading', { name: 'HEAD evidence report' }, { timeout: 5_000 })
     ).toBeVisible();
+    fireEvent.click(screen.getByText(/^Response policies ·/));
     expect(screen.getByRole('list', { name: 'HEAD response evidence checks' })).toBeVisible();
     expect(
       within(screen.getByRole('list', { name: 'HEAD response evidence checks' })).getAllByRole(

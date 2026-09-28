@@ -40,6 +40,14 @@ describe('port scanner', () => {
     expect(await screen.findByText('443/tcp')).toBeVisible();
     expect(screen.queryByText('80/tcp')).not.toBeInTheDocument();
     expect(screen.getByText('HTTPS (port hint)')).toBeVisible();
+    const capture = new URL(
+      screen.getByRole('link', { name: 'Capture traffic' }).getAttribute('href') ?? '',
+      'http://localhost'
+    );
+    expect(capture.pathname).toBe('/network/packets');
+    expect(capture.searchParams.get('mode')).toBe('live');
+    expect(capture.searchParams.get('host')).toBe('127.0.0.1');
+    expect(JSON.parse(capture.searchParams.get('port') ?? 'null')).toBe('443');
     fireEvent.change(screen.getByLabelText('Show'), { target: { value: 'all' } });
     expect(screen.getByText('80/tcp')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Inspect service' }));

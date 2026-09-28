@@ -114,11 +114,11 @@ describe('security domain-candidate API', () => {
   });
 
   it('normalizes complete website URLs without accepting credentials, fragments, or other schemes', () => {
+    expect(normalizeWebsiteURL('shreyam1008.com.np')).toBe('https://shreyam1008.com.np/');
     expect(normalizeWebsiteURL(' HTTPS://BÜCHER.example/a ')).toBe(
       'https://xn--bcher-kva.example/a'
     );
     for (const invalid of [
-      'example.com',
       'ftp://example.com/file',
       'https://user:secret@example.com/',
       'https://example.com/?token=secret',

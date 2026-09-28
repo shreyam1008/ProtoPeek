@@ -1,0 +1,44 @@
+.pp-local-availability {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  border: 1px solid var(--pp-warning-signal);
+  border-radius: 0.42rem;
+  padding: 0.8rem;
+  background: color-mix(in srgb, var(--pp-warning-signal) 6%, var(--pp-surface));
+}
+
+.pp-local-availability > div {
+  min-width: 0;
+}
+
+.pp-local-availability strong {
+  color: var(--pp-text);
+  font-size: 0.78rem;
+}
+
+.pp-local-availability p,
+.pp-local-availability details {
+  margin-top: 0.35rem;
+  color: var(--pp-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.pp-local-availability summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.pp-local-availability code {
+  display: block;
+  overflow-wrap: anywhere;
+  padding-top: 0.35rem;
+  font-family: var(--font-mono);
+}
+
+.pp-local-availability > button {
+  flex-shrink: 0;
+}

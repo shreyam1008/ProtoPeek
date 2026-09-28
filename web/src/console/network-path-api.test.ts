@@ -6,6 +6,19 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it('reports an unavailable local API and rejects oversized successful responses before parsing', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('<html>development server</html>'))
+  );
+  await expect(fetchPathCapabilities()).rejects.toThrow('local ProtoPeek API');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(' '.repeat(64 * 1024 + 1)))
+  );
+  await expect(fetchPathCapabilities()).rejects.toThrow('response limit');
+});
+
 describe('network path API', () => {
   it('keeps capability checks read-only and sends exact consented trace JSON with CSRF', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API

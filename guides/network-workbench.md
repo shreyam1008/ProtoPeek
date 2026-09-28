@@ -1,5 +1,30 @@
 # ProtoPeek network workbench
 
+## Start with nearby devices
+
+Open **Network** or choose **See nearby devices** on Home. ProtoPeek selects an available private
+IPv4 interface and immediately reads this computer's identity and operating-system neighbor cache.
+Use the network selector to switch interfaces. The interface name is primary; its address and scope
+remain visible. A custom range is available in the advanced scan settings.
+
+The first map is local network membership, with an equivalent device list. Select an address to see
+its identity evidence, device-role clues, advertised services, and observed open ports. Cached
+neighbors can be stale; they are not a complete census or a claim that those devices are online.
+Opening the page sends no discovery probes. If the default Internet route uses a VPN outside the
+available private scopes, the first eligible local interface is selected instead.
+
+Choose **Scan network** to inspect the selected network. The explicit action runs the displayed
+bounded TCP profile and a short mDNS/DNS-SD browse on its local interface. Names, service types,
+ports, and device-role clues retain their source. A device that does not answer these probes stays
+unknown; it is not marked offline. Expand the scan settings to change the profile or enter a custom
+private `/24` or smaller scope. The scan plan shows the exact selected ports and work limits.
+
+**Inspect ports** carries the device address into the host scanner. **Inspect traffic** prepares a
+local capture filter without starting capture. A port result can prepare a host-and-port capture;
+local socket rows can prepare a local-port capture. These handoffs never send probes by themselves.
+Save a discovery snapshot or a trace to continue in **Network evidence map**, annotate it, and
+export it. Map lines describe evidence relationships, not physical cables.
+
 ## Current-source packet inspection
 
 **Network → Packets** reads `.pcap`, `.pcapng` and `.cap` files without installing Wireshark.
@@ -7,7 +32,9 @@ Select a file and click **Inspect file**. The file is sent to the local ProtoPee
 analysis; captured endpoints are never contacted. The table shows endpoints, ports, packet sizes,
 DNS questions, HTTP method/status, TCP flags or TLS record signatures where decoding is possible.
 Filter by protocol, IP, port or decoded text; select a packet for its recorded UTC timestamp and
-details. **Save metadata** exports this report; **Clear results** leaves the original file intact.
+details. Conversation summaries group retained packets by endpoint pair, showing direction counts,
+observed bytes and protocols. Relative times help follow the sequence. **Save metadata** exports
+this report; **Clear results** leaves the original file intact.
 
 The reader accepts 16 MiB, parses at most 20,000 packet records and retains the first 2,000 rows.
 Counters describe parsed records, and a limit notice identifies a stopped prefix. Tables paginate
@@ -24,8 +51,9 @@ when deeper analysis is needed. Files, decoded rows and capture settings are ses
 
 ### Explicit capture through installed dumpcap
 
-**Capture this host** uses Wireshark's separately installed `dumpcap`. Refresh interfaces, select
-one local interface, enter one IP and/or port, choose 1–30 seconds, confirm permission and click
+**Capture this host** uses Wireshark's separately installed `dumpcap`. Opening capture reads available
+interfaces; a single available interface is selected automatically. Choose a local interface,
+enter one IP and/or port, choose 1–30 seconds, and click
 **Start capture**. Both filters combine with AND. The adapter requests non-promiscuous mode,
 at most 2,000 packets, 512 bytes per packet and a 1 MiB capture buffer. Output travels through a
 bounded pipe into the reader; ProtoPeek creates no capture file. Results appear after the run ends.
@@ -78,6 +106,9 @@ labels have a bounded 128-entry, 15-minute in-process cache. Nothing polls in th
 Labels retain the provider source and observation time. They can include ASN, organization, ISP,
 country, region and city. Anycast addresses may be registered far from the responding machine;
 these are approximate IP labels, not measured datacenter locations or return-route evidence.
+When the provider supplies valid coordinates, an offline geographic view plots those reported
+locations. Unlocated and silent hops remain explicit gaps. Dashed connectors are sequence guides,
+not measured physical links, cable routes, or a claim that packets crossed the intervening places.
 **Save trace** carries labels into the map as separate inferred provenance, while path replies
 remain observed evidence. Export/import preserves both. Cancel leaves existing hop measurements intact.
 
@@ -108,11 +139,11 @@ The everyday defaults avoid unnecessary typing:
 - JSON formatting is optional. Invalid JSON is labeled and can still be sent verbatim when that is the intended test.
 
 Open **Network Path** to trace one hostname or IP. Loading the page checks local capabilities but
-does not send a path probe. Review the visible plan, confirm authorization, and start the trace.
+does not send a path probe. Review the visible plan and choose **Trace path** to send those probes.
 
-Open **Local network** to inspect private-interface suggestions. Loading suggestions also sends no
-probe. Choose or enter an explicit private IPv4 CIDR, choose a named TCP profile, review the exact
-host/port/attempt count, confirm authorization, and start the scan.
+Open **Nearby devices** to see an automatically selected local network and cached addresses.
+Switch available networks by name. To gather fresh service evidence, review the selected scope
+and choose **Scan network**; advanced settings expose the profile and optional custom CIDR.
 
 ## Read the evidence in order
 
@@ -413,7 +444,7 @@ OS fingerprinting, vulnerability scripts or hidden follow-up scans are included 
 ### Soon — deepen evidence without pretending certainty
 
 - A verified unprivileged native active-hop backend for Darwin.
-- Source-labelled passive enrichment and user-editable region/provider evidence; aliases remain suggestions, not automatic datacenter claims.
+- More source-labelled enrichment beyond the current neighbor cache and mDNS records; aliases remain suggestions, not automatic datacenter claims.
 - Snapshot comparison that shows added, removed, and changed observed evidence without calling an unobserved host offline.
 - Better topology grouping and manual subnet/VLAN documentation without scan-derived VLAN claims.
 
@@ -421,8 +452,8 @@ OS fingerprinting, vulnerability scripts or hidden follow-up scans are included 
 
 - Optional Nmap XML-to-workspace mapping with explicit import provenance and loss reporting; no bundled Nmap execution in the core binary.
 - Additional path methods such as native TCP or ICMP only when they have reliable unprivileged implementations and the same consent/cancellation contract.
-- Geographic base maps only if their download, privacy, offline behavior, and binary/bundle cost remain explicit; the logical canvas stays the dependable local view.
-- Passive capture only after privilege, secret-redaction, lifecycle, and teardown boundaries are designed and tested.
+- Richer geographic views beyond the current offline outline and optional IP-provider locations, keeping download, privacy, and bundle costs explicit.
+- Additional packet dissectors and capture integrations beyond the current bounded file reader and optional local dumpcap capture; privilege, visibility, lifecycle, and teardown boundaries remain explicit.
 
 See [Route, path, discovery, and Nmap evidence boundaries](/route-and-nmap-evidence/) for the lower
 level API and trust contracts, and [the feature roadmap](/feature-roadmap/) for the wider protocol

@@ -80,10 +80,14 @@ it('keeps third-party attribution distinct through persisted map export/import',
           ip: '203.0.113.20',
           status: 'observed',
           country: 'Fixture country',
+          city: 'Fixture city',
+          latitude: 27.7172,
+          longitude: 85.324,
           asn: 64500,
           isp: 'Fixture ISP',
           observedAt: '2026-09-06T12:00:00Z',
-          cached: false,
+          cached: true,
+          note: 'Provider-reported location may describe a registered office.',
         },
       ],
     },
@@ -95,12 +99,19 @@ it('keeps third-party attribution distinct through persisted map export/import',
     node.identities.some((identity) => identity.value === '203.0.113.20')
   );
   expect(destination?.notes).toContain('Fixture ISP');
+  expect(destination?.notes).toContain('Fixture city');
+  expect(destination?.notes).toContain('Approximate coordinates: 27.7172, 85.324');
+  expect(destination?.notes).toContain('Cached provider record');
+  expect(destination?.notes).toContain(
+    'Provider-reported location may describe a registered office.'
+  );
   expect(destination?.provenance).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         source: 'ip-attribution',
         kind: 'inferred',
         observedAt: '2026-09-06T12:00:00.000Z',
+        detail: expect.stringContaining('Approximate coordinates: 27.7172, 85.324'),
       }),
     ])
   );

@@ -206,7 +206,7 @@ async function waitForSnapshot() {
 
 async function inspectListeners() {
   fireEvent.click(screen.getByRole('tab', { name: 'Listeners' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Inspect local listeners' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Inspect local listeners' }));
   expect(screen.queryByRole('dialog', { name: 'Inspect local listeners' })).not.toBeInTheDocument();
 }
 

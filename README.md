@@ -301,14 +301,20 @@ responder, never claimed as latency between adjacent hops. Minimum, median, and 
 are calculated independently per responder instead of blending ECMP replies. The destination
 median appears only when reply samples came from the exact pinned destination; ProtoPeek never
 substitutes the last responding router. Silent hops do not prove a device is down, and ECMP or other
-load balancing can produce several responders at one TTL. Active probes require explicit consent,
-with an additional acknowledgement for public targets. Windows uses native IPv4/IPv6 ICMP echo;
+load balancing can produce several responders at one TTL. The Run action starts the displayed
+active probe plan, including public targets. Windows uses native IPv4/IPv6 ICMP echo;
 Darwin currently reports active hop probing as unsupported. No elevation is requested.
 Optional, explicitly requested IPWHOIS labels add dated ASN/ISP and approximate location evidence
 to responding public IPs. Local addresses are skipped, and labels survive saving the trace.
 
-Local network discovery is another explicit operation, not ambient crawling. Its capability check
-only reads interface metadata. A scan accepts an authorized RFC 1918 IPv4 CIDR no broader than
+**Network opens Nearby devices** with an available local interface selected and a map/list of this
+computer plus cached neighbors. Choose a device to inspect its ports or prepare a local traffic
+capture. Neither opening the page nor these handoffs starts a scan or capture. **Scan network**
+adds fresh bounded TCP and mDNS/DNS-SD evidence, including advertised names/services when received.
+Device types remain source-backed clues, and cached addresses are not a live device census.
+
+Local network discovery is an explicit operation. Its capability check reads interface metadata,
+the OS neighbor cache, and the selected route. A scan accepts an authorized RFC 1918 IPv4 CIDR no broader than
 `/24` and one visible TCP profile. The capability response returns at most 32 deduplicated interface
 suggestions and omits a configured CIDR unless the whole prefix is inside one RFC 1918 block; a
 broad accepted interface is suggested as its containing `/24`. Each profile exposes both `ports`

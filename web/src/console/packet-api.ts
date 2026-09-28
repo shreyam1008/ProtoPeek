@@ -41,7 +41,13 @@ export async function packetRequest(path: string, input: unknown, signal: AbortS
   const body = await readBoundedText(response, 2 * 1024 * 1024);
   if (body.truncated) throw new Error('Packet report exceeded its size limit.');
   if (!response.ok) throw new Error(body.text || `Request failed (${response.status}).`);
-  return JSON.parse(body.text);
+  try {
+    return JSON.parse(body.text);
+  } catch {
+    throw new Error(
+      'ProtoPeek did not return a readable packet response. Check that the local API is running, then try again.'
+    );
+  }
 }
 
 export function parsePacketReport(value: unknown): PacketReport {
@@ -58,15 +64,21 @@ export function parsePacketReport(value: unknown): PacketReport {
     result.warnings.length > 12 ||
     result.warnings.some((item) => typeof item !== 'string' || item.length > 512) ||
     !result.protocols ||
-    typeof result.protocols !== 'object'
+    typeof result.protocols !== 'object' ||
+    Array.isArray(result.protocols) ||
+    Object.keys(result.protocols).length > 64 ||
+    Object.keys(result.protocols).some((name) => !name || name.length > 64) ||
+    typeof result.limited !== 'boolean'
   )
     throw new Error('Invalid packet report.');
+  const numbers = new Set<number>();
   for (const row of result.packets) {
     if (
       !row ||
       !Number.isInteger(row.number) ||
       row.number < 1 ||
       row.number > 20000 ||
+      numbers.has(row.number) ||
       !Number.isInteger(row.captured) ||
       row.captured < 0 ||
       row.captured > 16 * 1024 * 1024 ||
@@ -79,6 +91,7 @@ export function parsePacketReport(value: unknown): PacketReport {
       typeof row.truncated !== 'boolean'
     )
       throw new Error('Invalid packet record.');
+    numbers.add(row.number);
     for (const key of ['source', 'destination', 'protocol', 'info'] as const)
       if (typeof row[key] !== 'string' || row[key].length > 1024)
         throw new Error('Invalid packet metadata.');
@@ -87,11 +100,14 @@ export function parsePacketReport(value: unknown): PacketReport {
         throw new Error('Invalid packet port.');
     if (
       row.timestamp !== undefined &&
-      (row.timestamp.length > 40 || !Number.isFinite(Date.parse(row.timestamp)))
+      (typeof row.timestamp !== 'string' ||
+        row.timestamp.length > 40 ||
+        !Number.isFinite(Date.parse(row.timestamp)))
     )
       throw new Error('Invalid packet timestamp.');
   }
   for (const count of [result.wireBytes, result.capturedBytes, ...Object.values(result.protocols)])
     if (!Number.isSafeInteger(count) || count < 0) throw new Error('Invalid packet totals.');
+  if (result.capturedBytes > result.wireBytes) throw new Error('Invalid packet totals.');
   return result;
 }

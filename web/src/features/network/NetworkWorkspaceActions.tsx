@@ -33,13 +33,16 @@ export function NetworkEmptyState() {
     <div className="pp-network-empty">
       <MapIcon aria-hidden="true" />
       <h2>No saved network evidence</h2>
-      <p>Trace a path, scan an authorized private CIDR, or import a bounded JSON/GraphML file.</p>
+      <p>
+        Save a nearby-device scan or a measured route to explore it here. You can also import a
+        saved map.
+      </p>
       <div>
+        <Link className="pp-network-empty-action" to="/network/local">
+          See nearby devices
+        </Link>
         <Link className="pp-network-empty-action" to="/network/path">
           Trace a path
-        </Link>
-        <Link className="pp-network-empty-action" to="/network/local">
-          Scan local network
         </Link>
       </div>
     </div>

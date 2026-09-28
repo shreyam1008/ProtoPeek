@@ -143,7 +143,7 @@ describe('feature registry', () => {
       'Open Nmap scanner',
       'Inspect captured packets',
       'Trace a measured network path',
-      'Discover an authorized local network',
+      'See nearby devices',
       'Open the network evidence map',
       'Open This Device',
       'Open Tailscale workbench',
@@ -158,6 +158,7 @@ describe('feature registry', () => {
     expect(homeEntryFeatures.map((feature) => feature.homeEntry.label)).toEqual([
       'Send an API request',
       'Trace a network path',
+      'See nearby devices',
       'Check this device',
       'Inspect Cloudflare tunnels',
       'Download a file',

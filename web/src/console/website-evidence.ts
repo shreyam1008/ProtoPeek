@@ -1,4 +1,5 @@
 import type { WebsiteObservationResult } from './security-api';
+import { type WebsiteTechnologyHint, websiteTechnologyHints } from './website-technologies';
 
 export type WebsiteEvidenceStatus = 'observed' | 'not observed' | 'attention';
 
@@ -34,10 +35,11 @@ export type WebsiteEvidenceReport = {
   };
   observation: WebsiteObservationResult;
   checks: WebsiteEvidenceCheck[];
+  technologyHints: WebsiteTechnologyHint[];
 };
 
 export const websiteEvidenceLimitation =
-  'These labels describe only the retained response to one non-following HEAD request. HEAD evidence can differ from GET responses and application behavior; no vulnerability verdict or score is produced.';
+  'One HEAD response; no redirects followed or body read. HEAD evidence can differ from GET responses and application behavior; no vulnerability verdict or score is produced.';
 
 const headerFieldPrefix = 'observation.http.headers.';
 
@@ -185,7 +187,7 @@ function hstsCheck(observation: WebsiteObservationResult): WebsiteEvidenceCheck 
       id: 'hsts',
       label: 'HSTS',
       status: 'not observed',
-      summary: 'No Strict-Transport-Security header was retained in this HEAD response.',
+      summary: 'No Strict-Transport-Security header was observed.',
       sourceFields,
     };
   }
@@ -203,7 +205,7 @@ function hstsCheck(observation: WebsiteObservationResult): WebsiteEvidenceCheck 
       id: 'hsts',
       label: 'HSTS',
       status: 'attention',
-      summary: 'Multiple distinct Strict-Transport-Security values were retained in this response.',
+      summary: 'Multiple distinct Strict-Transport-Security values were observed.',
       sourceFields,
     };
   }
@@ -218,8 +220,7 @@ function hstsCheck(observation: WebsiteObservationResult): WebsiteEvidenceCheck 
       id: 'hsts',
       label: 'HSTS',
       status: 'attention',
-      summary:
-        'Strict-Transport-Security was retained, but a valid max-age directive was not observed.',
+      summary: 'Strict-Transport-Security has no valid max-age directive.',
       sourceFields,
     };
   }
@@ -228,7 +229,7 @@ function hstsCheck(observation: WebsiteObservationResult): WebsiteEvidenceCheck 
       id: 'hsts',
       label: 'HSTS',
       status: 'attention',
-      summary: 'Strict-Transport-Security was retained with max-age=0.',
+      summary: 'Strict-Transport-Security has max-age=0.',
       sourceFields,
     };
   }
@@ -255,7 +256,7 @@ function presenceCheck(
       id,
       label,
       status: 'not observed',
-      summary: `No ${label} header was retained in this HEAD response.`,
+      summary: `No ${label} header was observed.`,
       sourceFields,
     };
   }
@@ -313,7 +314,7 @@ function frameEmbeddingCheck(observation: WebsiteObservationResult): WebsiteEvid
     id: 'frame-embedding',
     label: 'Frame embedding',
     status: 'not observed',
-    summary: 'Neither CSP frame-ancestors nor X-Frame-Options was retained in this HEAD response.',
+    summary: 'Neither CSP frame-ancestors nor X-Frame-Options was observed.',
     sourceFields,
   };
 }
@@ -327,7 +328,7 @@ function nosniffCheck(observation: WebsiteObservationResult): WebsiteEvidenceChe
       id: 'nosniff',
       label: 'MIME sniffing',
       status: 'not observed',
-      summary: 'No X-Content-Type-Options header was retained in this HEAD response.',
+      summary: 'No X-Content-Type-Options header was observed.',
       sourceFields,
     };
   }
@@ -359,7 +360,7 @@ function serverDisclosureCheck(observation: WebsiteObservationResult): WebsiteEv
       id: 'server-disclosure',
       label: 'Server disclosure',
       status: 'not observed',
-      summary: 'No Server header value was retained in this HEAD response.',
+      summary: 'No Server header was observed.',
       sourceFields,
     };
   }
@@ -367,7 +368,7 @@ function serverDisclosureCheck(observation: WebsiteObservationResult): WebsiteEv
     id: 'server-disclosure',
     label: 'Server disclosure',
     status: 'observed',
-    summary: `Server header disclosure was retained: ${compactValue(values.join(' | '))}. This is not a vulnerability verdict.`,
+    summary: `Advertised Server header: ${compactValue(values.join(' | '))}.`,
     sourceFields,
   };
 }
@@ -388,7 +389,7 @@ function redirectHTTPSCheck(observation: WebsiteObservationResult): WebsiteEvide
         id: 'redirect-https',
         label: 'Redirect and HTTPS path',
         status: 'attention',
-        summary: 'A redirect status was observed without a retained Location value.',
+        summary: 'Redirect status without a retained Location value.',
         sourceFields,
       };
     }
@@ -484,6 +485,7 @@ export function analyzeWebsiteObservation(result: WebsiteObservationResult): Web
       limitation: websiteEvidenceLimitation,
     },
     observation,
+    technologyHints: websiteTechnologyHints(observation),
     checks: [
       httpsTLSCheck(observation),
       hstsCheck(observation),

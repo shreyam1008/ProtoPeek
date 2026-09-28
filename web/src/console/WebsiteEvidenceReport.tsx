@@ -11,10 +11,10 @@ import {
 type EvidenceCopyState = 'idle' | 'copied' | 'unavailable' | 'failed';
 
 const evidenceCopyMessages: Record<EvidenceCopyState, string> = {
-  idle: 'JSON contains this retained observation, its fixed request boundary, and the derived labels.',
+  idle: 'JSON includes the observation, request boundary, and derived labels.',
   copied: 'JSON evidence report copied.',
-  unavailable: 'Clipboard access is unavailable in this browser context.',
-  failed: 'The JSON evidence report could not be copied. Allow clipboard access and try again.',
+  unavailable: 'Clipboard access is unavailable in this browser.',
+  failed: 'Report could not be copied. Allow clipboard access and retry.',
 };
 
 const evidenceStatusLabels: Record<WebsiteEvidenceStatus, string> = {
@@ -57,7 +57,7 @@ export default function WebsiteEvidenceReport({ result }: { result: WebsiteObser
     <section className="pp-security-evidence-report" aria-labelledby={titleID}>
       <header>
         <div>
-          <span>Derived locally · no added target request</span>
+          <span>Local analysis · no added request</span>
           <h3 id={titleID}>HEAD evidence report</h3>
         </div>
         <button
@@ -77,15 +77,44 @@ export default function WebsiteEvidenceReport({ result }: { result: WebsiteObser
         {websiteEvidenceLimitation}
       </p>
 
-      <ul className="pp-security-check-list" aria-label="HEAD response evidence checks">
-        {report.checks.map((check) => (
-          <li key={check.id} className={`is-${check.status.replace(' ', '-')}`}>
-            <span>{evidenceStatusLabels[check.status]}</span>
-            <strong>{check.label}</strong>
-            <p>{check.summary}</p>
-          </li>
-        ))}
-      </ul>
+      <section className="pp-website-technologies" aria-label="Advertised technology">
+        <h4>Advertised technology</h4>
+        <p>Headers advertise a framework, runtime, or edge server; they may describe a proxy.</p>
+        {report.technologyHints.length ? (
+          <dl>
+            {report.technologyHints.map((hint) => (
+              <div key={`${hint.source}:${hint.advertised}`}>
+                <dt>{hint.category}</dt>
+                <dd>
+                  <strong>{hint.name}</strong>
+                  <small>
+                    Advertised by <code>{hint.source}</code>
+                  </small>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p>No technology was advertised. The application stack is unknown.</p>
+        )}
+      </section>
+
+      <details className="pp-website-header-checks">
+        <summary>
+          Response policies · {report.checks.filter((check) => check.status === 'observed').length}{' '}
+          observed, {report.checks.filter((check) => check.status === 'attention').length} need
+          review
+        </summary>
+        <ul className="pp-security-check-list" aria-label="HEAD response evidence checks">
+          {report.checks.map((check) => (
+            <li key={check.id} className={`is-${check.status.replace(' ', '-')}`}>
+              <span>{evidenceStatusLabels[check.status]}</span>
+              <strong>{check.label}</strong>
+              <p>{check.summary}</p>
+            </li>
+          ))}
+        </ul>
+      </details>
 
       <p
         className={`pp-security-copy-state${

@@ -390,16 +390,24 @@ export function PortScanner() {
                     <td>{row.state === 'not-scanned' ? '—' : `${row.durationMs} ms`}</td>
                     <td>
                       {row.state === 'open' && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openScan({
-                              initialTarget: `${result.address.includes(':') ? `[${result.address}]` : result.address}:${row.port}`,
-                            })
-                          }
-                        >
-                          Inspect service
-                        </button>
+                        <div className="pp-port-actions">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openScan({
+                                initialTarget: `${result.address.includes(':') ? `[${result.address}]` : result.address}:${row.port}`,
+                              })
+                            }
+                          >
+                            Inspect service
+                          </button>
+                          <Link
+                            to="/network/packets"
+                            search={{ mode: 'live', host: result.address, port: String(row.port) }}
+                          >
+                            Capture traffic
+                          </Link>
+                        </div>
                       )}
                     </td>
                   </tr>

@@ -661,14 +661,14 @@ describe('NetworkWorkbench persistence protections', () => {
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
     ).toEqual([
+      'Nearby devices',
       'This Device',
-      'Port scanner',
       'Tailscale',
-      'Next hop',
-      'Network path',
-      'Local discovery',
-      'Nmap',
+      'Port scanner',
       'Packets',
+      'Network path',
+      'Next hop',
+      'Nmap',
       'Network evidence map',
       'Network history',
     ]);
@@ -677,14 +677,14 @@ describe('NetworkWorkbench persistence protections', () => {
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
     ).toEqual([
-      '/this-pc',
-      '/network/ports',
-      '/network/tailnet',
-      '/network/route',
-      '/network/path',
       '/network/local',
-      '/network/nmap',
+      '/this-pc',
+      '/network/tailnet',
+      '/network/ports',
       '/network/packets',
+      '/network/path',
+      '/network/route',
+      '/network/nmap',
       '/network/map',
       '/network/history',
     ]);

@@ -82,6 +82,10 @@ const retainedWebsiteHeaders = new Map(
     'Via',
     'X-Content-Type-Options',
     'X-Frame-Options',
+    'X-Powered-By',
+    'X-Generator',
+    'X-AspNet-Version',
+    'X-AspNetMvc-Version',
   ].map((name) => [name.toLowerCase(), name])
 );
 
@@ -164,9 +168,9 @@ export function normalizeWebsiteURL(input: string) {
   if (inputByteLength(value) > maximumWebsiteURLBytes) throw new Error('The URL is too long.');
   let parsed: URL;
   try {
-    parsed = new URL(value);
+    parsed = new URL(value.includes('://') ? value : `https://${value}`);
   } catch {
-    throw new Error('Enter a complete HTTP or HTTPS URL.');
+    throw new Error('Enter a website such as example.com or a complete HTTP(S) URL.');
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error('Only HTTP and HTTPS website URLs are supported.');
@@ -368,6 +372,8 @@ export function normalizeWebsiteObservationResult(input: unknown): WebsiteObserv
   if (!isRecord(input))
     throw new SecurityAPIError('ProtoPeek returned malformed website evidence.');
   const rawURL = boundedString(input.url, maximumWebsiteURLBytes, 'website URL');
+  if (!/^https?:\/\//i.test(rawURL))
+    throw new SecurityAPIError('ProtoPeek returned a malformed website URL.');
   let normalizedURL: string;
   try {
     normalizedURL = normalizeWebsiteURL(rawURL);
@@ -400,6 +406,8 @@ export function normalizeWebsiteObservationResult(input: unknown): WebsiteObserv
   const redirectLocation = boundedString(rawRedirect, maximumWebsiteURLBytes, 'redirect location');
   if (redirectLocation) {
     try {
+      if (!/^https?:\/\//i.test(redirectLocation))
+        throw new Error('Expected an absolute redirect URL.');
       normalizeWebsiteURL(redirectLocation);
     } catch {
       throw new SecurityAPIError('ProtoPeek returned a malformed redirect location.');

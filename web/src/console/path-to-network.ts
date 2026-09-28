@@ -72,6 +72,11 @@ function networkNode(
         attribution.organization,
         attribution.isp,
         [attribution.city, attribution.region, attribution.country].filter(Boolean).join(', '),
+        attribution.latitude !== undefined && attribution.longitude !== undefined
+          ? `Approximate coordinates: ${attribution.latitude}, ${attribution.longitude}`
+          : '',
+        attribution.cached ? 'Cached provider record' : '',
+        attribution.note,
       ]
         .filter(Boolean)
         .join(

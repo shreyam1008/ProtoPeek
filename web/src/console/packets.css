@@ -62,6 +62,57 @@
   padding-right: 12px;
   border-right: 1px solid var(--pp-border);
 }
+.pp-packet-controls p {
+  margin: 0;
+  line-height: 1.5;
+}
+.pp-packet-controls [role="alert"] {
+  color: var(--pp-danger);
+  overflow-wrap: anywhere;
+}
+.pp-packet-visibility {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--pp-accent) 5%, var(--pp-panel));
+}
+.pp-packet-capability {
+  color: var(--pp-muted);
+}
+.pp-packet-conversations {
+  flex: 0 0 auto;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 12px;
+}
+.pp-packet-conversations summary {
+  cursor: pointer;
+}
+.pp-packet-conversations p,
+.pp-packet-conversations small {
+  color: var(--pp-muted);
+  line-height: 1.5;
+}
+.pp-packet-conversations > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 6px;
+  max-height: 190px;
+  overflow: auto;
+}
+.pp-packet-conversations button {
+  display: grid;
+  gap: 5px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.pp-packet-conversations button span {
+  color: var(--pp-muted);
+  font-size: 11px;
+}
 .pp-packet-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -192,7 +243,7 @@
     height: auto;
   }
   .pp-packet-controls {
-    max-height: 320px;
+    overflow: visible;
     border-right: 0;
     padding: 0;
   }

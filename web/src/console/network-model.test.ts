@@ -202,6 +202,48 @@ describe('ProtoPeek network JSON', () => {
     }).toThrow();
   });
 
+  it.each([
+    '2001:db8::1]/path',
+    '2001:db8::1]:80',
+    '2001:db8::1]#fragment',
+    '2001:db8::1]?query',
+    '2001:db8::1\n',
+  ])('rejects URL suffixes and controls in imported IPv6 identity %j', (value) => {
+    const workspace = richWorkspace();
+    const invalid = {
+      ...workspace,
+      nodes: workspace.nodes.map((node, index) =>
+        index === 0
+          ? {
+              ...node,
+              identities: [{ ...node.identities[0], kind: 'ipv6', value }],
+            }
+          : node
+      ),
+    };
+    expect(validateNetworkWorkspaceImport(invalid).error).toBeTruthy();
+  });
+
+  it.each([
+    '2001:db8::1',
+    'fe80::1%eth0',
+    '::ffff:192.0.2.1',
+  ])('preserves supported IPv6 identity %s in imported evidence', (value) => {
+    const workspace = richWorkspace();
+    const valid = {
+      ...workspace,
+      nodes: workspace.nodes.map((node, index) =>
+        index === 0
+          ? {
+              ...node,
+              identities: [{ ...node.identities[0], kind: 'ipv6', value }],
+            }
+          : node
+      ),
+    };
+    expect(validateNetworkWorkspaceImport(valid).error).toBeNull();
+  });
+
   it('fails closed for malformed, unbounded, secret-bearing, or inconsistent evidence', () => {
     const malformed = parseNetworkWorkspaceJSON('{');
     expect(malformed.error).toMatch(/malformed/i);

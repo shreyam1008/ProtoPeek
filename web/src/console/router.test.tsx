@@ -203,7 +203,8 @@ describe('protocol routes', () => {
     expect(screen.getByText('Network path')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
     expect(screen.getByText('Local discovery')).toBeInTheDocument();
-    expect(screen.getByText('Ask first')).toBeInTheDocument();
+    expect(screen.getByText('Ready to explore')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^See nearby devices\b/ })).toBeVisible();
     expect(screen.getByRole('link', { name: /^Check this device\b/ })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
@@ -230,9 +231,9 @@ describe('protocol routes', () => {
       await router.navigate({ to: '/network' });
     });
     expect(
-      await screen.findByRole('heading', { name: 'Network path', level: 1 })
+      await screen.findByRole('heading', { name: 'Nearby devices', level: 1 })
     ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/network/path');
+    expect(router.state.location.pathname).toBe('/network/local');
     expect(screen.getByRole('link', { name: 'Open Network' })).toHaveClass('is-active');
 
     await act(async () => {

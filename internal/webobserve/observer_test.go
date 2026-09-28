@@ -78,6 +78,8 @@ func TestObservePinsDNSAndDoesNotFollowRedirect(t *testing.T) {
 		}
 		writer.Header().Set("Content-Security-Policy", "default-src 'none'")
 		writer.Header().Set("Set-Cookie", "secret=value")
+		writer.Header().Set("X-Powered-By", "Next.js")
+		writer.Header().Set("X-Generator", "Fixture CMS")
 		writer.Header().Set("Location", "http://redirect.test:"+redirectPort+"/landing?token=secret#fragment")
 		writer.WriteHeader(http.StatusFound)
 	}))
@@ -125,6 +127,9 @@ func TestObservePinsDNSAndDoesNotFollowRedirect(t *testing.T) {
 	}
 	if result.HTTP.Headers["Content-Security-Policy"][0] != "default-src 'none'" {
 		t.Fatalf("headers = %#v", result.HTTP.Headers)
+	}
+	if result.HTTP.Headers["X-Powered-By"][0] != "Next.js" || result.HTTP.Headers["X-Generator"][0] != "Fixture CMS" {
+		t.Fatalf("advertised technology headers missing: %#v", result.HTTP.Headers)
 	}
 	if len(result.DNS.PinnedAddresses) != 1 || result.DNS.PinnedAddresses[0] != "127.0.0.1" {
 		t.Fatalf("pinned addresses = %#v", result.DNS.PinnedAddresses)

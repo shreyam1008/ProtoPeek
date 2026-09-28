@@ -1,5 +1,5 @@
 import { Activity, CircleAlert, Gauge, Monitor, Radio, RefreshCw, Timer } from 'lucide-react';
-import { type KeyboardEvent, useContext, useState } from 'react';
+import { type KeyboardEvent, lazy, Suspense, useContext, useState } from 'react';
 import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
 import { PageHeader } from '@/console/shell/PageHeader';
@@ -13,10 +13,13 @@ import { InterfacesPanel } from './InterfacesPanel';
 import { createListenerHandoff, type ListenerHandoffKind } from './listener-handoff';
 import { PublicAddressPanel } from './PublicAddressPanel';
 import { EvidenceBoundaries, QualityPlanPanel, QualityPlanSummary } from './QualityPlanPanel';
-import { SocketsPanel } from './SocketsPanel';
 import { useDeviceActions } from './useDeviceActions';
 import { useDeviceCapabilities } from './useDeviceCapabilities';
 import { useQualityPlan } from './useQualityPlan';
+
+const SocketsPanel = lazy(() =>
+  import('./SocketsPanel').then((module) => ({ default: module.SocketsPanel }))
+);
 
 const sectionViews = [
   { id: 'overview', label: 'Overview', icon: Monitor },
@@ -103,7 +106,7 @@ export function ThisDeviceRoute() {
   const shell = useContext(ProtocolShellContext);
   const [view, setView] = useState<DeviceView>('overview');
   const [handoffError, setHandoffError] = useState('');
-  const { capabilities, snapshot, loadSnapshot } = useDeviceCapabilities();
+  const { capabilities, snapshot, loadSnapshot, loadCapabilities } = useDeviceCapabilities();
   const actions = useDeviceActions(capabilities);
   const quality = useQualityPlan(() => setView('benchmark'));
   const currentSection = sectionViews.find((section) => section.id === view) ?? sectionViews[0];
@@ -153,6 +156,16 @@ export function ThisDeviceRoute() {
             <div>
               <h2 id="this-pc-unavailable-title">This Device is unavailable in this runtime</h2>
               <p>{capabilities.error}</p>
+              <button
+                type="button"
+                className="this-pc-button"
+                onClick={() => {
+                  loadCapabilities();
+                  loadSnapshot();
+                }}
+              >
+                Retry device connection
+              </button>
               <small>
                 ProtoPeek will not offer a browser-only benchmark here because it could be mistaken
                 for evidence about the host process/network namespace.
@@ -180,87 +193,89 @@ export function ThisDeviceRoute() {
               aria-labelledby={`this-pc-tab-${view}`}
               className="this-pc-view"
             >
-              {view === 'overview' ? (
-                <>
-                  <DeviceSummary snapshot={snapshot} />
-                  <div className="this-pc-overview-grid">
-                    <div className="this-pc-stack">
-                      <InterfacesPanel snapshot={snapshot} />
-                      {snapshot.status === 'ready' && snapshot.value.notes.length ? (
-                        <aside className="this-pc-notes">
-                          {snapshot.value.notes.map((note) => (
-                            <p key={note}>{note}</p>
-                          ))}
-                        </aside>
-                      ) : null}
+              <Suspense fallback={<p role="status">Preparing socket inspection…</p>}>
+                {view === 'overview' ? (
+                  <>
+                    <DeviceSummary snapshot={snapshot} />
+                    <div className="this-pc-overview-grid">
+                      <div className="this-pc-stack">
+                        <InterfacesPanel snapshot={snapshot} />
+                        {snapshot.status === 'ready' && snapshot.value.notes.length ? (
+                          <aside className="this-pc-notes">
+                            {snapshot.value.notes.map((note) => (
+                              <p key={note}>{note}</p>
+                            ))}
+                          </aside>
+                        ) : null}
+                      </div>
+                      <aside className="this-pc-stack">
+                        <PublicAddressPanel
+                          capabilities={capabilities}
+                          state={actions.publicIdentity}
+                          consentOpen={actions.publicConsent}
+                          acknowledged={actions.publicAcknowledged}
+                          families={actions.publicFamilies}
+                          onOpen={actions.openPublicConsent}
+                          onAcknowledged={actions.setPublicAcknowledged}
+                          onFamilies={actions.setPublicFamilies}
+                          onConfirm={actions.checkPublicIdentity}
+                          onCancel={() => actions.setPublicConsent(false)}
+                        />
+                        <QualityPlanSummary onOpen={quality.openPlan} />
+                        <EvidenceBoundaries />
+                      </aside>
                     </div>
-                    <aside className="this-pc-stack">
-                      <PublicAddressPanel
-                        capabilities={capabilities}
-                        state={actions.publicIdentity}
-                        consentOpen={actions.publicConsent}
-                        acknowledged={actions.publicAcknowledged}
-                        families={actions.publicFamilies}
-                        onOpen={actions.openPublicConsent}
-                        onAcknowledged={actions.setPublicAcknowledged}
-                        onFamilies={actions.setPublicFamilies}
-                        onConfirm={actions.checkPublicIdentity}
-                        onCancel={() => actions.setPublicConsent(false)}
-                      />
-                      <QualityPlanSummary onOpen={quality.openPlan} />
-                      <EvidenceBoundaries />
-                    </aside>
-                  </div>
-                </>
-              ) : view === 'listeners' ? (
-                <SocketsPanel
-                  kind="listeners"
-                  capabilities={capabilities}
-                  activity={actions.activity}
-                  handoffError={handoffError}
-                  onOpen={() => {
-                    setHandoffError('');
-                    actions.inspectActivity();
-                  }}
-                  onCancel={actions.cancelActivity}
-                  onHandoff={shell ? openListenerHandoff : undefined}
-                />
-              ) : view === 'activity' ? (
-                <div className="this-pc-stack">
+                  </>
+                ) : view === 'listeners' ? (
                   <SocketsPanel
-                    kind="connections"
+                    kind="listeners"
                     capabilities={capabilities}
                     activity={actions.activity}
-                    onOpen={actions.inspectActivity}
+                    handoffError={handoffError}
+                    onOpen={() => {
+                      setHandoffError('');
+                      actions.inspectActivity();
+                    }}
                     onCancel={actions.cancelActivity}
+                    onHandoff={shell ? openListenerHandoff : undefined}
                   />
-                </div>
-              ) : view === 'traffic' ? (
-                <InterfaceLoadPanel
-                  capabilities={capabilities}
-                  state={actions.traffic}
-                  duration={actions.trafficDuration}
-                  onDuration={actions.setTrafficDuration}
-                  onSample={actions.sampleTraffic}
-                />
-              ) : (
-                <QualityPlanPanel
-                  stage={quality.stage}
-                  summary={quality.summary}
-                  phase={quality.phase}
-                  message={quality.message}
-                  profileID={quality.profile}
-                  uploadEnabled={quality.uploadEnabled}
-                  acknowledged={quality.acknowledged}
-                  onOpen={quality.openPlan}
-                  onProfile={quality.setProfile}
-                  onUpload={quality.setUploadEnabled}
-                  onAcknowledged={quality.setAcknowledged}
-                  onStart={() => void quality.startPlan()}
-                  onCancel={quality.cancelPlan}
-                  onStop={quality.stopPlan}
-                />
-              )}
+                ) : view === 'activity' ? (
+                  <div className="this-pc-stack">
+                    <SocketsPanel
+                      kind="connections"
+                      capabilities={capabilities}
+                      activity={actions.activity}
+                      onOpen={actions.inspectActivity}
+                      onCancel={actions.cancelActivity}
+                    />
+                  </div>
+                ) : view === 'traffic' ? (
+                  <InterfaceLoadPanel
+                    capabilities={capabilities}
+                    state={actions.traffic}
+                    duration={actions.trafficDuration}
+                    onDuration={actions.setTrafficDuration}
+                    onSample={actions.sampleTraffic}
+                  />
+                ) : (
+                  <QualityPlanPanel
+                    stage={quality.stage}
+                    summary={quality.summary}
+                    phase={quality.phase}
+                    message={quality.message}
+                    profileID={quality.profile}
+                    uploadEnabled={quality.uploadEnabled}
+                    acknowledged={quality.acknowledged}
+                    onOpen={quality.openPlan}
+                    onProfile={quality.setProfile}
+                    onUpload={quality.setUploadEnabled}
+                    onAcknowledged={quality.setAcknowledged}
+                    onStart={() => void quality.startPlan()}
+                    onCancel={quality.cancelPlan}
+                    onStop={quality.stopPlan}
+                  />
+                )}
+              </Suspense>
             </section>
 
             <footer className="this-pc-footer">

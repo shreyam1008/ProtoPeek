@@ -160,3 +160,15 @@
 .pp-ports-presets {
   flex-basis: 100%;
 }
+
+.pp-port-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-ports .pp-port-actions a {
+  color: var(--pp-accent);
+  text-decoration: underline;
+}

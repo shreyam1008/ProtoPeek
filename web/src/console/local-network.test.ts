@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   buildLocalNetworkPlanPreview,
+  defaultLocalNetworkInterface,
   discoverLocalNetwork,
   fetchLocalNetworkCapabilities,
   localNetworkDiscoveryToSnapshot,
@@ -83,6 +84,123 @@ const rawDiscovery = {
 };
 
 describe('local network contracts', () => {
+  it('validates cache provenance, known interfaces and a route-selected default', () => {
+    const inventory = {
+      observedAt: '2026-09-27T12:00:00Z',
+      status: 'available',
+      source: 'os-neighbor-cache',
+      defaultInterfaceIndex: 4,
+      defaultGateway: '192.168.44.1',
+      warnings: [],
+      devices: [
+        {
+          address: '192.168.44.1',
+          interfaceIndex: 4,
+          interfaceName: 'en0',
+          mac: '52:54:00:12:34:56',
+          hostname: '',
+          kind: 'neighbor',
+          state: 'cached',
+          source: 'os-neighbor-cache',
+        },
+      ],
+    };
+    const result = normalizeLocalNetworkCapabilities({ ...rawCapabilities, inventory });
+    expect(defaultLocalNetworkInterface(result)?.name).toBe('en0');
+    expect(result.inventory?.devices[0]?.state).toBe('cached');
+    expect(() =>
+      normalizeLocalNetworkCapabilities({
+        ...rawCapabilities,
+        inventory: {
+          ...inventory,
+          devices: [{ ...inventory.devices[0], hostname: 'invented-router' }],
+        },
+      })
+    ).toThrow(/invented hostname/);
+    expect(() =>
+      normalizeLocalNetworkCapabilities({
+        ...rawCapabilities,
+        inventory: { ...inventory, defaultInterfaceIndex: 99 },
+      })
+    ).toThrow(/available network/);
+    expect(() =>
+      normalizeLocalNetworkCapabilities({
+        ...rawCapabilities,
+        inventory: { ...inventory, devices: [{ ...inventory.devices[0], address: '10.10.10.1' }] },
+      })
+    ).toThrow(/available private network/);
+  });
+
+  it('keeps advertised ports unknown in snapshots until a TCP probe establishes they are open', () => {
+    const advertisements = {
+      status: 'available',
+      warnings: [],
+      records: [
+        {
+          address: '192.168.44.2',
+          instance: 'Office._ipp._tcp.local',
+          serviceType: '_ipp._tcp.local',
+          hostname: 'printer.local',
+          port: 631,
+          txt: ['ty=Office printer'],
+          source: 'mdns',
+        },
+      ],
+    };
+    const result = normalizeLocalNetworkDiscovery({ ...rawDiscovery, advertisements });
+    expect(result.hosts).toHaveLength(1);
+    const snapshot = localNetworkDiscoveryToSnapshot(result);
+    const printer = snapshot.nodes.find((node) => node.id === 'host:192.168.44.2');
+    expect(printer?.ports[0]?.state).toBe('unknown');
+    expect(printer?.ports[0]?.services[0]?.transport).toBe('_ipp._tcp.local');
+    expect(printer?.provenance[0]?.detail).toContain('does not establish an open port');
+    expect(() =>
+      normalizeLocalNetworkDiscovery({
+        ...rawDiscovery,
+        advertisements: {
+          ...advertisements,
+          records: [{ ...advertisements.records[0], address: '192.168.44.250' }],
+        },
+      })
+    ).toThrow(/requested scope/);
+  });
+
+  it('saves maximum advertised metadata within workspace limits and rejects unsafe text', () => {
+    const record = {
+      address: '192.168.44.2',
+      instance: `${'i'.repeat(240)}.local`,
+      serviceType: '_ipp._tcp.local',
+      hostname: `${'h'.repeat(240)}.local`,
+      port: 631,
+      txt: Array.from({ length: 8 }, (_, index) => `${index}${'x'.repeat(255)}`),
+      source: 'mdns',
+    };
+    const advertisements = { status: 'available', warnings: [], records: [record] };
+    const result = normalizeLocalNetworkDiscovery({ ...rawDiscovery, advertisements });
+    const snapshot = localNetworkDiscoveryToSnapshot(result);
+    const printer = snapshot.nodes.find((node) => node.id === 'host:192.168.44.2');
+    expect(printer?.ports[0]?.state).toBe('unknown');
+    expect(
+      new TextEncoder().encode(printer?.provenance[0]?.detail ?? '').length
+    ).toBeLessThanOrEqual(2048);
+    for (const field of ['hostname', 'instance', 'serviceType'] as const) {
+      expect(() =>
+        normalizeLocalNetworkDiscovery({
+          ...rawDiscovery,
+          advertisements: {
+            ...advertisements,
+            records: [{ ...record, [field]: 'invalid\u0001.local' }],
+          },
+        })
+      ).toThrow(/control characters/);
+    }
+    expect(() =>
+      normalizeLocalNetworkDiscovery({
+        ...rawDiscovery,
+        advertisements: { ...advertisements, records: [{ ...record, txt: ['invalid\u0001'] }] },
+      })
+    ).toThrow(/control characters/);
+  });
   it('normalizes no-probe capabilities and previews the exact server plan', () => {
     const capabilities = normalizeLocalNetworkCapabilities(rawCapabilities);
     const preview = buildLocalNetworkPlanPreview(capabilities, '192.168.44.3/30', 'quick');

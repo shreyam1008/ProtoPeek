@@ -183,6 +183,7 @@ function SocketTable({
               <th>Process</th>
               {kind === 'listeners' ? <th>Bind scope</th> : null}
               {kind === 'listeners' && onHandoff ? <th>Use in</th> : null}
+              <th>Traffic</th>
             </tr>
           </thead>
           <tbody>
@@ -240,6 +241,19 @@ function SocketTable({
                     )}
                   </td>
                 ) : null}
+                <td data-label="Traffic">
+                  {socket.local.port > 0 ? (
+                    <a
+                      className="this-pc-button is-quiet"
+                      href={`#/network/packets?mode=live&port=${socket.local.port}`}
+                      aria-label={`Capture traffic on port ${socket.local.port}`}
+                    >
+                      Capture traffic
+                    </a>
+                  ) : (
+                    'Port not reported'
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -375,6 +389,10 @@ export function SocketsPanel({
             onHandoff={listeners ? onHandoff : undefined}
           />
           <ActivityNotes activity={activity.value} />
+          <p className="this-pc-limitation">
+            Capture traffic opens an interface and port filter for TCP and UDP. Choose an interface,
+            then start a short capture to see packets visible to this host.
+          </p>
           {listeners ? (
             <p className="this-pc-limitation">
               A wildcard local bind does not prove reachability beyond this machine.

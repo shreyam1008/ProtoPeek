@@ -16,10 +16,10 @@ export const toolGroups: Record<
     { label: 'Website', ids: ['security'] },
   ],
   network: [
-    { label: 'Device & services', ids: ['this-pc', 'network-ports', 'tailnet'] },
+    { label: 'Your network', ids: ['network-local', 'this-pc', 'tailnet'] },
     {
-      label: 'Routes & discovery',
-      ids: ['network-route', 'network-path', 'network-local', 'network-nmap', 'network-packets'],
+      label: 'Inspect traffic & services',
+      ids: ['network-ports', 'network-packets', 'network-path', 'network-route', 'network-nmap'],
     },
     { label: 'Saved evidence', ids: ['network-map', 'network-history'] },
   ],

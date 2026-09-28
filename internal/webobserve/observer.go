@@ -260,7 +260,8 @@ var retainedHeaders = map[string]struct{}{
 	"Content-Type": {}, "Date": {}, "ETag": {}, "Expires": {}, "Last-Modified": {},
 	"Permissions-Policy": {}, "Referrer-Policy": {}, "Server": {},
 	"Strict-Transport-Security": {}, "Vary": {}, "Via": {}, "X-Content-Type-Options": {},
-	"X-Frame-Options": {},
+	"X-Frame-Options": {}, "X-Powered-By": {}, "X-Generator": {},
+	"X-AspNet-Version": {}, "X-AspNetMvc-Version": {},
 }
 
 func selectedHeaders(headers http.Header) map[string][]string {

@@ -50,9 +50,9 @@ describe('workbench session state', () => {
 
   it('opens one session across the Network index redirect', () => {
     let state = visit(emptySessionState, '/network');
-    state = visit(state, '/network/path');
+    state = visit(state, '/network/local');
     expect(state.references).toHaveLength(1);
-    expect(state.references[0].route).toBe('/network/path');
+    expect(state.references[0].route).toBe('/network/local');
   });
 
   it('keeps references but clears the selected session when Home is visited', () => {

@@ -5,7 +5,6 @@ import {
   CircleAlert,
   Clock3,
   LoaderCircle,
-  LockKeyhole,
   Search,
   ShieldCheck,
   Square,
@@ -26,6 +25,7 @@ import {
 } from './security-api';
 import './security.css';
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
+import { preparePathTarget } from './network-path-draft';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
 import { readWebsiteTargets, rememberWebsiteTarget } from './website-draft';
@@ -88,6 +88,9 @@ export function Security() {
   const inputID = useId();
   const disclosureID = useId();
   const [host, setHost] = useState(() => readWebsiteTargets().domain ?? '');
+  const [websiteTarget, setWebsiteTarget] = useState(
+    () => readWebsiteTargets().origin ?? readWebsiteTargets().domain ?? ''
+  );
   const [storageError, setStorageError] = useState('');
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<DomainCandidatesResult | null>(null);
@@ -109,6 +112,15 @@ export function Security() {
     setResult(null);
     setMessage('');
     setPhase('idle');
+  }
+
+  function changeWebsiteTarget(value: string) {
+    setWebsiteTarget(value);
+    try {
+      changeHost(normalizeDomainHost(new URL(normalizeWebsiteURL(value)).hostname));
+    } catch {
+      changeHost('');
+    }
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -191,11 +203,20 @@ export function Security() {
         />
         <div className="pp-security-content">
           <TabPanel id="security-sections" tab="website" active={section === 'website'}>
-            <WebsiteObservationPanel active={section === 'website'} />
+            <WebsiteObservationPanel
+              active={section === 'website'}
+              url={websiteTarget}
+              onTargetChange={changeWebsiteTarget}
+              onExplore={(next) => setSection(next)}
+            />
           </TabPanel>
           <TabPanel id="security-sections" tab="paths" active={section === 'paths'}>
             <Suspense fallback={<p role="status">Loading path checks…</p>}>
-              <WebsitePathsPanel active={section === 'paths'} />
+              <WebsitePathsPanel
+                active={section === 'paths'}
+                target={websiteTarget}
+                onTargetChange={changeWebsiteTarget}
+              />
             </Suspense>
           </TabPanel>
           <TabPanel id="security-sections" tab="names" active={section === 'names'}>
@@ -289,9 +310,7 @@ export function Security() {
                   <div className="pp-security-empty" role="status" aria-live="polite">
                     <LoaderCircle className="is-spinning" aria-hidden="true" />
                     <h3>Asking crt.name for historical names…</h3>
-                    <p>
-                      The checkbox is reset. Another lookup will require a fresh acknowledgement.
-                    </p>
+                    <p>Looking up indexed names. Returned names are not contacted.</p>
                   </div>
                 ) : null}
                 {phase === 'error' ? (
@@ -306,7 +325,15 @@ export function Security() {
                     <span>{message}</span>
                   </div>
                 ) : null}
-                {phase === 'success' && result ? <CandidateResult result={result} /> : null}
+                {phase === 'success' && result ? (
+                  <CandidateResult
+                    result={result}
+                    onSelectWebsite={(name) => {
+                      changeWebsiteTarget(`https://${name}`);
+                      setSection('website');
+                    }}
+                  />
+                ) : null}
               </section>
 
               <aside className="pp-security-boundary" aria-labelledby="evidence-boundary-title">
@@ -381,16 +408,40 @@ export function Security() {
   );
 }
 
-function WebsiteObservationPanel({ active }: { active: boolean }) {
+function WebsiteObservationPanel({
+  active,
+  url,
+  onTargetChange,
+  onExplore,
+}: {
+  active: boolean;
+  url: string;
+  onTargetChange: (value: string) => void;
+  onExplore: (section: 'paths' | 'names') => void;
+}) {
   const inputID = useId();
   const disclosureID = useId();
-  const [url, setURL] = useState(() => readWebsiteTargets().origin ?? '');
   const [storageError, setStorageError] = useState('');
   const [phase, setPhase] = useState<SearchPhase>('idle');
   const [result, setResult] = useState<WebsiteObservationResult | null>(null);
   const [tlsFailure, setTLSFailure] = useState<WebsiteTLSFailure | null>(null);
   const [message, setMessage] = useState('');
   const controllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!active || !result) return;
+    let currentURL = '';
+    try {
+      currentURL = normalizeWebsiteURL(url);
+    } catch {
+      /* An incomplete draft has no evidence. */
+    }
+    if (currentURL !== result.url) {
+      setResult(null);
+      setPhase('idle');
+      setMessage('');
+    }
+  }, [active, url, result]);
 
   useEffect(() => {
     if (!active && controllerRef.current) {
@@ -413,7 +464,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
 
   function changeURL(value: string) {
     setTLSFailure(null);
-    setURL(value);
+    onTargetChange(value);
 
     setResult(null);
     setMessage('');
@@ -435,7 +486,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
     const controller = new AbortController();
     controllerRef.current?.abort();
     controllerRef.current = controller;
-    setURL(normalizedURL);
+    onTargetChange(normalizedURL);
     setStorageError(
       rememberWebsiteTarget('origin', normalizedURL)
         ? ''
@@ -496,13 +547,13 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
           <input
             id={inputID}
             value={url}
-            type="url"
+            type="text"
             inputMode="url"
             autoComplete="url"
             spellCheck={false}
             maxLength={8 * 1024}
             disabled={phase === 'loading'}
-            placeholder="https://example.com/"
+            placeholder="example.com or https://example.com/"
             aria-describedby={disclosureID}
             onChange={(event) => changeURL(event.currentTarget.value)}
           />
@@ -551,14 +602,14 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
         <div className="pp-security-website-result">
           {phase === 'idle' ? (
             <EmptyState title="No website request has run.">
-              Enter a public URL, review the exact contact boundary, then opt in once.
+              Enter a website name and choose Observe website. HTTPS is used by default.
             </EmptyState>
           ) : null}
           {phase === 'loading' ? (
             <div className="pp-security-empty" role="status" aria-live="polite">
               <LoaderCircle className="is-spinning" aria-hidden="true" />
               <h3>Resolving, pinning, and observing one response…</h3>
-              <p>The acknowledgement has reset. Redirects and response bodies remain untouched.</p>
+              <p>Measuring DNS, connection, TLS, and the first response.</p>
             </div>
           ) : null}
           {phase === 'error' ? (
@@ -567,8 +618,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
               <span>
                 {message}
                 <small className="pp-security-recovery">
-                  Review the URL and your connection, then acknowledge a new request to try again.
-                  No retry runs automatically.
+                  Review the website and your connection, then choose Observe website to retry.
                 </small>
               </span>
             </div>
@@ -606,6 +656,7 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
             <WebsiteObservationResultView
               key={`${result.observedAt}:${result.url}`}
               result={result}
+              onExplore={onExplore}
             />
           ) : null}
         </div>
@@ -614,7 +665,15 @@ function WebsiteObservationPanel({ active }: { active: boolean }) {
   );
 }
 
-function WebsiteObservationResultView({ result }: { result: WebsiteObservationResult }) {
+function WebsiteObservationResultView({
+  result,
+  onExplore,
+}: {
+  result: WebsiteObservationResult;
+  onExplore: (section: 'paths' | 'names') => void;
+}) {
+  const { openScan } = useProtocolShell();
+  const endpoint = new URL(result.url);
   const headers = Object.entries(result.http.headers).sort(([left], [right]) =>
     left.localeCompare(right)
   );
@@ -641,6 +700,31 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
               ? 'The server returned an error or access response to this HEAD request. These headers describe that response, not necessarily the page a signed-in browser sees.'
               : 'One response from this device, at this time. CDN routing, request method, and server configuration can change the evidence on another run.'}
       </p>
+
+      <nav className="pp-website-next-actions" aria-label="Explore this website">
+        <Link to="/network/path" onClick={() => preparePathTarget(result.dns.hostname)}>
+          Trace route <ArrowRight aria-hidden="true" />
+        </Link>
+        <Link to="/network/ports" search={{ host: result.dns.hostname }}>
+          Scan ports <ArrowRight aria-hidden="true" />
+        </Link>
+        <button
+          type="button"
+          onClick={() =>
+            openScan({
+              initialTarget: `${endpoint.hostname}:${endpoint.port || (endpoint.protocol === 'https:' ? '443' : '80')}`,
+            })
+          }
+        >
+          Inspect endpoint <ArrowRight aria-hidden="true" />
+        </button>
+        <button type="button" onClick={() => onExplore('names')}>
+          Find subdomains <ArrowRight aria-hidden="true" />
+        </button>
+        <button type="button" onClick={() => onExplore('paths')}>
+          Check standard paths <ArrowRight aria-hidden="true" />
+        </button>
+      </nav>
 
       <div className="pp-security-observation-grid">
         <article>
@@ -738,6 +822,15 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
               <dt>Server name</dt>
               <dd>{result.tls.serverName || 'Not reported'}</dd>
             </div>
+            <div>
+              <dt>Certificate names</dt>
+              <dd>
+                {result.tls.dnsNames.join(', ') || 'None reported'}
+                <small>
+                  Names covered by this certificate; this does not prove a live subdomain.
+                </small>
+              </dd>
+            </div>
           </dl>
         </details>
       ) : null}
@@ -761,7 +854,13 @@ function WebsiteObservationResultView({ result }: { result: WebsiteObservationRe
   );
 }
 
-function CandidateResult({ result }: { result: DomainCandidatesResult }) {
+function CandidateResult({
+  result,
+  onSelectWebsite,
+}: {
+  result: DomainCandidatesResult;
+  onSelectWebsite: (name: string) => void;
+}) {
   const { openScan } = useProtocolShell();
   const [query, setQuery] = useState('');
   const candidates = result.candidates.filter((candidate) =>
@@ -824,13 +923,22 @@ function CandidateResult({ result }: { result: DomainCandidatesResult }) {
                 <code>{candidate.name}</code>
                 <em>{candidate.wildcard ? 'Wildcard pattern' : 'Historical name'}</em>
                 {!candidate.wildcard ? (
-                  <button
-                    type="button"
-                    aria-label={`Inspect ${candidate.name}`}
-                    onClick={() => openScan({ initialTarget: `${candidate.name}:443` })}
-                  >
-                    Inspect…
-                  </button>
+                  <span className="pp-domain-candidate-actions">
+                    <button
+                      type="button"
+                      aria-label={`Observe ${candidate.name}`}
+                      onClick={() => onSelectWebsite(candidate.name)}
+                    >
+                      Website
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Inspect ${candidate.name}`}
+                      onClick={() => openScan({ initialTarget: `${candidate.name}:443` })}
+                    >
+                      Inspect…
+                    </button>
+                  </span>
                 ) : (
                   <span />
                 )}

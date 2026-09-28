@@ -181,12 +181,17 @@ export const featureRegistry = [
   {
     id: 'network-local',
     destination: 'network',
-    label: 'Local discovery',
+    label: 'Nearby devices',
     route: '/network/local',
     order: 80,
     command: {
-      label: 'Discover an authorized local network',
-      keywords: 'network local cidr ports inventory private scan',
+      label: 'See nearby devices',
+      keywords:
+        'network local lan wifi ethernet devices discovery cidr ports inventory private scan',
+    },
+    homeEntry: {
+      label: 'See nearby devices',
+      detail: 'Open your network, choose a device, and inspect its services.',
     },
   },
   {

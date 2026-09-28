@@ -348,7 +348,7 @@ function normalizeIdentity(value: unknown, label: string): NetworkIdentity {
   };
 }
 
-function validIdentity(kind: NetworkIdentity['kind'], value: string) {
+export function validIdentity(kind: NetworkIdentity['kind'], value: string) {
   if (kind === 'other') return true;
   if (kind === 'ipv4') {
     const octets = value.split('.');
@@ -363,7 +363,7 @@ function validIdentity(kind: NetworkIdentity['kind'], value: string) {
   if (kind === 'ipv6') {
     const zoneSeparator = value.indexOf('%');
     const address = zoneSeparator === -1 ? value : value.slice(0, zoneSeparator);
-    if (!address.includes(':')) return false;
+    if (!address.includes(':') || !/^[0-9a-f:.]+$/i.test(address)) return false;
     if (zoneSeparator !== -1) {
       const zone = value.slice(zoneSeparator + 1);
       if (value.indexOf('%', zoneSeparator + 1) !== -1) return false;

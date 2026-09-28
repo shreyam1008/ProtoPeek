@@ -50,9 +50,10 @@ var networkDiscoveryApplicationInspectionPorts = []uint16{
 // service observation. Consent is required because this operation opens TCP
 // connections to other devices.
 type NetworkDiscoveryRequest struct {
-	CIDR    string `json:"cidr"`
-	Profile string `json:"profile"`
-	Consent bool   `json:"consent"`
+	CIDR           string `json:"cidr"`
+	Profile        string `json:"profile"`
+	Consent        bool   `json:"consent"`
+	InterfaceIndex int    `json:"interfaceIndex,omitempty"`
 }
 
 // NetworkDiscoveryProfile is an exact, visible port plan. Profiles are kept
@@ -90,6 +91,7 @@ type NetworkDiscoveryCapabilities struct {
 	Limits      NetworkDiscoveryLimits       `json:"limits"`
 	Interfaces  []NetworkInterfaceSuggestion `json:"interfaces"`
 	Warnings    []string                     `json:"warnings"`
+	Inventory   *NetworkNeighborInventory    `json:"inventory,omitempty"`
 }
 
 // NetworkPortEvidence is observed from the ProtoPeek process. An open port is
@@ -142,13 +144,15 @@ type NetworkDiscoveryResponse struct {
 	StoppedReason     string                  `json:"stoppedReason,omitempty"`
 	Hosts             []NetworkDiscoveredHost `json:"hosts"`
 	Warnings          []string                `json:"warnings"`
+	Advertisements    *NetworkAdvertisements  `json:"advertisements,omitempty"`
 }
 
 type networkDiscoveryPlan struct {
-	CIDR      netip.Prefix
-	Profile   NetworkDiscoveryProfile
-	Addresses []netip.Addr
-	Attempts  int
+	CIDR           netip.Prefix
+	Profile        NetworkDiscoveryProfile
+	Addresses      []netip.Addr
+	Attempts       int
+	InterfaceIndex int
 }
 
 type networkProbeFunc func(context.Context, netip.Addr, uint16) ScanResult
@@ -203,11 +207,18 @@ func newNetworkDiscoveryProfile(id, label, description string, ports []uint16) N
 }
 
 func NetworkDiscoveryCapabilitiesHandler() http.HandlerFunc {
-	return networkDiscoveryCapabilitiesHandler(listNetworkInterfaceSuggestions)
+	return networkDiscoveryCapabilitiesHandlerWithInventory(listNetworkInterfaceSuggestions, collectNetworkNeighborInventory)
 }
 
 func networkDiscoveryCapabilitiesHandler(
 	listInterfaces func() ([]NetworkInterfaceSuggestion, error),
+) http.HandlerFunc {
+	return networkDiscoveryCapabilitiesHandlerWithInventory(listInterfaces, nil)
+}
+
+func networkDiscoveryCapabilitiesHandlerWithInventory(
+	listInterfaces func() ([]NetworkInterfaceSuggestion, error),
+	collectInventory func(context.Context, []NetworkInterfaceSuggestion) NetworkNeighborInventory,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -254,6 +265,10 @@ func networkDiscoveryCapabilitiesHandler(
 			},
 			Interfaces: interfaces,
 			Warnings:   warnings,
+		}
+		if collectInventory != nil {
+			inventory := collectInventory(r.Context(), interfaces)
+			response.Inventory = &inventory
 		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(response)
@@ -387,6 +402,9 @@ func suggestedDiscoveryCIDR(prefix netip.Prefix) netip.Prefix {
 }
 
 func buildNetworkDiscoveryPlan(request NetworkDiscoveryRequest) (networkDiscoveryPlan, error) {
+	if request.InterfaceIndex < 0 || request.InterfaceIndex > 1_000_000 {
+		return networkDiscoveryPlan{}, fmt.Errorf("interface index is invalid")
+	}
 	if !request.Consent {
 		return networkDiscoveryPlan{}, fmt.Errorf("active private-network discovery requires explicit consent")
 	}
@@ -427,10 +445,11 @@ func buildNetworkDiscoveryPlan(request NetworkDiscoveryRequest) (networkDiscover
 		return networkDiscoveryPlan{}, fmt.Errorf("network plan exceeds the %d-attempt limit", maxNetworkDiscoveryAttempts)
 	}
 	return networkDiscoveryPlan{
-		CIDR:      prefix,
-		Profile:   profile,
-		Addresses: addresses,
-		Attempts:  attempts,
+		CIDR:           prefix,
+		Profile:        profile,
+		Addresses:      addresses,
+		Attempts:       attempts,
+		InterfaceIndex: request.InterfaceIndex,
 	}, nil
 }
 
@@ -453,10 +472,14 @@ func addressesInDiscoveryPrefix(prefix netip.Prefix) []netip.Addr {
 // The caller must enforce ProtoPeek's local-access, CSRF, and process-admission
 // policy before invoking this handler.
 func NetworkDiscoveryHandler() http.HandlerFunc {
-	return networkDiscoveryHandler(probeNetworkService)
+	return networkDiscoveryHandlerWithAdvertisements(probeNetworkService, discoverNetworkAdvertisements)
 }
 
 func networkDiscoveryHandler(probe networkProbeFunc) http.HandlerFunc {
+	return networkDiscoveryHandlerWithAdvertisements(probe, nil)
+}
+
+func networkDiscoveryHandlerWithAdvertisements(probe networkProbeFunc, advertise func(context.Context, networkDiscoveryPlan) NetworkAdvertisements) http.HandlerFunc {
 	slots := make(chan struct{}, 1)
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -487,7 +510,17 @@ func networkDiscoveryHandler(probe networkProbeFunc) http.HandlerFunc {
 
 		ctx, cancel := context.WithTimeout(r.Context(), networkDiscoveryDeadline)
 		defer cancel()
+		var advertisements <-chan NetworkAdvertisements
+		if advertise != nil {
+			channel := make(chan NetworkAdvertisements, 1)
+			advertisements = channel
+			go func() { channel <- advertise(ctx, plan) }()
+		}
 		response := executeNetworkDiscovery(ctx, plan, probe)
+		if advertisements != nil {
+			observation := <-advertisements
+			response.Advertisements = &observation
+		}
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(response)
 	}
@@ -555,6 +588,7 @@ dispatch:
 		"attemptsCompleted counts selected endpoint probe calls that returned; a cancellation return does not prove that a connection reached the target.",
 		"Device roles are inferred from observed ports and protocols, not operating-system or hardware identification.",
 		"No physical links, VLAN membership, or network ownership are inferred by this scan.",
+		"TCP probes follow this computer's kernel route for each address. A selected interface scopes mDNS only; TCP evidence does not establish membership on that interface when networks overlap.",
 		networkDiscoveryInspectionDisclosure(),
 		networkDiscoveryEvidenceBudgetDisclosure,
 	}

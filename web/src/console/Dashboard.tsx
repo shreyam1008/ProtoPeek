@@ -21,6 +21,7 @@ import { useProtocolShell } from './ProtocolShellContext';
 const startTaskIcons = {
   protocols: Server,
   'network-path': Network,
+  'network-local': Radar,
   'this-pc': Monitor,
   tunnels: Cloud,
   downloader: Download,
@@ -31,7 +32,7 @@ const safetyBoundaries = [
   {
     name: 'Network path',
     state: 'Available',
-    detail: 'On Linux, each RTT stays tied to the hop that replied.',
+    detail: 'Windows and Linux support measured hops. Each RTT belongs to the responder.',
   },
   {
     name: 'Nmap file import',
@@ -40,8 +41,9 @@ const safetyBoundaries = [
   },
   {
     name: 'Local discovery',
-    state: 'Ask first',
-    detail: 'Limited to an authorized /24-or-smaller range and the ports you choose.',
+    state: 'Ready to explore',
+    detail:
+      'See locally known devices immediately. Choose Scan network to refresh service evidence.',
   },
   {
     name: 'Bundled Nmap',

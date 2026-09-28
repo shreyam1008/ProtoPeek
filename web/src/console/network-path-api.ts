@@ -1,3 +1,4 @@
+import { readBoundedText } from '@/shared/bounded-response';
 import {
   normalizePathCapabilities,
   normalizePathTrace,
@@ -72,7 +73,7 @@ export async function fetchPathCapabilities(signal?: AbortSignal): Promise<PathC
     signal,
   });
   if (!response.ok) throw new Error(await boundedError(response));
-  return normalizePathCapabilities((await response.json()) as unknown);
+  return normalizePathCapabilities(await readPathJSON(response, 64 * 1024));
 }
 
 export async function traceNetworkPath(
@@ -90,5 +91,17 @@ export async function traceNetworkPath(
     body: JSON.stringify(request),
   });
   if (!response.ok) throw new Error(await boundedError(response));
-  return normalizePathTrace((await response.json()) as unknown);
+  return normalizePathTrace(await readPathJSON(response, 1024 * 1024));
+}
+
+async function readPathJSON(response: Response, limit: number): Promise<unknown> {
+  const body = await readBoundedText(response, limit);
+  if (body.truncated) throw new Error('Path evidence exceeded its response limit.');
+  try {
+    return JSON.parse(body.text) as unknown;
+  } catch {
+    throw new Error(
+      'The local ProtoPeek API did not return readable path evidence. Check that the local server is running.'
+    );
+  }
 }

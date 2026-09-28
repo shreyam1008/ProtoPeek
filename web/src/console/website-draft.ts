@@ -37,3 +37,18 @@ export function rememberWebsiteTarget(type: 'origin' | 'domain', input: string):
     return false;
   }
 }
+
+// A host trace does not carry scheme or port. Preserve the website origin when it matches.
+export function rememberPathWebsiteTarget(destination: string): boolean {
+  const hostname = destination
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '');
+  const origin = readWebsiteTargets().origin;
+  if (origin && new URL(origin).hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '') === hostname)
+    return true;
+  return rememberWebsiteTarget(
+    'origin',
+    `https://${hostname.includes(':') ? `[${hostname}]` : hostname}`
+  );
+}

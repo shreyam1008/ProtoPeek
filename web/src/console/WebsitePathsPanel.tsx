@@ -3,13 +3,30 @@ import { OperationStatus } from './shell/OperationStatus';
 import { readWebsiteTargets, rememberWebsiteTarget } from './website-draft';
 import { fetchWebsitePaths, type WebsitePathsResult, websitePaths } from './website-paths-api';
 
-export default function WebsitePathsPanel({ active }: { active: boolean }) {
-  const [url, setURL] = useState(() => readWebsiteTargets().origin ?? '');
+export default function WebsitePathsPanel({
+  active,
+  target,
+  onTargetChange,
+}: {
+  active: boolean;
+  target?: string;
+  onTargetChange?: (value: string) => void;
+}) {
+  const [draft, setDraft] = useState(() => readWebsiteTargets().origin ?? '');
+  const url = target ?? draft;
+  const setURL = onTargetChange ?? setDraft;
   const [storageError, setStorageError] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [result, setResult] = useState<WebsitePathsResult | null>(null);
   const controller = useRef<AbortController | null>(null);
+  const previousTarget = useRef(url);
+  useEffect(() => {
+    if (previousTarget.current === url) return;
+    previousTarget.current = url;
+    setResult(null);
+    setMessage('');
+  }, [url]);
   useEffect(
     () => () => {
       controller.current?.abort();
@@ -105,7 +122,7 @@ export default function WebsitePathsPanel({ active }: { active: boolean }) {
         <div className="pp-security-query-row">
           <input
             id="website-path-url"
-            type="url"
+            type="text"
             maxLength={8192}
             value={url}
             placeholder="https://example.com/"

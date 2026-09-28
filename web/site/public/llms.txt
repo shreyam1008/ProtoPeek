@@ -32,7 +32,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - gRPC workbench: https://protopeek.shreyam1008.com.np/grpc-workbench/ — Stable · v0.6.1
 - HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.6.1
 - Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Stable · v0.6.1
-- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Stable · v0.6.1
+- Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Current source · Nightly
 - Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable · v0.6.1
 - This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Stable · v0.6.1
 - Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable · v0.6.1

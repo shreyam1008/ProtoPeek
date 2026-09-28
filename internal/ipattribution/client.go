@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -29,6 +30,8 @@ type Entry struct {
 	Country      string    `json:"country,omitempty"`
 	Region       string    `json:"region,omitempty"`
 	City         string    `json:"city,omitempty"`
+	Latitude     *float64  `json:"latitude,omitempty"`
+	Longitude    *float64  `json:"longitude,omitempty"`
 	ASN          uint32    `json:"asn,omitempty"`
 	Organization string    `json:"organization,omitempty"`
 	ISP          string    `json:"isp,omitempty"`
@@ -155,7 +158,7 @@ var errRateLimited = errors.New("provider rate limit")
 func queryProvider(parent context.Context, guard *targetguard.Guard, address netip.Addr) (Entry, error) {
 	ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 	defer cancel()
-	endpoint := "https://ipwho.is/" + address.String() + "?fields=ip,success,country,region,city,connection.asn,connection.org,connection.isp"
+	endpoint := "https://ipwho.is/" + address.String() + "?fields=ip,success,country,region,city,latitude,longitude,connection.asn,connection.org,connection.isp"
 	session, err := guard.NewSession(ctx, endpoint, targetguard.SessionConfig{Redirect: targetguard.RedirectPolicy{MaxRedirects: 0}})
 	if err != nil {
 		return Entry{}, err
@@ -190,11 +193,13 @@ func queryProvider(parent context.Context, guard *targetguard.Guard, address net
 
 func decodeProvider(data []byte, address netip.Addr) (Entry, error) {
 	var value struct {
-		IP         string `json:"ip"`
-		Success    bool   `json:"success"`
-		Country    string `json:"country"`
-		Region     string `json:"region"`
-		City       string `json:"city"`
+		IP         string   `json:"ip"`
+		Success    bool     `json:"success"`
+		Country    string   `json:"country"`
+		Region     string   `json:"region"`
+		City       string   `json:"city"`
+		Latitude   *float64 `json:"latitude"`
+		Longitude  *float64 `json:"longitude"`
 		Connection struct {
 			ASN uint32 `json:"asn"`
 			Org string `json:"org"`
@@ -208,7 +213,17 @@ func decodeProvider(data []byte, address netip.Addr) (Entry, error) {
 	if err != nil || returned.Unmap() != address || !value.Success {
 		return Entry{}, fmt.Errorf("provider response does not match address")
 	}
-	return Entry{Country: bounded(value.Country, 128), Region: bounded(value.Region, 128), City: bounded(value.City, 128), ASN: value.Connection.ASN, Organization: bounded(value.Connection.Org, 256), ISP: bounded(value.Connection.ISP, 256)}, nil
+	if (value.Latitude == nil) != (value.Longitude == nil) {
+		return Entry{}, errors.New("provider coordinates must be a pair")
+	}
+	if value.Latitude != nil && (!validCoordinate(*value.Latitude, 90) || !validCoordinate(*value.Longitude, 180)) {
+		return Entry{}, errors.New("provider coordinates are outside geographic bounds")
+	}
+	return Entry{Country: bounded(value.Country, 128), Region: bounded(value.Region, 128), City: bounded(value.City, 128), Latitude: value.Latitude, Longitude: value.Longitude, ASN: value.Connection.ASN, Organization: bounded(value.Connection.Org, 256), ISP: bounded(value.Connection.ISP, 256)}, nil
+}
+
+func validCoordinate(value, limit float64) bool {
+	return !math.IsNaN(value) && !math.IsInf(value, 0) && value >= -limit && value <= limit
 }
 
 func bounded(value string, limit int) string {

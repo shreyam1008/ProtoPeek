@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { NetworkWorkspaceV1 } from './network-model';
+import type { NetworkIdentity, NetworkWorkspaceV1 } from './network-model';
 import { interactiveTopologyLimits, TopologyCanvas } from './TopologyCanvas';
 
 const observedAt = '2026-08-21T12:00:00.000Z';
@@ -103,11 +103,97 @@ function workspace(): NetworkWorkspaceV1 {
   };
 }
 
+function workspaceWithIdentities(identities: NetworkIdentity[]): NetworkWorkspaceV1 {
+  const saved = workspace();
+  return {
+    ...saved,
+    nodes: saved.nodes.map((node, index) => (index === 0 ? { ...node, identities } : node)),
+  };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe('TopologyCanvas', () => {
+  it.each([
+    ['ipv4', '192.0.2.10'],
+    ['ipv6', '2001:db8::1234'],
+  ] as const)('opens explicit port and packet drafts for a saved %s identity', async (kind, value) => {
+    const saved = workspaceWithIdentities([{ kind, value, provenance }]);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const onChange = vi.fn();
+    render(<TopologyCanvas workspace={saved} onChange={onChange} />);
+    fireEvent.click(screen.getByRole('button', { name: /Gateway.*192|Gateway.*2001/ }));
+    const inspector = screen.getByRole('complementary', { name: 'Selected network node' });
+    expect(await within(inspector).findByRole('link', { name: 'Scan ports' })).toHaveAttribute(
+      'href',
+      `#/network/ports?host=${encodeURIComponent(value)}`
+    );
+    expect(within(inspector).getByRole('link', { name: 'Inspect traffic' })).toHaveAttribute(
+      'href',
+      `#/network/packets?mode=live&host=${encodeURIComponent(value)}`
+    );
+    expect(within(inspector).getByText(/Opens a draft; start the check in its tool/)).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('offers a hostname to port scanning while requiring an IP for traffic inspection', async () => {
+    const saved = workspaceWithIdentities([
+      { kind: 'hostname', value: 'printer.local', provenance },
+    ]);
+    render(<TopologyCanvas workspace={saved} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /Gateway.*printer/ }));
+    const inspector = screen.getByRole('complementary', { name: 'Selected network node' });
+    expect(await within(inspector).findByRole('link', { name: 'Scan ports' })).toHaveAttribute(
+      'href',
+      '#/network/ports?host=printer.local'
+    );
+    expect(
+      within(inspector).queryByRole('link', { name: 'Inspect traffic' })
+    ).not.toBeInTheDocument();
+    expect(
+      within(inspector).getByText(/Traffic inspection needs an unscoped unicast IP/)
+    ).toBeVisible();
+  });
+
+  it.each([
+    ['ipv4', '999.168.1.1'],
+    ['ipv6', '::::'],
+    ['ipv6', '2001:db8::1]/path'],
+    ['ipv6', 'fe80::1%eth0'],
+    ['hostname', 'https://example.com/'],
+    ['hostname', 'example.com?host=other.example'],
+    ['hostname', 'javascript:alert(1)'],
+    ['hostname', '999.168.1.1'],
+    ['other', '192.0.2.10'],
+  ] as const)('keeps an unsupported imported %s identity unavailable: %s', async (kind, value) => {
+    const saved = workspaceWithIdentities([{ kind, value, provenance }]);
+    render(<TopologyCanvas workspace={saved} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Gateway ·/ }));
+    const inspector = screen.getByRole('complementary', { name: 'Selected network node' });
+    expect(await within(inspector).findByText(/No supported IP address or hostname/)).toBeVisible();
+    expect(within(inspector).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('prefers a valid IP over a hostname and skips malformed saved addresses', async () => {
+    const identities: NetworkIdentity[] = [
+      { kind: 'ipv4', value: '999.168.1.1', provenance },
+      { kind: 'hostname', value: 'printer.local', provenance },
+      { kind: 'ipv4', value: '192.0.2.10', provenance },
+    ];
+    const saved = workspaceWithIdentities(identities);
+    render(<TopologyCanvas workspace={saved} onChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Gateway ·/ }));
+    const inspector = screen.getByRole('complementary', { name: 'Selected network node' });
+    expect(await within(inspector).findByRole('link', { name: 'Scan ports' })).toHaveAttribute(
+      'href',
+      '#/network/ports?host=192.0.2.10'
+    );
+  });
+
   it('renders an accessible dependency-free map, inspector, arrange, and immutable-snapshot-safe edits', () => {
     const onChange = vi.fn();
     render(<TopologyCanvas workspace={workspace()} onChange={onChange} />);

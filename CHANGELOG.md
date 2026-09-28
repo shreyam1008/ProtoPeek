@@ -5,6 +5,15 @@ version source of truth.
 
 ## Unreleased
 
+- Network opens Nearby devices with an available interface selected, cached neighbors,
+  bounded mDNS advertisements and map/list views. Device, port and packet handoffs
+  prepare the next tool without starting a probe. Narrow screens start with a list.
+- Website inspection preserves its target through TLS/header evidence, historical names,
+  path checks, ports and measured hops. Logical maps and optional approximate IP locations
+  retain timing and provenance without claiming physical cable routes or live device identity.
+- Packet inspection adds conversation summaries and filtering; capability retries, cancelled
+  request recovery and imported IPv6 validation are hardened. New views stay lazy and bounded.
+
 - Added Microsoft Store MSIX packaging for published stable Windows x64 releases,
   with the existing logo and `protopeek`/`pp` console aliases. Newer self-updater
   builds direct WindowsApps installations to Microsoft Store updates. Store
