@@ -1,8 +1,8 @@
 export type DestinationDefinition = {
-  id: 'home' | 'inspect' | 'network' | 'publish' | 'files' | 'settings';
+  id: 'home' | 'inspect' | 'network' | 'extensions' | 'files' | 'settings';
   label: string;
   route: string;
-  icon: 'home' | 'search' | 'network' | 'cloud' | 'download' | 'settings';
+  icon: 'home' | 'search' | 'network' | 'puzzle' | 'download' | 'settings';
   order: number;
 };
 
@@ -10,7 +10,7 @@ export const destinations = [
   { id: 'home', label: 'Home', route: '/', icon: 'home', order: 10 },
   { id: 'inspect', label: 'Inspect', route: '/protocols', icon: 'search', order: 20 },
   { id: 'network', label: 'Network', route: '/network', icon: 'network', order: 30 },
-  { id: 'publish', label: 'Publish', route: '/tunnels', icon: 'cloud', order: 40 },
+  { id: 'extensions', label: 'Extensions', route: '/extensions', icon: 'puzzle', order: 40 },
   { id: 'files', label: 'Files', route: '/downloader', icon: 'download', order: 50 },
   { id: 'settings', label: 'Settings', route: '/settings', icon: 'settings', order: 60 },
 ] as const satisfies readonly DestinationDefinition[];
@@ -143,7 +143,7 @@ export const featureRegistry = [
   },
   {
     id: 'network-nmap',
-    destination: 'network',
+    destination: 'extensions',
     label: 'Nmap',
     route: '/network/nmap',
     order: 65,
@@ -229,7 +229,7 @@ export const featureRegistry = [
   },
   {
     id: 'tailnet',
-    destination: 'network',
+    destination: 'extensions',
     label: 'Tailscale',
     route: '/network/tailnet',
     order: 115,
@@ -239,18 +239,30 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'extensions',
+    destination: 'extensions',
+    label: 'Extensions',
+    route: '/extensions',
+    order: 125,
+    command: {
+      label: 'Open Extensions',
+      keywords:
+        'optional tools install setup integrations tailscale cloudflare wireshark nmap aria2',
+    },
+    homeEntry: {
+      label: 'Add optional tools',
+      detail: 'Set up Tailscale, Cloudflare Tunnel, capture, and more in one place.',
+    },
+  },
+  {
     id: 'tunnels',
-    destination: 'publish',
-    label: 'Tunnels',
+    destination: 'extensions',
+    label: 'Cloudflare Tunnel',
     route: '/tunnels',
     order: 130,
     command: {
       label: 'Open Cloudflare tunnel operations',
       keywords: 'cloudflare cloudflared tunnel ingress config service connector route',
-    },
-    homeEntry: {
-      label: 'Inspect Cloudflare tunnels',
-      detail: 'See local service, config authority, ingress routes, and safe change drafts.',
     },
   },
   {

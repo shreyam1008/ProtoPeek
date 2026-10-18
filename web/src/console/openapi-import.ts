@@ -1,6 +1,6 @@
 import { sendHTTPRequest } from './api';
 import type { OpenAPICollection } from './openapi';
-import { discoverOpenAPISpecURL, parseOpenAPIText } from './openapi';
+import { discoverOpenAPISpecURL, maxOpenAPIDocumentBytes, parseOpenAPIText } from './openapi';
 
 async function fetchOpenAPIDocument(target: string, signal: AbortSignal) {
   const response = await sendHTTPRequest(
@@ -49,5 +49,8 @@ export async function importOpenAPIFromURL(
 }
 
 export async function importOpenAPIFromFile(file: File): Promise<OpenAPICollection> {
+  if (file.size > maxOpenAPIDocumentBytes) {
+    throw new Error('OpenAPI document exceeds the 2 MiB import limit.');
+  }
   return parseOpenAPIText(await file.text(), file.name);
 }

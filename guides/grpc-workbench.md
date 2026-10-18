@@ -19,6 +19,10 @@ ProtoPeek can learn a service through:
 
 A browser folder is a bounded in-memory snapshot. ProtoPeek saves no browser handle, file bytes, folder name, or host path, so the folder must be selected again after reload.
 
+Current source shows required host proto/protoset fields beside the schema selector. Enter in
+the address field submits Connect; multiline path fields retain normal newline editing. Discovery
+starts from an explicit action or a target supplied on the command line.
+
 For host schemas in current source, an entry such as `test.proto` resolves against the import
 roots in order. Preflight file-size checks use the same resolution as the compiler, including
 absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are
@@ -45,6 +49,11 @@ Those timings are not packet arrival, server processing time, or universal TTFB.
 Current source puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down
 navigates those lists. Copy actions report success or failure, and changing the displayed response
 invalidates pending clipboard feedback.
+
+On narrow screens, invoking reveals Response immediately with cancellation still available.
+Later messages do not move focus. A failed method-schema load keeps the method navigator and
+target controls available, with Retry and a way to reconnect. Startup failures have a separate
+retry. Leaving this tool cancels its active call.
 
 ## Reuse a request carefully
 

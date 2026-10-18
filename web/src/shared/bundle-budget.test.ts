@@ -51,6 +51,19 @@ describe('bundle budget contract', () => {
     expect(evaluateBundleBudgets(assets, budgets)).toEqual([]);
   });
 
+  it('counts the optional-tools hub within existing installed-suite ceilings', () => {
+    const extensionJS = consoleBundleBudgets.find(
+      ({ label }) => label === 'Extensions workspace JavaScript'
+    );
+    const extensionCSS = consoleBundleBudgets.find(
+      ({ label }) => label === 'Extensions workspace CSS'
+    );
+    expect(extensionJS?.pattern.test('Extensions-example.js')).toBe(true);
+    expect(extensionCSS?.pattern.test('Extensions-example.css')).toBe(true);
+    expect(extensionJS?.maxRawBytes).toBe(12 * 1024);
+    expect(extensionCSS?.maxRawBytes).toBeLessThan(3 * 1024);
+  });
+
   it('counts lazy evidence views in complete journeys while keeping startup ceilings fixed', () => {
     const budget = (label: string) => {
       const found = consoleBundleBudgets.find((candidate) => candidate.label === label);

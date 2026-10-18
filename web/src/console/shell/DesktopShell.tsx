@@ -1,17 +1,13 @@
-import { useLocation, useNavigate, useRouterState } from '@tanstack/react-router';
+import { useLocation, useRouterState } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import type { DestinationDefinition } from '../app/feature-registry';
 import { destinationForPath, featureForPath } from '../app/feature-registry';
 import { AppBar } from './AppBar';
+import { persistSidebarCollapsed, readSidebarCollapsed } from './navigation-preferences';
 import { SessionTabs } from './SessionTabs';
 import { StatusRail } from './StatusRail';
-import {
-  closeSession,
-  emptySessionState,
-  sessionReferenceForPath,
-  visitSession,
-} from './shell-state';
+import { emptySessionState, sessionReferenceForPath, visitSession } from './shell-state';
 import { readDestinationRoutes, saveDestinationRoutes } from './tool-navigation';
 
 export type DesktopShellProps = {
@@ -41,7 +37,6 @@ export function DesktopShell({
 }: DesktopShellProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const routeLoading = useRouterState({ select: (state) => state.isLoading });
-  const navigate = useNavigate();
   const canvasRef = useRef<HTMLElement | null>(null);
   const previousPathRef = useRef(pathname);
   const sessionPathRef = useRef(pathname);
@@ -50,6 +45,7 @@ export function DesktopShell({
   );
   const currentReference = sessionReferenceForPath(pathname);
   const [destinationRoutes, setDestinationRoutes] = useState(readDestinationRoutes);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const activeDestination = destinationForPath(pathname);
   const currentLabel = currentReference?.label ?? activeDestination?.label ?? 'Home';
 
@@ -98,7 +94,7 @@ export function DesktopShell({
   }, [pathname, routeLoading]);
 
   return (
-    <div className="pp-workbench-shell">
+    <div className="pp-workbench-shell" data-sidebar-collapsed={sidebarCollapsed}>
       <AppBar
         destinations={destinations}
         destinationRoutes={destinationRoutes}
@@ -107,6 +103,14 @@ export function DesktopShell({
         modifier={modifier}
         resolvedTheme={resolvedTheme}
         navigationOpen={navigationOpen}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => {
+          setSidebarCollapsed((collapsed) => {
+            const next = !collapsed;
+            persistSidebarCollapsed(next);
+            return next;
+          });
+        }}
         onOpenNavigation={onOpenNavigation}
         onCloseNavigation={onCloseNavigation}
         onInspect={onInspect}
@@ -116,14 +120,13 @@ export function DesktopShell({
         <SessionTabs
           references={sessions.references}
           activeId={sessions.activeId}
-          onActivate={(reference) => {
-            onCloseNavigation();
-            void navigate({ to: reference.route });
-          }}
-          onClose={(reference) => {
-            const result = closeSession(sessions, reference.id);
-            setSessions(result.state);
-            if (result.nextRoute) void navigate({ to: result.nextRoute });
+          onActivate={onCloseNavigation}
+          onRemove={(reference) => {
+            setSessions((current) => ({
+              ...current,
+              references: current.references.filter((candidate) => candidate.id !== reference.id),
+              announcement: `${reference.label} removed from recent tools.`,
+            }));
           }}
         />
       </AppBar>

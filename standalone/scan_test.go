@@ -192,6 +192,26 @@ func TestExplicitScanRejectsMultipleTargets(t *testing.T) {
 	}
 }
 
+func TestScanURLOriginsPreserveEffectivePortAndTransport(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct {
+		input, address, transport string
+	}{
+		{"http://example.test", "example.test:80", "plaintext"},
+		{"http://example.test:80", "example.test:80", "plaintext"},
+		{"https://example.test", "example.test:443", "tls"},
+		{"https://example.test:443", "example.test:443", "tls"},
+		{"http://[::1]:8080", "[::1]:8080", "plaintext"},
+	} {
+		t.Run(test.input, func(t *testing.T) {
+			candidates, err := expandScanInput(test.input)
+			if err != nil || len(candidates) != 1 || candidates[0].Address != test.address || candidates[0].Transport != test.transport {
+				t.Fatalf("expanded URL = %#v %v", candidates, err)
+			}
+		})
+	}
+}
+
 func TestScanCandidatePolicyRejectsHiddenExpansion(t *testing.T) {
 	t.Parallel()
 

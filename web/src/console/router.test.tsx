@@ -105,7 +105,9 @@ describe('protocol routes', () => {
     expect(
       await screen.findByRole('heading', { name: 'What do you need to check?' })
     ).toBeInTheDocument();
-    expect(screen.getByText(/No recent services yet/i)).toBeVisible();
+    const recent = screen.getByRole('region', { name: 'Recent services' });
+    expect(within(recent).getByText('Keep useful addresses close')).toBeVisible();
+    expect(recent.querySelectorAll('article')).toHaveLength(0);
   });
 
   it('owns the HTTP query boundary inside the lazy HTTP route', async () => {
@@ -200,12 +202,39 @@ describe('protocol routes', () => {
     expect(
       await screen.findByRole('heading', { name: 'What do you need to check?' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Network path')).toBeInTheDocument();
-    expect(screen.getByText('Bundled Nmap')).toBeInTheDocument();
-    expect(screen.getByText('Local discovery')).toBeInTheDocument();
-    expect(screen.getByText('Ready to explore')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /^See nearby devices\b/ })).toBeVisible();
-    expect(screen.getByRole('link', { name: /^Check this device\b/ })).toBeVisible();
+    const quickStarts = screen.getByRole('region', { name: 'Quick starts' });
+    expect(within(quickStarts).getByRole('link', { name: /^HTTP request/ })).toHaveAttribute(
+      'href',
+      '/protocols/http'
+    );
+    expect(within(quickStarts).getByRole('link', { name: /^gRPC call/ })).toHaveAttribute(
+      'href',
+      '/protocols/grpc'
+    );
+    expect(within(quickStarts).getByRole('link', { name: /^Nearby devices/ })).toHaveAttribute(
+      'href',
+      '/network/local'
+    );
+    expect(within(quickStarts).getByRole('link', { name: /^Download a file/ })).toHaveAttribute(
+      'href',
+      '/downloader'
+    );
+    expect(screen.getByRole('link', { name: 'Trace a network path' })).toHaveAttribute(
+      'href',
+      '/network/path'
+    );
+    expect(screen.getByRole('link', { name: 'Add optional tools' })).toHaveAttribute(
+      'href',
+      '/extensions'
+    );
+    expect(screen.getByRole('link', { name: 'Check this device' })).toHaveAttribute(
+      'href',
+      '/this-pc'
+    );
+    expect(screen.getByRole('link', { name: 'Check a public website' })).toHaveAttribute(
+      'href',
+      '/security'
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
     expect(
@@ -260,7 +289,7 @@ describe('protocol routes', () => {
     });
     expect(await screen.findByRole('heading', { name: 'Tunnel operations' })).toBeVisible();
     expect(router.state.location.pathname).toBe('/tunnels');
-    expect(screen.getByRole('link', { name: 'Open Publish' })).toHaveClass('is-active');
+    expect(screen.getByRole('link', { name: 'Open Extensions' })).toHaveClass('is-active');
 
     await act(async () => {
       await router.navigate({ to: '/downloader' });
@@ -292,98 +321,152 @@ describe('protocol routes', () => {
   });
 
   it('opens an HTTP service found by the gRPC launcher in the HTTP workbench', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const path = new URL(String(input)).pathname;
-        if (path.endsWith('/api/scan')) {
-          return Response.json([
-            {
-              address: '127.0.0.1:8080',
-              alive: true,
-              tcp: true,
-              grpc: false,
-              http: true,
-              protocols: ['tcp', 'http'],
-              reflection: 'not-checked',
-              transport: 'plaintext',
-              services: [],
-              httpTransport: 'plaintext',
-              httpProtocol: 'HTTP/1.1',
-              httpStatus: '200 OK',
-              httpStatusCode: 200,
-              httpServer: '',
-              failure: '',
-              error: null,
-              details: ['http plaintext: HTTP/1.1 200 OK'],
-              latencyMs: 2,
-            },
-          ]);
-        }
-        if (path.endsWith('/examples')) return Response.json([]);
-        return Response.json(bootstrap);
-      })
-    );
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/scan')) {
+        return Response.json([
+          {
+            address: '127.0.0.1:8080',
+            alive: true,
+            tcp: true,
+            grpc: false,
+            http: true,
+            protocols: ['tcp', 'http'],
+            reflection: 'not-checked',
+            transport: 'plaintext',
+            services: [],
+            httpTransport: 'plaintext',
+            httpProtocol: 'HTTP/1.1',
+            httpStatus: '200 OK',
+            httpStatusCode: 200,
+            httpServer: '',
+            failure: '',
+            error: null,
+            details: ['http plaintext: HTTP/1.1 200 OK'],
+            latencyMs: 2,
+          },
+        ]);
+      }
+      if (path.endsWith('/examples')) return Response.json([]);
+      return Response.json(bootstrap);
+    });
+    vi.stubGlobal('fetch', fetchMock);
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/grpc'] }));
     render(<RouterProvider router={router} />);
 
     await screen.findByRole('heading', { name: 'Open a gRPC target.' });
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/scan'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
     fireEvent.click(await screen.findByRole('button', { name: 'HTTP' }));
 
     expect(await screen.findByRole('heading', { name: 'Request workbench' })).toBeVisible();
     expect(screen.getByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8080/');
+    expect(router.state.location.pathname).toBe('/protocols/http');
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
+    ).toHaveLength(1);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/http/request'))).toBe(
+      false
+    );
   });
 
-  it('stores truthful recent discoveries in the local browser profile', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const path = new URL(String(input)).pathname;
-        const body = path.endsWith('/api/scan')
-          ? [
-              {
-                address: '127.0.0.1:8080',
-                alive: true,
-                tcp: true,
-                grpc: false,
-                http: true,
-                protocols: ['tcp', 'http'],
-                reflection: 'not-checked',
-                transport: 'plaintext',
-                services: [],
-                httpTransport: 'plaintext',
-                httpProtocol: 'HTTP/1.1',
-                httpStatus: '204 No Content',
-                httpStatusCode: 204,
-                httpServer: '',
-                failure: '',
-                error: '',
-                details: ['http plaintext: HTTP/1.1 204 No Content'],
-                latencyMs: 2,
-              },
-            ]
-          : bootstrap;
-        return {
-          ok: true,
-          json: async () => body,
-          text: async () => JSON.stringify(body),
-        } as Response;
-      })
-    );
+  it.each([
+    'http',
+    'grpc',
+  ] as const)('restores sparse %s discoveries after the shell remounts and opens an unsent workbench', async (protocol) => {
+    // Match standalone.ScanResult's omitempty output, rather than a fully populated TS fixture.
+    const shared = {
+      alive: true,
+      tcp: true,
+      transport: 'plaintext',
+      latencyMs: 2,
+      httpProtocolTruncated: false,
+      httpStatusTruncated: false,
+      httpServerTruncated: false,
+      errorTruncated: false,
+      detailsTruncated: false,
+      servicesTruncated: false,
+    };
+    const scanResult =
+      protocol === 'http'
+        ? {
+            ...shared,
+            address: '127.0.0.1:8080',
+            grpc: false,
+            http: true,
+            protocols: ['tcp', 'http'],
+            reflection: 'not-checked',
+            httpTransport: 'plaintext',
+            httpProtocol: 'HTTP/1.1',
+            httpStatus: '204 No Content',
+            httpStatusCode: 204,
+            details: ['http plaintext: HTTP/1.1 204 No Content'],
+          }
+        : {
+            ...shared,
+            address: '127.0.0.1:18086',
+            grpc: true,
+            http: false,
+            protocols: ['tcp', 'grpc'],
+            reflection: 'available',
+            services: ['grpc.health.v1.Health'],
+          };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/api/scan')) return Response.json([scanResult]);
+      if (path.endsWith('/examples')) return Response.json([]);
+      return Response.json(bootstrap);
+    });
+    vi.stubGlobal('fetch', fetchMock);
     const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
-    render(<RouterProvider router={router} />);
+    const first = render(<RouterProvider router={router} />);
 
     await screen.findByRole('heading', { name: 'What do you need to check?' });
     fireEvent.click(screen.getByRole('button', { name: /Find a service/ }));
     fireEvent.change(await screen.findByRole('textbox', { name: 'Scan target' }), {
-      target: { value: 'http://127.0.0.1:8080' },
+      target: { value: scanResult.address },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Scan target' }));
-    expect(await screen.findByText('HTTP/1.1 · 204 No Content')).toBeInTheDocument();
+    if (protocol === 'http')
+      expect(await screen.findByText('HTTP/1.1 · 204 No Content')).toBeInTheDocument();
+    let observedAt = '';
     await waitFor(() => {
       const stored = JSON.parse(window.localStorage.getItem('protopeek.discoveries.v1') ?? '[]');
       expect(stored).toHaveLength(1);
-      expect(stored[0]).toMatchObject({ address: '127.0.0.1:8080', http: true, tcp: true });
+      expect(stored[0]).toMatchObject(scanResult);
+      observedAt = stored[0].discoveredAt;
+      expect(Number.isFinite(Date.parse(observedAt))).toBe(true);
     });
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close scan target dialog' })[1]);
+    expect(
+      within(screen.getByRole('region', { name: 'Recent services' })).getByText(scanResult.address)
+    ).toBeVisible();
+    first.unmount();
+
+    const restoredRouter = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }));
+    render(<RouterProvider router={restoredRouter} />);
+    const recent = await screen.findByRole('region', { name: 'Recent services' });
+    const open = within(recent).getByRole('button', {
+      name: `Open ${scanResult.address} in ${protocol === 'http' ? 'HTTP' : 'gRPC'}`,
+    });
+    expect(open).toBeVisible();
+    expect(
+      JSON.parse(window.localStorage.getItem('protopeek.discoveries.v1') ?? '[]')[0].discoveredAt
+    ).toBe(observedAt);
+    fireEvent.click(open);
+    if (protocol === 'http') {
+      expect(await screen.findByLabelText('Request URL')).toHaveValue('http://127.0.0.1:8080/');
+      expect(restoredRouter.state.location.pathname).toBe('/protocols/http');
+    } else {
+      expect(await screen.findByLabelText('Address')).toHaveValue('127.0.0.1:18086');
+      expect(screen.getByLabelText('gRPC transport')).toHaveValue('plaintext');
+      expect(restoredRouter.state.location.pathname).toBe('/protocols/grpc');
+    }
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
+    ).toHaveLength(1);
+    expect(
+      fetchMock.mock.calls.some(([input]) => /http\/request|workspace\/connect/.test(String(input)))
+    ).toBe(false);
   });
 });

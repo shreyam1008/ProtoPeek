@@ -20,14 +20,19 @@
   .pp-openapi-collection-trigger:hover,
   .pp-openapi-collection-trigger[aria-expanded="true"] {
     border-color: var(--pp-accent-signal);
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
+  }
+
+  .pp-openapi-collection-trigger > svg {
+    width: 0.8rem;
+    flex: none;
   }
 
   .pp-openapi-collection-trigger span {
     border-radius: 999px;
     padding: 0.05rem 0.28rem;
     background: var(--pp-accent-soft);
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
     font-family: var(--font-mono);
     font-size: 0.56rem;
   }
@@ -382,7 +387,7 @@
   }
 
   .pp-openapi-operation-list button > span.is-post {
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
   }
 
   .pp-openapi-operation-list button > span.is-put,
@@ -399,7 +404,7 @@
   }
 
   .pp-openapi-operation-path {
-    color: var(--pp-text-faint);
+    color: var(--pp-color-text-muted);
     font-size: 0.53rem;
   }
 
@@ -423,7 +428,6 @@
     inset: 0 auto 0 0;
     width: min(20rem, calc(100% - 2rem));
     border-right: 1px solid var(--pp-stroke-strong);
-    box-shadow: 1rem 0 2.5rem var(--pp-shadow);
   }
 }
 

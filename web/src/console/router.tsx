@@ -94,6 +94,11 @@ const tunnelsRoute = createRoute({
   path: '/tunnels',
   component: lazyRouteComponent(() => import('./Tunnels'), 'Tunnels'),
 });
+const extensionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/extensions',
+  component: lazyRouteComponent(() => import('./Extensions'), 'Extensions'),
+});
 const routesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/route',
@@ -204,6 +209,7 @@ const routeTree = rootRoute.addChildren([
   tailnetRoute,
   thisPCRoute,
   tunnelsRoute,
+  extensionsRoute,
   downloaderRoute,
   routesRoute,
   securityRoute,

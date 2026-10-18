@@ -1,7 +1,7 @@
 import type { MetadataEntry } from '@/shared/types';
 
 const operationMethods = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
-const maxDocumentBytes = 2 * 1024 * 1024;
+export const maxOpenAPIDocumentBytes = 2 * 1024 * 1024;
 const maxOperations = 1_000;
 const encoder = new TextEncoder();
 
@@ -157,7 +157,7 @@ function joinOperationURL(baseURL: string, path: string) {
 }
 
 export function parseOpenAPIText(sourceText: string, source = 'Imported file'): OpenAPICollection {
-  if (encoder.encode(sourceText).length > maxDocumentBytes) {
+  if (encoder.encode(sourceText).length > maxOpenAPIDocumentBytes) {
     throw new Error('OpenAPI document exceeds the 2 MiB import limit.');
   }
   let value: unknown;

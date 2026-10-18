@@ -69,8 +69,21 @@ v0.6.1 has six permanent destinations:
 | Files | Downloader and artifact evidence | `/downloader`, `/downloads` |
 | Settings | appearance, local dependencies, host policy, and About | `/settings`, `/roadmap` |
 
-Existing deep links remain valid. Installed Tailscale status, peers, netcheck and reviewed CLI
-actions are available under Network. Headscale, NetBird, integrated sign-in/elevation and
+**Current source adds [Extensions](guides/extensions.md)** in the same six-destination layout:
+Home, Inspect, Network, Extensions, Files and Settings. It groups Tailscale, Cloudflare Tunnel,
+Wireshark capture, Nmap and aria2 setup in one place. Local detection shows whether a tool is found
+or supplied by the build; it does not prove connection state or capture permissions. Setup links
+refer to the machine running ProtoPeek. Users install external tools separately, then refresh and
+open the existing workbench. This source change is separate from the v0.6.1 stable layout above.
+
+Current source also starts Home with a service address and direct HTTP/gRPC shortcuts. Collapse
+the tool sidebar when you need more editor space. **Recent tools** links return to a tool;
+active calls end when you leave it. HTTP results retain their sent request identity, OpenAPI
+imports wait for an explicit operation choice, and gRPC schema failures offer recovery in place.
+
+Existing deep links remain valid, including `/tunnels`, `/network/tailnet` and `/network/nmap`.
+Stable v0.6.1 places installed Tailscale status, peers, netcheck and reviewed CLI actions under
+Network. Current source groups that workbench under Extensions. Headscale, NetBird, integrated sign-in/elevation and
 Tailscale Serve/Funnel remain planned. A feature belongs in ProtoPeek only when it operates on
 a service or related artifact, strengthens an existing journey or typed handoff, remains useful
 local-first, stays lazy/bounded/quiet, and has a truthful Windows, Linux, and macOS story that one

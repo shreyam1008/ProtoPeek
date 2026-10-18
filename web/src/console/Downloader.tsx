@@ -1,11 +1,4 @@
 import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
-import {
   AlertTriangle,
   ArrowDownToLine,
   Check,
@@ -24,6 +17,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { usePagination } from '@/shared/use-pagination';
 
 import { StatusFact } from './evidence/StatusFact';
 import { ProtocolInfo } from './ProtocolInfo';
@@ -49,11 +43,6 @@ type QueueFilter = 'all' | 'active' | 'completed' | 'failed';
 
 const activeStatuses = new Set<TransferJobStatus>(['queued', 'downloading', 'paused']);
 const maxBatchJobs = 32;
-const queueFeatures = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const queueColumns: ColumnDef<typeof queueFeatures, TransferJob>[] = [{ accessorKey: 'id' }];
 
 type HeaderDraft = TransferRequestHeader & { id: number };
 
@@ -131,18 +120,7 @@ export function Downloader() {
     return jobs;
   }, [filter, snapshot?.jobs]);
 
-  const queueTable = useTable({
-    features: queueFeatures,
-    columns: queueColumns,
-    data: filteredJobs,
-    initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
-    autoResetPageIndex: false,
-    getRowId: (job) => job.id,
-  });
-  useEffect(() => {
-    const lastPage = Math.max(0, Math.ceil(filteredJobs.length / 50) - 1);
-    if (queueTable.state.pagination.pageIndex > lastPage) queueTable.setPageIndex(lastPage);
-  }, [filteredJobs.length, queueTable]);
+  const queueTable = usePagination(filteredJobs, { resetOnChange: false });
 
   const counts = useMemo(() => {
     const jobs = snapshot?.jobs ?? [];
@@ -605,7 +583,7 @@ export function Downloader() {
             {!loading && snapshot && filteredJobs.length === 0 ? (
               <QueueNotice kind={snapshot.health.ready ? 'empty' : 'stopped'} />
             ) : null}
-            {queueTable.getRowModel().rows.map(({ original: job }) => (
+            {queueTable.pageItems.map((job) => (
               <TransferRow
                 key={job.id}
                 job={job}
@@ -622,17 +600,17 @@ export function Downloader() {
               <nav aria-label="Transfer pages">
                 <button
                   type="button"
-                  disabled={!queueTable.getCanPreviousPage()}
+                  disabled={!queueTable.canPreviousPage}
                   onClick={() => queueTable.previousPage()}
                 >
                   Previous
                 </button>
                 <span>
-                  Page {queueTable.state.pagination.pageIndex + 1} of {queueTable.getPageCount()}
+                  Page {queueTable.pageIndex + 1} of {queueTable.pageCount}
                 </span>
                 <button
                   type="button"
-                  disabled={!queueTable.getCanNextPage()}
+                  disabled={!queueTable.canNextPage}
                   onClick={() => queueTable.nextPage()}
                 >
                   Next

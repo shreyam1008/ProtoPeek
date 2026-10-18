@@ -52,7 +52,7 @@ const (
 
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
-	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/network/route", "/security", "/settings",
+	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/protocols/capnp", "/network/packets", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/extensions", "/agents", "/network/route", "/security", "/settings",
 		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap", "/updates":
 		return true
 	default:
@@ -160,6 +160,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		panic(err)
 	}
 	registerTransferHandlers(&mux, uiOpts.transferService)
+	registerExtensions(&mux, uiOpts.transferService)
 	registerThisPCHandlers(&mux, uiOpts.thisPCService)
 	registerTunnelHandlers(&mux, uiOpts.tunnelService)
 	domainCandidatesOperation := DomainCandidatesOperationHandler(domainCandidatesClient)
@@ -430,7 +431,13 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 				http.NotFound(w, r)
 				return
 			}
-			w.Header().Set("Location", "./#"+r.URL.Path)
+			// Resolve back to the mounted shell root even for nested routes.
+			// The path is already stripped, so this also preserves an embedder's prefix.
+			root := strings.Repeat("../", strings.Count(strings.TrimPrefix(r.URL.Path, "/"), "/"))
+			if root == "" {
+				root = "./"
+			}
+			w.Header().Set("Location", root+"#"+r.URL.Path)
 			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}

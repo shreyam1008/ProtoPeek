@@ -508,58 +508,6 @@ body:has(.pp-workbench-shell) {
   min-height: 0;
 }
 
-.pp-start-link {
-  display: grid;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  grid-template-columns: 18px minmax(0, 1fr) 14px;
-  align-items: center;
-  gap: var(--pp-space-5);
-  border-top: var(--pp-stroke-width) solid var(--pp-color-stroke);
-  padding: var(--pp-space-5) var(--pp-space-1);
-}
-
-.pp-start-link > span {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.pp-start-link p {
-  margin-top: var(--pp-space-1);
-  color: var(--pp-color-text-muted);
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.pp-dashboard-boundaries {
-  margin: 0 auto var(--pp-space-10);
-}
-
-.pp-dashboard-boundaries summary {
-  cursor: pointer;
-}
-
-/* biome-ignore lint/style/noDescendingSpecificity: this dashboard block is unrelated to drawer structure. */
-.pp-dashboard-boundaries > div {
-  margin-top: var(--pp-space-4);
-  border-top: var(--pp-stroke-width) solid var(--pp-color-stroke);
-}
-
-.pp-dashboard-boundaries article {
-  padding: var(--pp-space-4) 0;
-}
-
-.pp-dashboard-boundaries article + article {
-  border-top: var(--pp-stroke-width) solid var(--pp-color-stroke);
-}
-
-.pp-dashboard-boundaries article p {
-  margin-top: var(--pp-space-1);
-  color: var(--pp-color-text-faint);
-}
-
 :root[data-keyboard-hints="hidden"] kbd {
   display: none;
 }

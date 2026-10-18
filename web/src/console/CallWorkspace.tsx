@@ -13,7 +13,8 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import type { InvokeState } from '@/features/grpc/operations/useGrpcInvoke';
 
 import type {
   BootstrapMethod,
@@ -31,13 +32,7 @@ import {
 } from '@/shared/utils';
 
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
-
-type InvokeState = {
-  loading: boolean;
-  error: string | null;
-  result: InvokeResponse | null;
-  latencyMs: number;
-};
+import { shouldHandleWorkbenchShortcut } from './workbench-shortcut';
 
 type ResponseTab = 'messages' | 'headers' | 'trailers' | 'status';
 
@@ -100,6 +95,7 @@ export function CallWorkspace({
   const [requestTab, setRequestTab] = useState<'request' | 'metadata'>('request');
   const [responseTab, setResponseTab] = useState<ResponseTab>('messages');
   const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
+  const requestRootRef = useRef<HTMLDivElement | null>(null);
   const [responseQuery, setResponseQuery] = useState('');
   const [selectedResponse, setSelectedResponse] = useState(0);
   const response = invokeState.result;
@@ -144,7 +140,7 @@ export function CallWorkspace({
 
   useEffect(() => {
     function invokeFromKeyboard(event: KeyboardEvent) {
-      if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)) return;
+      if (!shouldHandleWorkbenchShortcut(event, requestRootRef.current)) return;
       event.preventDefault();
       if (invokeState.loading) onCancel();
       else onInvoke();
@@ -152,6 +148,18 @@ export function CallWorkspace({
     window.addEventListener('keydown', invokeFromKeyboard);
     return () => window.removeEventListener('keydown', invokeFromKeyboard);
   }, [invokeState.loading, onCancel, onInvoke]);
+
+  const revealPane = useEffectEvent((pane: 'request' | 'response') => {
+    const mobile = window.matchMedia?.('(max-width: 700px)').matches;
+    if (pane === 'response' || (mobile && mobilePane !== pane)) {
+      setMobilePane(pane);
+      if (mobile) document.getElementById(`grpc-mobile-pane-tab-${pane}`)?.focus();
+    }
+  });
+  useEffect(() => {
+    if (invokeState.loading) revealPane('response');
+    else if (invokeState.validationError) revealPane('request');
+  }, [invokeState.loading, invokeState.validationError]);
 
   const visibleSelectedIndex = filteredResponses.some(({ index }) => index === selectedResponse)
     ? selectedResponse
@@ -168,11 +176,13 @@ export function CallWorkspace({
       ? 'LOCAL LIMIT'
       : response?.error
         ? response.error.name.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase() || 'ERROR'
-        : invokeState.error
-          ? 'ERROR'
-          : response
-            ? 'OK'
-            : 'READY';
+        : invokeState.cancelled
+          ? 'CANCELLED'
+          : invokeState.error
+            ? 'ERROR'
+            : response
+              ? 'OK'
+              : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -195,6 +205,14 @@ export function CallWorkspace({
         <ResponsePlaceholder>
           <LoaderCircle className="pp-response-spinner" aria-hidden="true" />
           Waiting for {mode.toLowerCase()}… Use Cancel to stop the RPC.
+          <span className="pp-call-leave-note">Leaving this tool cancels the call.</span>
+        </ResponsePlaceholder>
+      );
+    }
+    if (invokeState.cancelled) {
+      return (
+        <ResponsePlaceholder>
+          Call cancelled locally. Final server status was not observed.
         </ResponsePlaceholder>
       );
     }
@@ -258,6 +276,7 @@ export function CallWorkspace({
       />
 
       <div
+        ref={requestRootRef}
         className={classNames(
           'pp-call-pane pp-request-pane',
           mobilePane !== 'request' && 'pp-mobile-pane-hidden'
@@ -361,6 +380,11 @@ export function CallWorkspace({
             />
           </TabPanel>
         </div>
+        {invokeState.validationError ? (
+          <p className="pp-error-text" role="alert">
+            {invokeState.validationError}
+          </p>
+        ) : null}
         <div className="pp-invoke-bar">
           <label>
             <span>Deadline</span>
@@ -368,7 +392,7 @@ export function CallWorkspace({
               <Clock3 aria-hidden="true" />
               <input
                 aria-label="Deadline in seconds"
-                title="Omitted or larger deadlines use ProtoPeek's 60-second local safety wall."
+                title="Local default and maximum: 60 seconds."
                 type="number"
                 min={0}
                 max={60}
@@ -404,9 +428,11 @@ export function CallWorkspace({
           <span
             className={classNames(
               'pp-status-mark',
-              (invokeState.error || response?.error || response?.localLimit) &&
+              ((!invokeState.cancelled && invokeState.error) ||
+                response?.error ||
+                response?.localLimit) &&
                 'pp-status-mark-error',
-              invokeState.loading && 'pp-status-mark-running'
+              (invokeState.loading || invokeState.cancelled) && 'pp-status-mark-running'
             )}
             role="status"
             aria-live="polite"
@@ -422,6 +448,16 @@ export function CallWorkspace({
             Console {response ? timingLabel(invokeState.latencyMs) : '—'}
           </span>
           <span>{response?.responses.length ?? 0} messages</span>
+          {invokeState.loading ? (
+            <button
+              type="button"
+              className="pp-response-cancel"
+              onClick={onCancel}
+              aria-label="Cancel RPC"
+            >
+              <Square aria-hidden="true" /> Cancel
+            </button>
+          ) : null}
           <label className="pp-response-filter">
             <Search aria-hidden="true" />
             <input

@@ -16,14 +16,18 @@ export const toolGroups: Record<
     { label: 'Website', ids: ['security'] },
   ],
   network: [
-    { label: 'Your network', ids: ['network-local', 'this-pc', 'tailnet'] },
+    { label: 'Your network', ids: ['network-local', 'this-pc'] },
     {
       label: 'Inspect traffic & services',
-      ids: ['network-ports', 'network-packets', 'network-path', 'network-route', 'network-nmap'],
+      ids: ['network-ports', 'network-packets', 'network-path', 'network-route'],
     },
     { label: 'Saved evidence', ids: ['network-map', 'network-history'] },
   ],
-  publish: [{ label: 'Local publishing', ids: ['tunnels'] }],
+  extensions: [
+    { label: 'Optional tools', ids: ['extensions'] },
+    { label: 'Connect & publish', ids: ['tailnet', 'tunnels'] },
+    { label: 'Scanning', ids: ['network-nmap'] },
+  ],
   files: [{ label: 'Transfers', ids: ['downloader'] }],
   settings: [
     { label: 'Preferences', ids: ['settings', 'updates'] },

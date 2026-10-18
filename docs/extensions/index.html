@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Extensions: Optional Tools &amp; Setup | ProtoPeek</title>
+    <meta name="description" content="Set up Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2 on the ProtoPeek host. Check local detection and open the existing workbench." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/extensions/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Extensions: Optional Tools &amp; Setup | ProtoPeek" />
+    <meta property="og:description" content="Set up Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2 on the ProtoPeek host. Check local detection and open the existing workbench." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/extensions/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Extensions: Optional Tools &amp; Setup | ProtoPeek" />
+    <meta name="twitter:description" content="Set up Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2 on the ProtoPeek host. Check local detection and open the existing workbench." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Extensions and setup","description":"Set up Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2 on the ProtoPeek host. Check local detection and open the existing workbench.","url":"https://protopeek.shreyam1008.com.np/extensions/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/extensions/","dateModified":"2026-09-28","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/extensions.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Extensions and setup","item":"https://protopeek.shreyam1008.com.np/extensions/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Extensions and setup</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Extensions and setup</h1>
+              <p>Which optional tool does this task need?</p>
+
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Current source
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Five supported tools</li><li>Host-specific setup</li><li>Detection is not readiness</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-extensions">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>Which optional tool does this task need?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-extensions-title visual-extensions-description">
+        <title id="visual-extensions-title">Extensions and setup evidence path</title>
+        <desc id="visual-extensions-description">Local detection to Official setup to Open workbench</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Local detection</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Official setup</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Open workbench</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Check</span>
+              <h2>See what this host has</h2>
+              <p>Local executable detection shows Detected, Included, Not found or Unavailable without running a tool.</p>
+            </article>
+
+            <article>
+              <span>02 · Set up</span>
+              <h2>Follow official instructions</h2>
+              <p>Use guidance for the machine running ProtoPeek, install separately, and refresh the detection result.</p>
+            </article>
+
+            <article>
+              <span>03 · Open</span>
+              <h2>Continue in its workbench</h2>
+              <p>Inspect real service, scan or capture capabilities before choosing an explicit action.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p><strong>Current source:</strong> Extensions groups setup for five supported tools in one place. It replaces the Publish destination in the six-part layout: Home, Inspect, Network, Extensions, Files and Settings. Stable v0.6.1 retains its earlier layout; this guide describes source changes, not a new stable release or package publication.</p>
+<h2 id="start-with-what-you-need">Start with what you need</h2>
+<p>Open <strong>Extensions</strong> at <code>/extensions</code>. Each card explains what the tool adds, shows local detection evidence, and offers setup details and <strong>Open workbench</strong>. <strong>Refresh</strong> checks the local executable locations again. Detection does not start a process, scan, capture, sign-in flow, or service.</p>
+<p>Setup applies to the <strong>machine running ProtoPeek</strong>, which may differ from the machine displaying your browser. A remote server or container needs its own accessible tools. Guidance uses the host operating system and points to official installation instructions.</p>
+<table><thead><tr><th>Group</th><th>Tool</th><th>What it enables</th><th>Existing workbench</th></tr></thead><tbody><tr><td>Optional services</td><td>Tailscale</td><td>Installed-client peers, accounts, connection diagnostics, reviewed local controls and Taildrop</td><td><code>/network/tailnet</code></td></tr><tr><td>Optional services</td><td>Cloudflare Tunnel</td><td>Local <code>cloudflared</code> service, configuration and route evidence, with guarded service controls</td><td><code>/tunnels</code></td></tr><tr><td>Network tools</td><td>Wireshark capture</td><td>A bounded live capture through the installed <code>dumpcap</code> executable</td><td><code>/network/packets?mode=live</code></td></tr><tr><td>Network tools</td><td>Nmap</td><td>Bounded TCP connect or light service detection with explicit scope</td><td><code>/network/nmap</code></td></tr><tr><td>Transfers</td><td>aria2</td><td>The local engine used by resumable HTTP(S) downloads</td><td><code>/downloader</code></td></tr></tbody></table>
+<p>All existing workbench links remain valid. Choosing a card does not install a package or begin the tool&#39;s active work. Installation is performed separately through the vendor&#39;s installer or the host&#39;s package manager. Return to Extensions and refresh after setup.</p>
+<h2 id="read-the-status-accurately">Read the status accurately</h2>
+<table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td>Detected</td><td>An executable was found in a supported location. It has not been run by this check.</td></tr><tr><td>Included</td><td>This build supplies the tool as a fallback; another installation may take priority.</td></tr><tr><td>Not found</td><td>No executable was found in the checked locations. Review the host&#39;s setup instructions.</td></tr><tr><td>Unavailable</td><td>Detection could not be completed on this host. Read the reported reason.</td></tr></tbody></table>
+<p><strong>Detected does not mean ready.</strong> Tailscale can still need sign-in, a service can be stopped, and dumpcap can lack capture permission. Open the relevant workbench for its actual capabilities and observations. Installation detection and operational evidence remain separate.</p>
+<h2 id="tailscale-and-cloudflare-tunnel">Tailscale and Cloudflare Tunnel</h2>
+<p>Install Tailscale using its <a href="https://tailscale.com/download" rel="noreferrer" target="_blank">official download page</a> and the <a href="https://tailscale.com/docs/install/windows" rel="noreferrer" target="_blank">Windows</a>, <a href="https://tailscale.com/docs/install/mac" rel="noreferrer" target="_blank">macOS</a>, or <a href="https://tailscale.com/docs/install/linux" rel="noreferrer" target="_blank">Linux</a> instructions. Complete sign-in through the installed Tailscale client, then open its ProtoPeek workbench and choose <strong>Inspect Tailscale</strong>. ProtoPeek uses the installed client; it does not provide the private-network service itself.</p>
+<p>Use Cloudflare&#39;s <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/" rel="noreferrer" target="_blank">cloudflared downloads</a> for the tunnel connector. Its ProtoPeek workbench inspects the local host and canonical service; it does not create an account, sign in, install the connector, or apply a tunnel configuration. See the <a href="/cloudflare-tunnels/">Cloudflare Tunnel guide</a> for supported controls and configuration authority. Wrangler and Docker availability are diagnostic details, not additional working adapters.</p>
+<h2 id="capture-setup">Capture setup</h2>
+<p>Install <a href="https://www.wireshark.org/download.html" rel="noreferrer" target="_blank">Wireshark</a>, which supplies the <a href="https://www.wireshark.org/docs/man-pages/dumpcap.html" rel="noreferrer" target="_blank">dumpcap capture utility</a>. ProtoPeek uses dumpcap for bounded local captures; Wireshark remains useful for deeper analysis of original files.</p>
+<ul><li><strong>Windows:</strong> live capture needs <a href="https://npcap.com/#download" rel="noreferrer" target="_blank">Npcap</a>. The <a href="https://www.wireshark.org/docs/wsug_html_chunked/ChBuildInstallWinInstall.html" rel="noreferrer" target="_blank">Wireshark installer includes Npcap setup</a>. Capture access can still depend on the driver&#39;s permission settings.</li><li><strong>macOS:</strong> follow Wireshark&#39;s <a href="https://www.wireshark.org/docs/wsug_html_chunked/ChBuildInstallOSXInstall.html" rel="noreferrer" target="_blank">ChmodBPF installation instructions</a> for capture access, and make dumpcap accessible to the ProtoPeek host.</li><li><strong>Linux:</strong> use the distribution&#39;s Wireshark packages and the official <a href="https://wiki.wireshark.org/CaptureSetup/CapturePrivileges" rel="noreferrer" target="_blank">capture permission guidance</a>.</li></ul>
+<p>ProtoPeek does not install drivers or change capture permissions. After setup, open the capture workbench to inspect available interfaces. An explicit <strong>Start capture</strong> action begins a bounded run. It observes traffic visible to the selected interface, not every packet on the network. Live capture acceptance still depends on the host&#39;s driver and permission setup.</p>
+<h2 id="nmap-and-aria2">Nmap and aria2</h2>
+<p>Use the <a href="https://nmap.org/download.html" rel="noreferrer" target="_blank">official Nmap download and installation guide</a>, then open its workbench and review the target and ports. ProtoPeek supports bounded TCP connect and light service detection. These modes use ordinary TCP sockets; executable detection does not run a scan. See <a href="/network-workbench/#installed-nmap-in-current-source">Nmap scope and evidence limits</a>.</p>
+<p>The Downloader uses <a href="https://aria2.github.io/" rel="noreferrer" target="_blank">aria2</a>. Official downloads are linked from the <a href="https://github.com/aria2/aria2/releases/latest" rel="noreferrer" target="_blank">aria2 release page</a>. The engine can be configured, found on PATH, or supplied as a fallback by the build. Check the card and Downloader&#39;s engine details before installing another copy. Detection does not start the engine or queue a transfer.</p>
+<h2 id="what-stays-in-the-core">What stays in the core</h2>
+<p>HTTP and gRPC inspection, this-device evidence, Nearby devices, built-in TCP port checks, supported native hop tracing, saved network maps and bounded capture-file reading work without these optional tools. Opening a PCAP/PCAPNG file stays under <strong>Network → Packets</strong> and does not require Wireshark, dumpcap or Npcap.</p>
+<p>Headscale administration, NetBird, Tailscale Serve/Funnel, integrated sign-in and automatic tool installation remain outside this catalog. Existing <a href="/ai-agents/">AI agent setup</a> remains under Settings; it does not require a new extension download.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#start-with-what-you-need">Start with what you need</a><a class="level-2" href="#read-the-status-accurately">Read the status accurately</a><a class="level-2" href="#tailscale-and-cloudflare-tunnel">Tailscale and Cloudflare Tunnel</a><a class="level-2" href="#capture-setup">Capture setup</a><a class="level-2" href="#nmap-and-aria2">Nmap and aria2</a><a class="level-2" href="#what-stays-in-the-core">What stays in the core</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/extensions.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/extensions.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>The Extensions hub groups existing local-tool workflows in current source. Stable v0.6.1 retains the earlier navigation.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/this-pc/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>This Device evidence</strong>
+      </a>
+      <a href="/cloudflare-tunnels/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Manage Cloudflare Tunnel locally</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

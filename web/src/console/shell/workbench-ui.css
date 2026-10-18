@@ -340,7 +340,6 @@
     .pp-events,
     .pp-evidence-workbench,
     .pp-suite-page,
-    .pp-dashboard,
     .pp-security,
     .pp-downloader,
     .pp-tunnels
@@ -439,8 +438,7 @@
 .pp-workbench-shell .pp-workbench-canvas .pp-routes-workbench > :not(.pp-page-header) {
   margin: 18px var(--pp-workspace-gutter);
 }
-.pp-workbench-shell .pp-workbench-canvas .pp-suite-page > :not(.pp-page-header),
-.pp-workbench-shell .pp-workbench-canvas .pp-dashboard > :not(.pp-page-header) {
+.pp-workbench-shell .pp-workbench-canvas .pp-suite-page > :not(.pp-page-header) {
   margin: 22px var(--pp-workspace-gutter);
   max-width: none;
 }
@@ -472,12 +470,6 @@
 }
 .pp-workbench-shell .pp-workbench-canvas .pp-protocol-choice strong {
   font-size: 14px;
-}
-.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-grid {
-  gap: 20px;
-}
-.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-card {
-  border-radius: 8px;
 }
 .pp-workbench-shell .pp-workbench-canvas .pp-download-composer {
   margin: 16px 24px;
@@ -694,12 +686,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pp-empty-state [data-loading] {
-    animation: none;
-  }
-}
-
 /* Inspectors take space only when there is evidence to inspect. */
 .pp-workbench-shell .pp-downloader-workspace:not(:has(.pp-transfer-inspector:not(.is-empty))) {
   grid-template-columns: minmax(0, 1fr);
@@ -753,7 +739,7 @@
 
 .pp-workbench-shell
   .pp-workbench-canvas
-  :is(.pp-suite-page, .pp-dashboard, .pp-security, .pp-tunnels, .pp-routes-workbench)
+  :is(.pp-suite-page, .pp-security, .pp-tunnels, .pp-routes-workbench)
   > :not(.pp-page-header) {
   width: auto;
   max-width: calc(100% - 2 * var(--pp-workspace-gutter));
@@ -913,65 +899,6 @@
   .pp-workbench-shell .pp-roadmap-filters button {
     font-size: 11px;
     padding: 8px 5px;
-  }
-}
-
-.pp-workbench-shell .pp-workbench-canvas .pp-dashboard-grid {
-  grid-template-columns: minmax(0, 1fr);
-}
-.pp-workbench-shell .pp-start-section {
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-.pp-workbench-shell .pp-start-section > header {
-  border: 0;
-  padding: 0 0 14px;
-}
-.pp-workbench-shell .pp-start-section .pp-kicker {
-  display: none;
-}
-.pp-workbench-shell .pp-start-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.pp-workbench-shell .pp-start-link {
-  min-height: 94px;
-  padding: 18px;
-  gap: 14px;
-  border: 1px solid var(--pp-color-stroke);
-  border-radius: 8px;
-  background: var(--pp-color-surface);
-}
-.pp-workbench-shell .pp-start-link > svg {
-  width: 18px;
-  height: 18px;
-  color: var(--pp-color-accent-strong);
-}
-.pp-workbench-shell .pp-start-link strong {
-  font-size: 13px;
-}
-.pp-workbench-shell .pp-start-link p {
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 5px;
-}
-.pp-workbench-shell .pp-start-link:hover {
-  background: var(--pp-color-accent-soft);
-  border-color: var(--pp-color-accent);
-}
-.pp-workbench-shell .pp-recent-discoveries > header {
-  border: 0;
-  padding-bottom: 8px;
-}
-.pp-workbench-shell .pp-recent-empty {
-  width: 100%;
-  min-height: 64px;
-}
-@media (max-width: 760px) {
-  .pp-workbench-shell .pp-start-list {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -1352,3 +1279,58 @@
     background-position: 50% 0;
   }
 }
+
+/* Sidebar collapse and recent-tool navigation. */
+.pp-workbench-shell .pp-tool-sidebar[hidden],
+.pp-workbench-shell .pp-sidebar-toggle,
+.pp-workbench-shell .pp-rail-quick-actions {
+  display: none;
+}
+.pp-session-tab[aria-current="page"] {
+  background: var(--pp-color-selection);
+  color: var(--pp-color-selection-text);
+  box-shadow: inset 2px 0 var(--pp-color-accent);
+}
+.pp-session-tab {
+  text-decoration: none;
+}
+@media (min-width: 761px) {
+  .pp-workbench-shell .pp-app-bar {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .pp-workbench-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .pp-workbench-shell[data-sidebar-collapsed="true"] .pp-app-bar {
+    grid-template-columns: 64px;
+  }
+  .pp-workbench-shell .pp-destination-rail {
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .pp-workbench-shell .pp-rail-actions,
+  .pp-workbench-shell .pp-rail-quick-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .pp-workbench-shell .pp-sidebar-toggle,
+  .pp-workbench-shell .pp-rail-quick-actions {
+    display: flex;
+  }
+  .pp-workbench-shell .pp-rail-actions .pp-app-icon-action {
+    width: 36px;
+    min-height: 32px;
+  }
+  .pp-workbench-shell .pp-rail-actions .pp-app-icon-action svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+@media (forced-colors: active) {
+  .pp-session-tab[aria-current="page"] {
+    border: 1px solid Highlight;
+    color: Highlight;
+  }
+}
+/* End sidebar collapse and recent-tool navigation. */

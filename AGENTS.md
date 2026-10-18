@@ -15,10 +15,11 @@ planned claims explicitly separate.
 
 ## Product architecture
 
-- The v0.6 target has six permanent destinations: Home, Inspect, Network, Publish, Files, and
-  Settings. Do not describe that grouping as the shipped v0.5.0 or pre-reset current shell.
-- In that target, Security belongs under Inspect, This Device under Network, Cloudflare Tunnel under
-  Publish, and Downloader under Files. Roadmap and Help remain secondary command/About destinations.
+- Current source has six destinations: Home, Inspect, Network, Extensions, Files, and Settings.
+  Stable v0.6.1 uses the earlier Publish destination; keep those release claims separate.
+- Security belongs under Inspect, This Device under Network, Tailscale and Cloudflare Tunnel
+  together under Extensions, and Downloader under Files. Packet-file reading remains a core
+  Network tool; live capture and Nmap use optional external tools. Roadmap and Help remain secondary.
 - Preserve existing routes and deep links as compatibility paths while the information architecture
   changes.
 - The installed Tailscale foundation ships in v0.6.1. Headscale, NetBird and integrated sign-in/elevation

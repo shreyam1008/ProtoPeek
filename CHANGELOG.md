@@ -5,6 +5,23 @@ version source of truth.
 
 ## Unreleased
 
+- Home starts from a service address, with direct HTTP/gRPC shortcuts and compact recent services.
+  The tool sidebar can collapse independently of the mobile drawer. Recent tools are navigation
+  links and do not imply retained live sessions. Real scan records survive browser reloads even
+  when the server omits empty fields.
+- HTTP results identify the request that ran; imports preserve the current editor until an
+  operation is chosen. Request replacement cancels stale work, and overlapping imports cannot
+  replace newer state. Run shortcuts stay scoped to request controls and ignore key repeat.
+- gRPC setup exposes required schema paths, supports startup/schema recovery, and reveals
+  responses and cancellation on narrow screens. Discovery stays user-triggered; an explicit CLI
+  scan runs once per shell across Home and gRPC. Direct links include Extensions and packet tools.
+
+- Extensions groups Tailscale and Cloudflare Tunnel with optional capture, Nmap and aria2 setup.
+  Read-only local detection distinguishes a located executable from operational readiness;
+  core network tools and packet-file reading remain available without companions.
+- Replace the pagination-only table dependency with a small shared pager across five workbenches,
+  reducing the installed frontend while preserving filtering and transfer refresh behavior.
+
 - Network opens Nearby devices with an available interface selected, cached neighbors,
   bounded mDNS advertisements and map/list views. Device, port and packet handoffs
   prepare the next tool without starting a probe. Narrow screens start with a list.

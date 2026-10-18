@@ -291,6 +291,84 @@ afterEach(() => {
 });
 
 describe('gRPC launcher recents', () => {
+  it('does not probe services just because the gRPC launcher opened', async () => {
+    const fetchMock = installLauncherFetch({ connectOK: false });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByLabelText('Address');
+    expect(screen.getByRole('button', { name: 'Scan common local' })).toBeEnabled();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/scan'))).toBe(false);
+  });
+
+  it('never reports an empty method set while selecting a successfully connected method', async () => {
+    vi.stubGlobal(
+      'fetch',
+      installLauncherFetch({ connectOK: true, connectedBootstrap: directBootstrap })
+    );
+    const { container } = render(<App />);
+    const address = await screen.findByLabelText('Address');
+    const observedText: string[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) observedText.push(node.textContent ?? '');
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true });
+    try {
+      expect(container.querySelector('form form')).toBeNull();
+      fireEvent.change(address, { target: { value: 'localhost:50051' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+      expect(await screen.findByLabelText('Request JSON')).toBeEnabled();
+      expect(observedText.join('\n')).not.toContain('No callable gRPC methods');
+      expect(screen.queryByText('No callable gRPC methods')).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Targets' }));
+      expect(container.querySelector('form form')).toBeNull();
+    } finally {
+      observer.disconnect();
+    }
+  });
+
+  it('explains a genuinely empty connected method set and offers another target', async () => {
+    vi.stubGlobal(
+      'fetch',
+      installLauncherFetch({
+        connectOK: true,
+        connectedBootstrap: { ...directBootstrap, services: [] },
+      })
+    );
+    const { container } = render(<App />);
+    await screen.findByLabelText('Address');
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    expect(await screen.findByRole('heading', { name: 'No callable gRPC methods' })).toBeVisible();
+    expect(screen.getByLabelText('Address')).toBeEnabled();
+    expect(container.querySelector('form form')).toBeNull();
+  });
+
+  it('retries startup without losing an unsent handoff', async () => {
+    stageGRPCHandoff('retry.test:50051', false);
+    let attempts = 0;
+    const launcherFetch = installLauncherFetch({ connectOK: false });
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('/api/bootstrap') && attempts++ === 0) {
+        return Promise.reject(new Error('Local service unavailable'));
+      }
+      return launcherFetch(input, init);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    expect(
+      await screen.findByRole('heading', { name: 'gRPC workbench unavailable' })
+    ).toBeVisible();
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry loading workbench' }));
+    expect(await screen.findByLabelText('Address')).toHaveValue('retry.test:50051');
+    expect(screen.getByLabelText('gRPC transport')).toHaveValue('tls');
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+    expect(
+      fetchMock.mock.calls.some(([input]) => /\/api\/(scan|workspace\/connect)/.test(String(input)))
+    ).toBe(false);
+  });
+
   it('defaults a new target to localhost:50051 while preserving a bootstrap address', async () => {
     vi.stubGlobal('fetch', installLauncherFetch({ connectOK: false }));
     const first = render(<App />);
@@ -698,6 +776,7 @@ describe('gRPC launcher recents', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<App />);
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Scan common local' }));
     fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
     const address = await screen.findByLabelText('Address');
     expect(address).toHaveValue('127.0.0.1:50051');
@@ -771,6 +850,7 @@ describe('gRPC launcher recents', () => {
     vi.stubGlobal('fetch', fetchMock);
     render(<App />);
 
+    fireEvent.click(await screen.findByRole('button', { name: 'Scan common local' }));
     fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
     const address = await screen.findByLabelText('Address');
     expect(address).toHaveValue('127.0.0.1:50051');
@@ -799,7 +879,7 @@ describe('gRPC launcher recents', () => {
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
-      ).toHaveLength(1)
+      ).toHaveLength(0)
     );
 
     stageGRPCHandoff('127.0.0.1:50052');
@@ -812,7 +892,7 @@ describe('gRPC launcher recents', () => {
     ).toBe(false);
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/scan'))
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   });
 
@@ -917,6 +997,245 @@ describe('gRPC launcher recents', () => {
 });
 
 describe('gRPC workspace context routing', () => {
+  it('retains method navigation after a schema error and retries only the selected method', async () => {
+    const sibling = { ...directMethod, name: 'Sibling', fullName: 'demo.Echo/Sibling' };
+    let failing = true;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/api/bootstrap'))
+        return response({
+          ...directBootstrap,
+          services: [{ ...directBootstrap.services[0], methods: [directMethod, sibling] }],
+        });
+      if (url.pathname.endsWith('/api/protos')) return response({ files: [] });
+      if (url.pathname.endsWith('/metadata')) {
+        return url.searchParams.get('method') === directMethod.fullName && failing
+          ? response('Descriptor temporarily unavailable', false)
+          : response(directSchema);
+      }
+      throw new Error(`Unexpected request: ${url.pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    await screen.findByText('Could not load this method’s schema');
+    const navigator = screen.getByRole('button', { name: /Sibling\s*Unary/ });
+    expect(navigator).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(directMethod.fullName);
+    fireEvent.click(navigator);
+    expect(await screen.findByLabelText('Request JSON')).toBeVisible();
+    expect(screen.queryByText('Descriptor temporarily unavailable')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Echo\s*Unary/ }));
+    await screen.findByText('Descriptor temporarily unavailable');
+    failing = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry schema' }));
+    expect(await screen.findByLabelText('Request JSON')).toBeVisible();
+    expect(screen.queryByText('Could not load this method’s schema')).not.toBeInTheDocument();
+  });
+
+  it('discards a late schema failure after selecting another method', async () => {
+    const sibling = { ...directMethod, name: 'Sibling', fullName: 'demo.Echo/Sibling' };
+    let finishFirst: (value: Response) => void = () => {};
+    const first = new Promise<Response>((resolve) => {
+      finishFirst = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input));
+        if (url.pathname.endsWith('/api/bootstrap'))
+          return response({
+            ...directBootstrap,
+            services: [{ ...directBootstrap.services[0], methods: [directMethod, sibling] }],
+          });
+        if (url.pathname.endsWith('/api/protos')) return response({ files: [] });
+        if (url.pathname.endsWith('/metadata'))
+          return url.searchParams.get('method') === directMethod.fullName
+            ? first
+            : response(directSchema);
+        throw new Error(`Unexpected request: ${url.pathname}`);
+      })
+    );
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /Sibling\s*Unary/ }));
+    expect(await screen.findByLabelText('Request JSON')).toBeVisible();
+    await act(async () => {
+      finishFirst(response('Stale descriptor failure', false));
+      await first;
+    });
+    expect(screen.queryByText('Stale descriptor failure')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(sibling.fullName);
+  });
+
+  it('offers reconnect after an expired workspace session without scanning or reconnecting automatically', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/api/bootstrap')) return response(launcherBootstrap);
+      if (url.pathname.endsWith('/api/workspace/connect'))
+        return response({ sessionId: 'expired-session', bootstrap: directBootstrap });
+      if (url.pathname.endsWith('/api/workspace/protos')) return response({ files: [] });
+      if (url.pathname.endsWith('/api/workspace/metadata'))
+        return response('Workspace session expired', false);
+      if (url.pathname.endsWith('/api/workspace/session') && init?.method === 'DELETE')
+        return response(null);
+      throw new Error(`Unexpected request: ${url.pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'reconnect.test:50051' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    await screen.findByText('Workspace session expired');
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect target' }));
+    expect(await screen.findByLabelText('Address')).toHaveValue('reconnect.test:50051');
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toHaveLength(1);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/scan'))).toBe(false);
+  });
+
+  it('preserves volatile connection settings on reconnect when browser storage rejected the target', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/api/bootstrap')) return response(launcherBootstrap);
+      if (url.pathname.endsWith('/api/workspace/connect'))
+        return response({ sessionId: 'volatile-session', bootstrap: directBootstrap });
+      if (url.pathname.endsWith('/api/workspace/protos')) return response({ files: [] });
+      if (url.pathname.endsWith('/api/workspace/metadata'))
+        return response('Workspace session expired', false);
+      if (url.pathname.endsWith('/api/workspace/session') && init?.method === 'DELETE')
+        return response(null);
+      throw new Error(`Unexpected request: ${url.pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    fireEvent.change(await screen.findByLabelText('Address'), {
+      target: { value: 'volatile.test:7443' },
+    });
+    fireEvent.change(screen.getByLabelText('gRPC transport'), { target: { value: 'tls' } });
+    fireEvent.change(screen.getByLabelText('Schema source'), { target: { value: 'proto-files' } });
+    fireEvent.change(screen.getByLabelText('Proto files'), {
+      target: { value: 'api/service.proto' },
+    });
+    fireEvent.change(screen.getByLabelText('Import paths'), { target: { value: 'api/vendor' } });
+    const nativeWrite = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key, value) {
+      if (key === appStorageKeys.targets)
+        throw new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      nativeWrite.call(this, key, value);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    await screen.findByText('Workspace session expired');
+    expect(screen.getByText('Target was not saved')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect target' }));
+    expect(await screen.findByLabelText('Address')).toHaveValue('volatile.test:7443');
+    expect(screen.getByLabelText('gRPC transport')).toHaveValue('tls');
+    expect(screen.getByLabelText('Schema source')).toHaveValue('proto-files');
+    expect(screen.getByLabelText('Proto files')).toHaveValue('api/service.proto');
+    expect(screen.getByLabelText('Import paths')).toHaveValue('api/vendor');
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).includes('/api/workspace/connect'))
+    ).toHaveLength(1);
+  });
+
+  it('keeps malformed request validation local and clears it when the draft changes', async () => {
+    const fetchMock = installDirectFetch();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    const editor = await screen.findByLabelText('Request JSON');
+    fireEvent.change(editor, { target: { value: '{ broken' } });
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+    const requestPane = document.getElementById('grpc-mobile-pane-panel-request');
+    if (!requestPane) throw new Error('Request pane missing');
+    expect(await within(requestPane).findByRole('alert')).not.toBeEmptyDOMElement();
+    expect(screen.getByRole('status', { name: 'RPC status READY' })).toBeInTheDocument();
+    expect(screen.queryByText('Invocation failed')).toBeNull();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/invoke/'))).toBe(false);
+    fireEvent.change(editor, { target: { value: '{}' } });
+    await waitFor(() => expect(within(requestPane).queryByRole('alert')).toBeNull());
+    expect(screen.getByRole('status', { name: 'RPC status READY' })).toBeInTheDocument();
+    expect(screen.queryByText('Invocation failed')).toBeNull();
+  });
+
+  it.each([
+    { stream: false, invalid: '[]', valid: '{}', error: 'Unary RPCs need a single object.' },
+    { stream: true, invalid: '{}', valid: '[]', error: 'Streaming RPCs need a JSON array.' },
+  ])('shows shape validation in mobile Request for requestStream=$stream', async (scenario) => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({ matches: query === '(max-width: 700px)' }))
+    );
+    const directFetch = installDirectFetch();
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('/api/bootstrap')) {
+        return Promise.resolve(
+          response({
+            ...directBootstrap,
+            services: [
+              {
+                name: 'demo.Echo',
+                description: '',
+                methods: [{ ...directMethod, clientStreaming: scenario.stream }],
+              },
+            ],
+          })
+        );
+      }
+      if (String(input).includes('/metadata')) {
+        return Promise.resolve(response({ ...directSchema, requestStream: scenario.stream }));
+      }
+      return directFetch(input, init);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<App />);
+    const editor = await screen.findByLabelText('Request JSON');
+    const requestPane = document.getElementById('grpc-mobile-pane-panel-request');
+    if (!requestPane) throw new Error('Request pane missing');
+    fireEvent.change(editor, { target: { value: scenario.invalid } });
+    if (scenario.stream) fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+    else fireEvent.click(within(requestPane).getByRole('button', { name: /^Invoke/ }));
+    expect(await within(requestPane).findByRole('alert')).toHaveTextContent(scenario.error);
+    expect(document.getElementById('grpc-mobile-pane-tab-request')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('status', { name: 'RPC status READY' })).toBeInTheDocument();
+    expect(screen.queryByText('Invocation failed')).toBeNull();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/invoke/'))).toBe(false);
+    expect(JSON.parse(window.localStorage.getItem(appStorageKeys.history) ?? '[]')).toEqual([]);
+    fireEvent.change(editor, { target: { value: scenario.valid } });
+    await waitFor(() => expect(within(requestPane).queryByRole('alert')).toBeNull());
+  });
+
+  it('distinguishes local cancellation from a failed RPC without fabricating final server status', async () => {
+    const directFetch = installDirectFetch();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes('/invoke/'))
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('Aborted', 'AbortError')),
+              { once: true }
+            );
+          });
+        return directFetch(input, init);
+      })
+    );
+    render(<App />);
+    const workspace = await screen.findByRole('region', { name: 'Echo call workspace' });
+    fireEvent.click(within(workspace).getByRole('button', { name: /^Invoke/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel RPC' }));
+    expect(await screen.findByRole('status', { name: 'RPC status CANCELLED' })).toBeVisible();
+    expect(
+      screen.getByText('Call cancelled locally. Final server status was not observed.')
+    ).toBeVisible();
+    expect(screen.queryByText('Invocation failed')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'RPC status OK' })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(appStorageKeys.history) ?? '[]')).toEqual([]);
+  });
+
   it('invokes through the connected session endpoint with the current payload and abort signal', async () => {
     const connectedBootstrap = {
       ...directBootstrap,
@@ -1967,7 +2286,7 @@ describe('unary repeat', () => {
         fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'))
       ).toHaveLength(2)
     );
-    expect(within(workspace).getByRole('button', { name: /^Cancel/ })).toBeVisible();
+    expect(within(workspace).getByRole('button', { name: 'Cancel RPC' })).toBeVisible();
   });
 
   it('cancels navigation away from an active Repeat and preserves partial evidence', async () => {
