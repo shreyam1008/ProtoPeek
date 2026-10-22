@@ -33,6 +33,9 @@ func init() {
 }
 
 func TestLinuxPublishingRefusesForkingWrappersBeforeExecution(t *testing.T) {
+	if err := publishingPlatformError(); err != nil {
+		t.Fatalf("Linux publishing must be enabled before testing wrapper admission: %v", err)
+	}
 	executable, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)

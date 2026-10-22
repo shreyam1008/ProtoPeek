@@ -24,7 +24,12 @@ type operationFixtureState struct {
 
 func fixtureOperations(t *testing.T) *operationFixtureState {
 	t.Helper()
-	folder := t.TempDir()
+	// macOS temp roots can use /var or /tmp aliases. Fixtures must present the
+	// real canonical directory; production intentionally refuses linked ancestors.
+	folder, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	state := &operationFixtureState{path: filepath.Join(folder, "config.yml"), executable: filepath.Join(folder, "cloudflared")}
 	if err := os.WriteFile(state.path, []byte(operationFixture), 0600); err != nil {
 		t.Fatal(err)

@@ -115,5 +115,20 @@ func configPermissions(path string, info os.FileInfo) (string, error) {
 	if err != nil || security == nil {
 		return "", errors.New("config permissions unavailable")
 	}
-	return security.String() + info.Mode().String(), nil
+	return configPermissionFingerprint(security, info.Mode())
+}
+
+func configPermissionFingerprint(security *windows.SECURITY_DESCRIPTOR, mode os.FileMode) (string, error) {
+	// SetNamedSecurityInfo can mark an unchanged ACL as converted to automatic
+	// inheritance. Ignore only that bookkeeping bit in this in-memory copy; owner,
+	// group, ordered ACEs (including inheritance flags), protection and mode remain.
+	// https://learn.microsoft.com/en-us/windows/win32/secauthz/automatic-propagation-of-inheritable-aces
+	if err := security.SetControl(windows.SE_DACL_AUTO_INHERITED, 0); err != nil {
+		return "", errors.New("config permission control unavailable")
+	}
+	descriptor := security.String()
+	if descriptor == "" {
+		return "", errors.New("config permissions unavailable")
+	}
+	return descriptor + mode.String(), nil
 }

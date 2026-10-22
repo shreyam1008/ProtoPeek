@@ -262,7 +262,7 @@ func TestHandlerDefaultPathCapabilitiesExposeFixedLimitsWithoutCSRF(t *testing.T
 		t.Fatalf("decode response: %v", err)
 	}
 	expectedCapabilities := 3
-	if payload.OS == "windows" {
+	if payload.OS == "windows" || payload.OS == "darwin" {
 		expectedCapabilities = 4 // Separate native IPv4/IPv6 ICMP capabilities.
 	}
 	if payload.Perspective != "protopeek-process" || payload.OS == "" || len(payload.Capabilities) != expectedCapabilities {
@@ -274,6 +274,23 @@ func TestHandlerDefaultPathCapabilitiesExposeFixedLimitsWithoutCSRF(t *testing.T
 	for _, capability := range payload.Capabilities {
 		if capability.Method == "" || capability.Backend == "" || capability.Privilege == "" || capability.Install == "" || capability.Families == nil || capability.Limitations == nil {
 			t.Fatalf("capability = %#v", capability)
+		}
+	}
+	if payload.OS == "darwin" {
+		for index, family := range []string{"ipv4", "ipv6"} {
+			capability := payload.Capabilities[index]
+			if capability.Backend != "darwin-icmp-datagram" || capability.Method != "icmp" || len(capability.Families) != 1 || capability.Families[0] != family || capability.Privilege != "none" || capability.Install != "built-in" {
+				t.Fatalf("native Darwin %s capability lost its backend identity: %#v", family, capability)
+			}
+			if !capability.Available && capability.Reason == "" {
+				t.Fatalf("unavailable Darwin %s socket lacks a reason: %#v", family, capability)
+			}
+		}
+		for index, method := range []string{"udp", "tcp"} {
+			capability := payload.Capabilities[index+2]
+			if capability.Backend != "darwin-icmp-datagram" || capability.Method != method || capability.Available || len(capability.Families) != 0 || capability.Install != "not-offered" || capability.Reason == "" {
+				t.Fatalf("unsupported Darwin %s method was misrepresented: %#v", method, capability)
+			}
 		}
 	}
 }

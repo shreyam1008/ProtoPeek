@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +66,9 @@ func TestPublishingLifetimeParentHelper(t *testing.T) {
 
 func TestPublishingHardParentDeathKillsOnlyOwnedChild(t *testing.T) {
 	if err := publishingPlatformError(); err != nil {
+		if runtime.GOOS == "linux" || runtime.GOOS == "windows" {
+			t.Fatalf("supported platform unexpectedly disabled foreground publishing: %v", err)
+		}
 		if _, lookupErr := findTool("cloudflared"); lookupErr == nil {
 			t.Fatal("unsupported platform offered native publishing")
 		}

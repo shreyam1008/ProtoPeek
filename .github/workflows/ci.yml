@@ -109,6 +109,34 @@ jobs:
       - name: Go test
         run: go test ./...
 
+      - name: Native Linux publishing evidence
+        if: runner.os == 'Linux'
+        env:
+          CGO_ENABLED: '0'
+          GOFLAGS: -mod=readonly
+          GOWORK: 'off'
+        shell: bash
+        run: |
+          status=0
+          go test -count=1 -json ./internal/publishsession -run '^(TestLinuxPublishing|TestLinuxOwned|TestPublishingHardParentDeath)' > native-linux-publishing-tests.jsonl || status=$?
+          python3 - <<'PY'
+          import json
+          events = [json.loads(line) for line in open('native-linux-publishing-tests.jsonl', encoding='utf-8')]
+          expected = {
+              'TestLinuxPublishingRefusesForkingWrappersBeforeExecution',
+              'TestLinuxOwnedStopAndCancellationCloseDescendantSocket',
+              'TestPublishingHardParentDeathKillsOnlyOwnedChild',
+              'TestLinuxPublishingAdmitsMatchingNativeVendorCommandIdentity',
+              'TestLinuxPublishingRefusesKnownLauncherPaths',
+          }
+          passed = {event.get('Test') for event in events if event.get('Action') == 'pass'}
+          missing = expected - passed
+          for event in events:
+              if event.get('Output'): print(event['Output'], end='')
+          if missing: raise SystemExit('Missing native publishing test passes: ' + ', '.join(sorted(missing)))
+          PY
+          exit "$status"
+
       - name: Native macOS network evidence
         if: runner.os == 'macOS'
         env:
