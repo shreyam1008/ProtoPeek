@@ -45,6 +45,7 @@ describe('public site', () => {
       'What can I verify about this public website?',
       'What is happening on this device?',
       'Can I manage this download locally?',
+      'Which optional tool does this task need?',
     ]);
     expect(within(product).getByRole('link', { name: /meet downloader/i })).toHaveAttribute(
       'href',
@@ -55,6 +56,11 @@ describe('public site', () => {
       '/this-pc/'
     );
     expect(within(product).getByText(/network workspace/i)).toBeVisible();
+    expect(within(product).getByRole('link', { name: 'Explore Extensions' })).toHaveAttribute(
+      'href',
+      '/extensions/'
+    );
+    expect(within(product).getByText(/Current source: check this host/)).toBeVisible();
     expect(within(product).getByRole('link', { name: /choose grpc or http/i })).toHaveAttribute(
       'href',
       '/docs/#protocols'

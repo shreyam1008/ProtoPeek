@@ -1,3 +1,10 @@
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -34,7 +41,7 @@ const references: readonly SessionReference[] = [
   },
 ];
 
-function renderTabs({
+async function renderTabs({
   sessions = references,
   activeId = references[1].id,
 }: {
@@ -42,30 +49,45 @@ function renderTabs({
   activeId?: string | null;
 } = {}) {
   const onActivate = vi.fn();
-  const onClose = vi.fn();
-  render(
-    <SessionTabs
-      references={sessions}
-      activeId={activeId}
-      onActivate={onActivate}
-      onClose={onClose}
-    />
+  const onRemove = vi.fn();
+  const root = createRootRoute({
+    component: () => (
+      <SessionTabs
+        references={sessions}
+        activeId={activeId}
+        onActivate={onActivate}
+        onRemove={onRemove}
+      />
+    ),
+  });
+  const routeTree = root.addChildren(
+    ['/', ...references.map((reference) => reference.route)].map((path) =>
+      createRoute({ getParentRoute: () => root, path, component: () => null })
+    )
   );
-  return { onActivate, onClose };
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({
+      initialEntries: [references.find((reference) => reference.id === activeId)?.route ?? '/'],
+    }),
+  });
+  render(<RouterProvider router={router} />);
+  await screen.findByRole('navigation', { name: 'Recent tools' });
+  return { onActivate, onRemove, router };
 }
 
-describe('SessionTabs', () => {
-  it('moves focus with arrows, Home, and End without activating a route', () => {
-    const { onActivate } = renderTabs();
-    const grpc = screen.getByRole('tab', { name: 'gRPC' });
-    const http = screen.getByRole('tab', { name: 'HTTP' });
-    const path = screen.getByRole('tab', { name: 'Path' });
+describe('recent tools', () => {
+  it('offers real links and arrow, Home, and End focus convenience without navigating', async () => {
+    const { onActivate } = await renderTabs();
+    const grpc = screen.getByRole('link', { name: 'gRPC' });
+    const http = screen.getByRole('link', { name: 'HTTP' });
+    const path = screen.getByRole('link', { name: 'Path' });
 
-    expect(http).toHaveAttribute('aria-selected', 'true');
-    expect(http).toHaveAttribute('tabindex', '0');
+    expect(http).toHaveAttribute('aria-current', 'page');
+    expect(http).toHaveAttribute('href', '/protocols/http');
     http.focus();
 
-    expect(screen.getByRole('tablist')).toHaveAttribute('aria-orientation', 'vertical');
+    expect(screen.queryByRole('tablist')).toBeNull();
     fireEvent.keyDown(http, { key: 'ArrowDown' });
     expect(path).toHaveFocus();
     fireEvent.keyDown(path, { key: 'ArrowUp' });
@@ -73,7 +95,7 @@ describe('SessionTabs', () => {
 
     fireEvent.keyDown(http, { key: 'ArrowRight' });
     expect(path).toHaveFocus();
-    expect(http).toHaveAttribute('aria-selected', 'true');
+    expect(http).toHaveAttribute('aria-current', 'page');
 
     fireEvent.keyDown(path, { key: 'ArrowRight' });
     expect(grpc).toHaveFocus();
@@ -86,45 +108,46 @@ describe('SessionTabs', () => {
 
     fireEvent.keyDown(grpc, { key: 'ArrowLeft' });
     expect(path).toHaveFocus();
+    fireEvent.keyDown(path, { key: 'ArrowUp', altKey: true });
+    expect(path).toHaveFocus();
     expect(onActivate).not.toHaveBeenCalled();
   });
 
-  it('activates only the clicked route reference', () => {
-    const { onActivate, onClose } = renderTabs();
+  it('activates only the clicked route reference', async () => {
+    const { onActivate, onRemove } = await renderTabs();
 
-    fireEvent.click(screen.getByRole('tab', { name: 'gRPC' }));
+    fireEvent.click(screen.getByRole('link', { name: 'gRPC' }));
 
     expect(onActivate).toHaveBeenCalledOnce();
     expect(onActivate).toHaveBeenCalledWith(references[0]);
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onRemove).not.toHaveBeenCalled();
   });
 
-  it('keeps the first tab keyboard-reachable when Home has no active session', () => {
-    renderTabs({ activeId: null });
-    const tabs = screen.getAllByRole('tab');
+  it('keeps every recent link keyboard-reachable when Home has no current tool', async () => {
+    await renderTabs({ activeId: null });
+    const links = screen.getAllByRole('link');
 
-    expect(tabs).toHaveLength(3);
-    expect(tabs[0]).toHaveAttribute('tabindex', '0');
-    expect(tabs[1]).toHaveAttribute('tabindex', '-1');
-    expect(tabs[2]).toHaveAttribute('tabindex', '-1');
-    for (const tab of tabs) expect(tab).toHaveAttribute('aria-selected', 'false');
+    expect(links).toHaveLength(3);
+    for (const link of links) {
+      expect(link.tabIndex).toBe(0);
+      expect(link).not.toHaveAttribute('aria-current');
+    }
   });
 
-  it('offers close only for safe references and reports guarded state', () => {
+  it('removes route references without implying a running or unsaved workspace', async () => {
     const sessions = [
       { ...references[0], dirty: true },
       { ...references[1], running: true },
       references[2],
     ] satisfies readonly SessionReference[];
-    const { onClose } = renderTabs({ sessions, activeId: sessions[2].id });
+    const { onRemove } = await renderTabs({ sessions, activeId: sessions[2].id });
 
-    expect(screen.getByText('Unsaved')).toBeVisible();
-    expect(screen.getByText('Running')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Close gRPC session' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Close HTTP session' })).toBeNull();
+    expect(screen.queryByText('Unsaved')).toBeNull();
+    expect(screen.queryByText('Running')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close Path session' }));
-    expect(onClose).toHaveBeenCalledOnce();
-    expect(onClose).toHaveBeenCalledWith(sessions[2]);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove gRPC from recent tools' }));
+    expect(onRemove).toHaveBeenCalledWith(sessions[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove HTTP from recent tools' }));
+    expect(onRemove).toHaveBeenCalledWith(sessions[1]);
   });
 });

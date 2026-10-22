@@ -1,14 +1,8 @@
 import { Link } from '@tanstack/react-router';
-import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { usePagination } from '@/shared/use-pagination';
 import { fetchJSON, type NmapImportResponse } from './api';
 import { previewNmapPlan } from './nmap-plan';
 import { ProtocolInfo } from './ProtocolInfo';
@@ -37,15 +31,6 @@ type Row = {
   detail: string;
   method: string;
 };
-const features = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const columns: ColumnDef<typeof features, Row>[] = [
-  { accessorKey: 'address' },
-  { accessorKey: 'port' },
-  { accessorKey: 'state' },
-];
 const draftKey = 'protopeek.nmap.draft.v1';
 function readDraft() {
   try {
@@ -152,12 +137,7 @@ export function NmapScanner() {
     }
     return rows;
   }, [result, query, onlyOpen]);
-  const table = useTable({
-    features,
-    columns,
-    data,
-    initialState: { pagination: { pageSize: 50, pageIndex: 0 } },
-  });
+  const table = usePagination(data);
   async function scan() {
     if (controller.current || preview.error || !capability?.available) return;
     const request = new AbortController();
@@ -356,8 +336,8 @@ export function NmapScanner() {
                 </tr>
               </thead>
               <tbody>
-                {table.getRowModel().rows.map(({ id, original: row }) => (
-                  <tr key={id}>
+                {table.pageItems.map((row) => (
+                  <tr key={`${row.address}:${row.port}`}>
                     <td>{row.address}</td>
                     <td>{row.port}/tcp</td>
                     <td>{row.state}</td>
@@ -391,20 +371,15 @@ export function NmapScanner() {
           <nav aria-label="Nmap result pages">
             <button
               type="button"
-              disabled={!table.getCanPreviousPage()}
+              disabled={!table.canPreviousPage}
               onClick={() => table.previousPage()}
             >
               Previous
             </button>
             <span>
-              {data.length} results · Page {table.state.pagination.pageIndex + 1} of{' '}
-              {Math.max(1, table.getPageCount())}
+              {data.length} results · Page {table.pageIndex + 1} of {Math.max(1, table.pageCount)}
             </span>
-            <button
-              type="button"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-            >
+            <button type="button" disabled={!table.canNextPage} onClick={() => table.nextPage()}>
               Next
             </button>
           </nav>

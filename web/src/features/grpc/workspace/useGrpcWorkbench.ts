@@ -1,5 +1,6 @@
 import {
   startTransition,
+  useContext,
   useDeferredValue,
   useEffect,
   useEffectEvent,
@@ -23,7 +24,11 @@ import { consumeLegacyHandoff, consumePendingHandoff } from '@/console/app/hando
 import type { GRPCTargetRef, HandoffProvenance } from '@/console/app/handoff-types';
 import type { PaletteAction } from '@/console/CommandPalette';
 import { hasCanonicalHealthDescriptor } from '@/console/health';
-import { protocolShellEvents } from '@/console/ProtocolShellContext';
+import {
+  createInitialScanClaim,
+  ProtocolShellContext,
+  protocolShellEvents,
+} from '@/console/ProtocolShellContext';
 import type { WorkbenchView } from '@/console/ServiceNavigator';
 import { initialConsoleSession, sessionReducer } from '@/console/session';
 import type { BrowserProtoFolderSelection } from '@/shared/proto-folder';
@@ -57,6 +62,10 @@ import { useGrpcReplay } from './useGrpcReplay';
 import { useWorkspaceRecords } from './useWorkspaceRecords';
 
 export function useGrpcWorkbench() {
+  const protocolShell = useContext(ProtocolShellContext);
+  const [claimInitialScan] = useState(
+    () => protocolShell?.claimInitialScan ?? createInitialScanClaim()
+  );
   const [consoleSession, dispatchSession] = useReducer(sessionReducer, initialConsoleSession);
   const rootBootstrap = consoleSession.rootBootstrap;
   const bootstrap = consoleSession.bootstrap;
@@ -64,13 +73,18 @@ export function useGrpcWorkbench() {
   const activeTargetId = consoleSession.activeTargetId;
   const workspaceBusy = consoleSession.connectStatus === 'connecting';
   const [bootError, setBootError] = useState<string | null>(null);
+  const [bootstrapRetry, setBootstrapRetry] = useState(0);
+  const [schemaRetry, setSchemaRetry] = useState(0);
+  const bootstrapRetryRef = useRef(0);
+  const schemaRetryRef = useRef(0);
   const [operationMessage, setOperationMessage] = useState<OperationMessage | null>(null);
   const workspace = useWorkspaceRecords({ setOperationMessage });
   const [schemaResource, setSchemaResource] = useState<{
     method: string;
     sessionId: string;
     data: SchemaResponse | null;
-  }>({ method: '', sessionId: '', data: null });
+    error: string | null;
+  }>({ method: '', sessionId: '', data: null, error: null });
   const [targetDraft, setTargetDraft] = useState<WorkspaceTargetProfile>(newTargetDraft());
   const [browserProtoFolder, setBrowserProtoFolder] = useState<BrowserProtoFolderSelection | null>(
     null
@@ -88,6 +102,10 @@ export function useGrpcWorkbench() {
   const schema =
     schemaResource.method === selectedMethod && schemaResource.sessionId === workspaceSessionId
       ? schemaResource.data
+      : null;
+  const schemaError =
+    schemaResource.method === selectedMethod && schemaResource.sessionId === workspaceSessionId
+      ? schemaResource.error
       : null;
   const [searchText, setSearchText] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>(
@@ -243,6 +261,7 @@ export function useGrpcWorkbench() {
   }, []);
 
   function applyBootstrap(next: BootstrapResponse) {
+    setDiscoveryAutoStart(false);
     health.cancel('context-changed');
     repeat.invalidate();
     replay.pendingDraftRef.current = null;
@@ -256,7 +275,7 @@ export function useGrpcWorkbench() {
       : (lowFriction?.fullName ?? methods[0]?.fullName ?? '');
     setBootError(null);
     setWorkspaceError(null);
-    setSchemaResource({ method: '', sessionId: '', data: null });
+    setSchemaResource({ method: '', sessionId: '', data: null, error: null });
     setProtoCatalog(null);
     setSelectedProtoFile('');
     setMetadata(next.defaultMetadata);
@@ -312,19 +331,25 @@ export function useGrpcWorkbench() {
 
   useEffect(() => {
     let cancelled = false;
+    setBootError(null);
     async function load() {
       try {
         const next = await fetchBootstrap();
-        if (cancelled) return;
+        if (cancelled || bootstrapRetryRef.current !== bootstrapRetry) return;
         dispatchSession({ type: 'bootstrap.loaded', bootstrap: next });
         applyBootstrapEffect(next);
         const consumedHandoff = consumeGRPCHandoffEffect(next.targetDefaults, true);
-        setDiscoveryAutoStart(!consumedHandoff);
+        setDiscoveryAutoStart(
+          !consumedHandoff &&
+            next.launcherMode &&
+            next.services.length === 0 &&
+            claimInitialScan(next.initialScanTarget)
+        );
         if (!consumedHandoff) {
           setTargetDraft(newTargetDraft(next.targetDefaults));
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!cancelled && bootstrapRetryRef.current === bootstrapRetry) {
           setBootError(error instanceof Error ? error.message : 'Failed to load ProtoPeek.');
         }
       }
@@ -333,7 +358,7 @@ export function useGrpcWorkbench() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bootstrapRetry, claimInitialScan]);
 
   useEffect(() => {
     const handleHandoff = () => consumeNotifiedGRPCHandoff();
@@ -346,14 +371,24 @@ export function useGrpcWorkbench() {
     let cancelled = false;
     const requestedMethod = selectedMethod;
     const requestedSession = workspaceSessionId;
-    setSchemaResource({ method: requestedMethod, sessionId: requestedSession, data: null });
+    setSchemaResource({
+      method: requestedMethod,
+      sessionId: requestedSession,
+      data: null,
+      error: null,
+    });
     async function loadSchema() {
       try {
         const next = requestedSession
           ? await fetchWorkspaceSchema(requestedSession, requestedMethod)
           : await fetchSchema(requestedMethod);
-        if (cancelled) return;
-        setSchemaResource({ method: requestedMethod, sessionId: requestedSession, data: next });
+        if (cancelled || schemaRetryRef.current !== schemaRetry) return;
+        setSchemaResource({
+          method: requestedMethod,
+          sessionId: requestedSession,
+          data: next,
+          error: null,
+        });
         const pending =
           pendingDraftRef.current?.method === requestedMethod ? pendingDraftRef.current : null;
         setRequestText(pending?.requestText ?? prettyJson(generateRequestTemplate(next)));
@@ -384,8 +419,13 @@ export function useGrpcWorkbench() {
         }
         clearInvokeResultEffect();
       } catch (error) {
-        if (!cancelled) {
-          setBootError(error instanceof Error ? error.message : 'Failed to load schema.');
+        if (!cancelled && schemaRetryRef.current === schemaRetry) {
+          setSchemaResource({
+            method: requestedMethod,
+            sessionId: requestedSession,
+            data: null,
+            error: error instanceof Error ? error.message : 'Failed to load schema.',
+          });
         }
       }
     }
@@ -394,7 +434,7 @@ export function useGrpcWorkbench() {
     return () => {
       cancelled = true;
     };
-  }, [bootstrap, selectedMethod, workspaceSessionId, pendingDraftRef]);
+  }, [bootstrap, selectedMethod, workspaceSessionId, pendingDraftRef, schemaRetry]);
 
   useEffect(() => {
     storeValue(appStorageKeys.methodFilter, methodFilter);
@@ -577,6 +617,7 @@ export function useGrpcWorkbench() {
   }
 
   async function saveAndConnect() {
+    if (connectAbortRef.current || workspaceBusy) return;
     if (!targetDraft.address.trim()) {
       setWorkspaceError('Address required.');
       return;
@@ -591,12 +632,23 @@ export function useGrpcWorkbench() {
         return;
       }
     }
+    const schemaFiles =
+      targetDraft.schemaSource === 'proto-files'
+        ? targetDraft.protoFiles
+        : targetDraft.schemaSource === 'protoset'
+          ? targetDraft.protosets
+          : null;
+    if (schemaFiles && !schemaFiles.some((path) => path.trim())) {
+      setWorkspaceError('Add a schema file path before connecting.');
+      return;
+    }
     const target = reuseExistingTargetID(materializeTarget(targetDraft), workspace.targets);
     const folder = target.schemaSource === 'browser-proto-folder' ? browserProtoFolder : undefined;
     if (await connectTarget(target, folder ?? undefined)) persistTarget(target);
   }
 
   async function connectRecent(target: WorkspaceTargetProfile) {
+    if (connectAbortRef.current || workspaceBusy) return;
     const materialized = materializeTarget(target);
     if (materialized.schemaSource === 'browser-proto-folder') {
       setBrowserProtoFolder(null);
@@ -668,11 +720,18 @@ export function useGrpcWorkbench() {
     setWorkspaceError(null);
     setBrowserProtoFolder(null);
     setBrowserProtoFolderBusy(false);
-    setDiscoveryAutoStart(true);
+    setDiscoveryAutoStart(false);
     if (rootBootstrap) {
       if (sessionId) applyBootstrap(rootBootstrap);
       setTargetDraft(newTargetDraft(rootBootstrap.targetDefaults));
     }
+  }
+
+  function reconnectTarget() {
+    const previous = activeTarget ?? targetDraft;
+    resetToLauncher();
+    setTargetDraft(materializeTarget(previous));
+    setActiveView('workspace');
   }
 
   function updateDraft(next: Partial<WorkspaceTargetProfile>) {
@@ -788,7 +847,7 @@ export function useGrpcWorkbench() {
   ];
 
   return {
-    status: { bootError, bootstrap, schema, currentMethod, currentService },
+    status: { bootError, bootstrap, schema, schemaError, currentMethod, currentService },
     shell: {
       activeTarget,
       activeView,
@@ -874,6 +933,9 @@ export function useGrpcWorkbench() {
       importWorkspace: (event: React.ChangeEvent<HTMLInputElement>) =>
         workspace.importWorkspace(event, resetToLauncher),
       invokeCurrent,
+      retryBootstrap: () => setBootstrapRetry(++bootstrapRetryRef.current),
+      retrySchema: () => setSchemaRetry(++schemaRetryRef.current),
+      reconnectTarget,
       navigateToView,
       removeAssertion: replay.removeAssertion,
       resetRequestFromSchema: replay.resetRequestFromSchema,

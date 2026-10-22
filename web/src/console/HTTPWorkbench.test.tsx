@@ -101,7 +101,7 @@ describe('HTTPWorkbench', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Request workbench' })).toBeVisible();
   });
 
-  it('imports an OpenAPI URL through the local relay and loads operations into the request editor', async () => {
+  it('imports an OpenAPI URL through the local relay and loads an operation only when chosen', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
     document.cookie = '_protopeek_csrf_token=test-token; path=/';
     const definition = JSON.stringify({
@@ -143,13 +143,15 @@ describe('HTTPWorkbench', () => {
       expect(screen.getByRole('complementary', { name: 'Pets API operations' })).toBeVisible()
     );
     expect(fetchMock).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('Request URL')).toHaveValue('http://localhost:8080/');
+    fireEvent.click(screen.getByRole('button', { name: 'GET Get pet /pets/{id}' }));
     expect(screen.getByLabelText('HTTP method')).toHaveValue('GET');
     expect(screen.getByLabelText('Request URL')).toHaveValue(
       'https://pets.example.test/v1/pets/pet-7'
     );
     expect(screen.getByLabelText('Query parameters name 1')).toHaveValue('include');
     expect(screen.getByLabelText('Query parameters value 1')).toHaveValue('owner');
-    expect(screen.getByRole('button', { name: /Pets API 1/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Pets API operations' })).toBeVisible();
   });
 
   it('sends loopback shorthand as http but refuses to guess a remote scheme', async () => {

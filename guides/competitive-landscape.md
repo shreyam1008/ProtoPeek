@@ -12,6 +12,18 @@ other products can change independently of this repository.
 
 ## Decision matrix
 
+### Workflow sources checked 18 October 2026
+
+The current refinement applies three patterns: an immediate request entry from
+[Bruno's quick start](https://github.com/usebruno/bruno-docs/blob/main/introduction/quick-start.mdx)
+and [Insomnia's request interface](https://developer.konghq.com/insomnia/requests/), stable
+contextual navigation from [Postman](https://learning.postman.com/docs/getting-started/basics/navigating-postman/),
+and compact summaries with selected evidence from [Wireshark](https://www.wireshark.org/docs/wsug_html/).
+ProtoPeek keeps local storage, native protocol evidence, and explicitly started operations.
+These decisions refine existing workflows without introducing accounts or a scripting platform.
+
+### Earlier capability comparison
+
 | Product | Useful documented workflow | ProtoPeek v0.3 overlap | Deliberate ProtoPeek boundary | Candidate next step |
 | --- | --- | --- | --- | --- |
 | [Postman gRPC](https://learning.postman.com/latest-v-12/docs/use/send-requests/protocols/grpc/grpc-request-interface) | Reflection or imported Protobuf definitions, all four RPC modes, a sent/received stream timeline, metadata/TLS controls, saved examples, and JavaScript hooks before invoke, per message, and after response. | Reflection, host `.proto`/protoset sources, temporary browser-folder snapshots, all RPC modes, metadata, deadlines, headers, trailers, status, local saved requests/assertions, Health Watch, and bounded Unary Repeat. | Do not require an account or hosted workspace, and do not add a general JavaScript/package sandbox to the core binary. Protocol evidence remains more important than collection-platform breadth. | Finish bounded incremental delivery for arbitrary streams. Evaluate reusable local examples and a few deterministic gRPC assertions before any general scripting surface. |

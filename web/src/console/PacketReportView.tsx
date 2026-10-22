@@ -1,26 +1,11 @@
-import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
+import { usePagination } from '@/shared/use-pagination';
 import {
   packetConversationKey,
   packetRelativeTime,
   summarizeConversations,
 } from './packet-analysis';
-import type { PacketReport, PacketRow } from './packet-api';
-
-const features = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const columns: ColumnDef<typeof features, PacketRow>[] = [
-  { accessorKey: 'number' },
-  { accessorKey: 'protocol' },
-];
+import type { PacketReport } from './packet-api';
 
 export default function PacketReportView({
   report,
@@ -51,13 +36,7 @@ export default function PacketReportView({
       ),
     [report, protocol, query, conversation]
   );
-  const table = useTable({
-    features,
-    columns,
-    data: rows,
-    initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
-    getRowId: (row) => String(row.number),
-  });
+  const table = usePagination(rows);
   const selected = report.packets.find((row) => row.number === selection);
   function save() {
     const url = URL.createObjectURL(
@@ -191,7 +170,7 @@ export default function PacketReportView({
               </tr>
             </thead>
             <tbody>
-              {table.getRowModel().rows.map(({ original: row }) => (
+              {table.pageItems.map((row) => (
                 <tr key={row.number} aria-selected={selection === row.number}>
                   <td>
                     <button
@@ -270,15 +249,15 @@ export default function PacketReportView({
       <footer>
         <button
           type="button"
-          disabled={!table.getCanPreviousPage()}
+          disabled={!table.canPreviousPage}
           onClick={() => table.previousPage()}
         >
           Previous packets
         </button>
         <span>
-          Page {table.state.pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
+          Page {table.pageIndex + 1} of {Math.max(1, table.pageCount)}
         </span>
-        <button type="button" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+        <button type="button" disabled={!table.canNextPage} onClick={() => table.nextPage()}>
           Next packets
         </button>
       </footer>

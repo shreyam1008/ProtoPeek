@@ -4,6 +4,27 @@ Published in the [opt-in edge prerelease](https://github.com/shreyam1008/ProtoPe
 
 ## Design contract
 
+### Current-source refinement — 18 October 2026
+
+Home accepts a service address and offers direct HTTP/gRPC starts. Pasting a URL uses its host
+and port for discovery; credentials are rejected before probing. The tool sidebar collapses to
+the destination rail, with its preference stored in this browser. The narrow-screen drawer has
+its own state and continues to show the same tools.
+
+**Recent tools** contains navigation links. It does not retain mounted editors or live calls:
+leaving a tool cancels its operation. Use each workbench's explicit saved-request and history
+features for supported recovery. Request run shortcuts belong to the focused request controls,
+and ignore repeats, input composition, and dialogs. HTTP results identify the request that ran;
+OpenAPI imports require an operation choice; gRPC failures retain navigation and offer retry.
+Recent services survive reloads with the server's sparse scan records. An explicit CLI scan is
+consumed once by the shell, including when switching between Home and gRPC.
+
+These refinements are current source, separate from the September edge acceptance and stable
+v0.6.1. Current source groups optional companions in Extensions; the historical review below
+describes the earlier Publish layout.
+
+### Shared layout
+
 - A permanent destination rail and tool navigator own navigation on every route. A Network
   tool never replaces or removes Network navigation. Direct links and browser history work.
 - Destination links resume the last visited tool in that destination, using validated,

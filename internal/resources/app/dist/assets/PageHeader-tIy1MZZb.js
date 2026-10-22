@@ -1,0 +1,1 @@
+import{w as e}from"./console-core-DBtDuIyF.js";var t=e();function n({className:e=``,children:n,...r}){return(0,t.jsx)(`header`,{...r,className:`pp-page-header ${e}`,children:n})}export{n as t};

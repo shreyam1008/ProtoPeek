@@ -55,6 +55,12 @@ const productQuestions = [
     action: 'Meet Downloader',
     href: publicPagePath('downloader'),
   },
+  {
+    question: 'Which optional tool does this task need?',
+    answer: 'Current source: check this host and follow setup for five supported tools.',
+    action: 'Explore Extensions',
+    href: publicPagePath('extensions'),
+  },
 ] as const;
 
 const verifiedScreenshots = [

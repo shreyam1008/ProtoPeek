@@ -25,6 +25,7 @@ import {
   readInterfacePreferences,
 } from './interface-preferences';
 import {
+  createInitialScanClaim,
   ProtocolShellContext,
   protocolShellEvents,
   type RecentDiscovery,
@@ -76,6 +77,7 @@ export function ProtocolFrame() {
   const [scanOpen, setScanOpen] = useState(false);
   const [scanRequest, setScanRequest] = useState<ScanDialogRequest>({});
   const [scanGeneration, setScanGeneration] = useState(0);
+  const [claimInitialScan] = useState(createInitialScanClaim);
   const [appearance, setAppearanceState] = useState<AppearancePreference>(() =>
     readAppearancePreference()
   );
@@ -303,6 +305,7 @@ export function ProtocolFrame() {
       preferenceStorageError,
       discoveries,
       openScan,
+      claimInitialScan,
       openHandoff,
       openGRPCDiscovery,
       openHTTPDiscovery,
@@ -315,6 +318,7 @@ export function ProtocolFrame() {
       openHandoff,
       openHTTPDiscovery,
       openScan,
+      claimInitialScan,
       setInterfacePreferences,
       appearance,
       resolvedAppearance,

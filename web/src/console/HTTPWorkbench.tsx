@@ -11,7 +11,16 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useEffectEvent, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
 import type { HTTPHistoryEntry, HTTPResponse, MetadataEntry } from '@/shared/types';
 import {
@@ -25,6 +34,7 @@ import {
   normalizeHTTPHistory,
   prepareMetadataForReplay,
   prepareURLForReplay,
+  sanitizeURLForPersistence,
   storeValue,
   toHTTPHistoryEntry,
 } from '@/shared/utils';
@@ -46,6 +56,7 @@ import type { OpenAPICollection, OpenAPIOperation } from './openapi';
 import { ProtocolInfo } from './ProtocolInfo';
 import { protocolShellEvents } from './ProtocolShellContext';
 import { OperationStatus } from './shell/OperationStatus';
+import { shouldHandleWorkbenchShortcut } from './workbench-shortcut';
 
 const OpenAPIImportPanel = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIImportPanel }))
@@ -89,6 +100,7 @@ export function HTTPWorkbench() {
   const [requestTab, setRequestTab] = useState<RequestTab>('params');
   const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
   const [response, setResponse] = useState<HTTPResponse | null>(null);
+  const [sentRequest, setSentRequest] = useState<{ method: string; url: string } | null>(null);
   const [requestPending, setRequestPending] = useState(false);
   const [requestCancelled, setRequestCancelled] = useState(false);
   const [requestFailure, setRequestFailure] = useState<string | null>(null);
@@ -111,10 +123,15 @@ export function HTTPWorkbench() {
   );
   const abortRef = useRef<AbortController | null>(null);
   const openAPIAbortRef = useRef<AbortController | null>(null);
+  const openAPIImportGenerationRef = useRef(0);
   const requestGenerationRef = useRef(0);
+  const sentExecutionRef = useRef<string | null>(null);
   const curlCopyGenerationRef = useRef(0);
   const historyRef = useRef<HTMLDetailsElement | null>(null);
   const urlInputRef = useRef<HTMLInputElement | null>(null);
+  const requestLineRef = useRef<HTMLDivElement | null>(null);
+  const requestEditorRef = useRef<HTMLElement | null>(null);
+  const openAPICollectionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const modifier = modifierKeyLabel();
 
   const draftRef = useRef<HTTPDraft>(restored.draft);
@@ -145,11 +162,24 @@ export function HTTPWorkbench() {
     };
   }, []);
 
-  function resetRequest(
-    nextURL = 'http://localhost:8080/',
-    nextHandoffNotice: string | null = null
-  ) {
+  function cancelOpenAPIImport() {
+    openAPIImportGenerationRef.current++;
+    openAPIAbortRef.current?.abort();
+    openAPIAbortRef.current = null;
+    setOpenAPIImporting(false);
+  }
+
+  function closeOpenAPIImport() {
+    cancelOpenAPIImport();
+    setOpenAPIImportOpen(false);
+  }
+
+  function invalidateActiveRequest() {
+    closeOpenAPIImport();
     setActiveRecipe(null);
+    setSelectedOpenAPIOperation(null);
+    setDraftNotice(null);
+    setHandoffNotice(null);
     setRequestCancelled(false);
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
@@ -158,6 +188,19 @@ export function HTTPWorkbench() {
     active?.abort();
     setRequestPending(false);
     setRequestFailure(null);
+    setResponse(null);
+    setSentRequest(null);
+    sentExecutionRef.current = null;
+    setValidationError(null);
+    setHistoryNotice(null);
+    setCurlCopyNotice(null);
+  }
+
+  function resetRequest(
+    nextURL = 'http://localhost:8080/',
+    nextHandoffNotice: string | null = null
+  ) {
+    invalidateActiveRequest();
     setMethod('GET');
     setURL(nextURL);
     setParams([]);
@@ -172,11 +215,7 @@ export function HTTPWorkbench() {
     setDraftNotice(null);
     setTimeoutSeconds(30);
     setFollowRedirects(false);
-    setResponse(null);
-    setValidationError(null);
-    setHistoryNotice(null);
     setHandoffNotice(nextHandoffNotice);
-    setCurlCopyNotice(null);
     setRequestTab('params');
     setMobilePane('request');
     if (historyRef.current) historyRef.current.open = false;
@@ -184,15 +223,8 @@ export function HTTPWorkbench() {
   }
 
   function applyOpenAPIOperation(operation: OpenAPIOperation) {
-    setRequestCancelled(false);
+    invalidateActiveRequest();
     setRememberBody(false);
-    requestGenerationRef.current++;
-    curlCopyGenerationRef.current++;
-    const active = abortRef.current;
-    abortRef.current = null;
-    active?.abort();
-    setRequestPending(false);
-    setRequestFailure(null);
     setMethod(operation.method);
     setURL(operation.url);
     setParams(operation.query.map((entry) => ({ ...entry })));
@@ -203,20 +235,38 @@ export function HTTPWorkbench() {
     setAuthSecret('');
     setBodyMode(operation.body === null ? 'none' : 'json');
     setBody(operation.body ?? '');
-    setResponse(null);
-    setValidationError(null);
-    setHistoryNotice(null);
-    setCurlCopyNotice(null);
     setRequestTab(operation.body === null ? 'params' : 'body');
     setMobilePane('request');
     setSelectedOpenAPIOperation(operation.id);
-    if (
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(max-width: 1180px)').matches
-    ) {
-      setOpenAPIRailVisible(false);
-    }
+    if (hideOpenAPIDrawer()) requestAnimationFrame(() => urlInputRef.current?.focus());
   }
+
+  function hideOpenAPIDrawer() {
+    if (
+      typeof window.matchMedia !== 'function' ||
+      !window.matchMedia('(max-width: 1180px)').matches
+    )
+      return false;
+    setOpenAPIRailVisible(false);
+    return true;
+  }
+
+  const closeOpenAPIRailOnResize = useEffectEvent(() => {
+    const focusWasInRail =
+      document.activeElement instanceof Element &&
+      document.activeElement.closest('.pp-openapi-rail') !== null;
+    setOpenAPIRailVisible(false);
+    if (focusWasInRail) requestAnimationFrame(() => openAPICollectionTriggerRef.current?.focus());
+  });
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const layout = window.matchMedia('(max-width: 1180px)');
+    const handleLayoutChange = (event: MediaQueryListEvent) => {
+      if (event.matches) closeOpenAPIRailOnResize();
+    };
+    layout.addEventListener?.('change', handleLayoutChange);
+    return () => layout.removeEventListener?.('change', handleLayoutChange);
+  }, []);
 
   function acceptOpenAPICollection(collection: OpenAPICollection) {
     setOpenAPICollection(collection);
@@ -224,7 +274,8 @@ export function HTTPWorkbench() {
     setLibraryOpen(false);
     setOpenAPIImportOpen(false);
     setOpenAPIImportError(null);
-    applyOpenAPIOperation(collection.operations[0]);
+    setSelectedOpenAPIOperation(null);
+    setDraftNotice('API definition loaded. Choose an operation to replace the current request.');
   }
 
   async function importOpenAPIURL() {
@@ -233,39 +284,52 @@ export function HTTPWorkbench() {
       setOpenAPIImportError('Enter a Swagger, Scalar, or OpenAPI definition URL.');
       return;
     }
-    openAPIAbortRef.current?.abort();
+    cancelOpenAPIImport();
+    const generation = openAPIImportGenerationRef.current;
     const controller = new AbortController();
     openAPIAbortRef.current = controller;
     setOpenAPIImporting(true);
     setOpenAPIImportError(null);
     try {
       const { importOpenAPIFromURL } = await import('./openapi-import');
-      acceptOpenAPICollection(await importOpenAPIFromURL(target, controller.signal));
+      if (openAPIImportGenerationRef.current !== generation) return;
+      const collection = await importOpenAPIFromURL(target, controller.signal);
+      if (openAPIImportGenerationRef.current !== generation || controller.signal.aborted) return;
+      acceptOpenAPICollection(collection);
     } catch (error) {
-      if (!controller.signal.aborted) {
+      if (openAPIImportGenerationRef.current === generation && !controller.signal.aborted) {
         setOpenAPIImportError(
           error instanceof Error ? error.message : 'Could not import the API definition.'
         );
       }
     } finally {
-      if (openAPIAbortRef.current === controller) openAPIAbortRef.current = null;
-      setOpenAPIImporting(false);
+      if (openAPIImportGenerationRef.current === generation) {
+        openAPIAbortRef.current = null;
+        setOpenAPIImporting(false);
+      }
     }
   }
 
   async function importOpenAPIFile(file?: File) {
     if (!file) return;
+    cancelOpenAPIImport();
+    const generation = openAPIImportGenerationRef.current;
     setOpenAPIImporting(true);
     setOpenAPIImportError(null);
     try {
       const { importOpenAPIFromFile } = await import('./openapi-import');
-      acceptOpenAPICollection(await importOpenAPIFromFile(file));
+      if (openAPIImportGenerationRef.current !== generation) return;
+      const collection = await importOpenAPIFromFile(file);
+      if (openAPIImportGenerationRef.current !== generation) return;
+      acceptOpenAPICollection(collection);
     } catch (error) {
-      setOpenAPIImportError(
-        error instanceof Error ? error.message : 'Could not import the API definition.'
-      );
+      if (openAPIImportGenerationRef.current === generation) {
+        setOpenAPIImportError(
+          error instanceof Error ? error.message : 'Could not import the API definition.'
+        );
+      }
     } finally {
-      setOpenAPIImporting(false);
+      if (openAPIImportGenerationRef.current === generation) setOpenAPIImporting(false);
     }
   }
 
@@ -295,6 +359,7 @@ export function HTTPWorkbench() {
     () => () => {
       requestGenerationRef.current++;
       curlCopyGenerationRef.current++;
+      openAPIImportGenerationRef.current++;
       const active = abortRef.current;
       abortRef.current = null;
       active?.abort();
@@ -303,10 +368,11 @@ export function HTTPWorkbench() {
     []
   );
 
+  const closeImportFromEscape = useEffectEvent(closeOpenAPIImport);
   useEffect(() => {
     if (!openAPIImportOpen) return;
     function closeImport(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpenAPIImportOpen(false);
+      if (event.key === 'Escape') closeImportFromEscape();
     }
     window.addEventListener('keydown', closeImport);
     return () => window.removeEventListener('keydown', closeImport);
@@ -324,7 +390,7 @@ export function HTTPWorkbench() {
     setCurlCopyNotice(null);
   }
 
-  function buildURL() {
+  const buildURL = useCallback(() => {
     const normalized = normalizeHTTPDraftURL(url);
     if (!normalized.ok) throw new Error(normalized.error);
     const parsed = new URL(normalized.url);
@@ -333,9 +399,9 @@ export function HTTPWorkbench() {
       if (name) parsed.searchParams.append(name, param.value);
     }
     return parsed.toString();
-  }
+  }, [url, params]);
 
-  function buildHeaders() {
+  const buildHeaders = useCallback(() => {
     const result = filterMetadataForInvoke(headers).map((header) => ({ ...header }));
     const authPlaceholderOmitted = authMode !== 'none' && isRedactedValue(authSecret);
     const usableAuthSecret = authPlaceholderOmitted ? '' : authSecret;
@@ -371,9 +437,9 @@ export function HTTPWorkbench() {
       authPlaceholderOmitted,
       preOmittedCredentialCount: omittedHeaderPlaceholderCount + Number(authPlaceholderOmitted),
     };
-  }
+  }, [headers, authMode, authSecret, authUser, authName, bodyMode]);
 
-  function prepareCurrentDraft() {
+  const prepareCurrentDraft = useCallback(() => {
     let requestURL = url.trim();
     try {
       requestURL = buildURL();
@@ -397,7 +463,7 @@ export function HTTPWorkbench() {
       preOmittedCredentialCount:
         headerDraft.preOmittedCredentialCount + prepared.redactedQueryCount,
     };
-  }
+  }, [url, buildURL, buildHeaders, method, bodyMode, body, timeoutSeconds, followRedirects]);
 
   function showResponsePane() {
     setMobilePane('response');
@@ -413,11 +479,14 @@ export function HTTPWorkbench() {
 
   async function handleSend() {
     if (abortRef.current || requestPending) return;
+    hideOpenAPIDrawer();
     setRequestCancelled(false);
     setValidationError(null);
     setHistoryNotice(null);
     setRequestFailure(null);
     setResponse(null);
+    setSentRequest(null);
+    sentExecutionRef.current = null;
     const prepared = prepareCurrentDraft();
     if (!prepared.ok) {
       setValidationError(prepared.error);
@@ -425,6 +494,8 @@ export function HTTPWorkbench() {
       return;
     }
     const { input } = prepared;
+    sentExecutionRef.current = JSON.stringify(input);
+    setSentRequest({ method: input.method, url: sanitizeURLForPersistence(input.url) });
     setHandoffNotice(null);
     if (prepared.redactedQueryCount > 0) {
       setHistoryNotice(
@@ -539,7 +610,11 @@ export function HTTPWorkbench() {
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
-      if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)) return;
+      if (
+        !shouldHandleWorkbenchShortcut(event, requestLineRef.current) &&
+        !shouldHandleWorkbenchShortcut(event, requestEditorRef.current)
+      )
+        return;
       event.preventDefault();
       sendFromShortcut();
     }
@@ -549,16 +624,25 @@ export function HTTPWorkbench() {
 
   const requestError = validationError ?? requestFailure;
   const visibleHistoryNotice = historyStorageError ?? historyNotice;
-  const jsonDraft = bodyMode === 'json' ? formatJSONDraft(body) : null;
+  const jsonDraft = useMemo(
+    () => (bodyMode === 'json' ? formatJSONDraft(body) : null),
+    [bodyMode, body]
+  );
+  const bodyBytes = useMemo(
+    () => new TextEncoder().encode(bodyMode === 'none' ? '' : body).length,
+    [bodyMode, body]
+  );
+  const currentExecutionIdentity = useMemo(() => {
+    if (!sentRequest) return null;
+    const prepared = prepareCurrentDraft();
+    return prepared.ok ? JSON.stringify(prepared.input) : null;
+  }, [sentRequest, prepareCurrentDraft]);
+  const sentDraftChanged =
+    sentRequest !== null && currentExecutionIdentity !== sentExecutionRef.current;
 
   function loadHistory(entry: HTTPHistoryEntry) {
-    setRequestCancelled(false);
+    invalidateActiveRequest();
     setRememberBody(false);
-    requestGenerationRef.current++;
-    curlCopyGenerationRef.current++;
-    const active = abortRef.current;
-    abortRef.current = null;
-    active?.abort();
     const replayURL = prepareURLForReplay(entry.url);
     const replayHeaders = prepareMetadataForReplay(entry.requestHeaders);
     setMethod(entry.method);
@@ -573,11 +657,6 @@ export function HTTPWorkbench() {
     setBody('');
     setTimeoutSeconds(30);
     setFollowRedirects(false);
-    setResponse(null);
-    setRequestPending(false);
-    setRequestFailure(null);
-    setValidationError(null);
-    setCurlCopyNotice(null);
     const redactedCount = replayURL.redactedCount + replayHeaders.redactedCount;
     setHistoryNotice(
       redactedCount > 0
@@ -659,22 +738,28 @@ export function HTTPWorkbench() {
           aria-expanded={openAPIImportOpen}
           onClick={() => {
             setOpenAPIImportError(null);
-            setOpenAPIImportOpen((open) => !open);
+            if (openAPIImportOpen) closeOpenAPIImport();
+            else setOpenAPIImportOpen(true);
           }}
         >
           <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
         </button>
         {openAPICollection ? (
           <button
+            ref={openAPICollectionTriggerRef}
             type="button"
             className="pp-openapi-collection-trigger"
+            aria-label={`${openAPICollection.title} operations`}
+            aria-controls={openAPIRailVisible ? 'http-openapi-operations' : undefined}
             aria-expanded={openAPIRailVisible}
+            title="Show or hide API operations"
             onClick={() => {
               setLibraryOpen(false);
               setOpenAPIRailVisible((visible) => !visible);
             }}
           >
-            {openAPICollection.title} <span>{openAPICollection.operations.length}</span>
+            <FileJson2 aria-hidden="true" /> {openAPICollection.title}{' '}
+            <span>{openAPICollection.operations.length}</span>
           </button>
         ) : null}
         {openAPIImportOpen ? (
@@ -686,7 +771,7 @@ export function HTTPWorkbench() {
               onURLChange={setOpenAPIImportURL}
               onImportURL={() => void importOpenAPIURL()}
               onImportFile={(file) => void importOpenAPIFile(file)}
-              onClose={() => setOpenAPIImportOpen(false)}
+              onClose={closeOpenAPIImport}
             />
           </Suspense>
         ) : null}
@@ -724,7 +809,7 @@ export function HTTPWorkbench() {
         </details>
       </PageHeader>
 
-      <div className="pp-http-request-line">
+      <div ref={requestLineRef} className="pp-http-request-line">
         <select
           value={method}
           onChange={(event) => {
@@ -760,6 +845,11 @@ export function HTTPWorkbench() {
       </div>
 
       <OperationStatus busy={requestPending} label="Sending HTTP request" />
+      {requestPending ? (
+        <p className="pp-http-running-notice" role="status">
+          Leaving this tool cancels the request.
+        </p>
+      ) : null}
       {draftSaveError || draftNotice ? (
         <div className="pp-http-replay-notice" role="status">
           <span>{draftSaveError ?? draftNotice}</span>
@@ -870,11 +960,15 @@ export function HTTPWorkbench() {
               collection={openAPICollection}
               selectedOperation={selectedOpenAPIOperation}
               onSelect={applyOpenAPIOperation}
-              onClose={() => setOpenAPIRailVisible(false)}
+              onClose={() => {
+                setOpenAPIRailVisible(false);
+                requestAnimationFrame(() => openAPICollectionTriggerRef.current?.focus());
+              }}
             />
           </Suspense>
         ) : null}
         <section
+          ref={requestEditorRef}
           id="http-mobile-pane-panel-request"
           role="tabpanel"
           aria-labelledby="http-mobile-pane-tab-request"
@@ -1063,12 +1157,7 @@ export function HTTPWorkbench() {
                       </button>
                     </>
                   ) : null}
-                  <span>
-                    {new TextEncoder()
-                      .encode(bodyMode === 'none' ? '' : body)
-                      .length.toLocaleString()}{' '}
-                    bytes
-                  </span>
+                  <span>{bodyBytes.toLocaleString()} bytes</span>
                 </span>
               </div>
               <label className="pp-http-remember-body">
@@ -1105,6 +1194,8 @@ export function HTTPWorkbench() {
             loading={requestPending}
             error={requestError}
             cancelled={requestCancelled}
+            sentRequest={sentRequest}
+            draftChanged={sentDraftChanged}
           />
         </div>
       </div>

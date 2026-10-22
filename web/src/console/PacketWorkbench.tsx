@@ -355,8 +355,9 @@ export function PacketWorkbench() {
               Capture setup and permissions
             </a>
             <small>
-              Windows needs Npcap capture support. Linux needs capture permission for dumpcap.
-              Follow the platform setup guide, then refresh interfaces.
+              Windows needs Npcap capture support. Linux needs capture permission for dumpcap.{' '}
+              <Link to="/extensions">Set up capture in Extensions</Link>. Follow the platform setup
+              guide, then refresh interfaces.
             </small>
           </>
         )}

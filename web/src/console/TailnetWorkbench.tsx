@@ -1,18 +1,12 @@
-import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { usePagination } from '@/shared/use-pagination';
 import { fetchJSON } from './api';
 import { DirectoryPicker } from './DirectoryPicker';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
-import { type TailAction, type TailPeer, type TailSnapshot, tailActions } from './tailnet-api';
+import { type TailAction, type TailSnapshot, tailActions } from './tailnet-api';
 import './tailnet.css';
 
 const sections = ['Devices', 'Accounts', 'Exit nodes', 'Diagnostics', 'Taildrop'] as const;
@@ -30,11 +24,6 @@ function readView(): { section: Section; query: string } {
   }
 }
 type Draft = { action: TailAction; target: string; label: string; path: string };
-const features = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const columns: ColumnDef<typeof features, TailPeer>[] = [{ accessorKey: 'name' }];
 
 export function TailnetWorkbench() {
   const { openScan } = useProtocolShell();
@@ -81,12 +70,7 @@ export function TailnetWorkbench() {
       ),
     [peers, query]
   );
-  const table = useTable({
-    features,
-    columns,
-    data: rows,
-    initialState: { pagination: { pageSize: 50, pageIndex: 0 } },
-  });
+  const table = usePagination(rows);
 
   async function inspect() {
     if (request.current) return;
@@ -263,8 +247,8 @@ export function TailnetWorkbench() {
                           </tr>
                         </thead>
                         <tbody>
-                          {table.getRowModel().rows.map(({ id, original: item }) => (
-                            <tr key={id} aria-selected={peer?.id === item.id}>
+                          {table.pageItems.map((item) => (
+                            <tr key={item.id} aria-selected={peer?.id === item.id}>
                               <td>
                                 <button type="button" onClick={() => setSelected(item.id)}>
                                   {item.name}
@@ -289,18 +273,17 @@ export function TailnetWorkbench() {
                     <div className="pp-tailnet-toolbar">
                       <button
                         type="button"
-                        disabled={!table.getCanPreviousPage()}
+                        disabled={!table.canPreviousPage}
                         onClick={() => table.previousPage()}
                       >
                         Previous devices
                       </button>
                       <span>
-                        Page {table.state.pagination.pageIndex + 1} of{' '}
-                        {Math.max(1, table.getPageCount())}
+                        Page {table.pageIndex + 1} of {Math.max(1, table.pageCount)}
                       </span>
                       <button
                         type="button"
-                        disabled={!table.getCanNextPage()}
+                        disabled={!table.canNextPage}
                         onClick={() => table.nextPage()}
                       >
                         Next devices

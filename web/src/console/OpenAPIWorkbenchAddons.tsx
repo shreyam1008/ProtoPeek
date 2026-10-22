@@ -116,7 +116,11 @@ export function OpenAPIOperationRail({
   }, [collection.operations, filter]);
 
   return (
-    <aside className="pp-openapi-rail" aria-label={`${collection.title} operations`}>
+    <aside
+      id="http-openapi-operations"
+      className="pp-openapi-rail"
+      aria-label={`${collection.title} operations`}
+    >
       <header>
         <span>
           <small>OPENAPI · {collection.version}</small>
@@ -150,6 +154,7 @@ export function OpenAPIOperationRail({
               <button
                 key={operation.id}
                 type="button"
+                aria-label={`${operation.method} ${operation.summary} ${operation.path}`}
                 className={selectedOperation === operation.id ? 'is-active' : undefined}
                 aria-pressed={selectedOperation === operation.id}
                 onClick={() => onSelect(operation)}

@@ -23,6 +23,7 @@ const publicDocsSlugs = new Set([
   'capnp-workbench',
   'cloudflare-tunnels',
   'downloader',
+  'extensions',
   'feature-roadmap',
   'grpc-workbench',
   'http-workbench',
@@ -39,7 +40,7 @@ describe('feature registry', () => {
       'home',
       'inspect',
       'network',
-      'publish',
+      'extensions',
       'files',
       'settings',
     ]);
@@ -48,7 +49,7 @@ describe('feature registry', () => {
       '/',
       '/protocols',
       '/network',
-      '/tunnels',
+      '/extensions',
       '/downloader',
       '/settings',
     ]);
@@ -56,7 +57,7 @@ describe('feature registry', () => {
       'Home',
       'Inspect',
       'Network',
-      'Publish',
+      'Extensions',
       'Files',
       'Settings',
     ]);
@@ -97,8 +98,8 @@ describe('feature registry', () => {
     expect(new Set(orders).size).toBe(orders.length);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(commandDestinationFeatures.map((feature) => feature.order)).toEqual([
-      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 130, 140, 150, 155, 156,
-      160,
+      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 125, 130, 140, 150, 155,
+      156, 160,
     ]);
     expect(aliases.every((alias) => !routeSet.has(alias))).toBe(true);
   });
@@ -148,6 +149,7 @@ describe('feature registry', () => {
       'Open This Device',
       'Open Tailscale workbench',
       'Open Downloader',
+      'Open Extensions',
       'Open Cloudflare tunnel operations',
       'Open Security evidence',
       'Open Settings',
@@ -160,7 +162,7 @@ describe('feature registry', () => {
       'Trace a network path',
       'See nearby devices',
       'Check this device',
-      'Inspect Cloudflare tunnels',
+      'Add optional tools',
       'Download a file',
       'Check a public website',
     ]);

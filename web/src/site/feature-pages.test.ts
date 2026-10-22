@@ -31,6 +31,13 @@ const registry = JSON.parse(readRepositoryFile('web/src/site/public-pages.json')
 const generatedPages = registry.pages.filter((page) => page.kind !== 'root');
 
 describe('connected public feature guides', () => {
+  it('keeps public labels and punctuation free of encoding corruption', () => {
+    expect(JSON.stringify(registry)).not.toMatch(/\u00c2\u00b7|\u00e2\u20ac|\ufffd/);
+    expect(registry.pages.find((page) => page.id === 'capnp-workbench')?.title).toContain(
+      'Cap’n Proto'
+    );
+  });
+
   it('keeps route, title, and description metadata unique and search-sized', () => {
     expect(new Set(registry.pages.map((page) => page.path)).size).toBe(registry.pages.length);
     expect(new Set(registry.pages.map((page) => page.documentTitle)).size).toBe(
@@ -98,6 +105,7 @@ describe('connected public feature guides', () => {
       security: 'protocols',
       'network-workbench': 'network',
       'this-pc': 'network',
+      extensions: 'publish',
       'cloudflare-tunnels': 'publish',
       downloader: 'files',
       settings: 'preferences',
@@ -106,6 +114,38 @@ describe('connected public feature guides', () => {
     expect(registry.pages.map((page) => page.id)).not.toEqual(
       expect.arrayContaining(['private-access', 'tailscale', 'headscale', 'netbird'])
     );
+  });
+
+  it('documents the five real extensions with host setup and honest detection states', () => {
+    const page = registry.pages.find((candidate) => candidate.id === 'extensions');
+    expect(page?.status?.label).toBe('Current source');
+    expect(page?.status?.detail).toContain('Stable v0.6.1 retains the earlier navigation');
+    const guide = parseHtml('docs/extensions/index.html');
+    const text = guide.body.textContent?.replace(/\s+/g, ' ') ?? '';
+    for (const tool of ['Tailscale', 'Cloudflare Tunnel', 'Wireshark capture', 'Nmap', 'aria2']) {
+      expect(text).toContain(tool);
+    }
+    for (const status of ['Detected', 'Included', 'Not found', 'Unavailable']) {
+      expect(text).toContain(status);
+    }
+    expect(text).toContain('machine running ProtoPeek');
+    expect(text).toContain('Detected does not mean ready');
+    expect(text).toContain('Detection does not start a process');
+    expect(text).toContain('does not require Wireshark, dumpcap or Npcap');
+    expect(text).toContain('Headscale administration, NetBird, Tailscale Serve/Funnel');
+    for (const href of [
+      'https://tailscale.com/download',
+      'https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/',
+      'https://www.wireshark.org/download.html',
+      'https://npcap.com/#download',
+      'https://nmap.org/download.html',
+      'https://aria2.github.io/',
+    ]) {
+      expect(guide.querySelector(`a[href="${href}"]`)).not.toBeNull();
+    }
+    for (const route of ['/tunnels', '/network/tailnet', '/network/nmap']) {
+      expect(text).toContain(route);
+    }
   });
 
   it('keeps wrapped Cloudflare guide bullets inside their list items', () => {

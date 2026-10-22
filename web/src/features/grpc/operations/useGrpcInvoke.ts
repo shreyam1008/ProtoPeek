@@ -22,6 +22,8 @@ import type { OperationMessage } from '../workspace/model';
 
 export type InvokeState = {
   loading: boolean;
+  cancelled?: boolean;
+  validationError?: string | null;
   error: string | null;
   result: InvokeResponse | null;
   latencyMs: number;
@@ -66,6 +68,15 @@ export function useGrpcInvoke({
   const [state, setState] = useState<InvokeState>(idleInvokeState);
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const previousRequestText = useRef(requestText);
+
+  useEffect(() => {
+    if (requestText === previousRequestText.current) return;
+    previousRequestText.current = requestText;
+    setState((current) =>
+      current.validationError ? { ...current, validationError: null } : current
+    );
+  }, [requestText]);
 
   useEffect(
     () => () => {
@@ -96,33 +107,18 @@ export function useGrpcInvoke({
   }
 
   async function run() {
-    if (!schema || !service || !method) return;
+    if (abortRef.current || !schema || !service || !method) return;
     const parsed = safeParseJson(requestText);
-    if (parsed.error) {
+    const validationError =
+      parsed.error ||
+      (schema.requestStream !== Array.isArray(parsed.value)
+        ? schema.requestStream
+          ? 'Streaming RPCs need a JSON array.'
+          : 'Unary RPCs need a single object.'
+        : null);
+    if (validationError) {
       setAssertionResults([]);
-      setState({ loading: false, error: parsed.error, result: null, latencyMs: 0 });
-      setActiveView('compose');
-      return;
-    }
-    if (schema.requestStream && !Array.isArray(parsed.value)) {
-      setAssertionResults([]);
-      setState({
-        loading: false,
-        error: 'Streaming RPCs need a JSON array.',
-        result: null,
-        latencyMs: 0,
-      });
-      setActiveView('compose');
-      return;
-    }
-    if (!schema.requestStream && Array.isArray(parsed.value)) {
-      setAssertionResults([]);
-      setState({
-        loading: false,
-        error: 'Unary RPCs need a single object.',
-        result: null,
-        latencyMs: 0,
-      });
+      setState({ ...idleInvokeState, validationError });
       setActiveView('compose');
       return;
     }
@@ -141,7 +137,6 @@ export function useGrpcInvoke({
       });
     }
 
-    abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setState({ loading: true, error: null, result: null, latencyMs: 0 });
@@ -183,6 +178,7 @@ export function useGrpcInvoke({
       setAssertionResults([]);
       setState({
         loading: false,
+        cancelled: controller.signal.aborted,
         error:
           error instanceof DOMException && error.name === 'AbortError'
             ? 'Invocation cancelled.'

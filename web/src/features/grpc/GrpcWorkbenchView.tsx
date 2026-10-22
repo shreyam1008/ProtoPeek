@@ -2,6 +2,9 @@ import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { CallWorkspace } from '@/console/CallWorkspace';
 import { CommandPalette } from '@/console/CommandPalette';
 import { ServiceNavigator } from '@/console/ServiceNavigator';
+
+import { PageHeader } from '@/console/shell/PageHeader';
+
 import { WorkbenchHeader } from '@/console/WorkbenchHeader';
 import { classNames, prettyJson } from '@/shared/utils';
 import { ChecksView } from './checks/ChecksView';
@@ -27,7 +30,8 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
     targets,
     actions,
   } = model;
-  const { bootstrap, bootError, schema, currentMethod, currentService } = status;
+
+  const { bootstrap, bootError, schema, schemaError, currentMethod, currentService } = status;
 
   const workspaceNotices = (
     <>
@@ -36,7 +40,7 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
           <GrpcStatusBanner
             tone="danger"
             title="Workspace storage needs recovery"
-            description={`${notices.recoveries.map((recovery) => `${recovery.section}: ${recovery.reason}`).join(' ')} Original keys remain untouched. Download captures exact readable originals; a browser read failure can only be left in place. Accept the bounded valid records explicitly after reviewing the recovery, which may contain credentials, request bodies, and host paths.`}
+            description={`${notices.recoveries.map((recovery) => `${recovery.section}: ${recovery.reason}`).join(' ')} Original keys are preserved. Download readable originals; they may contain credentials, request bodies, or host paths. Unreadable keys stay untouched. Review valid records before accepting.`}
             actions={[
               { label: 'Download originals', run: notices.downloadRecovery },
               { label: 'Use recovered data', run: notices.useRecoveredWorkspace },
@@ -59,26 +63,52 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
     </>
   );
 
+  const targetWorkspace = (
+    <WorkspaceView
+      targets={targets.items}
+      activeTargetId={targets.activeTargetId}
+      draft={targets.draft}
+      browserProtoFolder={targets.browserProtoFolder}
+      browserProtoFolderBusy={targets.browserProtoFolderBusy}
+      busy={targets.busy}
+      error={targets.error}
+      rootBootstrap={targets.rootBootstrap}
+      onChangeDraft={targets.updateDraft}
+      onBrowserProtoFolderChange={targets.changeBrowserProtoFolder}
+      onBrowserProtoFolderBusyChange={targets.setBrowserProtoFolderBusy}
+      onSaveAndConnect={() => void targets.saveAndConnect()}
+      onCancelConnect={targets.cancelConnection}
+      onConnect={(target) => void targets.connectRecent(target)}
+      onEdit={targets.editTarget}
+      onDelete={targets.deleteTarget}
+      onReset={targets.resetToLauncher}
+      onOpenDiscovered={(result) => void targets.openDiscovered(result)}
+    />
+  );
+
   if (bootError) {
     return (
-      <div className="flex h-screen items-center justify-center bg-pp-bg">
-        <div className="pp-panel max-w-md text-center">
-          <CircleAlert className="mx-auto mb-3 size-8 text-pp-danger" />
-          <h1 className="pp-heading text-xl">ProtoPeek couldn&apos;t start</h1>
-          <p className="pp-muted mt-2">{bootError}</p>
-        </div>
-      </div>
+      <section className="pp-grpc-route-state" aria-labelledby="grpc-startup-title">
+        <CircleAlert aria-hidden="true" />
+        <h1 id="grpc-startup-title">gRPC workbench unavailable</h1>
+        <p role="alert">{bootError}</p>
+        <button type="button" className="pp-button-primary" onClick={actions.retryBootstrap}>
+          Retry loading workbench
+        </button>
+      </section>
     );
   }
 
-  if (!bootstrap) {
+  if (
+    !bootstrap ||
+    ((!currentMethod || !currentService) &&
+      bootstrap.services.some((service) => service.methods.length > 0))
+  ) {
     return (
-      <div className="flex h-screen items-center justify-center bg-pp-bg">
-        <div className="flex items-center gap-3">
-          <LoaderCircle className="size-5 animate-spin text-pp-brand" />
-          <span className="text-sm text-pp-muted">Loading ProtoPeek...</span>
-        </div>
-      </div>
+      <section className="pp-grpc-route-state" role="status">
+        <LoaderCircle className="animate-spin" aria-hidden="true" />
+        <h1>Loading gRPC workbench…</h1>
+      </section>
     );
   }
 
@@ -108,19 +138,24 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
     );
   }
 
-  if (!schema || !currentMethod || !currentService) {
+  if (!currentMethod || !currentService) {
     return (
-      <div className="flex h-screen items-center justify-center bg-pp-bg">
-        <div className="flex items-center gap-3">
-          <LoaderCircle className="size-5 animate-spin text-pp-brand" />
-          <span className="text-sm text-pp-muted">Loading schema...</span>
-        </div>
+      <div className="pp-launcher">
+        <PageHeader>
+          <div>
+            <h1>No callable gRPC methods</h1>
+            <p>Choose another target or schema source to continue.</p>
+          </div>
+        </PageHeader>
+        {workspaceNotices}
+        <div className="p-4">{targetWorkspace}</div>
       </div>
     );
   }
 
   return (
     <div className="pp-shell">
+      <h1 className="sr-only">gRPC · {currentMethod.fullName}</h1>
       {shell.sidebarOpen ? (
         <button
           type="button"
@@ -181,7 +216,34 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
             shell.activeView === 'compose' ? 'p-0' : 'p-4'
           )}
         >
-          {shell.activeView === 'compose' ? (
+          {!schema && ['compose', 'tests', 'transport'].includes(shell.activeView) ? (
+            <section className="pp-grpc-schema-state" aria-label="Method schema">
+              {schemaError ? (
+                <>
+                  <code className="pp-grpc-method-name">{currentMethod.fullName}</code>
+                  <GrpcStatusBanner
+                    tone="danger"
+                    title="Could not load this method’s schema"
+                    description={schemaError}
+                    actions={[
+                      { label: 'Retry schema', run: actions.retrySchema },
+                      {
+                        label: targets.activeTargetId ? 'Reconnect target' : 'Switch target',
+                        run: actions.reconnectTarget,
+                      },
+                    ]}
+                  />
+                  <p>Choose another method or retry. Reconnect an expired session.</p>
+                </>
+              ) : (
+                <div role="status">
+                  <LoaderCircle className="animate-spin" aria-hidden="true" /> Loading schema for{' '}
+                  {currentMethod.name}…
+                </div>
+              )}
+            </section>
+          ) : null}
+          {shell.activeView === 'compose' && schema ? (
             <CallWorkspace
               method={currentMethod}
               schema={schema}
@@ -210,7 +272,7 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
             />
           ) : null}
 
-          {shell.activeView === 'tests' ? (
+          {shell.activeView === 'tests' && schema ? (
             <ChecksView
               healthService={health.service}
               onHealthServiceChange={health.setService}
@@ -261,7 +323,7 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
             />
           ) : null}
 
-          {shell.activeView === 'transport' ? (
+          {shell.activeView === 'transport' && schema ? (
             <TransportView
               bootstrap={bootstrap}
               schema={schema}
@@ -295,28 +357,7 @@ export function GrpcWorkbenchView({ model }: { model: GrpcWorkbenchModel }) {
             />
           ) : null}
 
-          {shell.activeView === 'workspace' ? (
-            <WorkspaceView
-              targets={targets.items}
-              activeTargetId={targets.activeTargetId}
-              draft={targets.draft}
-              browserProtoFolder={targets.browserProtoFolder}
-              browserProtoFolderBusy={targets.browserProtoFolderBusy}
-              busy={targets.busy}
-              error={targets.error}
-              rootBootstrap={targets.rootBootstrap}
-              onChangeDraft={targets.updateDraft}
-              onBrowserProtoFolderChange={targets.changeBrowserProtoFolder}
-              onBrowserProtoFolderBusyChange={targets.setBrowserProtoFolderBusy}
-              onSaveAndConnect={() => void targets.saveAndConnect()}
-              onCancelConnect={targets.cancelConnection}
-              onConnect={(target) => void targets.connectRecent(target)}
-              onEdit={targets.editTarget}
-              onDelete={targets.deleteTarget}
-              onReset={targets.resetToLauncher}
-              onOpenDiscovered={(result) => void targets.openDiscovered(result)}
-            />
-          ) : null}
+          {shell.activeView === 'workspace' ? targetWorkspace : null}
         </div>
       </div>
       <CommandPalette

@@ -1,194 +1,256 @@
 import { Link } from '@tanstack/react-router';
 import {
   ArrowRight,
-  Cloud,
   Download,
+  Globe2,
   Monitor,
   Network,
+  Puzzle,
   Radar,
   Server,
   ShieldCheck,
 } from 'lucide-react';
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
-
-import { compactDate, displayBuildVersion } from '@/shared/runtime';
-
+import { compactDate } from '@/shared/runtime';
 import { fetchBootstrap } from './api';
 import { homeEntryFeatures } from './app/feature-registry';
+import { prepareDiscoveryTarget } from './discovery-target';
 import { useProtocolShell } from './ProtocolShellContext';
+import './dashboard.css';
 
-const startTaskIcons = {
-  protocols: Server,
+const quickStarts = [
+  {
+    route: '/protocols/http',
+    label: 'HTTP request',
+    detail: 'Send a request. See the full response.',
+    icon: Globe2,
+  },
+  {
+    route: '/protocols/grpc',
+    label: 'gRPC call',
+    detail: 'Connect, choose a method, and invoke.',
+    icon: Server,
+  },
+  {
+    route: '/network/local',
+    label: 'Nearby devices',
+    detail: 'Find a device and inspect its services.',
+    icon: Radar,
+  },
+  {
+    route: '/downloader',
+    label: 'Download a file',
+    detail: 'Queue, pause, resume, and verify.',
+    icon: Download,
+  },
+] as const;
+const moreIcons = {
   'network-path': Network,
-  'network-local': Radar,
   'this-pc': Monitor,
-  tunnels: Cloud,
-  downloader: Download,
+  extensions: Puzzle,
   security: ShieldCheck,
 } as const;
-
-const safetyBoundaries = [
-  {
-    name: 'Network path',
-    state: 'Available',
-    detail: 'Windows and Linux support measured hops. Each RTT belongs to the responder.',
-  },
-  {
-    name: 'Nmap file import',
-    state: 'Available',
-    detail: 'Reads saved XML for hints. ProtoPeek does not run Nmap.',
-  },
-  {
-    name: 'Local discovery',
-    state: 'Ready to explore',
-    detail:
-      'See locally known devices immediately. Choose Scan network to refresh service evidence.',
-  },
-  {
-    name: 'Bundled Nmap',
-    state: 'Not included',
-    detail: 'ProtoPeek never installs, locates, or runs Nmap.',
-  },
-];
+const moreTools = homeEntryFeatures.filter((feature) => feature.id in moreIcons);
 
 export function Dashboard() {
-  const { discoveries, openScan, openGRPCDiscovery, openHTTPDiscovery } = useProtocolShell();
-  const [version, setVersion] = useState('development');
+  const { discoveries, openScan, claimInitialScan, openGRPCDiscovery, openHTTPDiscovery } =
+    useProtocolShell();
+  const [scanTarget, setScanTarget] = useState('');
+  const [targetError, setTargetError] = useState('');
   const [handoffError, setHandoffError] = useState('');
+  const targetRef = useRef<HTMLInputElement | null>(null);
   const openInitialScan = useEffectEvent((target: string) => {
+    if (claimInitialScan && !claimInitialScan(target)) return;
     openScan({ initialTarget: target, autoStart: true });
   });
-
   useEffect(() => {
     let cancelled = false;
     void fetchBootstrap()
       .then((bootstrap) => {
         if (cancelled) return;
-        setVersion(displayBuildVersion(bootstrap.version));
         if (bootstrap.initialScanTarget) openInitialScan(bootstrap.initialScanTarget);
       })
       .catch(() => {
-        // The dashboard remains useful when bootstrap metadata cannot be loaded.
+        // Starting a tool remains available when build metadata cannot be loaded.
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
+  function findService() {
+    const prepared = prepareDiscoveryTarget(scanTarget);
+    if (!prepared.ok) {
+      setTargetError(prepared.error);
+      targetRef.current?.focus();
+      return;
+    }
+    setTargetError('');
+    if (prepared.target) openScan({ initialTarget: prepared.target, autoStart: true });
+    else openScan();
+  }
   function openRecent(discovery: (typeof discoveries)[number], kind: 'grpc' | 'http') {
+    setHandoffError('');
     const result = kind === 'grpc' ? openGRPCDiscovery(discovery) : openHTTPDiscovery(discovery);
     if (result && !result.ok) setHandoffError(result.error);
   }
-
   return (
-    <div className="pp-dashboard">
-      <PageHeader className="pp-dashboard-hero">
+    <div className="pp-home">
+      <PageHeader className="pp-home-header">
         <div>
-          <span className="pp-kicker">ProtoPeek · {version}</span>
           <h1>What do you need to check?</h1>
-          <p>Pick a task. Network checks start only when you ask.</p>
+          <p>Your local service workbench. Start with an address or open a tool.</p>
         </div>
-        <button type="button" className="pp-dashboard-scan" onClick={() => openScan()}>
-          <Radar aria-hidden="true" />
-          <span>
-            <strong>Find a service</strong>
-            <small>Check one address for HTTP, gRPC, or open TCP</small>
-          </span>
-          <ArrowRight aria-hidden="true" />
-        </button>
       </PageHeader>
-
-      <div className="pp-dashboard-grid">
-        <section className="pp-dashboard-section pp-start-section" aria-labelledby="start-title">
-          <header>
+      <div className="pp-home-content">
+        <section className="pp-home-start" aria-labelledby="home-target-title">
+          <div className="pp-home-start-heading">
+            <span className="pp-home-symbol">
+              <Radar aria-hidden="true" />
+            </span>
             <div>
-              <span className="pp-kicker">Start here</span>
-              <h2 id="start-title">Choose what you want to do</h2>
+              <h2 id="home-target-title">Find a service</h2>
+              <p>Check one address for HTTP, gRPC, and open TCP.</p>
             </div>
-          </header>
-          <div className="pp-start-list">
-            {homeEntryFeatures.map((feature) => {
-              const Icon = startTaskIcons[feature.id];
-              return (
-                <Link key={feature.id} to={feature.route} className="pp-start-link">
+          </div>
+          <form
+            aria-label="Find a service"
+            onSubmit={(event) => {
+              event.preventDefault();
+              findService();
+            }}
+          >
+            <label className="pp-home-target">
+              <span>Service address</span>
+              <input
+                ref={targetRef}
+                value={scanTarget}
+                onChange={(event) => {
+                  setScanTarget(event.target.value);
+                  setTargetError('');
+                }}
+                placeholder="localhost:8080 or https://api.example.com"
+                maxLength={512}
+                autoComplete="off"
+                spellCheck={false}
+                aria-describedby={
+                  targetError ? 'home-target-help home-target-error' : 'home-target-help'
+                }
+                aria-invalid={Boolean(targetError)}
+              />
+            </label>
+            <button type="submit">
+              <Radar aria-hidden="true" /> Find a service <ArrowRight aria-hidden="true" />
+            </button>
+          </form>
+          {targetError ? (
+            <p id="home-target-error" className="pp-home-error" role="alert">
+              {targetError}
+            </p>
+          ) : null}
+          <p id="home-target-help" className="pp-home-hint">
+            Uses the host and port from a URL. Checks start when you submit.
+          </p>
+        </section>
+        <div className="pp-home-columns">
+          <section className="pp-home-quick" aria-labelledby="home-quick-title">
+            <header>
+              <h2 id="home-quick-title">Quick starts</h2>
+              <Link to="/protocols">
+                All inspection tools <ArrowRight aria-hidden="true" />
+              </Link>
+            </header>
+            <div className="pp-home-quick-grid">
+              {quickStarts.map(({ route, label, detail, icon: Icon }) => (
+                <Link key={route} to={route} className="pp-home-quick-link">
                   <Icon aria-hidden="true" />
                   <span>
-                    <strong>{feature.homeEntry.label}</strong>
-                    <p>{feature.homeEntry.detail}</p>
+                    <strong>{label}</strong>
+                    <small>{detail}</small>
                   </span>
+                  <ArrowRight aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </section>
+          <section className="pp-home-recent" aria-labelledby="recent-title">
+            <header>
+              <h2 id="recent-title">Recent services</h2>
+              <span>This browser</span>
+            </header>
+            {handoffError ? (
+              <p className="pp-home-error" role="alert">
+                {handoffError}
+              </p>
+            ) : null}
+            {discoveries.length ? (
+              <div className="pp-home-recent-list">
+                {discoveries.map((discovery) => (
+                  <article key={`${discovery.address}-${discovery.discoveredAt}`}>
+                    <div>
+                      <strong title={discovery.address}>{discovery.address}</strong>
+                      <small>{compactDate(discovery.discoveredAt)}</small>
+                    </div>
+                    <div className="pp-home-recent-actions">
+                      {discovery.grpc ? (
+                        <button
+                          type="button"
+                          aria-label={`Open ${discovery.address} in gRPC`}
+                          onClick={() => openRecent(discovery, 'grpc')}
+                        >
+                          gRPC <ArrowRight aria-hidden="true" />
+                        </button>
+                      ) : null}
+                      {discovery.http ? (
+                        <button
+                          type="button"
+                          aria-label={`Open ${discovery.address} in HTTP`}
+                          onClick={() => openRecent(discovery, 'http')}
+                        >
+                          HTTP <ArrowRight aria-hidden="true" />
+                        </button>
+                      ) : null}
+                      {!discovery.grpc && !discovery.http ? <span>Open TCP</span> : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="pp-home-empty">
+                <Server aria-hidden="true" />
+                <strong>Keep useful addresses close</strong>
+                <p>Services you discover appear here, ready to open in the right workbench.</p>
+                <button type="button" onClick={() => targetRef.current?.focus()}>
+                  Check an address <ArrowRight aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+        <section className="pp-home-more" aria-labelledby="home-more-title">
+          <h2 id="home-more-title">More ways to investigate</h2>
+          <div>
+            {moreTools.map((feature) => {
+              const Icon = moreIcons[feature.id as keyof typeof moreIcons];
+              return (
+                <Link key={feature.id} to={feature.route}>
+                  <Icon aria-hidden="true" />
+                  <span>{feature.homeEntry.label}</span>
                   <ArrowRight aria-hidden="true" />
                 </Link>
               );
             })}
           </div>
         </section>
-
-        <section
-          className="pp-dashboard-section pp-recent-discoveries"
-          aria-labelledby="recent-title"
-        >
-          <header>
-            <div>
-              <span className="pp-kicker">This browser</span>
-              <h2 id="recent-title">Recent services</h2>
-            </div>
-            <span>{discoveries.length}/12</span>
-          </header>
-          {handoffError ? (
-            <p className="pp-scan-message" role="alert">
-              {handoffError}
-            </p>
-          ) : null}
-          {discoveries.length ? (
-            <div className="pp-recent-list">
-              {discoveries.map((discovery) => (
-                <article key={`${discovery.address}-${discovery.discoveredAt}`}>
-                  <div>
-                    <strong>{discovery.address}</strong>
-                    <small>{compactDate(discovery.discoveredAt)}</small>
-                  </div>
-                  <p>
-                    {discovery.grpc ? 'gRPC' : ''}
-                    {discovery.grpc && discovery.http ? ' + ' : ''}
-                    {discovery.http ? discovery.httpProtocol || 'HTTP' : ''}
-                    {!discovery.grpc && !discovery.http ? 'Open TCP' : ''}
-                  </p>
-                  <div>
-                    {discovery.grpc ? (
-                      <button type="button" onClick={() => openRecent(discovery, 'grpc')}>
-                        gRPC
-                      </button>
-                    ) : null}
-                    {discovery.http ? (
-                      <button type="button" onClick={() => openRecent(discovery, 'http')}>
-                        HTTP
-                      </button>
-                    ) : null}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <button type="button" className="pp-recent-empty" onClick={() => openScan()}>
-              No recent services yet. Start discovery.
-            </button>
-          )}
-        </section>
+        <details className="pp-home-policy">
+          <summary>What discovery checks</summary>
+          <p>
+            An explicit port checks that port; a bare host checks 50051 and 443. TCP, HTTP HEAD and
+            gRPC reflection use bounded timeouts. Review private-address access in discovery.
+          </p>
+        </details>
       </div>
-
-      <details className="pp-dashboard-section pp-dashboard-boundaries">
-        <summary>How discovery stays bounded</summary>
-        <div>
-          {safetyBoundaries.map((boundary) => (
-            <article key={boundary.name}>
-              <span>{boundary.state}</span>
-              <strong>{boundary.name}</strong>
-              <p>{boundary.detail}</p>
-            </article>
-          ))}
-        </div>
-      </details>
     </div>
   );
 }

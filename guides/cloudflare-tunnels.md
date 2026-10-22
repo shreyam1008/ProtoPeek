@@ -10,6 +10,9 @@ tools: the [HTTP workbench](/http-workbench/), [gRPC workbench](/grpc-workbench/
 This page describes the local operations available in v0.6.1. ProtoPeek is not affiliated with
 or endorsed by Cloudflare, Inc., and this guide does not make pricing or plan-limit claims.
 
+**Current source:** open this workbench from [Extensions](extensions.md). The `/tunnels` route
+remains valid. Stable v0.6.1 uses the Publish destination described below.
+
 ## What works now
 
 Open **Publish** and enter the domain-native **Cloudflare Tunnel** workspace, or choose its task on

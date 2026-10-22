@@ -1,14 +1,8 @@
 import { Link, useSearch } from '@tanstack/react-router';
-import {
-  type ColumnDef,
-  createPaginatedRowModel,
-  rowPaginationFeature,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { usePagination } from '@/shared/use-pagination';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
 import {
@@ -23,15 +17,6 @@ import { readPortScannerDraft, writePortScannerDraft } from './port-scan-store';
 import { OperationStatus } from './shell/OperationStatus';
 import './port-scan.css';
 
-const features = tableFeatures({
-  rowPaginationFeature,
-  paginatedRowModel: createPaginatedRowModel(),
-});
-const columns: ColumnDef<typeof features, PortResult>[] = [
-  { accessorKey: 'port' },
-  { accessorKey: 'state' },
-  { accessorKey: 'durationMs' },
-];
 const emptyResults: PortResult[] = [];
 
 export function PortScanner() {
@@ -90,13 +75,7 @@ export function PortScanner() {
       ),
     [result, filter, query]
   );
-  const table = useTable({
-    features,
-    columns,
-    data,
-    initialState: { pagination: { pageIndex: 0, pageSize: 50 } },
-    getRowId: (row) => String(row.port),
-  });
+  const table = usePagination(data);
   async function scan() {
     if (controller.current) return;
     if (preview.error) {
@@ -379,7 +358,7 @@ export function PortScanner() {
                 </tr>
               </thead>
               <tbody>
-                {table.getRowModel().rows.map(({ original: row }) => (
+                {table.pageItems.map((row) => (
                   <tr key={row.port}>
                     <td>{row.port}/tcp</td>
                     <td>{row.state.replaceAll('-', ' ')}</td>
@@ -425,20 +404,15 @@ export function PortScanner() {
           <nav aria-label="Port result pages">
             <button
               type="button"
-              disabled={!table.getCanPreviousPage()}
+              disabled={!table.canPreviousPage}
               onClick={() => table.previousPage()}
             >
               Previous page
             </button>
             <span>
-              Page {table.state.pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())} ·{' '}
-              {data.length} results
+              Page {table.pageIndex + 1} of {Math.max(1, table.pageCount)} · {data.length} results
             </span>
-            <button
-              type="button"
-              disabled={!table.getCanNextPage()}
-              onClick={() => table.nextPage()}
-            >
+            <button type="button" disabled={!table.canNextPage} onClick={() => table.nextPage()}>
               Next page
             </button>
           </nav>

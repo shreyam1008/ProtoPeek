@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router';
 import {
-  Cloud,
   Download,
   Home,
   type LucideIcon,
@@ -8,6 +7,9 @@ import {
   Monitor,
   Moon,
   Network,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Puzzle,
   Radar,
   Search,
   Settings as SettingsIcon,
@@ -25,7 +27,7 @@ const destinationIcons: Record<DestinationDefinition['icon'], LucideIcon> = {
   home: Home,
   search: Search,
   network: Network,
-  cloud: Cloud,
+  puzzle: Puzzle,
   download: Download,
   settings: SettingsIcon,
 };
@@ -33,7 +35,7 @@ const descriptions: Record<DestinationId, string> = {
   home: 'Your service workbench',
   inspect: 'Requests & responses',
   network: 'Devices, paths & services',
-  publish: 'Expose a local service',
+  extensions: 'Optional services & tools',
   files: 'Downloads & transfers',
   settings: 'Make it your workspace',
 };
@@ -46,6 +48,8 @@ export type AppBarProps = {
   modifier: string;
   resolvedTheme: 'light' | 'dark';
   navigationOpen: boolean;
+  sidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
   onOpenNavigation: () => void;
   onCloseNavigation: () => void;
   onInspect: () => void;
@@ -55,6 +59,8 @@ export type AppBarProps = {
 
 export function AppBar(props: AppBarProps) {
   const destination = props.destinations.find((item) => item.id === props.activeDestinationId);
+  const sidebarToggleRef = useRef<HTMLButtonElement | null>(null);
+
   return (
     <>
       <header className="pp-app-bar">
@@ -100,6 +106,47 @@ export function AppBar(props: AppBarProps) {
           <span className="pp-app-current">{props.activeLabel}</span>
           <div className="pp-rail-actions">
             <button
+              ref={sidebarToggleRef}
+              type="button"
+              className="pp-app-icon-action pp-sidebar-toggle"
+              aria-label={props.sidebarCollapsed ? 'Show tool sidebar' : 'Hide tool sidebar'}
+              aria-controls="protopeek-tool-sidebar"
+              aria-expanded={!props.sidebarCollapsed}
+              title={props.sidebarCollapsed ? 'Show tool sidebar' : 'Hide tool sidebar'}
+              onClick={() => {
+                sidebarToggleRef.current?.focus();
+                props.onToggleSidebar();
+              }}
+            >
+              {props.sidebarCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" />
+              )}
+            </button>
+            {props.sidebarCollapsed && !props.navigationOpen ? (
+              <div className="pp-rail-quick-actions">
+                <button
+                  type="button"
+                  className="pp-app-icon-action"
+                  aria-label="Open global command menu"
+                  title={`Find anything (${props.modifier} K)`}
+                  onClick={props.onOpenCommand}
+                >
+                  <Search aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="pp-app-icon-action"
+                  aria-label="Inspect target"
+                  title="Inspect target"
+                  onClick={props.onInspect}
+                >
+                  <Radar aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+            <button
               type="button"
               className="pp-app-icon-action pp-app-theme"
               aria-label={`Use ${props.resolvedTheme === 'light' ? 'dark' : 'light'} mode`}
@@ -113,7 +160,11 @@ export function AppBar(props: AppBarProps) {
             </button>
           </div>
         </div>
-        <div className="pp-tool-sidebar">
+        <div
+          id="protopeek-tool-sidebar"
+          className="pp-tool-sidebar"
+          hidden={props.sidebarCollapsed}
+        >
           <div className="pp-tool-sidebar-heading">
             <strong>{destination?.label ?? 'Workspace'}</strong>
             <span>{destination ? descriptions[destination.id] : 'Choose a tool to begin'}</span>
@@ -132,7 +183,7 @@ export function AppBar(props: AppBarProps) {
             {destination ? <ToolNavigation destination={destination.id} /> : null}
             {!props.navigationOpen ? (
               <details className="pp-recent-workspaces">
-                <summary>Recent workspaces</summary>
+                <summary>Recent tools</summary>
                 {props.children}
               </details>
             ) : null}
@@ -225,7 +276,7 @@ function MobileNavigationDrawer(props: AppBarProps) {
           />
         ) : null}
         <details className="pp-recent-workspaces">
-          <summary>Recent workspaces</summary>
+          <summary>Recent tools</summary>
           {props.children}
         </details>
         <div className="pp-navigation-actions">

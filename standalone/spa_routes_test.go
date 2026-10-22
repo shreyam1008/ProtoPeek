@@ -36,13 +36,18 @@ func TestHandlerRedirectsSPARoutesIntoHashShell(t *testing.T) {
 	for _, route := range routes {
 		route := route
 		t.Run(route, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "http://protopeek.test"+route, nil)
 			response := httptest.NewRecorder()
-			handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, route, nil))
+			handler.ServeHTTP(response, request)
 			if response.Code != http.StatusTemporaryRedirect {
 				t.Fatalf("status = %d", response.Code)
 			}
-			if location := response.Header().Get("Location"); location != "./#"+route {
-				t.Fatalf("Location = %q", location)
+			location, err := response.Result().Location()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := request.URL.ResolveReference(location).String(), "http://protopeek.test/#"+route; got != want {
+				t.Fatalf("resolved Location = %q, want %q", got, want)
 			}
 		})
 	}

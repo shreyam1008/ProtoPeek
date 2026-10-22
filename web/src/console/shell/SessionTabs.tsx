@@ -1,4 +1,5 @@
-import { Cloud, Download, type LucideIcon, Network, Search, Settings, X } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { Download, type LucideIcon, Network, Puzzle, Search, Settings, X } from 'lucide-react';
 import { type KeyboardEvent, useEffect } from 'react';
 
 import type { DestinationId } from '../app/feature-registry';
@@ -8,12 +9,12 @@ const sessionIcons: Record<DestinationId, LucideIcon> = {
   home: Search,
   inspect: Search,
   network: Network,
-  publish: Cloud,
+  extensions: Puzzle,
   files: Download,
   settings: Settings,
 };
 
-function tabID(id: string) {
+function recentToolID(id: string) {
   return `pp-session-${id.replace(/[^a-z0-9]+/gi, '-')}`;
 }
 
@@ -21,23 +22,24 @@ export function SessionTabs({
   references,
   activeId,
   onActivate,
-  onClose,
+  onRemove,
 }: {
   references: readonly SessionReference[];
   activeId: string | null;
   onActivate: (reference: SessionReference) => void;
-  onClose: (reference: SessionReference) => void;
+  onRemove: (reference: SessionReference) => void;
 }) {
   useEffect(() => {
     if (!activeId) return;
     document
-      .getElementById(tabID(activeId))
+      .getElementById(recentToolID(activeId))
       ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [activeId]);
 
   if (!references.length) return null;
 
-  function moveFocus(event: KeyboardEvent<HTMLButtonElement>, reference: SessionReference) {
+  function moveFocus(event: KeyboardEvent<HTMLAnchorElement>, reference: SessionReference) {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
       return;
     event.preventDefault();
@@ -52,54 +54,51 @@ export function SessionTabs({
               references.length) %
             references.length;
     const next = references[nextIndex];
-    if (next) document.getElementById(tabID(next.id))?.focus();
+    if (next) document.getElementById(recentToolID(next.id))?.focus();
   }
 
   return (
     <div className="pp-session-strip">
-      <span className="pp-session-heading">Open workspaces</span>
-      <div
-        className="pp-session-tabs"
-        role="tablist"
-        aria-orientation="vertical"
-        aria-label="Open workbench sessions"
-      >
+      <span className="pp-session-heading">Recent tools</span>
+      <nav className="pp-session-tabs" aria-label="Recent tools">
         {references.map((reference, index) => {
           const Icon = sessionIcons[reference.destination];
           const selected = reference.id === activeId;
-          const guarded = reference.dirty || reference.running;
-          const state = reference.running ? 'Running' : reference.dirty ? 'Unsaved' : '';
           return (
-            <div key={reference.id} className="pp-session-item" role="presentation">
-              <button
-                id={tabID(reference.id)}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                aria-controls="pp-workbench-canvas"
-                tabIndex={selected || (!activeId && index === 0) ? 0 : -1}
+            <div key={reference.id} className="pp-session-item">
+              <Link
+                id={recentToolID(reference.id)}
+                to={reference.route}
+                activeOptions={{ exact: true }}
+                aria-current={selected ? 'page' : undefined}
                 className="pp-session-tab"
                 onClick={() => onActivate(reference)}
                 onKeyDown={(event) => moveFocus(event, reference)}
               >
                 <Icon aria-hidden="true" />
                 <span>{reference.label}</span>
-                <small>{state}</small>
+              </Link>
+              <button
+                type="button"
+                className="pp-session-close"
+                aria-label={`Remove ${reference.label} from recent tools`}
+                onClick={(event) => {
+                  if (document.activeElement === event.currentTarget) {
+                    const next = references[index + 1] ?? references[index - 1];
+                    const focusTarget = next
+                      ? document.getElementById(recentToolID(next.id))
+                      : event.currentTarget.closest('details')?.querySelector('summary');
+                    focusTarget?.focus();
+                  }
+                  onRemove(reference);
+                }}
+              >
+                <X aria-hidden="true" />
               </button>
-              {guarded ? null : (
-                <button
-                  type="button"
-                  className="pp-session-close"
-                  aria-label={`Close ${reference.label} session`}
-                  onClick={() => onClose(reference)}
-                >
-                  <X aria-hidden="true" />
-                </button>
-              )}
             </div>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

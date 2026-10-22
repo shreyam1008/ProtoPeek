@@ -18,6 +18,29 @@ const failureValues = new Set([
   '',
 ]);
 
+// Empty fields tagged omitempty on standalone.ScanResult are absent from real scan JSON.
+const omittedScanValues: Record<string, unknown> = {
+  transport: '',
+  services: [],
+  httpTransport: '',
+  httpProtocol: '',
+  httpStatus: '',
+  httpStatusCode: 0,
+  httpServer: '',
+  failure: '',
+  error: null,
+  details: [],
+};
+
+const truncationFields = [
+  'servicesTruncated',
+  'httpProtocolTruncated',
+  'httpStatusTruncated',
+  'httpServerTruncated',
+  'errorTruncated',
+  'detailsTruncated',
+];
+
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -47,8 +70,12 @@ function booleanOrFalse(value: unknown) {
 }
 
 function normalizeRecentDiscovery(value: unknown): RecentDiscovery | null {
-  const input = record(value);
-  if (!input) return null;
+  const candidate = record(value);
+  if (!candidate) return null;
+  const input = { ...candidate };
+  for (const [key, empty] of Object.entries(omittedScanValues)) {
+    if (input[key] === undefined) input[key] = empty;
+  }
 
   const address = boundedString(input.address, 512, false);
   const discoveredAt = boundedString(input.discoveredAt, 64, false);
@@ -72,10 +99,15 @@ function normalizeRecentDiscovery(value: unknown): RecentDiscovery | null {
     services === undefined ||
     details === undefined ||
     protocols?.some((entry) => !protocolValues.has(entry)) === true ||
-    !reflectionValues.has(String(input.reflection)) ||
-    !transportValues.has(String(input.transport)) ||
-    !httpTransportValues.has(String(input.httpTransport)) ||
-    !failureValues.has(String(input.failure))
+    typeof input.reflection !== 'string' ||
+    !reflectionValues.has(input.reflection) ||
+    typeof input.transport !== 'string' ||
+    !transportValues.has(input.transport) ||
+    typeof input.httpTransport !== 'string' ||
+    !httpTransportValues.has(input.httpTransport) ||
+    typeof input.failure !== 'string' ||
+    !failureValues.has(input.failure) ||
+    truncationFields.some((key) => input[key] !== undefined && typeof input[key] !== 'boolean')
   ) {
     return null;
   }

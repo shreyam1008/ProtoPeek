@@ -1,1 +1,0 @@
-import{T as e}from"./console-core-CNJ6EvIJ.js";var t=e();function n({label:e,value:n,className:r}){return(0,t.jsxs)(`div`,{className:r,children:[(0,t.jsx)(`dt`,{children:e}),(0,t.jsx)(`dd`,{children:n})]})}export{n as t};

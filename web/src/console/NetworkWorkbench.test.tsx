@@ -663,12 +663,10 @@ describe('NetworkWorkbench persistence protections', () => {
     ).toEqual([
       'Nearby devices',
       'This Device',
-      'Tailscale',
       'Port scanner',
       'Packets',
       'Network path',
       'Next hop',
-      'Nmap',
       'Network evidence map',
       'Network history',
     ]);
@@ -679,12 +677,10 @@ describe('NetworkWorkbench persistence protections', () => {
     ).toEqual([
       '/network/local',
       '/this-pc',
-      '/network/tailnet',
       '/network/ports',
       '/network/packets',
       '/network/path',
       '/network/route',
-      '/network/nmap',
       '/network/map',
       '/network/history',
     ]);

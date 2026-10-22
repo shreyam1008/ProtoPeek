@@ -23,6 +23,18 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  {
+    label: 'Extensions workspace JavaScript',
+    pattern: /^Extensions-.+\.js$/,
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Extensions workspace CSS',
+    pattern: /^Extensions-.+\.css$/,
+    maxRawBytes: 2.7 * kibibyte,
+    maxGzipBytes: 1.05 * kibibyte,
+  },
   // Updates is loaded only when opened: measured 8,494 JS / 3,132 CSS raw,
   // 3,057 JS / 1,062 CSS gzip bytes. Startup budgets remain unchanged.
   {
@@ -142,7 +154,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 4 * kibibyte,
   },
   {
-    label: 'port scanner with TanStack Table JavaScript',
+    label: 'port scanner JavaScript',
     pattern: /^PortScanner-.+\.js$/,
     // Includes bounded browser draft and observation recovery.
     maxRawBytes: 44 * kibibyte,
@@ -368,7 +380,7 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // and lazy TanStack fuzzy search measure 952,474 raw / 292,382 gzip bytes.
     // Search no longer enters the startup graph. Keep the startup budgets unchanged.
     // WebSocket/SSE adds a separately lazy 8.7 KiB / 3.4 KiB gzip route.
-    // Host scanning and TanStack Table's modular pagination add a lazy ~40 KiB route.
+    // Keep all lazy tools counted, including the shared lightweight pagination helper.
     // Optional Nmap adds 8.2 KiB raw / 3.1 KiB gzip, wholly route-lazy.
     // Installed Tailscale workflows add 13.5 KiB / 4.3 KiB gzip, route-lazy.
     // Website path plan, TLS failure metadata, safe target memory and name handoffs

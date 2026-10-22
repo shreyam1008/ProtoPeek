@@ -5,6 +5,7 @@ import { classNames } from '@/shared/runtime';
 
 import { type ScanResult, scanAddresses } from './api';
 import type { HandoffWriteResult } from './app/handoff-store';
+import { prepareDiscoveryTarget } from './discovery-target';
 
 // Some in-workbench consumers apply evidence directly and intentionally return nothing.
 // biome-ignore lint/suspicious/noConfusingVoidType: navigation handoffs return a result; local consumers return void.
@@ -77,7 +78,12 @@ export function DiscoveryScanner({
   const scanIDRef = useRef(0);
 
   const runScan = useEffectEvent(async (explicit: boolean) => {
-    const address = scanInput.trim();
+    const prepared = prepareDiscoveryTarget(explicit ? scanInput : '');
+    if (!prepared.ok) {
+      setScanMessage(prepared.error);
+      return;
+    }
+    const address = prepared.target;
     const addresses = explicit && address ? [address] : ambientScanAddresses;
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -155,7 +161,14 @@ export function DiscoveryScanner({
 
   useEffect(() => {
     if (!autoStart) return;
-    void runScan(Boolean(initialTarget.trim()));
+    let cancelled = false;
+    // StrictMode replays effect setup/cleanup before this microtask; only its live setup probes.
+    void Promise.resolve().then(() => {
+      if (!cancelled) void runScan(Boolean(initialTarget.trim()));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [autoStart, initialTarget]);
 
   const routineFailures = lastScanWasExplicit

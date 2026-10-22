@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import { createProtoPeekRouter } from './router';
+import { sidebarCollapsedStorageKey } from './shell/navigation-preferences';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -64,7 +65,7 @@ describe('ProtocolFrame', () => {
       'Home',
       'Inspect',
       'Network',
-      'Publish',
+      'Extensions',
       'Files',
       'Settings',
     ]);
@@ -72,7 +73,7 @@ describe('ProtocolFrame', () => {
       '/',
       '/protocols',
       '/network',
-      '/tunnels',
+      '/extensions',
       '/downloader',
       '/settings',
     ]);
@@ -126,7 +127,9 @@ describe('ProtocolFrame', () => {
     for (const [route, label] of [
       ['/security', 'Inspect'],
       ['/this-pc', 'Network'],
-      ['/tunnels', 'Publish'],
+      ['/tunnels', 'Extensions'],
+      ['/network/tailnet', 'Extensions'],
+      ['/network/nmap', 'Extensions'],
       ['/downloader', 'Files'],
       ['/roadmap', 'Settings'],
     ] as const) {
@@ -202,7 +205,7 @@ describe('ProtocolFrame', () => {
       within(mobileDestinations)
         .getAllByRole('link')
         .map((link) => link.textContent?.trim())
-    ).toEqual(['Home', 'Inspect', 'Network', 'Publish', 'Files', 'Settings']);
+    ).toEqual(['Home', 'Inspect', 'Network', 'Extensions', 'Files', 'Settings']);
     expect(within(drawer).queryByText('Roadmap')).not.toBeInTheDocument();
     expect(within(drawer).queryByRole('button', { name: 'Help' })).not.toBeInTheDocument();
 
@@ -227,7 +230,7 @@ describe('ProtocolFrame', () => {
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).not.toBeInTheDocument();
   });
 
-  it('tracks bounded route sessions, keeps Home out, and focuses ordinary destination headings', async () => {
+  it('keeps recent tools as links and removes a reference without leaving its route', async () => {
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);
       return 1;
@@ -236,13 +239,14 @@ describe('ProtocolFrame', () => {
     render(<RouterProvider router={router} />);
     await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
 
-    const sessions = screen.getByRole('tablist', { name: 'Open workbench sessions' });
-    expect(within(sessions).getAllByRole('tab')).toHaveLength(1);
-    expect(within(sessions).getByRole('tab', { name: 'Inspect' })).toHaveAttribute(
-      'aria-selected',
-      'true'
+    fireEvent.click(screen.getByText('Recent tools', { selector: 'summary' }));
+    const recent = screen.getByRole('navigation', { name: 'Recent tools' });
+    expect(within(recent).getAllByRole('link')).toHaveLength(1);
+    expect(within(recent).getByRole('link', { name: 'Inspect' })).toHaveAttribute(
+      'aria-current',
+      'page'
     );
-    expect(within(sessions).queryByRole('tab', { name: 'Home' })).toBeNull();
+    expect(within(recent).queryByRole('link', { name: 'Home' })).toBeNull();
 
     fireEvent.click(
       within(screen.getByRole('navigation', { name: 'Destinations' })).getByRole('link', {
@@ -253,20 +257,84 @@ describe('ProtocolFrame', () => {
       name: 'Settings',
     });
     await waitFor(() => expect(settingsHeading).toHaveFocus());
-    expect(within(sessions).getAllByRole('tab')).toHaveLength(2);
+    expect(within(recent).getAllByRole('link')).toHaveLength(2);
 
-    fireEvent.click(within(sessions).getByRole('tab', { name: 'Inspect' }));
+    fireEvent.click(within(recent).getByRole('link', { name: 'Inspect' }));
     await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
     await waitFor(() =>
-      expect(within(sessions).getByRole('tab', { name: 'Inspect' })).toHaveAttribute(
-        'aria-selected',
-        'true'
+      expect(within(recent).getByRole('link', { name: 'Inspect' })).toHaveAttribute(
+        'aria-current',
+        'page'
       )
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Close Inspect session' }));
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/settings');
-    expect(within(sessions).queryByRole('tab', { name: 'Inspect' })).toBeNull();
+    const remove = screen.getByRole('button', { name: 'Remove Inspect from recent tools' });
+    remove.focus();
+    fireEvent.click(remove);
+    expect(screen.getByRole('heading', { name: 'Choose an inspection workbench.' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/protocols');
+    expect(within(recent).queryByRole('link', { name: 'Inspect' })).toBeNull();
+    expect(within(recent).getByRole('link', { name: 'Settings' })).toHaveFocus();
+    expect(screen.queryByRole('tablist', { name: 'Open workbench sessions' })).toBeNull();
+  });
+
+  it('collapses the tool sidebar without losing focus, commands, or inspect controls', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    const command = screen.getByRole('button', { name: 'Open global command menu' });
+    command.focus();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide tool sidebar' }));
+
+    const toggle = screen.getByRole('button', { name: 'Show tool sidebar' });
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById('protopeek-tool-sidebar')).toHaveAttribute('hidden');
+    expect(localStorage.getItem(sidebarCollapsedStorageKey)).toBe('true');
+    expect(
+      within(screen.getByRole('navigation', { name: 'Destinations' })).getAllByRole('link')
+    ).toHaveLength(6);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open global command menu' }));
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect target' }));
+    expect(await screen.findByRole('dialog', { name: 'Scan target' })).toBeVisible();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
+  });
+
+  it('restores sidebar collapse after remount while keeping the mobile drawer independent', async () => {
+    localStorage.setItem(sidebarCollapsedStorageKey, 'true');
+    let router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    const view = render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    expect(screen.getByRole('button', { name: 'Show tool sidebar' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
+    const drawer = await screen.findByRole('dialog', { name: 'ProtoPeek' });
+    expect(within(drawer).getByRole('navigation', { name: 'Inspect tools' })).toBeVisible();
+    fireEvent.click(within(drawer).getByRole('button', { name: 'Close navigation menu' }));
+    expect(screen.getByRole('button', { name: 'Show tool sidebar' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show tool sidebar' }));
+    expect(localStorage.getItem(sidebarCollapsedStorageKey)).toBe('false');
+    view.unmount();
+    router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    expect(screen.getByRole('button', { name: 'Hide tool sidebar' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).toBeNull();
   });
 
   it('preserves focus placed by a destination while applying a route draft', async () => {

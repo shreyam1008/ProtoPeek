@@ -69,6 +69,47 @@ afterEach(() => {
 });
 
 describe('Downloader', () => {
+  it('retains queue pages across refresh, clamps removed rows, and resets a changed filter', async () => {
+    let jobs = Array.from({ length: 125 }, (_, index) => ({
+      ...runningSnapshot.jobs[0],
+      id: `job-${index + 1}`,
+      name: `File ${index + 1}`,
+      status: 'completed',
+    }));
+    const fetchMock = vi.fn(async () => Response.json({ ...stoppedSnapshot, jobs }));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<Downloader />);
+    await screen.findByText('125 results');
+    const queue = within(screen.getByRole('region', { name: 'Transfers' }));
+    expect(queue.getAllByRole('article')).toHaveLength(50);
+    fireEvent.click(queue.getByRole('button', { name: 'Next' }));
+    fireEvent.click(queue.getByRole('button', { name: 'Next' }));
+    expect(queue.getByText('Page 3 of 3')).toBeVisible();
+    expect(queue.getAllByRole('article')).toHaveLength(25);
+
+    jobs = jobs.map((job) => ({ ...job, name: `${job.name} refreshed` }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Downloader state' }));
+    await queue.findByText('File 101 refreshed');
+    expect(queue.getByText('Page 3 of 3')).toBeVisible();
+
+    jobs = jobs.slice(0, 60);
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Downloader state' }));
+    await queue.findByText('60 results');
+    expect(queue.getByText('Page 2 of 2')).toBeVisible();
+    expect(queue.getAllByRole('article')).toHaveLength(10);
+    expect(queue.getByText('File 51 refreshed')).toBeVisible();
+    expect(queue.getByRole('button', { name: 'Next' })).toBeDisabled();
+
+    fireEvent.click(
+      within(queue.getByRole('navigation', { name: 'Filter transfers' })).getByRole('button', {
+        name: /completed/i,
+      })
+    );
+    expect(queue.getByText('Page 1 of 2')).toBeVisible();
+    expect(queue.getAllByRole('article')).toHaveLength(50);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   it('shows saved completions while stopped and removes only their history', async () => {
     let forgotten = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ScanResult } from './api';
@@ -39,6 +40,52 @@ afterEach(() => {
 });
 
 describe('DiscoveryScanner relay evidence limits', () => {
+  it('runs an automatic explicit CLI target only once during StrictMode effect replay', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      Response.json([])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <StrictMode>
+        <DiscoveryScanner autoStart initialTarget="api.internal:8443" />
+      </StrictMode>
+    );
+    await screen.findByText(/No service evidence was returned/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      addresses: ['api.internal:8443'],
+      explicit: true,
+    });
+  });
+  it('uses the authority from a pasted URL and never relays its path or query', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      Response.json([])
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(<DiscoveryScanner />);
+    fireEvent.change(screen.getByLabelText('Scan target'), {
+      target: { value: 'https://api.example.test:8443/private?token=secret' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan target' }));
+    await screen.findByText(/No service evidence was returned/);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).addresses).toEqual([
+      'https://api.example.test:8443',
+    ]);
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body)).not.toContain('secret');
+  });
+
+  it('rejects credentials before any discovery request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    render(<DiscoveryScanner />);
+    fireEvent.change(screen.getByLabelText('Scan target'), {
+      target: { value: 'https://user:secret@api.example.test/' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan target' }));
+    expect(await screen.findByText(/Remove credentials/)).not.toHaveTextContent('secret');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('discloses the fixed common-local candidates and guides an empty result', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json([])

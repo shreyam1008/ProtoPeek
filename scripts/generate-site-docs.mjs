@@ -81,7 +81,10 @@ async function writeDiscoveryMetadata() {
     // Cloudflare Pages uses the generated docs directory as its output. Keep
     // the edge worker beside the static assets so Markdown negotiation works
     // on the deployed site as well as in the source site.
-    fs.copyFile(path.join(repoRoot, 'web', 'site', '_worker.js'), path.join(docsRoot, '_worker.js')),
+    fs.copyFile(
+      path.join(repoRoot, 'web', 'site', '_worker.js'),
+      path.join(docsRoot, '_worker.js')
+    ),
   ]);
 }
 
@@ -124,6 +127,7 @@ Repository: ${repoRootURL}
 - Downloader product page: ${siteRoot}/downloader/
 
 - v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- Current source replaces Publish with Extensions in the same six-destination layout. Its five cards cover Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2. Local detection does not run tools or prove readiness; setup uses the ProtoPeek host OS and official installation links. Existing workbench routes stay valid. Guide: ${siteRoot}/extensions/.
 - The opt-in v0.0.0-edge prerelease adds the redesigned workspace, persistent grouped navigation, destination resume, mobile command search and local MCP/CLI agents. Download: ${repoRootURL}/releases/tag/v0.0.0-edge. Stable installers do not select edge.
 - New on Nightly (v0.0.0-nightly): pp update and protopeek update share a verified direct-install updater on Windows, macOS and Linux. Settings > Updates adds manual checks, channel warnings, confirmation, cancellation and restart guidance. Managed installs show their package-manager commands. Older binaries require one installer upgrade first with PROTOPEEK_CHANNEL=nightly. Main/master pushes refresh this one rolling prerelease; stable v0.6.1 and package-manager releases are promoted separately. Legacy Edge is manual-only.
 - Edge browser acceptance and remaining native Nmap/live-capture checks: ${siteRoot}/workspace-ui/. Agent setup and activity: ${siteRoot}/ai-agents/.
@@ -882,6 +886,7 @@ function renderFeatureVisual(page) {
     'network-boundary': ['Passive', 'Active', 'Imported'],
     'this-pc': ['Local', 'Public', 'Quality'],
     tunnels: ['Host + version', 'OS service', 'Config + routes'],
+    extensions: ['Local detection', 'Official setup', 'Open workbench'],
     downloader: ['Queue', 'Control', 'Verify'],
     security: ['DNS', 'TLS', 'HTTP'],
     settings: ['Browser', 'Bridge', 'Host'],

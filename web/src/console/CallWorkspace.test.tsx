@@ -64,6 +64,207 @@ function props(overrides: Partial<Parameters<typeof CallWorkspace>[0]> = {}) {
 describe('CallWorkspace', () => {
   afterEach(() => {
     Reflect.deleteProperty(navigator, 'clipboard');
+    vi.unstubAllGlobals();
+  });
+
+  it('runs shortcuts only inside request controls and ignores repeats, composition, and modal ownership', () => {
+    const onInvoke = vi.fn();
+    const onCancel = vi.fn();
+    const { rerender } = render(<CallWorkspace {...props({ onInvoke, onCancel })} />);
+    const editor = screen.getByLabelText('Request JSON');
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+    expect(onInvoke).toHaveBeenCalledOnce();
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true, repeat: true });
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true, isComposing: true });
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true, altKey: true });
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true, metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'Enter', ctrlKey: true });
+    fireEvent.keyDown(screen.getByLabelText('Filter responses'), { key: 'Enter', ctrlKey: true });
+    expect(onInvoke).toHaveBeenCalledOnce();
+    const modal = document.createElement('section');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('role', 'dialog');
+    document.body.appendChild(modal);
+    try {
+      fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+      expect(onInvoke).toHaveBeenCalledOnce();
+    } finally {
+      modal.remove();
+    }
+    rerender(
+      <CallWorkspace
+        {...props({
+          onInvoke,
+          onCancel,
+          invokeState: { loading: true, error: null, result: null, latencyMs: 0 },
+        })}
+      />
+    );
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true, repeat: true });
+    expect(onCancel).not.toHaveBeenCalled();
+    fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
+
+  it('reveals and focuses mobile Response only at invocation start and exposes cancellation there', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true }))
+    );
+    const onCancel = vi.fn();
+    const { rerender } = render(
+      <CallWorkspace
+        {...props({
+          onCancel,
+          invokeState: { loading: false, error: null, result: null, latencyMs: 0 },
+        })}
+      />
+    );
+    const responseTab = document.getElementById('grpc-mobile-pane-tab-response');
+    const requestTab = document.getElementById('grpc-mobile-pane-tab-request');
+    expect(requestTab).toHaveAttribute('aria-selected', 'true');
+    rerender(
+      <CallWorkspace
+        {...props({
+          onCancel,
+          invokeState: { loading: true, error: null, result: null, latencyMs: 0 },
+        })}
+      />
+    );
+    await waitFor(() => expect(responseTab).toHaveFocus());
+    expect(responseTab).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel RPC' }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(screen.getByText('Leaving this tool cancels the call.')).toBeInTheDocument();
+    if (!requestTab) throw new Error('Request tab missing');
+    fireEvent.click(requestTab);
+    const editor = screen.getByLabelText('Request JSON');
+    editor.focus();
+    rerender(<CallWorkspace {...props({ onCancel })} />);
+    expect(requestTab).toHaveAttribute('aria-selected', 'true');
+    expect(editor).toHaveFocus();
+  });
+
+  it('validates invalid JSON on the shortcut and shows the error in the request pane', () => {
+    const onInvoke = vi.fn();
+    const { rerender } = render(
+      <CallWorkspace {...props({ onInvoke, requestText: '{ broken' })} />
+    );
+    fireEvent.keyDown(screen.getByLabelText('Request JSON'), { key: 'Enter', ctrlKey: true });
+    expect(onInvoke).toHaveBeenCalledOnce();
+    rerender(
+      <CallWorkspace
+        {...props({
+          onInvoke,
+          requestText: '{ broken',
+          invokeState: {
+            loading: false,
+            error: null,
+            validationError: 'Invalid request JSON.',
+            result: null,
+            latencyMs: 0,
+          },
+        })}
+      />
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Invalid request JSON.');
+    expect(document.getElementById('grpc-mobile-pane-panel-request')).toContainElement(
+      screen.getByRole('alert')
+    );
+    expect(document.getElementById('grpc-mobile-pane-tab-request')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('status', { name: 'RPC status READY' })).toBeInTheDocument();
+    expect(screen.queryByText('Invocation failed')).toBeNull();
+  });
+
+  it('keeps local shape feedback visible while editing request metadata', () => {
+    render(
+      <CallWorkspace
+        {...props({
+          requestText: '[]',
+          invokeState: {
+            loading: false,
+            error: null,
+            validationError: 'Unary RPCs need a single object.',
+            result: null,
+            latencyMs: 0,
+          },
+        })}
+      />
+    );
+    fireEvent.click(screen.getByRole('tab', { name: /^Metadata/ }));
+    const alert = screen.getByRole('alert');
+    expect(alert).toBeVisible();
+    expect(alert).toHaveTextContent('Unary RPCs need a single object.');
+    expect(document.getElementById('grpc-mobile-pane-panel-request')).toContainElement(alert);
+    expect(screen.getByRole('status', { name: 'RPC status READY' })).toBeInTheDocument();
+  });
+
+  it('reveals mobile Request for a new validation error without trapping later tab navigation', async () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true }))
+    );
+    const { rerender } = render(<CallWorkspace {...props()} />);
+    const responseTab = document.getElementById('grpc-mobile-pane-tab-response');
+    const requestTab = document.getElementById('grpc-mobile-pane-tab-request');
+    if (!responseTab || !requestTab) throw new Error('Mobile tabs missing');
+    fireEvent.click(responseTab);
+    responseTab.focus();
+    expect(responseTab).toHaveAttribute('aria-selected', 'true');
+    const rejected = props({
+      requestText: '[]',
+      invokeState: {
+        loading: false,
+        error: null,
+        validationError: 'Unary RPCs need a single object.',
+        result: null,
+        latencyMs: 0,
+      },
+    });
+    rerender(<CallWorkspace {...rejected} />);
+    await waitFor(() => expect(requestTab).toHaveAttribute('aria-selected', 'true'));
+    expect(requestTab).toHaveFocus();
+    expect(screen.getByRole('alert')).toHaveTextContent('Unary RPCs need a single object.');
+    expect(document.getElementById('grpc-mobile-pane-panel-request')).not.toHaveClass(
+      'pp-mobile-pane-hidden'
+    );
+    fireEvent.click(responseTab);
+    responseTab.focus();
+    rerender(<CallWorkspace {...rejected} />);
+    expect(responseTab).toHaveAttribute('aria-selected', 'true');
+    expect(responseTab).toHaveFocus();
+  });
+
+  it('preserves editor focus when a new mobile validation error is already in Request', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({ matches: true }))
+    );
+    const { rerender } = render(<CallWorkspace {...props()} />);
+    const editor = screen.getByLabelText('Request JSON');
+    editor.focus();
+    rerender(
+      <CallWorkspace
+        {...props({
+          requestText: '[]',
+          invokeState: {
+            loading: false,
+            error: null,
+            validationError: 'Unary RPCs need a single object.',
+            result: null,
+            latencyMs: 0,
+          },
+        })}
+      />
+    );
+    expect(editor).toHaveFocus();
+    expect(document.getElementById('grpc-mobile-pane-tab-request')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   it.each([
@@ -129,7 +330,7 @@ describe('CallWorkspace', () => {
     expect(screen.getByLabelText('Deadline in seconds')).toHaveAttribute('max', '60');
     expect(screen.getByLabelText('Deadline in seconds')).toHaveAttribute(
       'title',
-      expect.stringMatching(/omitted or larger.*60-second local safety wall/i)
+      expect.stringMatching(/local default and maximum: 60 seconds/i)
     );
   });
 
@@ -180,7 +381,7 @@ describe('CallWorkspace', () => {
         })}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: /^Cancel/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel RPC' }));
     expect(onCancel).toHaveBeenCalledOnce();
     expect(screen.getByText(/Use Cancel to stop the RPC/)).toBeInTheDocument();
   });

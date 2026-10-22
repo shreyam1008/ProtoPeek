@@ -18,6 +18,15 @@ export const protocolShellEvents = {
   pendingHandoff: 'protopeek:pending-handoff',
 } as const;
 
+export function createInitialScanClaim() {
+  const claimed = new Set<string>();
+  return (target: unknown) => {
+    if (typeof target !== 'string' || !target.trim() || claimed.has(target.trim())) return false;
+    claimed.add(target.trim());
+    return true;
+  };
+}
+
 export type ProtocolShellValue = {
   appearance: AppearancePreference;
   resolvedAppearance: ResolvedAppearance;
@@ -27,6 +36,7 @@ export type ProtocolShellValue = {
   preferenceStorageError?: string;
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
+  claimInitialScan?: (target: unknown) => boolean;
   openHandoff: (handoff: PendingHandoffInput) => HandoffWriteResult;
   openGRPCDiscovery: (result: ScanResult) => HandoffWriteResult;
   openHTTPDiscovery: (result: ScanResult) => HandoffWriteResult;

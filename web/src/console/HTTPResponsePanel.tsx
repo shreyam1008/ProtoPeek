@@ -5,6 +5,7 @@ import type { HTTPResponse, HTTPTimings, MetadataEntry } from '@/shared/types';
 import { classNames, durationLabel } from '@/shared/utils';
 
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
+import './http-request-evidence.css';
 
 type HTTPResponseTab = 'body' | 'headers' | 'timing' | 'redirects' | 'status';
 
@@ -21,11 +22,15 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   loading,
   error,
   cancelled = false,
+  sentRequest = null,
+  draftChanged = false,
 }: {
   response: HTTPResponse | null;
   loading: boolean;
   error: string | null;
   cancelled?: boolean;
+  sentRequest?: { method: string; url: string } | null;
+  draftChanged?: boolean;
 }) {
   const [tab, setTab] = useState<HTTPResponseTab>('body');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
@@ -173,29 +178,43 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
 
   return (
     <section className="pp-http-response" aria-label="HTTP response evidence">
-      <div className="pp-http-response-summary" aria-live="polite" aria-atomic="true">
-        <span
-          className={classNames(
-            'pp-status-mark',
-            error && 'pp-status-mark-error',
-            loading && 'pp-status-mark-running'
-          )}
-        >
-          {loading
-            ? 'IN FLIGHT'
-            : error
-              ? 'ERROR'
-              : cancelled
-                ? 'CANCELLED'
-                : response
-                  ? response.statusCode
-                  : 'READY'}
-        </span>
-        <strong>{response?.status ?? 'No response yet'}</strong>
-        <span>{response?.proto ?? '—'}</span>
-        <span className="pp-response-time">
-          {response ? durationLabel(response.timings.totalMs) : '—'}
-        </span>
+      <div className="pp-http-evidence-heading">
+        <div className="pp-http-response-summary" aria-live="polite" aria-atomic="true">
+          <span
+            className={classNames(
+              'pp-status-mark',
+              (error || (response && response.statusCode >= 400)) && 'pp-status-mark-error',
+              cancelled && 'pp-status-mark-cancelled',
+              loading && 'pp-status-mark-running'
+            )}
+          >
+            {loading
+              ? 'IN FLIGHT'
+              : error
+                ? 'ERROR'
+                : cancelled
+                  ? 'CANCELLED'
+                  : response
+                    ? response.statusCode
+                    : 'READY'}
+          </span>
+          <strong>{response?.status ?? 'No response yet'}</strong>
+          <span>{response?.proto ?? '—'}</span>
+          <span className="pp-response-time">
+            {response ? durationLabel(response.timings.totalMs) : '—'}
+          </span>
+        </div>
+        {sentRequest ? (
+          <section className="pp-http-request-evidence" aria-label="Sent HTTP request">
+            <span>
+              {loading ? 'Sending' : 'Requested'} <strong>{sentRequest.method}</strong>
+            </span>
+            <code title={sentRequest.url}>{sentRequest.url}</code>
+            {draftChanged ? (
+              <p role="status">Editor changed. This evidence belongs to the request shown above.</p>
+            ) : null}
+          </section>
+        ) : null}
       </div>
       <AccessibleTabs
         id="http-response"

@@ -1,1 +1,0 @@
-import{T as e}from"./console-core-CNJ6EvIJ.js";var t=e();function n({className:e=``,children:n,...r}){return(0,t.jsx)(`header`,{...r,className:`pp-page-header ${e}`,children:n})}export{n as t};

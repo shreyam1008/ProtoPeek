@@ -1,0 +1,141 @@
+.pp-extensions {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(1rem, 2.5vw, 2rem);
+}
+.pp-extensions > * {
+  max-width: 1100px;
+  margin-inline: auto;
+}
+.pp-extensions p {
+  color: var(--pp-muted);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+.pp-extensions a {
+  color: var(--pp-brand);
+}
+.pp-extensions a:hover {
+  text-decoration: underline;
+}
+.pp-extensions-base {
+  margin-block: 1.25rem;
+  border-left: 3px solid var(--pp-brand);
+}
+.pp-extensions-base p {
+  margin-block: 0.4rem;
+}
+.pp-extensions-base > div,
+.pp-extension-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem 1rem;
+  font-size: 0.75rem;
+}
+.pp-extensions-context {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+.pp-extensions-context p {
+  flex: 1 1 20rem;
+  margin: 0;
+  font-size: 0.75rem;
+}
+.pp-extensions-context label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+.pp-extensions-context select {
+  border: 1px solid var(--pp-border);
+  border-radius: 0.4rem;
+  padding: 0.4rem;
+  background: var(--pp-panel);
+}
+.pp-extension-group {
+  margin-block: 1.5rem;
+}
+.pp-extension-group h2 {
+  margin-bottom: 0.75rem;
+  color: var(--pp-muted);
+  font-size: 0.85rem;
+}
+.pp-extension-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 23rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.pp-extension-card {
+  min-width: 0;
+}
+.pp-extension-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.pp-extension-card-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+.pp-extension-card h3 {
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+.pp-extension-card-heading span,
+.pp-extension-platform {
+  color: var(--pp-muted);
+  font-size: 0.7rem;
+}
+.pp-extension-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: var(--pp-brand);
+}
+.pp-extension-card > p {
+  margin-block: 1rem;
+}
+.pp-extension-actions a,
+.pp-extension-setup a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pp-extension-actions svg,
+.pp-extension-setup a svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.pp-extension-setup {
+  margin-top: 1rem;
+  border-top: 1px solid var(--pp-border);
+  padding-top: 0.75rem;
+  font-size: 0.75rem;
+}
+.pp-extension-setup summary {
+  cursor: pointer;
+}
+.pp-extension-setup > div {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+.pp-extension-setup p {
+  margin: 0;
+}
+.pp-extension-path {
+  overflow-wrap: anywhere;
+  font-size: 0.7rem;
+}
+.pp-extensions-footnote {
+  margin-top: 2rem;
+}
+.pp-extensions :is(a, button, summary, select):focus-visible {
+  outline: 2px solid var(--pp-brand);
+  outline-offset: 3px;
+}

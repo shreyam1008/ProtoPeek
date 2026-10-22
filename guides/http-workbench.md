@@ -14,7 +14,7 @@ The live editor can hold credentials for the request you intend to send. Automat
 
 ## Start from an API definition
 
-Current source can import an explicit OpenAPI 3.x or Swagger 2.0 JSON definition from a local file or URL. A Swagger UI or Scalar page URL also works when the page exposes a linked JSON definition. ProtoPeek loads the first operation into the same request editor and adds a searchable operation rail; choosing another operation updates the method, URL, parameters, headers, and example body without creating a second request system.
+Current source can import an explicit OpenAPI 3.x or Swagger 2.0 JSON definition from a local file or URL. A Swagger UI or Scalar page URL also works when the page exposes a linked JSON definition. Import adds a searchable operation rail and leaves the current request intact. Choose an operation to replace the method, URL, parameters, headers, and example body. Replacing a request cancels its active operation and clears its previous response.
 
 URL imports travel through the same bounded local HTTP relay as other requests. The imported document is capped at 2 MiB and 1,000 operations. YAML, automatic endpoint discovery, code generation, and persisted API collections are deliberately outside this focused slice.
 
@@ -24,7 +24,15 @@ TLS verification is on by default. Redirect following is off by default. If redi
 
 The local relay applies explicit limits to URLs, headers, bodies, timeouts, redirects, response size, and concurrent HTTP work. Cancellation ends the local operation instead of leaving a hidden request running in the browser.
 
+Current-source run shortcuts apply only inside the request controls. Repeated key events,
+input composition, and shortcuts in import panels or dialogs do not send or cancel requests.
+Leaving the HTTP tool cancels an active request.
+
 ## Read the response as HTTP
+
+Current source labels each result with the method and sanitized URL that actually ran. Editing
+the draft keeps that label attached to the result and shows an editor-changed notice. Credentials
+remain in memory for execution; the result label uses the same redaction as automatic history.
 
 The response inspector keeps HTTP vocabulary intact:
 
