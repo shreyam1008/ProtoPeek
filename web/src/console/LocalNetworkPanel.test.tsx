@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { LocalNetworkPanel } from './LocalNetworkPanel';
 
 const capabilities = {
@@ -84,10 +84,23 @@ const discovery = {
 };
 
 afterEach(() => {
+  clearOperationReceipts();
   vi.unstubAllGlobals();
 });
 
 describe('LocalNetworkPanel', () => {
+  it('prefills an unsent subnet draft and expands the plan without starting a scan', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => Response.json(capabilities));
+    vi.stubGlobal('fetch', fetchMock);
+    render(<LocalNetworkPanel initialSubnet="10.42.0.0/28" onSaveSnapshot={vi.fn()} />);
+    expect(await screen.findByLabelText('Private IPv4 CIDR')).toHaveValue('10.42.0.0/28');
+    expect(screen.getByText(/Subnet draft from Diagnostics/)).toBeVisible();
+    expect(screen.getByText(/Scan settings/).closest('details')).toHaveAttribute('open');
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/capabilities');
+    expect(screen.getByRole('button', { name: 'Scan network' })).toBeEnabled();
+    expect(readOperationReceipts()).toEqual([]);
+  });
   it('starts with a device list on narrow screens and preserves a manually selected map', async () => {
     const matchMedia = vi.fn((query: string) => ({ matches: query === '(max-width: 640px)' }));
     vi.stubGlobal('matchMedia', matchMedia);
@@ -400,6 +413,9 @@ describe('LocalNetworkPanel', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Scan cancelled. No result was saved.'
     );
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'local-scan', outcome: 'cancelled' },
+    ]);
   });
 
   it('keeps observed and inferred roles explicit and saves edited bounded provenance', async () => {
@@ -420,6 +436,10 @@ describe('LocalNetworkPanel', () => {
     expect(
       await screen.findByRole('heading', { name: 'Observed endpoint evidence' })
     ).toBeInTheDocument();
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'local-scan', outcome: 'success', count: 1 },
+    ]);
+    expect(JSON.stringify(readOperationReceipts())).not.toContain('192.168.44.0/24');
     expect(
       screen.getByText(/Observed means the ProtoPeek process received positive/)
     ).toHaveTextContent('Device-role hints are unverified.');

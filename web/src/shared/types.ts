@@ -233,6 +233,9 @@ export type InvokeLocalLimit = {
 };
 
 export type InvokeResponse = {
+  /** False for partial relay evidence; absence preserves the legacy completed response contract. */
+  finalStatusObserved?: boolean;
+  relayError?: string;
   headers: MetadataEntry[];
   error: InvokeError | null;
   responses: InvokeResponseElement[];
@@ -241,6 +244,12 @@ export type InvokeResponse = {
   timings: InvokeTimings | null;
   localLimit: InvokeLocalLimit | null;
 };
+
+export type InvokeStreamEvent =
+  | { type: 'started'; totalRequests?: number }
+  | { type: 'headers'; headers?: MetadataEntry[]; elapsedMs: number }
+  | { type: 'message'; response: InvokeResponseElement }
+  | { type: 'complete'; result: InvokeResponse; relayError?: string };
 
 export type HealthServingStatus = {
   code: number;

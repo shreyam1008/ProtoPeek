@@ -27,8 +27,6 @@ import {
   appStorageKeys,
   classNames,
   compactDate,
-  filterMetadataForInvoke,
-  isRedactedValue,
   loadStoredValue,
   modifierKeyLabel,
   normalizeHTTPHistory,
@@ -42,16 +40,17 @@ import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { sendHTTPRequest } from './api';
 import { handoffEvidence } from './app/handoff-display';
 import { consumeLegacyHandoff, consumePendingHandoff } from './app/handoff-store';
+import { type ReceiptOutcome, recordOperationReceipt } from './app/operation-receipts';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
 import { buildCurlCommand } from './http-curl';
+import type { ImportedHTTPRequest } from './http-curl-import';
 import { type HTTPDraft, httpMethods, readHTTPDraft, writeHTTPDraft } from './http-draft-store';
+import type { HTTPEnvironment } from './http-environments';
+import { prepareHTTPExecution } from './http-execution';
 import { type HTTPRecipe, readHTTPLibrary } from './http-library';
 import { consumeHTTPRecipe, httpRecipeLoadEvent } from './http-library-handoff';
-import {
-  formatJSONDraft,
-  normalizeHTTPDraftURL,
-  prepareHTTPRequestDraft,
-} from './http-request-draft';
+import { formatJSONDraft } from './http-request-draft';
+import { diagnosticDraftTarget } from './network-diagnostics';
 import type { OpenAPICollection, OpenAPIOperation } from './openapi';
 import { ProtocolInfo } from './ProtocolInfo';
 import { protocolShellEvents } from './ProtocolShellContext';
@@ -63,6 +62,14 @@ const OpenAPIImportPanel = lazy(() =>
 );
 const HTTPRequestLibrary = lazy(() =>
   import('./HTTPRequestLibrary').then((module) => ({ default: module.HTTPRequestLibrary }))
+);
+const HTTPEnvironmentControls = lazy(() =>
+  import('./HTTPEnvironmentControls').then((module) => ({
+    default: module.HTTPEnvironmentControls,
+  }))
+);
+const HTTPImportPanel = lazy(() =>
+  import('./HTTPImportPanel').then((module) => ({ default: module.HTTPImportPanel }))
 );
 const OpenAPIOperationRail = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIOperationRail }))
@@ -117,6 +124,8 @@ export function HTTPWorkbench() {
   const [selectedOpenAPIOperation, setSelectedOpenAPIOperation] = useState<string | null>(null);
   const [openAPIRailVisible, setOpenAPIRailVisible] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [curlImportOpen, setCurlImportOpen] = useState(false);
+  const [environment, setEnvironment] = useState<HTTPEnvironment | null>(null);
   const [activeRecipe, setActiveRecipe] = useState<HTTPRecipe | null>(null);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
     normalizeHTTPHistory(loadStoredValue<unknown>(appStorageKeys.httpHistory, []))
@@ -176,6 +185,7 @@ export function HTTPWorkbench() {
 
   function invalidateActiveRequest() {
     closeOpenAPIImport();
+    setCurlImportOpen(false);
     setActiveRecipe(null);
     setSelectedOpenAPIOperation(null);
     setDraftNotice(null);
@@ -390,80 +400,40 @@ export function HTTPWorkbench() {
     setCurlCopyNotice(null);
   }
 
-  const buildURL = useCallback(() => {
-    const normalized = normalizeHTTPDraftURL(url);
-    if (!normalized.ok) throw new Error(normalized.error);
-    const parsed = new URL(normalized.url);
-    for (const param of params) {
-      const name = param.name.trim();
-      if (name) parsed.searchParams.append(name, param.value);
-    }
-    return parsed.toString();
-  }, [url, params]);
-
-  const buildHeaders = useCallback(() => {
-    const result = filterMetadataForInvoke(headers).map((header) => ({ ...header }));
-    const authPlaceholderOmitted = authMode !== 'none' && isRedactedValue(authSecret);
-    const usableAuthSecret = authPlaceholderOmitted ? '' : authSecret;
-    const omittedHeaderPlaceholderCount = headers.filter(
-      (header) => header.name.trim() && isRedactedValue(header.value)
-    ).length;
-    let authHeaderName: string | null = null;
-    if (authMode === 'bearer' && usableAuthSecret) {
-      result.push({ name: 'Authorization', value: `Bearer ${usableAuthSecret}` });
-      authHeaderName = 'Authorization';
-    } else if (authMode === 'basic' && !authPlaceholderOmitted && (authUser || usableAuthSecret)) {
-      result.push({
-        name: 'Authorization',
-        value: `Basic ${encodeBasicAuth(authUser, usableAuthSecret)}`,
-      });
-      authHeaderName = 'Authorization';
-    } else if (authMode === 'api-key' && authName.trim() && usableAuthSecret) {
-      result.push({ name: authName.trim(), value: usableAuthSecret });
-      authHeaderName = authName.trim();
-    }
-    if (
-      bodyMode !== 'none' &&
-      !result.some((header) => header.name.trim().toLowerCase() === 'content-type')
-    ) {
-      result.push({
-        name: 'Content-Type',
-        value: bodyMode === 'json' ? 'application/json' : 'text/plain; charset=utf-8',
-      });
-    }
-    return {
-      requestHeaders: result,
-      authHeaderName,
-      authPlaceholderOmitted,
-      preOmittedCredentialCount: omittedHeaderPlaceholderCount + Number(authPlaceholderOmitted),
-    };
-  }, [headers, authMode, authSecret, authUser, authName, bodyMode]);
-
-  const prepareCurrentDraft = useCallback(() => {
-    let requestURL = url.trim();
-    try {
-      requestURL = buildURL();
-    } catch {
-      // The shared preparer returns the actionable URL error for both actions.
-    }
-    const headerDraft = buildHeaders();
-    const prepared = prepareHTTPRequestDraft({
+  const prepareCurrentDraft = useCallback(
+    () =>
+      prepareHTTPExecution(
+        {
+          method,
+          url,
+          params,
+          headers,
+          bodyMode,
+          body,
+          rememberBody,
+          timeoutSeconds,
+          followRedirects,
+        },
+        { mode: authMode, name: authName, user: authUser, secret: authSecret },
+        environment
+      ),
+    [
       method,
-      url: requestURL,
-      headers: headerDraft.requestHeaders,
-      body: bodyMode === 'none' ? null : body,
-      timeoutMs: Math.round(timeoutSeconds * 1000),
+      url,
+      params,
+      headers,
+      bodyMode,
+      body,
+      rememberBody,
+      timeoutSeconds,
       followRedirects,
-    });
-    if (!prepared.ok) return prepared;
-    return {
-      ...prepared,
-      authHeaderName: headerDraft.authHeaderName,
-      authPlaceholderOmitted: headerDraft.authPlaceholderOmitted,
-      preOmittedCredentialCount:
-        headerDraft.preOmittedCredentialCount + prepared.redactedQueryCount,
-    };
-  }, [url, buildURL, buildHeaders, method, bodyMode, body, timeoutSeconds, followRedirects]);
+      authMode,
+      authName,
+      authUser,
+      authSecret,
+      environment,
+    ]
+  );
 
   function showResponsePane() {
     setMobilePane('response');
@@ -511,9 +481,16 @@ export function HTTPWorkbench() {
     abortRef.current = controller;
     setRequestPending(true);
     showResponsePane();
+    const receiptStarted = performance.now();
+    const receiptURL = url;
+    let receiptOutcome: ReceiptOutcome = 'failed';
+    let receiptHTTPStatus: number | undefined;
     try {
       const result = await sendHTTPRequest(input, controller.signal);
+      receiptHTTPStatus = result.statusCode;
+      receiptOutcome = controller.signal.aborted ? 'cancelled' : 'success';
       if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
+        if (!controller.signal.aborted) receiptOutcome = 'stale';
         return;
       }
       if (controller.signal.aborted)
@@ -524,7 +501,7 @@ export function HTTPWorkbench() {
           toHTTPHistoryEntry({
             method: input.method,
             url: input.url,
-            requestHeaders: input.headers,
+            requestHeaders: prepared.historyHeaders,
             status: result.status,
             statusCode: result.statusCode,
             totalMs: result.timings.totalMs,
@@ -533,6 +510,7 @@ export function HTTPWorkbench() {
         ])
       );
     } catch (error) {
+      receiptOutcome = controller.signal.aborted ? 'cancelled' : 'failed';
       if (requestGenerationRef.current !== requestGeneration || abortRef.current !== controller) {
         return;
       }
@@ -546,6 +524,13 @@ export function HTTPWorkbench() {
         );
       }
     } finally {
+      recordOperationReceipt({
+        operation: 'http',
+        outcome: receiptOutcome,
+        target: { kind: 'http-url', url: receiptURL },
+        durationMs: performance.now() - receiptStarted,
+        httpStatus: receiptHTTPStatus,
+      });
       if (abortRef.current === controller) {
         abortRef.current = null;
         setRequestPending(false);
@@ -562,9 +547,9 @@ export function HTTPWorkbench() {
       return;
     }
     const result = buildCurlCommand({
-      ...prepared.input,
+      ...prepared.exportInput,
       authHeaderName: prepared.authHeaderName,
-      body: prepared.bodyActive ? prepared.input.body : null,
+      body: prepared.bodyActive ? prepared.exportInput.body : null,
       preOmittedCredentialCount: prepared.preOmittedCredentialCount,
     });
     if (!result.ok) {
@@ -684,6 +669,23 @@ export function HTTPWorkbench() {
     setDraftNotice(`Loaded “${recipe.name}”. Re-enter credentials before sending.`);
   }
 
+  function loadCurl(request: ImportedHTTPRequest) {
+    loadRecipe({
+      id: '',
+      name: 'cURL request',
+      savedAt: new Date().toISOString(),
+      draft: request.draft,
+    });
+    setActiveRecipe(null);
+    setAuthMode(request.auth.mode);
+    setAuthName(request.auth.name);
+    setAuthUser(request.auth.user);
+    setAuthSecret(request.auth.secret);
+    setDraftNotice(
+      'cURL loaded. Review before sending. Credentials stay in this live editor; body is not saved.'
+    );
+  }
+
   const applySavedRequest = useEffectEvent(() => {
     const id = consumeHTTPRecipe();
     if (!id) return;
@@ -740,10 +742,27 @@ export function HTTPWorkbench() {
             setOpenAPIImportError(null);
             if (openAPIImportOpen) closeOpenAPIImport();
             else setOpenAPIImportOpen(true);
+            setCurlImportOpen(false);
           }}
         >
           <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
         </button>
+        <button
+          type="button"
+          className="pp-openapi-import-trigger"
+          aria-expanded={curlImportOpen}
+          onClick={() => {
+            closeOpenAPIImport();
+            setCurlImportOpen(!curlImportOpen);
+          }}
+        >
+          Import cURL
+        </button>
+        {curlImportOpen ? (
+          <Suspense fallback={null}>
+            <HTTPImportPanel onLoad={loadCurl} onClose={() => setCurlImportOpen(false)} />
+          </Suspense>
+        ) : null}
         {openAPICollection ? (
           <button
             ref={openAPICollectionTriggerRef}
@@ -978,6 +997,9 @@ export function HTTPWorkbench() {
           )}
         >
           <div className="pp-http-request-settings">
+            <Suspense fallback={null}>
+              <HTTPEnvironmentControls onChange={setEnvironment} />
+            </Suspense>
             <label>
               <Clock3 aria-hidden="true" /> Timeout
               <input
@@ -1197,6 +1219,16 @@ export function HTTPWorkbench() {
             sentRequest={sentRequest}
             draftChanged={sentDraftChanged}
           />
+          {requestFailure && sentRequest && diagnosticDraftTarget(sentRequest.url) ? (
+            <p>
+              <a
+                href={`#/network/diagnostics?mode=diagnose&target=${encodeURIComponent(diagnosticDraftTarget(sentRequest.url) ?? '')}`}
+              >
+                Diagnose this connection
+              </a>{' '}
+              · Review the target before running.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1263,11 +1295,4 @@ function KeyValueEditor({
       {!entries.length ? <p>No fields. Add one when this request needs it.</p> : null}
     </div>
   );
-}
-
-function encodeBasicAuth(username: string, password: string) {
-  const bytes = new TextEncoder().encode(`${username}:${password}`);
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
 }

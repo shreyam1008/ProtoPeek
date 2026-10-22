@@ -39,17 +39,17 @@ func fixtureExecutable(t *testing.T, dir, name string) string {
 	return path
 }
 
-func TestCatalogLocatesFiveFixedToolsWithoutExecutingFixtures(t *testing.T) {
+func TestCatalogLocatesFixedToolsWithoutExecutingFixtures(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PATH", dir)
-	for _, name := range []string{"tailscale", "cloudflared", "dumpcap", "nmap", "aria2c"} {
+	for _, name := range []string{"tailscale", "cloudflared", "dumpcap", "nmap", "aria2c", "netbird"} {
 		fixtureExecutable(t, dir, name)
 	}
 	got := fixtureDetector().inspect(Options{Aria2ConfigKnown: true})
-	if got.SchemaVersion != 1 || got.Platform != runtime.GOOS || got.Architecture != runtime.GOARCH || got.ObservedAt != "2026-09-28T10:00:00Z" || len(got.Extensions) != 5 {
+	if got.SchemaVersion != 1 || got.Platform != runtime.GOOS || got.Architecture != runtime.GOARCH || got.ObservedAt != "2026-09-28T10:00:00Z" || len(got.Extensions) != 6 {
 		t.Fatalf("snapshot = %#v", got)
 	}
-	for i, id := range []string{"tailscale", "cloudflared", "wireshark", "nmap", "aria2"} {
+	for i, id := range []string{"tailscale", "cloudflared", "wireshark", "nmap", "aria2", "netbird"} {
 		entry := got.Extensions[i]
 		if entry.ID != id || entry.Status != "detected" || entry.Source != "path" || entry.Path == "" || entry.Bundled || entry.BundledBytes != 0 {
 			t.Fatalf("extension %s = %#v", id, entry)

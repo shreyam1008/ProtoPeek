@@ -65,8 +65,33 @@ Use the library filter, Delete, Export library or Reset library to manage stored
 Storage belongs to this browser origin: at most 50 recipes / 512 KiB total and 64 KiB per saved
 body. A corrupt/full/unavailable store produces an error and is not overwritten by a failed save.
 Other tabs refresh the list when browser storage changes. Closing/reopening the browser preserves
-the library on the same origin; it is not an account or a host-wide database. This functionality
-is in current source after v0.5.0; environment profiles and library import are still future work.
+the library on the same origin; it is not an account or a host-wide database.
+
+### Current-source additions · 22 October 2026
+
+These additions require a matching current build; the stable v0.6.1 behavior and earlier acceptance
+records do not establish their release or native acceptance.
+
+Choose **Manage environments** to create a profile, add variables, and save it, then select it in
+**Environment**. Use `{{name}}` in the URL, query fields, headers or body. Missing variables fail
+before sending; nested templates are rejected. Secret variables are accepted only in auth/header
+values. Their values stay in the open HTTP session and must be re-entered after leaving or reload;
+only names/secret flags and non-secret values persist. The store allows 20 profiles, 32 variables
+per profile and 128 KiB total. Export and saved recipes do not expand live secret values.
+
+In **Saved requests**, choose **Import request library**, inspect the preview, then choose Merge
+or Replace and **Import library**. Imported credentials are removed; included bodies are imported
+verbatim, so review them for secrets. The 50-recipe/512 KiB bounds still apply, with no silent
+eviction. Import and recipe selection prepare the editor without sending.
+
+**Import cURL** accepts a bounded Copy as cURL (bash/POSIX) subset: one HTTP(S) URL, method, headers,
+inline body and timeout, including literal `-b`/`--cookie` values and bounded ANSI-C UTF-8 quoting
+(`$'…'`). Choose **Preview request**, review it, then **Load into editor**. The preview discloses
+omitted `--compressed`/`Accept-Encoding`: the relay negotiates and decodes gzip rather than copying
+browser compression choices. Other content encodings are not decoded. Cookies and auth stay in
+memory; bodies are not automatically saved. It never runs a shell or reads cookie/header/body
+files. NUL/binary escapes, unsupported flags, proxies and insecure TLS are rejected. **Send** is
+separate.
 
 Recent HTTP calls remain local to this browser and preserve a small response summary. Replaying a history entry starts from a clean request state and leaves redacted values blank for deliberate re-entry.
 
@@ -95,7 +120,7 @@ timestamps are browser observation times since Connect, not one-way network late
 stream sessions are allowed per server. Headers and payloads remain in memory. SSE does not retry
 automatically; an explicit `Last-Event-ID` header can request resumption from a compatible server.
 
-ProtoPeek does not currently provide cURL import, automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
+ProtoPeek does not currently provide automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
 
 ## Go deeper
 

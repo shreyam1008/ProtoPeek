@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { type AnchorHTMLAttributes, type ReactNode, StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import { clearPendingHandoff } from './app/handoff-store';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { NetworkPathPanel } from './NetworkPathPanel';
 import { normalizePathTrace } from './network-path';
 import { preparePathTarget, takePathTarget } from './network-path-draft';
@@ -139,6 +140,8 @@ const trace = {
 afterEach(() => {
   vi.unstubAllGlobals();
   sessionStorage.clear();
+  clearPendingHandoff();
+  clearOperationReceipts();
 });
 
 it('uses a website handoff once without tracing until the user runs it, including in StrictMode', async () => {
@@ -158,6 +161,7 @@ it('uses a website handoff once without tracing until the user runs it, includin
   expect(fetchMock.mock.calls.every(([input]) => String(input).endsWith('/capabilities'))).toBe(
     true
   );
+  expect(readOperationReceipts()).toEqual([]);
   fireEvent.change(screen.getByLabelText('Hostname or IP'), {
     target: { value: 'https://example.com/health' },
   });
@@ -165,6 +169,9 @@ it('uses a website handoff once without tracing until the user runs it, includin
   await screen.findByRole('region', { name: 'Measured hop map' });
   const request = fetchMock.mock.calls.find(([input]) => String(input).endsWith('/trace'));
   expect(request).toBeDefined();
+  expect(readOperationReceipts()).toMatchObject([
+    { operation: 'path', outcome: 'success', count: 3 },
+  ]);
 });
 
 it('retains bounded, source-labelled attribution when saving a measured trace', async () => {

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
+import { commandDestinationFeatures } from './feature-commands';
 import {
-  commandDestinationFeatures,
   destinationForPath,
   destinations,
   featureForPath,
@@ -27,6 +26,7 @@ const publicDocsSlugs = new Set([
   'feature-roadmap',
   'grpc-workbench',
   'http-workbench',
+  'network-diagnostics',
   'network-workbench',
   'route-and-nmap-evidence',
   'security',
@@ -98,8 +98,8 @@ describe('feature registry', () => {
     expect(new Set(orders).size).toBe(orders.length);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(commandDestinationFeatures.map((feature) => feature.order)).toEqual([
-      10, 20, 30, 40, 45, 47, 55, 60, 65, 67, 70, 80, 90, 110, 115, 120, 125, 130, 140, 150, 155,
-      156, 160,
+      10, 20, 30, 40, 45, 47, 54, 55, 60, 65, 66, 67, 70, 80, 90, 110, 115, 120, 125, 128, 130, 140,
+      150, 155, 156, 160,
     ]);
     expect(aliases.every((alias) => !routeSet.has(alias))).toBe(true);
   });
@@ -128,8 +128,12 @@ describe('feature registry', () => {
   });
 
   it('derives commands, Home entries, and Inspect entries from registry entries', () => {
-    for (const surface of [commandDestinationFeatures, homeEntryFeatures, inspectEntryFeatures]) {
+    for (const surface of [homeEntryFeatures, inspectEntryFeatures]) {
       expect(surface.every((feature) => featureRegistry.includes(feature))).toBe(true);
+    }
+    for (const feature of commandDestinationFeatures) {
+      expect(featureForPath(feature.route)?.id).toBe(feature.id);
+      expect(featureForPath(feature.route)?.destination).toBe(feature.destination);
     }
 
     expect(commandDestinationFeatures.map((feature) => feature.command.label)).toEqual([
@@ -139,9 +143,11 @@ describe('feature registry', () => {
       'Open HTTP workbench',
       'Open WebSocket and SSE',
       'Open Cap’n Proto',
+      'Diagnose a connection',
       'Scan host ports',
       'Open next-hop route evidence',
       'Open Nmap scanner',
+      'Open NetBird',
       'Inspect captured packets',
       'Trace a measured network path',
       'See nearby devices',
@@ -150,6 +156,7 @@ describe('feature registry', () => {
       'Open Tailscale workbench',
       'Open Downloader',
       'Open Extensions',
+      'Share a local service',
       'Open Cloudflare tunnel operations',
       'Open Security evidence',
       'Open Settings',
@@ -208,7 +215,14 @@ describe('feature registry', () => {
     };
     expect(producedBy('grpc')).toEqual(['grpc-target-draft', 'http-url-draft']);
     expect(producedBy('network')).toEqual(['grpc-target-draft', 'http-url-draft']);
-    expect(producedBy('this-pc')).toEqual(handoffDraftKinds);
+    expect(producedBy('this-pc')).toEqual([
+      'grpc-target-draft',
+      'http-url-draft',
+      'next-hop-target-draft',
+      'publish-origin-draft',
+    ]);
+    expect(producedBy('security')).toEqual(['path-target-draft']);
+    expect(producedBy('network-diagnostics')).toEqual(['grpc-target-draft', 'http-url-draft']);
     expect(producedBy('tunnels')).toEqual(['grpc-target-draft', 'http-url-draft']);
   });
 });

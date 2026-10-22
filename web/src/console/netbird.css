@@ -1,0 +1,94 @@
+.pp-netbird {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 20px;
+  min-width: 0;
+}
+.pp-netbird > :not(.pp-page-header) {
+  margin-inline: 16px;
+}
+.pp-netbird p {
+  margin-block: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.pp-netbird :is(h2, h3) {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.pp-netbird-summary,
+.pp-netbird-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pp-netbird-summary,
+.pp-netbird-review,
+.pp-netbird-endpoints > * {
+  padding: 12px;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 8px;
+  background: var(--pp-color-surface);
+}
+.pp-netbird-endpoints {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.pp-netbird :is(label, .pp-netbird-review) {
+  display: grid;
+  gap: 8px;
+}
+.pp-netbird button,
+.pp-netbird input {
+  font: inherit;
+  color: var(--pp-color-text);
+  background: var(--pp-color-surface);
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 5px;
+  padding: 7px 9px;
+  min-width: 0;
+}
+.pp-netbird button {
+  cursor: pointer;
+}
+.pp-netbird button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pp-netbird :focus-visible {
+  outline: 2px solid var(--pp-color-focus);
+  outline-offset: 2px;
+}
+.pp-netbird [role="alert"] {
+  color: var(--pp-color-danger);
+}
+.pp-netbird-table {
+  overflow: auto;
+  margin-block: 10px;
+}
+.pp-netbird table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.pp-netbird :is(th, td) {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--pp-color-stroke);
+}
+.pp-netbird dd {
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+@media (max-width: 760px) {
+  .pp-netbird-endpoints {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pp-netbird a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

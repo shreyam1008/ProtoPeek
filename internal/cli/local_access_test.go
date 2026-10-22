@@ -170,6 +170,20 @@ func TestUnsafeRemoteModeMountsNoTunnelServiceOrRoutes(t *testing.T) {
 	}
 }
 
+func TestUnsafeRemoteModeMountsNoNetBirdService(t *testing.T) {
+	if localNetBirdService(true) != nil {
+		t.Fatal("unsafe remote mode constructed a NetBird controller")
+	}
+	if localNetBirdService(false) == nil {
+		t.Fatal("local mode omitted NetBird")
+	}
+	response := httptest.NewRecorder()
+	standalone.Handler(nil, "", nil, nil).ServeHTTP(response, httptest.NewRequest("POST", "/api/netbird/inspect", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("embedder mounted NetBird: %d", response.Code)
+	}
+}
+
 func TestLocalAccessHandlerRejectsUntrustedHostAndOrigin(t *testing.T) {
 	t.Parallel()
 

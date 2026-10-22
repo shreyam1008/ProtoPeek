@@ -7,13 +7,15 @@ locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, net
 tools: the [HTTP workbench](/http-workbench/), [gRPC workbench](/grpc-workbench/),
 [network workbench](/network-workbench/), and [This Device](/this-pc/).
 
-This page describes the local operations available in v0.6.1. ProtoPeek is not affiliated with
-or endorsed by Cloudflare, Inc., and this guide does not make pricing or plan-limit claims.
+The foundation below records stable v0.6.1 behavior. The dated current-source section describes
+additional operations that require a matching build; source tests are not installed-service or
+provider-account acceptance. ProtoPeek is not affiliated with or endorsed by Cloudflare, Inc.,
+and this guide does not make pricing or plan-limit claims.
 
 **Current source:** open this workbench from [Extensions](extensions.md). The `/tunnels` route
 remains valid. Stable v0.6.1 uses the Publish destination described below.
 
-## What works now
+## Stable v0.6.1 local-operations foundation
 
 Open **Publish** and enter the domain-native **Cloudflare Tunnel** workspace, or choose its task on
 Home, then select **Inspect this host**. No host inspection, Internet release check, service action,
@@ -87,10 +89,11 @@ route draft opened for that deployment is only a browser proposal; current sourc
 write its remote ingress configuration.
 
 Cloudflare `path` values are regular expressions, not shell-style globs. For example, use a shape
-such as `^/api/.*`, not `/api/*`. Current source performs only structural browser checks on a draft;
-authoritative `cloudflared tunnel ingress validate` and route matching remain planned. A config
-source’s **parsed routes** count includes the required final catch-all. Any separate hostname-route
-summary excludes that catch-all and reports its presence beside the count.
+such as `^/api/.*`, not `/api/*`. The stable **Draft ingress route** drawer performs structural
+browser checks only. Current source adds separate native validation and matching in **Canonical
+operations**, described below. A config source’s **parsed routes** count includes the required
+final catch-all. Any separate hostname-route summary excludes that catch-all and reports its
+presence beside the count.
 
 ## Operating-system service behavior
 
@@ -185,7 +188,7 @@ only to identify that a token flag exists and is reported as redacted. Credentia
 shown because they explain configuration authority, but the files are never opened. Userinfo and
 sensitive token, secret, key, or auth query values in ingress service URLs are redacted.
 
-The current boundary permits only narrowly scoped canonical-service control:
+The stable v0.6.1 local-control boundary is:
 
 - **Start**, **Stop**, and **Restart** require confirmation, a fresh-state check, an allowlisted
   canonical service target, and post-action observation;
@@ -196,8 +199,8 @@ The current boundary permits only narrowly scoped canonical-service control:
   or update, ambient release check, or ambient log/metrics stream; and
 - the local API stays unavailable when ProtoPeek is started in unsafe remote-listen mode.
 
-This boundary allows the UI and evidence model to become useful before wider privileged file and
-cloud mutations are earned.
+Current source extends this foundation only through the reviewed canonical-file and owned-session
+operations below. Account/cloud writes and administrator-owned config writes remain unavailable.
 
 ## Does Wrangler come into play?
 
@@ -209,18 +212,76 @@ and—only in a later opt-in phase—the Cloudflare REST API.
 That split avoids coupling tunnel operations to an experimental developer-project workflow while
 leaving room for a future Wrangler adapter.
 
-## Planned next steps
+## Current-source operations · 22 October 2026
 
-The implementation plan separates further capability growth by risk:
+After **Inspect this host**, use **Canonical operations** for the observed locally managed,
+service-bound config. **Validate ingress** invokes native validation; **Match ingress rule** checks
+an entered URL. **Recent log summary**, **Metrics snapshot** and **Prepare sanitized report** are
+explicit bounded reads. Unknown or unavailable evidence stays visible; no stream or poll starts
+in the background. **Download sanitized report** omits credential contents.
 
-1. Finish read-only evidence with authoritative `cloudflared` validation and route matching,
-   bounded logs and metrics, and a local Doctor report.
-2. Add atomic config writes only after plan, authoritative validation, revision checks, rollback,
-   and receipts are complete on each operating system.
-3. Add optional least-privilege Cloudflare account sessions for remotely managed tunnels.
-4. Add container and optional Wrangler project awareness only after the local-host path is proven.
+For an eligible user-owned writable canonical file, expand **Add a route to this canonical config**.
+Enter the hostname, optional path regex and service, then **Preview validated change**. Preview
+validates a temporary sibling file and shows the exact path, before/after hashes and expiry. Review
+and confirm before **Apply reviewed change**. Apply rechecks service/config authority and revision,
+validates, atomically replaces and revalidates the file. It does not restart the service: the loaded
+configuration remains in use until an explicit restart.
+
+**Roll back this change** retains the original bytes privately in this process for ten minutes and
+refuses unrelated file/service changes. **Cancel waiting** can stop the browser wait after a write
+has committed; refresh host evidence before another change. Administrator-owned, remotely managed,
+credential and unrelated files are excluded. Test fixtures do not replace real installed-service,
+filesystem-ownership, privilege and rollback acceptance on each supported OS.
+
+### Temporary sharing with an explicit audience
+
+Foreground sharing is available on Windows 10 / Server 2016 or later and Linux. All three modes
+are unavailable on macOS until a native parent-lifetime backend exists; use the installed native
+client directly there. This gate does not disable installed-tool observation or canonical-config
+operations. Windows starts only the owned child/descendants in a kill-on-close job; Linux uses
+an owned process group for Stop, expiry and cancellation, plus parent-death termination for the
+direct native vendor command. Linux accepts only regular executable ELF files with Go command
+identity `github.com/cloudflare/cloudflared/cmd/cloudflared` or `tailscale.com/cmd/tailscale`, without
+set-ID bits or file capabilities. Preview and Start both check the resolved command before any
+native observation or launch. Scripts, Snap/Flatpak launchers, combined/multicall clients and unknown
+or repackaged builds are refused with manual native-client guidance. Official native download filenames may include an
+architecture suffix; admission uses the embedded command identity, not that filename.
+
+This is a compatibility check for supported local foreground clients, not cryptographic vendor
+attestation. Linux parent-death signals do not cover arbitrary forked descendants, so wrapped or
+daemonizing launchers are unsupported; use their native client directly. A successful process-group
+signal does not verify that every possible descendant ended: detached or changed-credential
+descendants fall outside this supported foreground-client model. No group signal is sent after the
+direct child is reaped. A host security policy that applies a secure-exec transition can also clear
+the parent-death signal; file admission cannot detect that policy, so manage publishing directly in
+the native client on such hosts. See the kernel's [secure-exec handling](https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.git/+/26b77009ee74f6122a067a4f9926ff6e09fffb94/fs/exec.c).
+
+If process ownership cleanup becomes unconfirmed, manually confirm that no native client process or
+public exposure remains, then restart ProtoPeek before starting another session. Rechecking an empty
+provider config cannot clear uncertain process ownership. Native Linux process tests and real
+installed-provider cleanup remain separate acceptance gates.
+
+From Extensions, open **Share a local service**. Select private **Tailscale Serve**, public
+**Cloudflare Quick Tunnel**, or public **Tailscale Funnel**, enter an HTTP/verified-HTTPS literal
+loopback origin with an explicit port, and choose 1–60 minutes. **Review session** checks native
+prerequisites and origin TCP reachability, then shows audience and argv. Review and confirm before
+**Start reviewed session**; a TCP connection does not prove HTTP health.
+
+Use **Check session** to observe startup and **Verify endpoint** for a separate verified-HTTPS HEAD
+check without redirects. An HTTP response does not establish application correctness. Leaving this
+page keeps the owned session running until **Stop owned session**, expiry or ProtoPeek shutdown.
+Cancelling a browser wait can leave an accepted session running; check it and stop it explicitly.
+Unconfirmed native rule cleanup blocks another session. Existing external rules are not owned.
+
+Real provider/account and installed-client acceptance, endpoint reachability and Stop/expiry/shutdown
+cleanup remain required. Quick Tunnels are temporary testing, not an uptime promise. Cloudflare
+account administration, remote ingress mutation, container/Wrangler control and implicit native
+installation or elevation remain outside these flows.
 
 ## QA acceptance checklist
+
+The following dated record is historical stable-foundation evidence, not acceptance of the new
+canonical-file or temporary-sharing operations.
 
 Platform adapter tests exercise Windows, Linux, and macOS command/state behavior. The real Windows
 host checked on 2026-09-02 proved the all-absent path and an isolated `cloudflared` 2026.8.3 binary

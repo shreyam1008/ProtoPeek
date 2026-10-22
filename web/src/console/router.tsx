@@ -6,7 +6,7 @@ import {
   lazyRouteComponent,
   redirect,
 } from '@tanstack/react-router';
-
+import type { DiagnosticMode } from './network-diagnostics';
 import { ProtocolFrame } from './ProtocolFrame';
 import { RouteError, RouteNotFound, RoutePending } from './shell/RouteState';
 
@@ -60,6 +60,31 @@ const nmapScannerRoute = createRoute({
   path: '/network/nmap',
   component: lazyRouteComponent(() => import('./NmapScanner'), 'NmapScanner'),
 });
+const diagnosticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/diagnostics',
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { mode?: DiagnosticMode; target?: string } => ({
+    mode:
+      typeof search.mode === 'string' &&
+      /^(diagnose|dns|dns-compare|tls|ip-compare|availability|tcp-exchange|udp-exchange|http-proxy|socks5-proxy|http2|http3|subnet)$/.test(
+        search.mode
+      )
+        ? (search.mode as DiagnosticMode)
+        : undefined,
+    target:
+      typeof search.target === 'string' &&
+      search.target.length <= 1024 &&
+      !Array.from(search.target).some(
+        (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+      )
+        ? search.target
+        : undefined,
+  }),
+  remountDeps: ({ search }) => [search.mode, search.target],
+  component: lazyRouteComponent(() => import('./NetworkDiagnostics'), 'NetworkDiagnostics'),
+});
 const tailnetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/tailnet',
@@ -109,6 +134,16 @@ const securityRoute = createRoute({
   path: '/security',
   component: lazyRouteComponent(() => import('./Security'), 'Security'),
 });
+const netBirdRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/extensions/netbird',
+  component: lazyRouteComponent(() => import('./NetBirdWorkbench'), 'NetBirdWorkbench'),
+});
+const publishingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/extensions/publish',
+  component: lazyRouteComponent(() => import('./PublishingWorkbench'), 'PublishingWorkbench'),
+});
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -144,6 +179,14 @@ const networkIndexRoute = createRoute({
 const networkLocalRoute = createRoute({
   getParentRoute: () => networkRoute,
   path: '/local',
+  validateSearch: (search: Record<string, unknown>): { draftSubnet?: string } => ({
+    draftSubnet:
+      typeof search.draftSubnet === 'string' &&
+      search.draftSubnet.length <= 64 &&
+      /^[0-9a-fA-F.:/]+$/.test(search.draftSubnet)
+        ? search.draftSubnet
+        : undefined,
+  }),
 });
 const networkMapRoute = createRoute({
   getParentRoute: () => networkRoute,
@@ -206,10 +249,13 @@ const routeTree = rootRoute.addChildren([
   packetsRoute,
   portScannerRoute,
   nmapScannerRoute,
+  diagnosticsRoute,
   tailnetRoute,
   thisPCRoute,
   tunnelsRoute,
   extensionsRoute,
+  netBirdRoute,
+  publishingRoute,
   downloaderRoute,
   routesRoute,
   securityRoute,

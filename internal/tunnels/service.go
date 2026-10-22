@@ -22,6 +22,10 @@ type serviceActor interface {
 	ServiceAction(context.Context, cloudflared.ServiceActionRequest) (cloudflared.ServiceActionResult, error)
 }
 
+type operationActor interface {
+	Operation(context.Context, cloudflared.OperationRequest) (cloudflared.OperationResult, error)
+}
+
 type releaseChecker interface {
 	LatestRelease(context.Context, cloudflared.ToolObservation) (cloudflared.ReleaseObservation, error)
 }
@@ -32,6 +36,7 @@ type Service struct {
 	observer       observer
 	serviceActor   serviceActor
 	releaseChecker releaseChecker
+	operations     operationActor
 	now            func() time.Time
 }
 
@@ -43,7 +48,7 @@ func NewService() *Service {
 // retaining ProtoPeek's fixed timeout and redirect policy.
 func NewServiceWithHTTPClient(client *http.Client) *Service {
 	inspector := cloudflared.NewInspectorWithHTTPClient(client)
-	return &Service{observer: inspector, serviceActor: inspector, releaseChecker: inspector, now: time.Now}
+	return &Service{observer: inspector, serviceActor: inspector, releaseChecker: inspector, operations: inspector, now: time.Now}
 }
 
 func (service *Service) Capabilities(context.Context) Capabilities {
@@ -62,9 +67,9 @@ func (service *Service) Capabilities(context.Context) Capabilities {
 		ManualRefresh:      Capability{Supported: true},
 		ServiceObservation: Capability{Supported: managerSupported, Reason: managerReason},
 		ConfigInspection:   Capability{Supported: true},
-		RoutePlanPreview:   Capability{Supported: true, Reason: "Plans stay in the browser; this release never writes them to the host."},
+		RoutePlanPreview:   Capability{Supported: true, Reason: "Browser route drafts stay local. Canonical config previews are separately validated and require explicit confirmation before applying."},
 		ServiceControl:     Capability{Supported: managerSupported, Reason: serviceControlReason(managerSupported)},
-		ConfigMutation:     Capability{Supported: false, Reason: "This beta is read-only. It can preview a route, but cannot apply it."},
+		ConfigMutation:     Capability{Supported: service.operations != nil, Reason: "Reviewed writes require the exact user-owned writable canonical config, an unchanged revision, native validation and explicit confirmation. Administrator-owned files remain manual."},
 		AccountConnection:  Capability{Supported: false, Reason: "Cloudflare account sessions arrive after local inspection is proven safe."},
 		BackgroundPolling:  Capability{Supported: false, Reason: "Inspection runs only when you choose Inspect this host or Refresh."},
 		Install:            installGuidance(runtime.GOOS, runtime.GOARCH, privilege),
@@ -399,4 +404,15 @@ func platformServiceManager() (string, bool) {
 	default:
 		return "unsupported", false
 	}
+}
+
+// Operation is optional for injected host-inspection services.
+type OperationRequest = cloudflared.OperationRequest
+type OperationResult = cloudflared.OperationResult
+
+func (service *Service) Operation(ctx context.Context, request OperationRequest) (OperationResult, error) {
+	if service.operations == nil {
+		return OperationResult{Operation: request.Operation, Status: "unavailable", Message: "Canonical operations are unavailable in this runtime.", ObservedAt: service.now().UTC()}, nil
+	}
+	return service.operations.Operation(ctx, request)
 }

@@ -1,28 +1,32 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { usePagination } from '@/shared/use-pagination';
-import {
-  packetConversationKey,
-  packetRelativeTime,
-  summarizeConversations,
-} from './packet-analysis';
+import { packetConversationKey, packetRelativeTime } from './packet-analysis';
 import type { PacketReport } from './packet-api';
+
+const PayloadEvidence = lazy(() =>
+  import('./PacketReconstruction').then((module) => ({ default: module.PayloadEvidence }))
+);
+const ConversationControl = lazy(() =>
+  import('./PacketConversations').then((module) => ({ default: module.ConversationControl }))
+);
 
 export default function PacketReportView({
   report,
   source,
   busy,
   onClear,
+  onForgetPayload,
 }: {
   report: PacketReport;
   source: string;
   busy: boolean;
   onClear: () => void;
+  onForgetPayload: () => void;
 }) {
   const [query, setQuery] = useState('');
   const [protocol, setProtocol] = useState('all');
   const [selection, setSelection] = useState(0);
   const [conversation, setConversation] = useState('');
-  const conversations = useMemo(() => summarizeConversations(report.packets), [report]);
   const origin = report.packets.find((row) => row.timestamp)?.timestamp;
   const rows = useMemo(
     () =>
@@ -40,7 +44,9 @@ export default function PacketReportView({
   const selected = report.packets.find((row) => row.number === selection);
   function save() {
     const url = URL.createObjectURL(
-      new Blob([JSON.stringify({ source, ...report }, null, 2)], { type: 'application/json' })
+      new Blob([JSON.stringify({ source, ...report, reconstruction: undefined }, null, 2)], {
+        type: 'application/json',
+      })
     );
     const link = document.createElement('a');
     link.href = url;
@@ -66,47 +72,28 @@ export default function PacketReportView({
       {report.warnings.map((warning) => (
         <small key={warning}>{warning}</small>
       ))}
+      {report.reconstruction !== undefined ? (
+        <Suspense fallback={<p>Preparing bounded TCP evidence…</p>}>
+          <PayloadEvidence value={report.reconstruction} onForget={onForgetPayload} />
+        </Suspense>
+      ) : null}
       {report.packetCount > report.packets.length ? (
         <small>
           The table retains the first {report.packets.length.toLocaleString()} packets. Totals
           include {report.packetCount.toLocaleString()} parsed records.
         </small>
       ) : null}
-      {conversations.length ? (
-        <details className="pp-packet-conversations" open={Boolean(conversation) || undefined}>
-          <summary>
-            {conversations.length} endpoint pairs · explore traffic in both directions
-          </summary>
-          <p>Grouped by addresses, ports and capture interface across the retained packets.</p>
-          <div>
-            {conversations.slice(0, 12).map((pair) => (
-              <button
-                type="button"
-                key={pair.key}
-                aria-pressed={conversation === pair.key}
-                onClick={() => {
-                  setConversation((current) => (current === pair.key ? '' : pair.key));
-                  setSelection(0);
-                  table.setPageIndex(0);
-                }}
-              >
-                <strong>
-                  {pair.first} ↔ {pair.second}
-                </strong>
-                <span>
-                  {pair.forward} → · {pair.reverse} ← · {pair.bytes.toLocaleString()} bytes ·{' '}
-                  {pair.protocols.join(', ')}
-                </span>
-              </button>
-            ))}
-          </div>
-          {conversations.length > 12 ? (
-            <small>
-              Showing the 12 largest pairs by wire bytes. All retained packets are searchable below.
-            </small>
-          ) : null}
-        </details>
-      ) : null}
+      <Suspense fallback={null}>
+        <ConversationControl
+          packets={report.packets}
+          selected={conversation}
+          onSelect={(key) => {
+            setConversation((current) => (current === key ? '' : key));
+            setSelection(0);
+            table.setPageIndex(0);
+          }}
+        />
+      </Suspense>
       <div className="pp-packet-filters">
         <label>
           Filter packets
@@ -242,6 +229,10 @@ export default function PacketReportView({
               </dd>
               <dt>Interface index</dt>
               <dd>{selected.interface}</dd>
+              <dt>Capture section</dt>
+              <dd>{selected.section ?? 0}</dd>
+              <dt>Underlying transport</dt>
+              <dd>{selected.transport || 'Not recorded'}</dd>
             </dl>
           </aside>
         ) : null}

@@ -4,6 +4,7 @@ export type PacketRow = {
   number: number;
   timestamp?: string;
   interface: number;
+  section?: number;
   length: number;
   captured: number;
   source: string;
@@ -11,6 +12,7 @@ export type PacketRow = {
   sourcePort?: number;
   destinationPort?: number;
   protocol: string;
+  transport?: 'TCP' | 'UDP';
   info: string;
   truncated: boolean;
 };
@@ -23,6 +25,8 @@ export type PacketReport = {
   protocols: Record<string, number>;
   limited: boolean;
   warnings: string[];
+  /** Parsed only when the user opens the lazy payload view. Never included in metadata exports. */
+  reconstruction?: unknown;
 };
 export type CaptureInterface = { name: string; label: string };
 
@@ -88,6 +92,9 @@ export function parsePacketReport(value: unknown): PacketReport {
       !Number.isInteger(row.interface) ||
       row.interface < 0 ||
       row.interface > 63 ||
+      (row.section !== undefined &&
+        (!Number.isInteger(row.section) || row.section < 0 || row.section > 63)) ||
+      (row.transport !== undefined && !['TCP', 'UDP'].includes(row.transport)) ||
       typeof row.truncated !== 'boolean'
     )
       throw new Error('Invalid packet record.');

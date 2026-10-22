@@ -15,6 +15,7 @@ import { PageHeader } from './shell/PageHeader';
 import './extensions.css';
 
 const icons = {
+  netbird: Network,
   tailscale: Network,
   cloudflared: Cloud,
   wireshark: Waves,
@@ -40,7 +41,7 @@ export function Extensions() {
     const controller = new AbortController();
     setBusy(true);
     setError('');
-    void fetchJSON<unknown>('/api/extensions', {
+    void fetchJSON<unknown>('api/extensions', {
       signal: controller.signal,
       cache: revision > 0 ? 'reload' : 'default',
     })
@@ -125,6 +126,12 @@ export function Extensions() {
       {groups.map((group) => (
         <section className="pp-extension-group" key={group} aria-label={group}>
           <h2>{group}</h2>
+          {group === 'Connect & publish' ? (
+            <p>
+              <Link to="/extensions/publish">Share a local service</Link> with a reviewed, temporary
+              session, then stop it here.
+            </p>
+          ) : null}
           <div className="pp-extension-grid">
             {extensionCatalog
               .filter((entry) => entry.group === group)

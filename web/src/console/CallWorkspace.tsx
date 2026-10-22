@@ -13,15 +13,19 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { InvokeState } from '@/features/grpc/operations/useGrpcInvoke';
 
-import type {
-  BootstrapMethod,
-  InvokeResponse,
-  MetadataEntry,
-  SchemaResponse,
-} from '@/shared/types';
+import type { BootstrapMethod, MetadataEntry, SchemaResponse } from '@/shared/types';
 import {
   classNames,
   durationLabel,
@@ -34,7 +38,15 @@ import {
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { shouldHandleWorkbenchShortcut } from './workbench-shortcut';
 
+const LazyResponseEvidence = lazy(() =>
+  import('./GrpcResponseEvidence').then((module) => ({ default: module.GrpcResponseEvidence }))
+);
+
 type ResponseTab = 'messages' | 'headers' | 'trailers' | 'status';
+
+function ResponsePlaceholder({ children }: { children: ReactNode }) {
+  return <div className="pp-response-placeholder">{children}</div>;
+}
 
 function downloadJSON(name: string, value: unknown) {
   const blob = new Blob([prettyJson(value)], { type: 'application/json' });
@@ -133,10 +145,10 @@ export function CallWorkspace({
       .filter(({ item }) => !query || prettyJson(item.message).toLowerCase().includes(query));
   }, [response, responseQuery]);
 
+  const firstResponse = response?.responses[0];
   useEffect(() => {
-    if (!response) return;
-    setSelectedResponse(0);
-  }, [response]);
+    if (firstResponse) setSelectedResponse(0);
+  }, [firstResponse]);
 
   useEffect(() => {
     function invokeFromKeyboard(event: KeyboardEvent) {
@@ -180,9 +192,11 @@ export function CallWorkspace({
           ? 'CANCELLED'
           : invokeState.error
             ? 'ERROR'
-            : response
-              ? 'OK'
-              : 'READY';
+            : response?.finalStatusObserved === false
+              ? 'PARTIAL'
+              : response
+                ? 'OK'
+                : 'READY';
   const responseTabs = (
     [
       ['messages', 'Messages', response?.responses.length ?? 0],
@@ -200,7 +214,7 @@ export function CallWorkspace({
   }));
 
   function renderResponseTab(tab: ResponseTab) {
-    if (invokeState.loading) {
+    if (invokeState.loading && !response) {
       return (
         <ResponsePlaceholder>
           <LoaderCircle className="pp-response-spinner" aria-hidden="true" />
@@ -209,14 +223,14 @@ export function CallWorkspace({
         </ResponsePlaceholder>
       );
     }
-    if (invokeState.cancelled) {
+    if (invokeState.cancelled && !response) {
       return (
         <ResponsePlaceholder>
           Call cancelled locally. Final server status was not observed.
         </ResponsePlaceholder>
       );
     }
-    if (invokeState.error) {
+    if (invokeState.error && !response) {
       return (
         <div className="pp-response-error" role="alert">
           <CircleAlert aria-hidden="true" />
@@ -232,25 +246,20 @@ export function CallWorkspace({
         <ResponsePlaceholder>Invoke this method to inspect gRPC evidence.</ResponsePlaceholder>
       );
     }
-    switch (tab) {
-      case 'messages':
-        return (
-          <ResponseMessages
-            responses={response.responses}
-            filtered={filteredResponses}
-            selectedIndex={visibleSelectedIndex}
-            selected={selected}
-            onSelect={setSelectedResponse}
-            onCopy={() => void copyResponse(selected?.message)}
-          />
-        );
-      case 'headers':
-        return <MetadataGrid title="Response headers" values={response.headers} />;
-      case 'trailers':
-        return <MetadataGrid title="Response trailers" values={response.trailers} />;
-      case 'status':
-        return <StatusGrid response={response} latencyMs={invokeState.latencyMs} />;
-    }
+    return (
+      <Suspense fallback={<ResponsePlaceholder>Loading response evidence…</ResponsePlaceholder>}>
+        <LazyResponseEvidence
+          tab={tab}
+          response={response}
+          latencyMs={invokeState.latencyMs}
+          filtered={filteredResponses}
+          selectedIndex={visibleSelectedIndex}
+          selected={selected}
+          onSelect={setSelectedResponse}
+          onCopy={() => void copyResponse(selected?.message)}
+        />
+      </Suspense>
+    );
   }
 
   return (
@@ -500,6 +509,15 @@ export function CallWorkspace({
               : 'Response JSON copied.'}
           </p>
         ) : null}
+        {response && (invokeState.loading || invokeState.cancelled || invokeState.error) ? (
+          <p className="pp-call-leave-note" role="status">
+            {invokeState.loading
+              ? 'Receiving response messages… Use Cancel to stop. Leaving this tool cancels the call.'
+              : invokeState.cancelled
+                ? 'Call cancelled locally. Retained messages remain available; final server status was not observed.'
+                : invokeState.error}
+          </p>
+        ) : null}
         {response?.localLimit ? (
           <div className="pp-response-error" role="alert">
             <CircleAlert aria-hidden="true" />
@@ -613,161 +631,6 @@ function MetadataEditor({
           exports.
         </p>
       </div>
-    </div>
-  );
-}
-
-function ResponseMessages({
-  responses,
-  filtered,
-  selectedIndex,
-  selected,
-  onSelect,
-  onCopy,
-}: {
-  responses: InvokeResponse['responses'];
-  filtered: Array<{ item: InvokeResponse['responses'][number]; index: number }>;
-  selectedIndex: number;
-  selected: InvokeResponse['responses'][number] | null;
-  onSelect: (index: number) => void;
-  onCopy: () => void;
-}) {
-  if (!responses.length) return <ResponsePlaceholder>No response messages.</ResponsePlaceholder>;
-
-  return (
-    <div className="pp-response-messages">
-      <section className="pp-message-timeline" aria-label="Response message timeline">
-        <div className="pp-message-row pp-message-heading">
-          <span>#</span>
-          <span>Message</span>
-          <span title="Callback-observed message boundaries, not packet arrival or TTFB">
-            Observed / +gap
-          </span>
-        </div>
-        {filtered.map(({ item, index }) => {
-          const cumulativeMs = item.elapsedMs;
-          const previousCumulativeMs = index === 0 ? 0 : responses[index - 1]?.elapsedMs;
-          const gapMs =
-            cumulativeMs !== null &&
-            previousCumulativeMs !== null &&
-            previousCumulativeMs !== undefined &&
-            cumulativeMs >= previousCumulativeMs
-              ? cumulativeMs - previousCumulativeMs
-              : null;
-          return (
-            <button
-              key={`${item.sequence}-${index}`}
-              type="button"
-              className={classNames('pp-message-row', index === selectedIndex && 'is-active')}
-              onClick={() => onSelect(index)}
-            >
-              <span>{item.sequence || index + 1}</span>
-              <span>
-                <i aria-hidden="true" /> Message {item.sequence || index + 1}
-              </span>
-              <span className="pp-message-time">
-                <span>{timingLabel(cumulativeMs)}</span>
-                <small>{gapMs === null ? '+—' : `+${timingLabel(gapMs)}`}</small>
-              </span>
-            </button>
-          );
-        })}
-        {!filtered.length ? <p className="pp-filter-empty">No messages match the filter.</p> : null}
-      </section>
-      {selected ? (
-        <div className="pp-selected-message">
-          <div className="pp-editor-toolbar">
-            <span>Message {selected.sequence || selectedIndex + 1}</span>
-            <button type="button" onClick={onCopy}>
-              <Copy aria-hidden="true" /> Copy JSON
-            </button>
-          </div>
-          <pre>{prettyJson(selected.message)}</pre>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function ResponsePlaceholder({ children }: { children: ReactNode }) {
-  return <div className="pp-response-placeholder">{children}</div>;
-}
-
-function MetadataGrid({ title, values }: { title: string; values: MetadataEntry[] }) {
-  if (!values.length) return <ResponsePlaceholder>No {title.toLowerCase()}.</ResponsePlaceholder>;
-  return (
-    <div className="pp-transport-table">
-      <h3>{title}</h3>
-      <div className="pp-transport-row pp-transport-heading">
-        <span>Key</span>
-        <span>Value</span>
-      </div>
-      {values.map((entry, index) => (
-        <div
-          className="pp-transport-row"
-          // biome-ignore lint/suspicious/noArrayIndexKey: duplicate metadata keys are valid and ordered
-          key={`${entry.name}-${index}`}
-        >
-          <code>{entry.name}</code>
-          <code>{entry.value}</code>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function StatusGrid({ response, latencyMs }: { response: InvokeResponse; latencyMs: number }) {
-  const timings = [
-    ['Headers observed', response.timings?.headersMs],
-    ['First message observed', response.timings?.firstMessageMs],
-    ['Final status observed', response.timings?.trailersMs],
-    ['Invoke returned', response.timings?.totalMs],
-    ['Console round trip', latencyMs],
-  ] as const;
-  const statusLabel = response.localLimit
-    ? 'Not observed (local limit)'
-    : response.error
-      ? `${response.error.name} (${response.error.code})`
-      : 'OK (0)';
-  const statusDetails = response.localLimit
-    ? response.localLimit.message
-    : response.error?.message || 'RPC completed successfully.';
-  return (
-    <div className="pp-status-evidence">
-      <div className="pp-status-grid">
-        <div>
-          <span>Code</span>
-          <strong
-            className={response.error || response.localLimit ? 'pp-error-text' : 'pp-ok-text'}
-          >
-            {statusLabel}
-          </strong>
-        </div>
-        <div>
-          <span>Details</span>
-          <strong>{statusDetails}</strong>
-        </div>
-        <div>
-          <span>Requests</span>
-          <strong>
-            {response.requests ? `${response.requests.sent}/${response.requests.total} sent` : '—'}
-          </strong>
-        </div>
-      </div>
-      <section className="pp-grpc-timing-grid" aria-label="gRPC timing evidence">
-        {timings.map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{timingLabel(value)}</strong>
-          </div>
-        ))}
-      </section>
-      <p className="pp-grpc-timing-note">
-        Callback-observed lifecycle boundaries, cumulative from invoke start. Unary callbacks can
-        cluster after transport completion; these are not packet arrival, server processing, or TTFB
-        measurements. Handler invoke includes JSON/protobuf conversion and callbacks, but excludes
-        the browser and HTTP relay. Console round trip includes that relay and response parsing.
-      </p>
     </div>
   );
 }

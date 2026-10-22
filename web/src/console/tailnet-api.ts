@@ -40,6 +40,7 @@ export type TailSnapshot = {
   peers: TailPeer[];
   profiles: TailProfile[];
   warnings: string[];
+  accountsObserved?: boolean;
 };
 export type TailAction =
   | 'connect'
@@ -53,8 +54,14 @@ export type TailAction =
   | 'netcheck'
   | 'ping'
   | 'send-file'
+  | 'login-server'
   | 'receive-files';
 export const tailActions: Record<TailAction, { label: string; detail: string }> = {
+  'login-server': {
+    label: 'Add custom control-server account',
+    detail:
+      'Start a separate installed-client login to this HTTPS Headscale-compatible server. Sign-in and OS permissions stay with Tailscale. Existing connectivity may change; the previous saved account remains available for switching back. No reset, auth key or forced reauthentication is used.',
+  },
   connect: {
     label: 'Connect Tailscale',
     detail:

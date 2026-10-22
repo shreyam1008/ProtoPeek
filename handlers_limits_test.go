@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,6 +23,8 @@ import (
 	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/interop/grpc_testing"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -525,4 +529,140 @@ func (m *invokeSizedJSONMessage) MarshalJSONPB(*jsonpb.Marshaler) ([]byte, error
 	payload[0] = '{'
 	payload[len(payload)-1] = '}'
 	return payload, nil
+}
+
+// This is a real loopback gRPC peer. The client wrapper waits for server receipt
+// before returning SendMsg, so a later local parse failure cannot race away the
+// evidence that the earlier request actually crossed the transport.
+type requestConversionPeer struct {
+	grpc_testing.UnimplementedTestServiceServer
+	received chan struct{}
+	count    atomic.Int32
+}
+
+func (peer *requestConversionPeer) StreamingInputCall(stream grpc_testing.TestService_StreamingInputCallServer) error {
+	for {
+		if _, err := stream.Recv(); err != nil {
+			return err
+		}
+		peer.count.Add(1)
+		peer.received <- struct{}{}
+	}
+}
+
+func (peer *requestConversionPeer) FullDuplexCall(stream grpc_testing.TestService_FullDuplexCallServer) error {
+	for {
+		if _, err := stream.Recv(); err != nil {
+			return err
+		}
+		peer.count.Add(1)
+		peer.received <- struct{}{}
+	}
+}
+
+type acknowledgedRequestConn struct {
+	grpc.ClientConnInterface
+	received <-chan struct{}
+}
+
+func (conn acknowledgedRequestConn) NewStream(ctx context.Context, description *grpc.StreamDesc, method string, options ...grpc.CallOption) (grpc.ClientStream, error) {
+	stream, err := conn.ClientConnInterface.NewStream(ctx, description, method, options...)
+	if err != nil {
+		return nil, err
+	}
+	return acknowledgedRequestStream{ClientStream: stream, received: conn.received}, nil
+}
+
+type acknowledgedRequestStream struct {
+	grpc.ClientStream
+	received <-chan struct{}
+}
+
+func (stream acknowledgedRequestStream) SendMsg(message any) error {
+	if err := stream.ClientStream.SendMsg(message); err != nil {
+		return err
+	}
+	select {
+	case <-stream.received:
+		return nil
+	case <-stream.Context().Done():
+		return stream.Context().Err()
+	}
+}
+
+func TestRPCRequestConversionFailureWarnsAboutEarlierStreamingMessages(t *testing.T) {
+	for _, methodName := range []string{"StreamingInputCall", "FullDuplexCall"} {
+		for _, streaming := range []bool{false, true} {
+			t.Run(methodName+"/ndjson="+strconv.FormatBool(streaming), func(t *testing.T) {
+				peer := &requestConversionPeer{received: make(chan struct{}, 2)}
+				listener, err := net.Listen("tcp", "127.0.0.1:0")
+				if err != nil {
+					t.Fatal(err)
+				}
+				server := grpc.NewServer()
+				grpc_testing.RegisterTestServiceServer(server, peer)
+				go func() { _ = server.Serve(listener) }()
+				t.Cleanup(server.Stop)
+				connection, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = connection.Close() })
+				file, err := desc.LoadFileDescriptor("grpc/testing/test.proto")
+				if err != nil {
+					t.Fatal(err)
+				}
+				method := file.FindService("grpc.testing.TestService").FindMethodByName(methodName)
+				handler := RPCInvokeHandlerWithOptions(acknowledgedRequestConn{ClientConnInterface: connection, received: peer.received}, []*desc.MethodDescriptor{method}, InvokeOptions{MaxDuration: 2 * time.Second})
+				relay := httptest.NewServer(handler)
+				defer relay.Close()
+				// A long unknown-field error also proves the processing warning survives
+				// the bounded protobuf conversion detail, rather than being truncated away.
+				body := `{"data":[{},{"` + strings.Repeat("unknown_field_", 160) + `":true}]}`
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+				request, err := http.NewRequestWithContext(ctx, http.MethodPost, relay.URL+"/"+method.GetFullyQualifiedName(), strings.NewReader(body))
+				if err != nil {
+					t.Fatal(err)
+				}
+				request.Header.Set("Content-Type", "application/json")
+				if streaming {
+					request.Header.Set("Accept", "application/x-ndjson")
+				}
+				response, err := http.DefaultClient.Do(request)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer response.Body.Close()
+				const warning = "1 earlier message may already have been processed"
+				if !streaming {
+					text, err := io.ReadAll(io.LimitReader(response.Body, 2048))
+					if err != nil || response.StatusCode != http.StatusBadRequest || len(text) > 1024 || !strings.Contains(string(text), "Request message 2 could not be converted to protobuf") || !strings.Contains(string(text), warning) {
+						t.Fatalf("legacy failure hid prior transport effects: status=%d body=%s err=%v", response.StatusCode, text, err)
+					}
+				} else {
+					if response.StatusCode != http.StatusOK {
+						t.Fatalf("NDJSON status %d", response.StatusCode)
+					}
+					decoder := json.NewDecoder(response.Body)
+					for {
+						var event rpcStreamEvent
+						if err := decoder.Decode(&event); err != nil {
+							t.Fatal(err)
+						}
+						if event.Type != "complete" {
+							continue
+						}
+						if event.Result == nil || event.Result.Requests == nil || event.Result.Requests.Total != 2 || event.Result.Requests.Sent != 1 || event.Result.FinalStatusObserved == nil || *event.Result.FinalStatusObserved || event.Result.Error != nil || len(event.Result.Trailers) != 0 || event.Result.Timings.TrailersMs != nil || len(event.RelayError) > 1024 || !strings.Contains(event.RelayError, "Request message 2 could not be converted to protobuf") || !strings.Contains(event.RelayError, warning) {
+							t.Fatalf("stream conversion fabricated completion or hid earlier send: %+v", event)
+						}
+						break
+					}
+				}
+				if peer.count.Load() != 1 {
+					t.Fatalf("real server received %d requests, want 1 before local conversion failure", peer.count.Load())
+				}
+			})
+		}
+	}
 }

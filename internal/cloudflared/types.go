@@ -28,6 +28,8 @@ type ServiceObservation struct {
 	ExecutablePath   string `json:"executablePath"`
 	ConfigPath       string `json:"configPath"`
 	CredentialSource string `json:"credentialSource"`
+	LogFile          string `json:"logFile,omitempty"`
+	Metrics          string `json:"metrics,omitempty"`
 	actionTarget     string
 	//lint:ignore U1000 Used by the Darwin canonical service adapter.
 	definitionPath string
@@ -59,6 +61,8 @@ type ConfigCandidate struct {
 	ServiceBinding          string         `json:"serviceBinding"`
 	ManagementMode          string         `json:"managementMode"`
 	Tunnel                  string         `json:"tunnel"`
+	LogFile                 string         `json:"logFile,omitempty"`
+	Metrics                 string         `json:"metrics,omitempty"`
 	CredentialsPath         string         `json:"credentialsPath"`
 	Revision                string         `json:"revision"`
 	CatchAllPresent         bool           `json:"catchAllPresent"`

@@ -1,0 +1,3 @@
+Using rules from <fixture-config.yml>
+Matched rule #2
+	service: http_status:404

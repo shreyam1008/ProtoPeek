@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { storePendingHandoff } from './app/handoff-store';
 import { Dashboard } from './Dashboard';
 
 const state = vi.hoisted(() => ({
@@ -36,6 +37,30 @@ beforeEach(() => {
 });
 
 describe('Home starts useful work explicitly', () => {
+  it('offers an explicit scan recovery when the real broker rejects an old recent service', () => {
+    const observedAt = new Date(Date.now() - 6 * 60_000).toISOString();
+    state.discoveries = [
+      { address: 'localhost:50051', discoveredAt: observedAt, grpc: true, http: false },
+    ];
+    state.openGRPCDiscovery.mockImplementation(() =>
+      storePendingHandoff({
+        provenance: { source: 'bounded-discovery', quality: 'observed', observedAt },
+        draft: {
+          kind: 'grpc-target-draft',
+          target: { kind: 'grpc-target', address: 'localhost:50051', plaintext: true },
+        },
+      })
+    );
+    render(<Dashboard />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open localhost:50051 in gRPC' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('evidence is stale');
+    expect(state.openScan).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Scan again' }));
+    expect(state.openScan).toHaveBeenCalledExactlyOnceWith({
+      initialTarget: 'localhost:50051',
+      autoStart: false,
+    });
+  });
   it('leaves traffic quiet while typing, then submits only the pasted URL authority', async () => {
     render(<Dashboard />);
     await act(async () => {});

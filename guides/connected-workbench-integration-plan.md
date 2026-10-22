@@ -1,5 +1,13 @@
 # Connected Workbench integration plan
 
+> **Current-source checkpoint — 22 October 2026:** the implemented slice now includes typed unsent
+> path/endpoint handoffs with original provenance, bounded memory-only session receipts, expanded
+> admitted agent protocol/packet adapters, Headscale and distinct NetBird client flows, reviewed
+> writable user-owned cloudflared configuration and owned private/public publishing sessions.
+> See the [current roadmap](feature-roadmap.md) for exact scope and native/provider/package gates.
+> Sections below retain the September delivery contract and historical release statements; source
+> implementation is not a public release, provider-account acceptance or permission to elevate.
+
 > **Release checkpoint — 7 September 2026:** stable is v0.6.1, including the installed Tailscale
 > foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
 > agents are published on edge. [Current feature status](feature-roadmap.md) and

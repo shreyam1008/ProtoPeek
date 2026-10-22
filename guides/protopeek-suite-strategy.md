@@ -1,5 +1,13 @@
 # ProtoPeek suite strategy
 
+> **Current-source checkpoint — 22 October 2026:** bounded diagnostics, HTTP environment/library/cURL
+> workflows, incremental gRPC evidence, Cap’n Proto capability plans, snapshot comparison/Nmap
+> conversion, optional TCP sequence evidence, native macOS ICMP/counters, Headscale login-server and
+> distinct NetBird workflows, reviewed canonical user-config operations and owned temporary publishing
+> are implemented in source. The [current roadmap](feature-roadmap.md) separates implementation from
+> native/account/package acceptance. The dated plan below preserves its original release history;
+> it does not describe a new public release or authorize integrated elevation/provider administration.
+
 > **Release checkpoint — 7 September 2026:** stable is v0.6.1, including the installed Tailscale
 > foundation and guarded Cloudflare service controls. The workspace overhaul and local MCP/CLI
 > agents are published on edge. [Current feature status](feature-roadmap.md) and

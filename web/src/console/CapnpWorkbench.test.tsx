@@ -121,3 +121,139 @@ it('rejects malformed JSON before fetch', async () => {
   ).rejects.toThrow();
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+async function loadFixture() {
+  fireEvent.click(screen.getByText('Paste a source schema'));
+  fireEvent.change(screen.getByLabelText('Cap’n Proto schema source'), {
+    target: { value: 'schema' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Compile pasted schema' }));
+  await screen.findByRole('button', { name: /example.capnp:Workbench add/ });
+  fireEvent.click(
+    screen.getByText(/Capability call plan & type bindings|Generic type bindings & capability plan/)
+  );
+  await screen.findByLabelText('Cap’n Proto advanced calls');
+}
+
+it('passes selected generic method arguments without rounding request integers', async () => {
+  let sent = '';
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL, options?: RequestInit) => {
+      if (url.pathname.endsWith('capabilities')) return Response.json({ available: false });
+      if (url.pathname.endsWith('schema'))
+        return Response.json({ ...schema, methods: [{ ...method, implicitParameters: ['T'] }] });
+      sent = String(options?.body);
+      return Response.json(response);
+    })
+  );
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.change(screen.getByLabelText('Selected method method type T'), {
+    target: { value: 'List(Int32)' },
+  });
+  fireEvent.change(screen.getByLabelText('Cap’n Proto request JSON'), {
+    target: { value: '{"a":9007199254740993}' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  await screen.findByLabelText('Cap’n Proto response JSON');
+  expect(JSON.parse(sent).methodTypes).toEqual(['List(Int32)']);
+  expect(sent).toContain('"params":{"a":9007199254740993}');
+});
+
+it('starts a plan only after review and cancels it without accepting a late completion', async () => {
+  let finish!: (value: Response) => void;
+  let signal: AbortSignal | null | undefined;
+  const fetchMock = vi.fn(async (url: URL, options?: RequestInit) => {
+    if (url.pathname.endsWith('capabilities')) return Response.json({ available: false });
+    if (url.pathname.endsWith('schema')) return Response.json(schema);
+    signal = options?.signal;
+    return new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.click(screen.getByText('Capability call plan · up to 8 steps'));
+  fireEvent.click(screen.getByRole('button', { name: 'Review plan' }));
+  expect(fetchMock.mock.calls.filter(([url]) => url.pathname.endsWith('/call'))).toHaveLength(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Run reviewed plan' }));
+  await waitFor(() => expect(signal).toBeDefined());
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel running plan' }));
+  expect(signal?.aborted).toBe(true);
+  finish(
+    Response.json({
+      ...response,
+      plan: {
+        sentSteps: 1,
+        completed: true,
+        steps: [
+          {
+            step: 0,
+            interfaceId: method.interfaceId,
+            ordinal: method.ordinal,
+            result: response.result,
+          },
+        ],
+      },
+    })
+  );
+  await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Cancelled'));
+  expect(screen.queryByLabelText('Cap’n Proto response JSON')).not.toBeInTheDocument();
+});
+
+it('discards a reviewed plan when reloading a schema with the same method IDs', async () => {
+  let schemasLoaded = 0;
+  const sent: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL, options?: RequestInit) => {
+      if (url.pathname.endsWith('capabilities')) return Response.json({ available: true });
+      if (url.pathname.endsWith('schema')) {
+        schemasLoaded++;
+        return Response.json({ ...schema, schemaBase64: schemasLoaded === 1 ? 'AAAA' : 'BBBB' });
+      }
+      sent.push(String(options?.body));
+      return Response.json({
+        ...response,
+        plan: {
+          sentSteps: 1,
+          completed: true,
+          steps: [
+            {
+              step: 0,
+              interfaceId: method.interfaceId,
+              ordinal: method.ordinal,
+              result: response.result,
+            },
+          ],
+        },
+      });
+    })
+  );
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.click(screen.getByText('Capability call plan · up to 8 steps'));
+  fireEvent.click(screen.getByRole('button', { name: 'Review plan' }));
+  expect(screen.getByRole('button', { name: 'Run reviewed plan' })).toBeEnabled();
+  fireEvent.click(screen.getByText('Paste a source schema'));
+  fireEvent.change(screen.getByLabelText('Cap’n Proto schema source'), {
+    target: { value: 'replacement schema using the same IDs' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Compile pasted schema' }));
+  await waitFor(() =>
+    expect(screen.queryByLabelText('Cap’n Proto advanced calls')).not.toBeInTheDocument()
+  );
+  expect(schemasLoaded).toBe(2);
+  expect(sent).toEqual([]);
+  fireEvent.click(screen.getByText('Capability call plan & type bindings'));
+  await screen.findByLabelText('Cap’n Proto advanced calls');
+  fireEvent.click(screen.getByText('Capability call plan · up to 8 steps'));
+  expect(screen.queryByRole('button', { name: 'Run reviewed plan' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Review plan' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Run reviewed plan' }));
+  await screen.findByLabelText('Cap’n Proto response JSON');
+  expect(sent).toHaveLength(1);
+  expect(JSON.parse(sent[0] ?? '{}').schemaBase64).toBe('BBBB');
+});

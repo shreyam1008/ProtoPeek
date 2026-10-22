@@ -24,8 +24,7 @@ export type FeatureDefinition = {
   route: string;
   order: number;
   compatibilityRoutes?: readonly string[];
-  command?: { label: string; keywords: string };
-  homeEntry?: { label: string; detail: string };
+  homeEntry?: { label: string };
   inspectEntry?: { detail: string };
 };
 
@@ -36,7 +35,6 @@ export const featureRegistry = [
     label: 'Home',
     route: '/',
     order: 10,
-    command: { label: 'Open Home', keywords: 'home overview dashboard suite' },
   },
   {
     id: 'protocols',
@@ -44,13 +42,8 @@ export const featureRegistry = [
     label: 'Inspect',
     route: '/protocols',
     order: 20,
-    command: {
-      label: 'Open Inspect',
-      keywords: 'inspect api protocol grpc http rest openapi workbench',
-    },
     homeEntry: {
       label: 'Send an API request',
-      detail: 'Open an HTTP request or a gRPC method.',
     },
   },
   {
@@ -60,10 +53,6 @@ export const featureRegistry = [
     route: '/protocols/grpc',
     order: 30,
     compatibilityRoutes: ['/grpc'],
-    command: {
-      label: 'Open gRPC workbench',
-      keywords: 'reflection proto protoset streams trailers',
-    },
     inspectEntry: {
       detail:
         'Reflection, proto folders and protosets, unary and streaming calls, metadata, trailers.',
@@ -76,10 +65,6 @@ export const featureRegistry = [
     route: '/protocols/http',
     order: 40,
     compatibilityRoutes: ['/http'],
-    command: {
-      label: 'Open HTTP workbench',
-      keywords: 'rest request response headers tls',
-    },
     inspectEntry: {
       detail:
         'Methods, URLs, auth, request bodies, redirects, TLS, timing, headers, and response data.',
@@ -91,10 +76,6 @@ export const featureRegistry = [
     label: 'Event streams',
     route: '/protocols/events',
     order: 45,
-    command: {
-      label: 'Open WebSocket and SSE',
-      keywords: 'websocket ws wss sse server sent events streaming messages binary',
-    },
     inspectEntry: {
       detail: 'Connect to WebSocket or server-sent events, send messages, and inspect live events.',
     },
@@ -105,7 +86,6 @@ export const featureRegistry = [
     label: 'Cap’n Proto',
     route: '/protocols/capnp',
     order: 47,
-    command: { label: 'Open Cap’n Proto', keywords: 'capnp schema capability rpc binary tcp tls' },
     inspectEntry: {
       detail:
         'Load source or compiled schemas, call bootstrap methods over TCP or verified TLS, and inspect typed JSON.',
@@ -124,10 +104,20 @@ export const featureRegistry = [
     label: 'Port scanner',
     route: '/network/ports',
     order: 55,
-    command: {
-      label: 'Scan host ports',
-      keywords: 'tcp port scanner ranges open closed local remote services',
-    },
+  },
+  {
+    id: 'network-diagnostics',
+    destination: 'network',
+    label: 'Diagnostics',
+    route: '/network/diagnostics',
+    order: 54,
+  },
+  {
+    id: 'netbird',
+    destination: 'extensions',
+    label: 'NetBird',
+    route: '/extensions/netbird',
+    order: 66,
   },
   {
     id: 'network-route',
@@ -136,10 +126,6 @@ export const featureRegistry = [
     route: '/network/route',
     order: 60,
     compatibilityRoutes: ['/routes'],
-    command: {
-      label: 'Open next-hop route evidence',
-      keywords: 'route kernel next hop interface source',
-    },
   },
   {
     id: 'network-nmap',
@@ -147,10 +133,6 @@ export const featureRegistry = [
     label: 'Nmap',
     route: '/network/nmap',
     order: 65,
-    command: {
-      label: 'Open Nmap scanner',
-      keywords: 'nmap subnet service version tcp scan ports network',
-    },
   },
   {
     id: 'network-packets',
@@ -158,10 +140,6 @@ export const featureRegistry = [
     label: 'Packets',
     route: '/network/packets',
     order: 67,
-    command: {
-      label: 'Inspect captured packets',
-      keywords: 'pcap pcapng wireshark dumpcap capture traffic packets dns tcp udp',
-    },
   },
   {
     id: 'network-path',
@@ -169,13 +147,8 @@ export const featureRegistry = [
     label: 'Network path',
     route: '/network/path',
     order: 70,
-    command: {
-      label: 'Trace a measured network path',
-      keywords: 'network hops latency dns route traceroute udp',
-    },
     homeEntry: {
       label: 'Trace a network path',
-      detail: 'See the DNS answer, selected route, and measured hops.',
     },
   },
   {
@@ -184,14 +157,8 @@ export const featureRegistry = [
     label: 'Nearby devices',
     route: '/network/local',
     order: 80,
-    command: {
-      label: 'See nearby devices',
-      keywords:
-        'network local lan wifi ethernet devices discovery cidr ports inventory private scan',
-    },
     homeEntry: {
       label: 'See nearby devices',
-      detail: 'Open your network, choose a device, and inspect its services.',
     },
   },
   {
@@ -200,10 +167,6 @@ export const featureRegistry = [
     label: 'Network evidence map',
     route: '/network/map',
     order: 90,
-    command: {
-      label: 'Open the network evidence map',
-      keywords: 'network map topology graph inventory history',
-    },
   },
   {
     id: 'network-history',
@@ -218,13 +181,8 @@ export const featureRegistry = [
     label: 'This Device',
     route: '/this-pc',
     order: 110,
-    command: {
-      label: 'Open This Device',
-      keywords: 'machine device interfaces listeners connections traffic benchmark public ip',
-    },
     homeEntry: {
       label: 'Check this device',
-      detail: 'Review interfaces, connections, public IP, and browser-path speed.',
     },
   },
   {
@@ -233,10 +191,6 @@ export const featureRegistry = [
     label: 'Tailscale',
     route: '/network/tailnet',
     order: 115,
-    command: {
-      label: 'Open Tailscale workbench',
-      keywords: 'tailscout tailnet wireguard tailscale peers accounts exit node taildrop netcheck',
-    },
   },
   {
     id: 'extensions',
@@ -244,14 +198,8 @@ export const featureRegistry = [
     label: 'Extensions',
     route: '/extensions',
     order: 125,
-    command: {
-      label: 'Open Extensions',
-      keywords:
-        'optional tools install setup integrations tailscale cloudflare wireshark nmap aria2',
-    },
     homeEntry: {
       label: 'Add optional tools',
-      detail: 'Set up Tailscale, Cloudflare Tunnel, capture, and more in one place.',
     },
   },
   {
@@ -260,10 +208,13 @@ export const featureRegistry = [
     label: 'Cloudflare Tunnel',
     route: '/tunnels',
     order: 130,
-    command: {
-      label: 'Open Cloudflare tunnel operations',
-      keywords: 'cloudflare cloudflared tunnel ingress config service connector route',
-    },
+  },
+  {
+    id: 'publishing',
+    destination: 'extensions',
+    label: 'Share a local service',
+    route: '/extensions/publish',
+    order: 128,
   },
   {
     id: 'downloader',
@@ -272,13 +223,8 @@ export const featureRegistry = [
     route: '/downloader',
     order: 120,
     compatibilityRoutes: ['/downloads'],
-    command: {
-      label: 'Open Downloader',
-      keywords: 'download transfer queue artifact aria2',
-    },
     homeEntry: {
       label: 'Download a file',
-      detail: 'Start, pause, resume, and verify transfers.',
     },
   },
   {
@@ -287,13 +233,8 @@ export const featureRegistry = [
     label: 'Security',
     route: '/security',
     order: 140,
-    command: {
-      label: 'Open Security evidence',
-      keywords: 'domain certificate tls dns authorized checks',
-    },
     homeEntry: {
       label: 'Check a public website',
-      detail: 'Inspect its DNS, HTTP, and TLS evidence when you ask.',
     },
     inspectEntry: {
       detail: 'DNS, HTTP, TLS, and certificate evidence for one public website.',
@@ -305,10 +246,6 @@ export const featureRegistry = [
     label: 'Settings',
     route: '/settings',
     order: 150,
-    command: {
-      label: 'Open Settings',
-      keywords: 'appearance density keyboard browser local preferences',
-    },
   },
   {
     id: 'agents',
@@ -316,10 +253,6 @@ export const featureRegistry = [
     label: 'AI agents',
     route: '/agents',
     order: 155,
-    command: {
-      label: 'Connect an AI agent',
-      keywords: 'mcp ai agent assistant automation cli tools activity',
-    },
   },
   {
     id: 'updates',
@@ -327,10 +260,6 @@ export const featureRegistry = [
     label: 'Updates',
     route: '/updates',
     order: 156,
-    command: {
-      label: 'Check for ProtoPeek updates',
-      keywords: 'update upgrade version release stable edge install restart',
-    },
   },
   {
     id: 'roadmap',
@@ -338,10 +267,6 @@ export const featureRegistry = [
     label: 'Roadmap',
     route: '/roadmap',
     order: 160,
-    command: {
-      label: 'Open product roadmap',
-      keywords: 'available next exploring gated',
-    },
   },
 ] as const satisfies readonly FeatureDefinition[];
 
@@ -356,13 +281,8 @@ type WithField<Field extends PropertyKey> = RegisteredFeature extends infer Feat
   : never;
 
 export type CompatibilityRoute = WithField<'compatibilityRoutes'>['compatibilityRoutes'][number];
-export type CommandDestinationFeature = WithField<'command'>;
 export type HomeEntryFeature = WithField<'homeEntry'>;
 export type InspectEntryFeature = WithField<'inspectEntry'>;
-
-export const commandDestinationFeatures = featureRegistry
-  .filter((feature): feature is CommandDestinationFeature => 'command' in feature)
-  .sort((left, right) => left.order - right.order);
 
 export const homeEntryFeatures = featureRegistry.filter(
   (feature): feature is HomeEntryFeature => 'homeEntry' in feature

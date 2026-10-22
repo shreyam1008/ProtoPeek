@@ -18,9 +18,14 @@ For user-authorized socket/process inspection, call device_listeners with acknow
 Use only targets and actions within the user's request. A listening port is not proof of a protocol.
 http_request returns HTTP status, headers, TLS and timings. A non-2xx HTTP response is evidence,
 not a transport failure. GET, HEAD and OPTIONS are allowed by default. Other methods require the
-user to enable write actions in AI agents. Download controls also require write actions.
+user to enable write actions in AI agents. gRPC connect/call/disconnect, Cap'n Proto calls,
+packet capture and download controls also require write actions. RPC methods can have side effects.
 Requests share the existing workbench services and limits. At most two agent calls run at once;
-each has a 60-second deadline. Cancel through the MCP client or the UI. Cancellation cannot undo
+existing tools have a 60-second deadline. gRPC/Cap'n Proto calls have native deadlines up to
+30 seconds inside a 35-second agent wall so final status and partial evidence can return. Other
+protocol/packet adapters have a 30-second wall. events_read receives for at most 10 seconds and
+never sends application messages.
+Cancel through the MCP client or the UI. Cancellation cannot undo
 an upstream mutation or remove a file already downloaded. Download jobs continue independently
 after being queued; use download_action to pause or cancel a specific job.
 Results include a receipt ID visible in AI agents. Inspect real results before claiming success.
@@ -29,19 +34,27 @@ data and will be visible to your AI client/model provider. ProtoPeek itself runs
 no telemetry. Inputs are not stored in activity. The latest 32 bounded results live only in memory.
 The user pairs this process from Settings > AI agents; disabling it revokes the connection and
 cancels active calls. Re-pair after restarting ProtoPeek. CLI and MCP attach to the same instance.
-Tools deliberately expose a bounded subset: HTTP, listeners, port scan, next-hop, Tailscale status
-and downloads. gRPC invocation, WebSocket/SSE, Cap'n Proto, capture and tunnel mutations remain
-available in the UI, not through this first agent adapter. Never claim those adapters are exposed.`
+Tools expose a bounded subset of the workbench. Discover the actual catalog with workbench_info.
+grpc_connect uses reflection, explicit host:port, plaintext or verified TLS, with no host file paths.
+Use its sessionId for grpc_schema/grpc_call and grpc_disconnect when finished. Do not guess methods.
+capnp_schema/capnp_call accept only caller-shared compiled schemas, at most 64 KiB decoded.
+packets_analyze accepts at most 64 KiB of caller-shared capture bytes and returns metadata only.
+Packet tools require acknowledgeSharing=true because captured addresses and metadata reach your model.
+packets_capture also requires consent=true, write actions and an already installed capture tool with
+OS permission. Never install or elevate implicitly. No packet payload reconstruction is exposed.
+Tunnel mutations, unrestricted diagnostics, file browsing, WebSocket sends and persistent event
+sessions are not exposed. A receive-only event connection closes before its result returns.`
 
 type Tool struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	InputSchema json.RawMessage `json:"inputSchema"`
-	Route       string          `json:"route"`
-	Method      string          `json:"-"`
-	Endpoint    string          `json:"-"`
-	Writes      bool            `json:"writes"`
-	schema      *jsonschema.Resolved
+	Name               string          `json:"name"`
+	Description        string          `json:"description"`
+	InputSchema        json.RawMessage `json:"inputSchema"`
+	Route              string          `json:"route"`
+	Method             string          `json:"-"`
+	Endpoint           string          `json:"-"`
+	Writes             bool            `json:"writes"`
+	MaxDurationSeconds int             `json:"maxDurationSeconds,omitempty"`
+	schema             *jsonschema.Resolved
 }
 
 func object(properties string, required string) string {
@@ -65,6 +78,7 @@ func buildCatalog() []Tool {
 		{Name: "download_add", Description: "Queue one HTTP(S) file in the user's configured download directory. Requires write actions and a running engine. Read download_queue first. The job continues after this tool returns.", Route: "/downloader", Method: "POST", Endpoint: "/api/transfers/add", Writes: true, InputSchema: json.RawMessage(object(`"url":{"type":"string","maxLength":8192},"outputName":{"type":"string","maxLength":255},"expectedSHA256":{"type":"string","pattern":"^[a-fA-F0-9]{64}$"}`, `"url"`))},
 		{Name: "download_action", Description: "Pause, resume or cancel one known download job ID. Requires write actions. Cancel does not delete downloaded files. Never guess IDs; read download_queue.", Route: "/downloader", Method: "POST", Writes: true, InputSchema: json.RawMessage(object(`"id":{"type":"string","pattern":"^[a-fA-F0-9]{16}$"},"action":{"type":"string","enum":["pause","resume","cancel"]}`, `"id","action"`))},
 	}
+	specs = append(specs, protocolTools()...)
 	for i := range specs {
 		var schema jsonschema.Schema
 		if err := json.Unmarshal(specs[i].InputSchema, &schema); err != nil {

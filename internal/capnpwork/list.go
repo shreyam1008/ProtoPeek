@@ -13,7 +13,7 @@ func (s *Schema) encodeList(seg *capnp.Segment, typ schema.Type, value any, dept
 	if !ok || len(items) > 4096 {
 		return capnp.Ptr{}, errors.New("list must be an array of at most 4096 values")
 	}
-	t, err := typ.List().ElementType()
+	s, t, err := s.listElement(typ)
 	if err != nil {
 		return capnp.Ptr{}, err
 	}
@@ -95,7 +95,7 @@ func (s *Schema) decodeList(p capnp.Ptr, typ schema.Type, depth int, budget *cod
 	if err := budget.take(depth, list.Len()*16); err != nil {
 		return nil, err
 	}
-	t, err := typ.List().ElementType()
+	s, t, err := s.listElement(typ)
 	if err != nil {
 		return nil, err
 	}

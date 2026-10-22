@@ -257,7 +257,22 @@ export function fetchSchema(method: string) {
   return fetchJSON<SchemaResponse>(`metadata?method=${encodeURIComponent(method)}`);
 }
 
-export async function invokeMethod(method: string, payload: InvokeRequest, signal?: AbortSignal) {
+export async function invokeMethod(
+  method: string,
+  payload: InvokeRequest,
+  signal?: AbortSignal,
+  onPartial?: (result: InvokeResponse) => void
+) {
+  if (onPartial) {
+    const { invokeStream } = await import('./grpc-invoke-stream');
+    return invokeStream(
+      urlFor(`invoke/${encodeURIComponent(method)}`),
+      csrfToken(),
+      payload,
+      onPartial,
+      signal
+    );
+  }
   return normalizeInvokeResponse(
     await fetchJSON<unknown>(`invoke/${encodeURIComponent(method)}`, {
       method: 'POST',
@@ -412,8 +427,21 @@ export async function invokeWorkspaceMethod(
   sessionId: string,
   method: string,
   payload: InvokeRequest,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onPartial?: (result: InvokeResponse) => void
 ) {
+  if (onPartial) {
+    const { invokeStream } = await import('./grpc-invoke-stream');
+    return invokeStream(
+      urlFor(
+        `api/workspace/invoke/${encodeURIComponent(method)}?session_id=${encodeURIComponent(sessionId)}`
+      ),
+      csrfToken(),
+      payload,
+      onPartial,
+      signal
+    );
+  }
   return normalizeInvokeResponse(
     await fetchJSON<unknown>(
       `api/workspace/invoke/${encodeURIComponent(method)}?session_id=${encodeURIComponent(sessionId)}`,

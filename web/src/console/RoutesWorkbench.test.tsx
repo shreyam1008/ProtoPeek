@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { appStorageKeys } from '@/shared/runtime';
 
 import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { protocolShellEvents } from './ProtocolShellContext';
 import { RoutesWorkbench } from './RoutesWorkbench';
 
@@ -12,6 +13,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   clearPendingHandoff();
   window.sessionStorage.clear();
+  clearOperationReceipts();
 });
 
 function routeHandoff(target: string) {
@@ -49,6 +51,7 @@ it('consumes a route draft without resolving or looking it up', () => {
   expect(screen.getByRole('status')).toHaveTextContent(/no DNS resolution or route lookup/i);
   expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   expect(fetchMock).not.toHaveBeenCalled();
+  expect(readOperationReceipts()).toEqual([]);
 
   fireEvent.change(screen.getByRole('textbox', { name: 'Route destination' }), {
     target: { value: 'edited.example.test' },
@@ -87,6 +90,7 @@ it('applies a same-route draft and retires stale lookup work without starting an
   );
   expect(screen.getByRole('button', { name: 'Look up route' })).toBeVisible();
   expect(fetchMock).toHaveBeenCalledOnce();
+  expect(readOperationReceipts()).toMatchObject([{ operation: 'route', outcome: 'stale' }]);
 
   await act(async () => {
     resolveRequest?.({

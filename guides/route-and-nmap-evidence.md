@@ -81,8 +81,11 @@ output, install a package, or require elevation. Native ICMP and TCP trace metho
 implemented in this slice.
 
 Windows uses native IPv4/IPv6 ICMP echo APIs for active hop probing, with the same probe and time
-bounds. Darwin reports active hop probing as unsupported. The UI does not offer to install Nmap,
-`traceroute`, `tracepath`, or another fallback, and it does not ask for administrator access.
+bounds. Stable v0.6.1 reports Darwin active probing as unsupported. **Current source · 22 October
+2026** adds native unprivileged IPv4/IPv6 ICMP datagrams on macOS, preserving the fixed probe/rate/wall
+bounds, matching reply evidence and cancellation. Native macOS loopback/cancellation CI and real
+intermediate-router acceptance remain separate gates; cross-compilation is not runtime evidence.
+The UI does not install Nmap, `traceroute`, `tracepath`, or another fallback, or ask for elevation.
 Read-only next-hop backends remain available independently on all three platforms.
 
 ### Interpretation boundary
@@ -224,9 +227,9 @@ non-open states are shown as imported evidence but cannot be verified by the cur
 ## Remaining wider boundaries
 
 - **Bundled Nmap execution:** not planned for the core binary because executable discovery, argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.
-- **Darwin and Windows active hop probes:** need verified unprivileged native backends. ProtoPeek will not hide an executable install or privilege escalation behind a trace action.
+- **Native active-hop acceptance:** Windows ICMP ships in v0.6.1; current source adds macOS ICMP. Exact-commit platform tests and real intermediate-router acceptance remain required. No trace action hides an executable install or privilege escalation.
 - **Broader, public, or IPv6 range discovery:** excluded from the current local workflow. The implemented path stays inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope and one exact selected-TCP profile.
-- **Nmap-to-topology integration:** may later map existing bounded XML into a workspace with explicit import provenance and loss reporting. It does not imply command execution.
+- **Nmap-to-topology boundary · current source, 22 October 2026:** Network history previews bounded XML conversion and exact omitted host/identity/port/service counts before saving a new workspace and immutable snapshot. Source scan time stays unknown, imported hints remain unverified, and no links are invented. Import does not execute Nmap, overwrite another map or contact hosts.
 - **Live capture:** gated because it can require privilege and expose secrets. Release requires an explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.
 
 For the user workflow, storage behavior, and Now/Soon/Later plan, see the

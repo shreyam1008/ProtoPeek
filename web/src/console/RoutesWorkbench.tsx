@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowRight, LoaderCircle, Network, Route, Square } from 'lucide-react';
-import { type FormEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
 
@@ -8,7 +8,9 @@ import { classNames } from '@/shared/runtime';
 import { lookupRoute, type RouteLookupResponse, type RouteResult } from './api';
 import { handoffEvidence } from './app/handoff-display';
 import { type ConsumedHandoffFor, consumePendingHandoff } from './app/handoff-store';
+import { type ReceiptOutcome, recordOperationReceipt } from './app/operation-receipts';
 import { StatusFact } from './evidence/StatusFact';
+import { OperationHistoryControl } from './OperationHistoryControl';
 import { protocolShellEvents } from './ProtocolShellContext';
 
 export function RoutesWorkbench() {
@@ -21,8 +23,23 @@ export function RoutesWorkbench() {
   const destinationRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const requestGenerationRef = useRef(0);
+  const receiptRef = useRef<{ target: string; started: number } | null>(null);
 
-  function invalidateLookup() {
+  const finishReceipt = useCallback((outcome: ReceiptOutcome, count?: number) => {
+    const previous = receiptRef.current;
+    if (!previous) return;
+    receiptRef.current = null;
+    recordOperationReceipt({
+      operation: 'route',
+      outcome,
+      target: { kind: 'next-hop-target', target: previous.target },
+      durationMs: performance.now() - previous.started,
+      count,
+    });
+  }, []);
+
+  function invalidateLookup(outcome: ReceiptOutcome = 'stale') {
+    finishReceipt(outcome);
     requestGenerationRef.current++;
     const active = abortRef.current;
     abortRef.current = null;
@@ -47,16 +64,17 @@ export function RoutesWorkbench() {
     window.addEventListener(protocolShellEvents.pendingHandoff, applyPendingHandoff);
     return () => {
       requestGenerationRef.current++;
+      finishReceipt('cancelled');
       abortRef.current?.abort();
       abortRef.current = null;
       window.removeEventListener(protocolShellEvents.pendingHandoff, applyPendingHandoff);
     };
-  }, []);
+  }, [finishReceipt]);
 
   async function handleLookup(event: FormEvent) {
     event.preventDefault();
     if (loading) {
-      invalidateLookup();
+      invalidateLookup('cancelled');
       setError('Route lookup cancelled.');
       return;
     }
@@ -66,6 +84,7 @@ export function RoutesWorkbench() {
     const generation = requestGenerationRef.current + 1;
     requestGenerationRef.current = generation;
     abortRef.current = controller;
+    receiptRef.current = { target, started: performance.now() };
     setLoading(true);
     setHandoff(null);
     setError('');
@@ -74,8 +93,17 @@ export function RoutesWorkbench() {
       const next = await lookupRoute(target, family, controller.signal);
       if (requestGenerationRef.current !== generation || abortRef.current !== controller) return;
       setResponse(next);
+      finishReceipt(
+        next.results.every((result) => result.status === 'ok')
+          ? 'success'
+          : next.results.some((result) => result.status === 'ok')
+            ? 'partial'
+            : 'failed',
+        next.results.length
+      );
     } catch (reason) {
       if (requestGenerationRef.current !== generation || abortRef.current !== controller) return;
+      finishReceipt(controller.signal.aborted ? 'cancelled' : 'failed');
       setError(
         controller.signal.aborted
           ? 'Route lookup cancelled.'
@@ -105,6 +133,7 @@ export function RoutesWorkbench() {
           <Route aria-hidden="true" /> No route probes
         </span>
       </PageHeader>
+      <OperationHistoryControl operations={['route']} />
 
       <form className="pp-route-controls" onSubmit={handleLookup}>
         <label>

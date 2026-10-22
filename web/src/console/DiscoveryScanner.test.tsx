@@ -3,6 +3,8 @@ import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ScanResult } from './api';
+import { storePendingHandoff } from './app/handoff-store';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { DiscoveryScanner, ScanResultCard } from './DiscoveryScanner';
 
 function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
@@ -37,9 +39,35 @@ function scanResult(overrides: Partial<ScanResult> = {}): ScanResult {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  clearOperationReceipts();
 });
 
 describe('DiscoveryScanner relay evidence limits', () => {
+  it('records only settled operations and reuses the original observation time when opening old evidence', async () => {
+    const fetchMock = vi.fn(async () => Response.json([scanResult()]));
+    vi.stubGlobal('fetch', fetchMock);
+    const onResults = vi.fn();
+    const onOpenGRPC = vi.fn();
+    render(<DiscoveryScanner onResults={onResults} onOpenGRPC={onOpenGRPC} />);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(readOperationReceipts()).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
+    const open = await screen.findByRole('button', { name: 'gRPC' });
+    const original = onResults.mock.calls[0]?.[1];
+    expect(original).toMatchObject({ source: 'bounded-discovery', quality: 'observed' });
+    expect(Number.isFinite(Date.parse(original.observedAt))).toBe(true);
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'discovery', outcome: 'success', count: 1 },
+    ]);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse(original.observedAt) + 3600000);
+    fireEvent.click(open);
+    expect(onOpenGRPC.mock.calls[0]?.[1]).toBe(original);
+    expect(onOpenGRPC.mock.calls[0]?.[1]?.observedAt).toBe(original.observedAt);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(readOperationReceipts()).toHaveLength(1);
+  });
   it('runs an automatic explicit CLI target only once during StrictMode effect replay', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json([])
@@ -152,24 +180,34 @@ describe('DiscoveryScanner relay evidence limits', () => {
     );
   });
 
-  it('surfaces a rejected workbench handoff beside the evidence', async () => {
+  it('surfaces real broker staleness with a scan recovery instead of renewing old evidence', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Response.json([scanResult()]))
     );
     render(
       <DiscoveryScanner
-        onOpenGRPC={() => ({
-          ok: false,
-          error: 'The handoff evidence is stale. Inspect again before opening a draft.',
-        })}
+        onOpenGRPC={(result, provenance) => {
+          if (!provenance) throw new Error('Scan must retain its observation provenance.');
+          return storePendingHandoff({
+            provenance,
+            draft: {
+              kind: 'grpc-target-draft',
+              target: { kind: 'grpc-target', address: result.address, plaintext: true },
+            },
+          });
+        }}
       />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Scan common local' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'gRPC' }));
+    const open = await screen.findByRole('button', { name: 'gRPC' });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 6 * 60_000);
+    fireEvent.click(open);
 
     expect(screen.getByRole('status')).toHaveTextContent(/handoff evidence is stale/i);
+    expect(screen.getByRole('status')).toHaveTextContent(/Use Scan target or Scan common local/i);
   });
 
   it('discloses truncation inside collapsed routine loopback failures', async () => {

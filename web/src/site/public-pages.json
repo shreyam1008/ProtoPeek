@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastModified": "2026-10-18",
+  "lastModified": "2026-10-22",
   "groups": [
     {
       "id": "getting-started",
@@ -325,6 +325,33 @@
       "lastModified": "2026-09-07"
     },
     {
+      "id": "network-diagnostics",
+      "path": "/network-diagnostics/",
+      "slug": "network-diagnostics",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "network",
+      "title": "Network diagnostics",
+      "documentTitle": "ProtoPeek Network Diagnostics | DNS, TLS & Proxies",
+      "description": "Run bounded DNS, TLS, TCP/UDP, proxy and HTTP/2 or HTTP/3 checks, plus offline subnet planning, with explicit evidence and private-input boundaries.",
+      "question": "Which connection stage or protocol failed?",
+      "section": "Current source",
+      "sourcePath": "guides/network-diagnostics.md",
+      "status": {
+        "label": "Current source · after v0.6.1",
+        "tone": "current",
+        "detail": "Implemented in current source. Native runtime and release/package acceptance are separate gates; this page does not announce publication."
+      },
+      "highlights": [
+        "Explicit bounded operations",
+        "Protocol-native evidence",
+        "Offline subnet planning"
+      ],
+      "visual": "network",
+      "sitemap": { "changefreq": "weekly", "priority": "0.8" },
+      "lastModified": "2026-10-22"
+    },
+    {
       "id": "route-and-nmap-evidence",
       "path": "/route-and-nmap-evidence/",
       "slug": "route-and-nmap-evidence",
@@ -609,7 +636,7 @@
       "status": {
         "label": "Current source · after v0.6.1",
         "tone": "guide",
-        "detail": "Implemented in source; not included in the v0.6.1 stable binaries."
+        "detail": "The expanded protocol/packet catalog is current source. The original adapter is on edge; v0.6.1 stable does not include it. Inspect the running catalog."
       },
       "highlights": [
         "Local MCP and JSON CLI",
@@ -621,7 +648,7 @@
         "changefreq": "monthly",
         "priority": "0.8"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-22"
     },
     {
       "id": "settings",
@@ -679,15 +706,15 @@
       "group": "direction",
       "title": "Feature roadmap",
       "documentTitle": "ProtoPeek Feature Roadmap: Shipped, Next & Gated",
-      "description": "See the shipped ProtoPeek protocol and systems workbench, additions, planned evidence depth, and the gates for future protocol adapters.",
+      "description": "See stable and current-source ProtoPeek workflows, diagnostics and protocol evidence, with native, provider, package and publication gates kept explicit.",
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
-      "lastModified": "2026-09-07",
+      "lastModified": "2026-10-22",
       "status": {
-        "label": "Stable · v0.6.1",
-        "tone": "stable",
-        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
+        "label": "Current source + stable checkpoint",
+        "tone": "current",
+        "detail": "The guide preserves v0.6.1 history and distinguishes current implementation from native/provider/package acceptance."
       },
       "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
       "visual": "roadmap",

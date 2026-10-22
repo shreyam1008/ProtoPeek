@@ -199,8 +199,8 @@ export function AgentWorkbench() {
             Allow write actions
           </label>
           <p className="pp-agent-caption">
-            Adds HTTP POST/PUT/PATCH/DELETE and download controls. Turn the connection off to change
-            this choice.
+            Adds HTTP mutations, gRPC sessions and calls, Cap’n Proto calls, live capture and
+            download controls. Turn the connection off to change this choice.
           </p>
           <button
             type="button"
@@ -292,8 +292,9 @@ export function AgentWorkbench() {
               </div>
             ))}
             <p>
-              gRPC calls, WebSocket/SSE, Cap’n Proto, capture and tunnel changes remain in their
-              existing UI workspaces; this adapter does not expose them yet.
+              Protocol tools use bounded native workspaces. Event receiving stops within 10 seconds;
+              packet-file input is metadata only and requires a sharing acknowledgment. Provider and
+              tunnel changes remain in their UI workspaces.
             </p>
           </details>
         </aside>

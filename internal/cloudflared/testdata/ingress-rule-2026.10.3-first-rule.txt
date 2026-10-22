@@ -1,0 +1,4 @@
+Using rules from <fixture-config.yml>
+Matched rule #0
+	hostname: first.example.test
+	service: http://127.0.0.1:8080

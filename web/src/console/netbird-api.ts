@@ -1,0 +1,38 @@
+export type NetBirdEndpoint = { url: string; connected: boolean | null; hasError: boolean };
+export type NetBirdPeer = {
+  id: string;
+  name: string;
+  ips: string[];
+  state: string;
+  connectionType: string;
+  ice: { local: string; remote: string };
+  endpoints: { local: string; remote: string };
+  relay: string;
+  latencyMs: number | null;
+  received: string;
+  sent: string;
+  networks: string[];
+};
+export type NetBirdSnapshot = {
+  available: boolean;
+  path: string;
+  observedAt: string;
+  revision: string;
+  cliVersion: string;
+  daemonVersion: string;
+  state: string;
+  profile: string;
+  ips: string[];
+  fqdn: string;
+  management: NetBirdEndpoint;
+  signal: NetBirdEndpoint;
+  peers: NetBirdPeer[];
+  peerTotal: number;
+  relays: { uri: string; available: boolean | null; transport: string; hasError: boolean }[];
+  dns: { servers: string[]; domains: string[]; enabled: boolean | null; hasError: boolean }[];
+  warnings: string[];
+  connectAllowed: boolean;
+  disconnectAllowed: boolean;
+  controlReason: string;
+  environment: string[];
+};

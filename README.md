@@ -53,10 +53,33 @@ records 776 UI tests, cross-platform CI, real requests and transfers, and the re
 
 ## Product contract
 
-**New in current source:** [local AI agents](guides/ai-agents.md) attach through `protopeek mcp`
-or the JSON CLI. Pair from **Settings → AI agents** to share HTTP, listener, port/route, Tailscale
-inspection and download tools with visible results and cancellation. This addition is not in
-the v0.6.1 stable binaries. It uses your agent's model; ProtoPeek itself runs no model.
+**Current-source checkpoint · 22 October 2026:** these additions are separate from v0.6.1 and
+earlier edge archives. The [roadmap](guides/feature-roadmap.md) distinguishes implementation from
+native/provider/package acceptance; this checkpoint does not announce a public release.
+
+- [Network diagnostics](guides/network-diagnostics.md) joins DNS/resolver, TCP/TLS, IPv4/IPv6,
+  finite sampling, TCP/UDP exchange, proxies, h2c, HTTP/3 and offline subnet planning in one
+  explicit Run/Cancel workflow. Eligible subnet plans prepare an unsent nearby-device scan.
+- HTTP adds environment templates, session-only secrets, library import/merge and reviewed cURL
+  import. gRPC renders incremental native stream evidence; Cap’n Proto adds generic bindings
+  and typed returned-capability plans. Loading or importing never sends a request.
+- Network history compares immutable observations conservatively and previews Nmap XML-to-map
+  losses. Packet triage separates sections/transports and offers default-off bounded TCP payload
+  evidence with visible gaps/conflicts. Native macOS ICMP/counters now have an implementation
+  and native CI tests; real macOS/runtime acceptance remains distinct from portable fixtures.
+- Private access adds a separate Headscale login-server flow and native NetBird evidence.
+  Publishing adds reviewed canonical user-config operations and owned temporary Serve/Quick
+  Tunnel/Funnel sessions on Windows/Linux. Linux requires a direct native vendor Go command;
+  scripts, Snap/Flatpak launchers and unknown builds are refused. All foreground publishing modes
+  remain unavailable on macOS. Actual accounts, installed tools, permissions and endpoint/cleanup
+  checks remain explicit prerequisites and acceptance gates. See the [Linux ownership
+  boundary](guides/cloudflare-tunnels.md#temporary-sharing-with-an-explicit-audience).
+
+[Local AI agents](guides/ai-agents.md) attach through `protopeek mcp` or the JSON CLI, using your
+own model. The live catalog includes bounded gRPC/Cap’n Proto, receive-only events and caller-shared
+packet metadata alongside HTTP and host tools. Pair from **Settings → AI agents**; RPC mutations,
+connections, capture and downloads require write actions. Sanitized session activity keeps at most
+40 receipts in this tab’s memory and resumes endpoints as unsent manual drafts.
 
 v0.6.1 has six permanent destinations:
 
@@ -83,8 +106,9 @@ imports wait for an explicit operation choice, and gRPC schema failures offer re
 
 Existing deep links remain valid, including `/tunnels`, `/network/tailnet` and `/network/nmap`.
 Stable v0.6.1 places installed Tailscale status, peers, netcheck and reviewed CLI actions under
-Network. Current source groups that workbench under Extensions. Headscale, NetBird, integrated sign-in/elevation and
-Tailscale Serve/Funnel remain planned. A feature belongs in ProtoPeek only when it operates on
+Network. Current source groups that workbench under Extensions and adds the bounded private-access
+and temporary publishing flows above. Integrated sign-in/elevation and provider administration remain
+outside those flows. A feature belongs in ProtoPeek only when it operates on
 a service or related artifact, strengthens an existing journey or typed handoff, remains useful
 local-first, stays lazy/bounded/quiet, and has a truthful Windows, Linux, and macOS story that one
 maintainer can support. See the [suite strategy](guides/protopeek-suite-strategy.md) and selected
@@ -316,7 +340,10 @@ median appears only when reply samples came from the exact pinned destination; P
 substitutes the last responding router. Silent hops do not prove a device is down, and ECMP or other
 load balancing can produce several responders at one TTL. The Run action starts the displayed
 active probe plan, including public targets. Windows uses native IPv4/IPv6 ICMP echo;
-Darwin currently reports active hop probing as unsupported. No elevation is requested.
+Stable v0.6.1 reports Darwin active probing as unsupported. Current source adds native unprivileged
+Darwin ICMP echo matching and aggregate interface counters, with macOS loopback/cancellation/traffic
+CI tests. Real intermediate-hop and installed-runtime acceptance still require actual native evidence.
+No elevation is requested; Darwin socket/process ownership remains unavailable.
 Optional, explicitly requested IPWHOIS labels add dated ASN/ISP and approximate location evidence
 to responding public IPs. Local addresses are skipped, and labels survive saving the trace.
 
@@ -370,7 +397,7 @@ lossy and accepts only one flat directed graph; undirected or mixed edges, neste
 ports, duplicate structures, and XML 1.0-invalid controls are rejected rather than reinterpreted.
 CSV is an export-only flat inventory.
 
-The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`, without Nmap installed. Current source additionally offers **Network → Nmap** for an installed Nmap: one literal IP or an authorized private IPv4 `/24`-or-smaller subnet, TCP connect or light service detection, an exact scope preview, cancellation, and JSON export. It does not bundle or install Nmap/Npcap and accepts no arbitrary arguments. See the [Nmap workflow](guides/network-workbench.md#installed-nmap-in-current-source) for limits. Imported or scanned service labels remain hints; **Inspect service** opens the selected endpoint for explicit verification before gRPC or HTTP. Uploaded XML and scanned inventory are not persisted automatically.
+The Scan dialog can also import up to 8 MiB of XML previously written by `nmap -oX`, without Nmap installed. Network history can additionally preview that XML as a workspace, disclose exact omitted hosts/ports/hints, then save a new immutable snapshot without inventing links. Current source also offers **Network → Nmap** for an installed Nmap: one literal IP or an authorized private IPv4 `/24`-or-smaller subnet, TCP connect or light service detection, an exact scope preview, cancellation, and JSON export. It does not bundle or install Nmap/Npcap and accepts no arbitrary arguments. See the [Nmap workflow](guides/network-workbench.md#installed-nmap-in-current-source) for limits. Imported or scanned service labels remain hints; **Inspect service** opens the selected endpoint for explicit verification before gRPC or HTTP. Uploaded XML and scanned inventory are not persisted automatically.
 
 One running ProtoPeek handler also shares small admission budgets across browser sessions: eight
 ordinary gRPC invokes total across the direct and workspace paths, four HTTP relays, and two native
@@ -411,12 +438,12 @@ handler wall, while a positive user deadline at or below 60 seconds remains unch
 | **Fast controls** | Cancel active calls, `Cmd/Ctrl+Enter` to invoke, `/` to search, and `Cmd/Ctrl+K` for commands |
 | **Assertions** | Validate status, latency, metadata, and payload text locally |
 | **Transport lens** | gRPC-Web, Envoy bridging, and transport context alongside the console |
-| **HTTP workbench** | Send bounded HTTP(S) requests with method, URL, params, headers, auth, body, timeout, cancellation, redirect policy, and native response evidence; import OpenAPI/Swagger JSON; save up to 50 named requests with explicit body opt-in; load saved requests through fuzzy global search without sending; export redacted cURL |
+| **HTTP workbench** | Send bounded HTTP(S) requests with native response evidence; import OpenAPI/Swagger JSON or a reviewed cURL subset; save up to 50 named requests, import/merge libraries and use environment templates with session-only secrets; loading prepares an unsent editor; export redacted cURL |
 | **Downloader · v0.5.0** | Queue 1–32 independent HTTP(S) jobs with partial-success reporting, shared bounded per-job destination/headers/User-Agent, job and whole-queue controls, single-job naming/SHA-256 evidence, or one explicit `pp download`; configured/system `aria2c`, never bundled |
 | **Security evidence · v0.5.0** | With separate disclosures and consent, query historical certificate-name candidates through `crt.name` or send exactly one public-only, non-following, bodyless `HEAD` with pinned DNS/TLS/HTTP evidence; no security score |
 | **Website workbench · current source** | Side sections for response/TLS, five standard-path HEAD checks and historical indexed names; rejected-certificate evidence, JSON exports, name filtering and reviewed Inspect handoffs; bounded browser-local origin/domain memory |
-| **This Device · current source after v0.5.0** | Read process-perspective identity and interfaces locally; explicitly inspect bounded Linux or native Windows TCP/UDP socket-owner evidence, sample aggregate interface load once, observe public IPv4/IPv6 plus provider-reported BGP origin, or run an opt-in, data-bounded Cloudflare connection-quality plan; Windows owner labels are best-effort, macOS activity/counters remain unsupported, and there is no ambient monitor or Internet-open-port claim |
-| **Cloudflare Tunnel · current source after v0.5.0** | Explicitly inspect the real host for `cloudflared`, the canonical Windows SCM/systemd/launchd service, config authority, and parsed routes including catch-all; manually compare the installed version with the official release; confirm and verify canonical-service start/stop/restart with stale-state protection and OS-owned elevation guidance; **Draft ingress route** uses regex paths and stays browser-only, remote-managed drafts have no local YAML destination, and there is no secret/password collection, automatic install/update, config mutation, Docker daemon call, or account/cloud mutation |
+| **This Device · current source** | Local identity/interfaces, explicit Linux/Windows socket-owner evidence, one-shot aggregate Windows/Linux/macOS interface counters, public IPv4/IPv6/BGP observations and bounded optional connection-quality checks. macOS socket/process ownership remains unavailable; native acceptance is separate from cross-compilation; no ambient monitor or public-port verdict |
+| **Cloudflare Tunnel · current source** | Canonical host/service/config inspection, reviewed service controls, native validation/route matching and bounded logs/metrics/diagnostics. Configuration writes require the exact writable user-owned canonical file, fresh revision, explicit review, validation and rollback; administrator files, credentials and cloud/account changes stay user-owned |
 
 gRPC timing is cumulative from invoke start and marks lifecycle boundaries observed by ProtoPeek's
 grpcurl handler callbacks and invoke return. Unary callbacks may cluster after transport completion;
@@ -474,8 +501,9 @@ one portable cURL command cannot reproduce ProtoPeek's bounded redirect, method/
 downgrade policy. Export inspects at most 64 effective headers and refuses commands over 512 KiB.
 Request bodies are deliberate user-authored content and are copied verbatim, so review the command
 before sharing or running it. The command runs in your shell rather than ProtoPeek's relay, so DNS,
-network namespace, proxies, trust roots, and implicit cURL headers can differ. cURL import is not
-included yet.
+network namespace, proxies, trust roots, and implicit cURL headers can differ. Current source also
+imports a reviewed single-request cURL subset: preview, then load an unsent editor. Shell expressions,
+file arguments, proxy switches and insecure TLS are rejected; imported credentials remain in memory.
 
 ## Protocol direction
 
@@ -504,7 +532,7 @@ adapter owns discovery, schema, invocation, cancellation, and its native inspect
 | Tailscale client | Stable · v0.6.1 | Network → Tailscale reads installed-client peers, accounts and routes; prepared service inspection, reviewed connection/account/exit-node actions, diagnostics and Taildrop. Integrated sign-in/elevation, Headscale administration and NetBird remain open work |
 | [Cap’n Proto](guides/capnp-workbench.md) | Stable · v0.6.1 | Source/compiled schema loading, concrete bootstrap RPC, exact integers, verified TLS, cancellation and JSON export; optional external source compiler |
 | [Packet inspection](guides/network-workbench.md#current-source-packet-inspection) | Stable · v0.6.1 | PCAP/PCAPNG metadata, packet filtering/details/export; explicit installed dumpcap adapter with native live-capture acceptance still pending |
-| Darwin active hop probes | Remaining work | Windows IPv4/IPv6 and Linux UDP are implemented; Darwin needs a verified native backend |
+| Darwin active hops/counters | Current source · native acceptance gate | Native unprivileged ICMP and aggregate counters, with macOS loopback/cancellation/traffic CI tests; actual macOS runtime and intermediate-hop acceptance remain required; no process ownership |
 | Bundled Nmap execution | Not planned for the core binary | Existing XML import stays dependency-free; any future opt-in companion needs explicit executable choice, previewed scope, hard budgets, and an auditable command |
 | Broader or public range discovery | Not planned for the core flow | Current discovery remains selected TCP ports inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope |
 | SMTP, FTP, and others | Later | Only after protocol-specific security, evidence, and UX are designed |
@@ -514,6 +542,7 @@ operations never start on page load and remain distinct from the passive kernel-
 offline Nmap XML import. Wider range expansion remains gated; live capture requires separately installed dumpcap and OS capture support.
 
 See the detailed [network workbench guide](guides/network-workbench.md),
+[network diagnostics](guides/network-diagnostics.md),
 [This Device evidence and connection-quality boundary](guides/this-pc.md),
 [Connected Workbench v0.7 implementation contract](guides/connected-workbench-integration-plan.md),
 [suite product, redesign, and migration strategy](guides/protopeek-suite-strategy.md),

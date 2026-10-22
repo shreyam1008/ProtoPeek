@@ -23,6 +23,7 @@ import {
   createWorkspaceFromSnapshot,
   restoreNetworkSnapshot,
 } from '@/console/network-workspace';
+import type { NmapTopologyPreview } from '@/console/nmap-to-network';
 import { pathTraceToNetworkWorkspace } from '@/console/path-to-network';
 
 type ControllerOperation = { generation: number; editRevision: number };
@@ -40,6 +41,10 @@ export function useNetworkWorkspace(store: NetworkStore = defaultNetworkStore) {
   const [notice, setNotice] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [restoreConfirmation, setRestoreConfirmation] = useState('');
+  const [nmapPreview, setNmapPreview] = useState<NmapTopologyPreview | null>(null);
+  const [nmapBusy, setNmapBusy] = useState(false);
+  const nmapOperationRef = useRef<ControllerOperation | null>(null);
+  const nmapAbortRef = useRef<AbortController | null>(null);
   const activeIDRef = useRef('');
   const dirtyRef = useRef(false);
   const persistedWorkspaceRef = useRef<NetworkWorkspaceV1 | null>(null);
@@ -141,6 +146,7 @@ export function useNetworkWorkspace(store: NetworkStore = defaultNetworkStore) {
       mountedRef.current = false;
       operationGenerationRef.current += 1;
       controllerOperationRef.current = null;
+      nmapAbortRef.current?.abort();
     };
   }, [store, claimControllerOperation, commitWorkspaceView, operationIsCurrent]);
 
@@ -459,6 +465,80 @@ export function useNetworkWorkspace(store: NetworkStore = defaultNetworkStore) {
     }
   }
 
+  async function previewNmap(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (dirtyRef.current) {
+      setNotice('Save or discard map edits before importing Nmap evidence.');
+      return;
+    }
+    if (file.size > 8 << 20) {
+      setNotice('Nmap XML import exceeds the 8 MiB limit.');
+      return;
+    }
+    nmapAbortRef.current?.abort();
+    const controller = new AbortController();
+    nmapAbortRef.current = controller;
+    const operation = claimControllerOperation();
+    nmapOperationRef.current = operation;
+    setNmapPreview(null);
+    setNmapBusy(true);
+    try {
+      const [{ importNmapXML }, { nmapToNetwork }] = await Promise.all([
+        import('@/console/api'),
+        import('@/console/nmap-to-network'),
+      ]);
+      if (!operationIsCurrent(operation)) return;
+      const inventory = await importNmapXML(file, controller.signal);
+      if (!operationIsCurrent(operation) || controller.signal.aborted) return;
+      setNmapPreview(nmapToNetwork(inventory, file.name.replace(/\.xml$/i, '')));
+      setNotice('Review the imported assertions and declared losses before saving.');
+    } catch (error) {
+      if (operationIsCurrent(operation) && !controller.signal.aborted)
+        setNotice(error instanceof Error ? error.message : 'Nmap import failed.');
+    } finally {
+      if (nmapAbortRef.current === controller && mountedRef.current) setNmapBusy(false);
+    }
+  }
+
+  function cancelNmap() {
+    nmapAbortRef.current?.abort();
+    const operation = nmapOperationRef.current;
+    if (operation && operationOwnsController(operation)) {
+      operationGenerationRef.current += 1;
+      controllerOperationRef.current = null;
+    }
+    nmapOperationRef.current = null;
+    setNmapPreview(null);
+    setNmapBusy(false);
+  }
+
+  async function saveNmap() {
+    const operation = nmapOperationRef.current;
+    if (!nmapPreview || !operation) return;
+    if (dirtyRef.current || !operationIsCurrent(operation)) {
+      cancelNmap();
+      setNotice('The map changed after this preview. Save or discard edits, then import again.');
+      return;
+    }
+    setNmapBusy(true);
+    try {
+      const saved = await persistWorkspace(
+        nmapPreview.workspace,
+        'Saved imported Nmap evidence without inferred links.',
+        operation,
+        { expectedPrevious: null }
+      );
+      if (saved && operationIsCurrent(operation)) {
+        setNmapPreview(null);
+        void navigate({ to: '/network/map' });
+      }
+    } finally {
+      if (mountedRef.current) setNmapBusy(false);
+    }
+  }
+
   function exportWorkspace(kind: 'json' | 'graphml' | 'csv') {
     if (!workspace) return;
     try {
@@ -502,6 +582,11 @@ export function useNetworkWorkspace(store: NetworkStore = defaultNetworkStore) {
     importWorkspace,
     loadingStore,
     notice,
+    nmapPreview,
+    nmapBusy,
+    previewNmap,
+    cancelNmap,
+    saveNmap,
     restoreConfirmation,
     restoreSnapshot,
     saveEdits,

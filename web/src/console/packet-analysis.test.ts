@@ -1,10 +1,7 @@
 import { expect, it } from 'vitest';
-import {
-  packetConversationKey,
-  packetRelativeTime,
-  summarizeConversations,
-} from './packet-analysis';
+import { packetConversationKey, packetRelativeTime } from './packet-analysis';
 import type { PacketRow } from './packet-api';
+import { summarizeConversations } from './packet-conversations';
 
 const packet: PacketRow = {
   number: 1,
@@ -56,6 +53,26 @@ it('keeps distinct capture interfaces and local ports separate', () => {
   expect(result).toHaveLength(4);
   expect(result[0].first).toBe('[2001:db8::1]:50000');
   expect(summarizeConversations([])).toEqual([]);
+});
+
+it('keeps equal TCP/UDP tuples and PCAPNG section-local interfaces separate', () => {
+  const packets = [
+    { ...packet, transport: 'TCP' as const, section: 0 },
+    { ...packet, number: 2, transport: 'UDP' as const, protocol: 'DNS', section: 0 },
+    { ...packet, number: 3, transport: 'TCP' as const, section: 1 },
+  ];
+  expect(summarizeConversations(packets)).toHaveLength(3);
+});
+
+it('reports the actual timestamp span across out-of-order capture records', () => {
+  const result = summarizeConversations([
+    packet,
+    { ...packet, number: 2, timestamp: '2026-09-27T06:59:59Z' },
+  ]);
+  expect(result[0]).toMatchObject({
+    firstTime: '2026-09-27T06:59:59Z',
+    lastTime: packet.timestamp,
+  });
 });
 
 it('shows recorded time offsets without inventing missing timestamps', () => {

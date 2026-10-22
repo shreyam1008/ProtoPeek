@@ -32,6 +32,7 @@ const (
 type Inspector struct {
 	releaseClient *http.Client
 	now           func() time.Time
+	operations    *operations
 }
 
 func NewInspector() *Inspector { return NewInspectorWithHTTPClient(http.DefaultClient) }
@@ -40,7 +41,9 @@ func NewInspector() *Inspector { return NewInspectorWithHTTPClient(http.DefaultC
 // tests. Timeout and redirect policy are always replaced with ProtoPeek's fixed
 // safety policy while the supplied Transport is retained.
 func NewInspectorWithHTTPClient(client *http.Client) *Inspector {
-	return &Inspector{releaseClient: safeReleaseClient(client), now: time.Now}
+	inspector := &Inspector{releaseClient: safeReleaseClient(client), now: time.Now}
+	inspector.operations = newOperations(inspector.Inspect)
+	return inspector
 }
 
 // Inspect reads only documented config candidates and the canonical service definition.
@@ -216,6 +219,8 @@ func inspectConfig(path, source string) ConfigCandidate {
 }
 
 type rawConfig struct {
+	LogFile         string     `yaml:"logfile"`
+	Metrics         string     `yaml:"metrics"`
 	Tunnel          yaml.Node  `yaml:"tunnel"`
 	CredentialsFile string     `yaml:"credentials-file"`
 	Ingress         []rawRoute `yaml:"ingress"`
@@ -235,6 +240,8 @@ func parseConfig(contents []byte, result *ConfigCandidate) {
 	}
 	result.Valid = true
 	result.ManagementMode = "local"
+	result.LogFile = cleanArgumentPath(document.LogFile)
+	result.Metrics = boundedText(document.Metrics, 128)
 	if document.Tunnel.Kind == yaml.ScalarNode {
 		result.Tunnel = boundedText(document.Tunnel.Value, 160)
 	}

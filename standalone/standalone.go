@@ -53,7 +53,7 @@ const (
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
 	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/protocols/capnp", "/network/packets", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/extensions", "/agents", "/network/route", "/security", "/settings",
-		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/roadmap", "/updates":
+		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/network/diagnostics", "/extensions/netbird", "/extensions/publish", "/roadmap", "/updates":
 		return true
 	default:
 		return false
@@ -145,7 +145,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 		MaxDuration:     uiOpts.invokeMaxDuration,
 	}
 	healthHandlers := newHealthHandlerSet(uiOpts.extraMetadata, uiOpts.preserveHeaders)
-	grpcInvokeAdmission := newAdmissionLimiter(maxConcurrentGRPCInvokes)
+	grpcInvokeAdmission := newGRPCInvokeAdmission()
 	httpRelayAdmission := newAdmissionLimiter(maxConcurrentHTTPRelays)
 	routeLookupAdmission := newAdmissionLimiter(maxConcurrentRouteLookups)
 	pathTraceAdmission := newAdmissionLimiter(maxConcurrentPathTraces)
@@ -163,6 +163,13 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	registerExtensions(&mux, uiOpts.transferService)
 	registerThisPCHandlers(&mux, uiOpts.thisPCService)
 	registerTunnelHandlers(&mux, uiOpts.tunnelService)
+	if uiOpts.networkDiagnostics {
+		registerDiagnosticsHandlers(&mux)
+	}
+	registerNetBird(&mux, uiOpts.netbirdService)
+	if uiOpts.publishSessionService != nil {
+		registerPublishSessionHandlers(&mux, uiOpts.publishSessionService)
+	}
 	domainCandidatesOperation := DomainCandidatesOperationHandler(domainCandidatesClient)
 	mux.HandleFunc("/api/domain/candidates", func(w http.ResponseWriter, r *http.Request) {
 		setDomainCandidatesHeaders(w)

@@ -283,9 +283,25 @@ func WithTunnelService(service TunnelService) HandlerOption {
 	})
 }
 
+// WithNetBirdService enables local installed-client observation and actions.
+// Embedders and unsafe remote mode omit it by default.
+func WithNetBirdService(service NetBirdService) HandlerOption {
+	return optFunc(func(opts *handlerOptions) { opts.netbirdService = service })
+}
+
+// WithNetworkDiagnostics enables bounded, direct-loopback network probes.
+// Embedders and unsafe remote launcher mode omit this capability by default.
+func WithNetworkDiagnostics() HandlerOption {
+	return optFunc(func(opts *handlerOptions) { opts.networkDiagnostics = true })
+}
+
+// WithPublishSessionService enables only explicitly requested owned sessions.
+func WithPublishSessionService(service PublishSessionService) HandlerOption {
+	return optFunc(func(opts *handlerOptions) { opts.publishSessionService = service })
+}
+
 // WithInitialScanTarget pre-fills and automatically probes one explicit target
-// in launcher mode. The scan endpoint still enforces its fixed candidate limit
-// and network policy.
+// in launcher mode. The scan endpoint retains its fixed limits and policy.
 func WithInitialScanTarget(target string) HandlerOption {
 	return optFunc(func(opts *handlerOptions) {
 		opts.initialScanTarget = target
@@ -326,6 +342,9 @@ type handlerOptions struct {
 	transferService         TransferService
 	thisPCService           ThisPCService
 	tunnelService           TunnelService
+	netbirdService          NetBirdService
+	networkDiagnostics      bool
+	publishSessionService   PublishSessionService
 }
 
 func (opts *handlerOptions) addlServedResources() []*resource {

@@ -58,7 +58,7 @@ describe('extension observations', () => {
     expect(extensionCatalog.map(({ id }) => id)).toEqual(extensionIds);
     expect(
       extensionCatalog.filter(({ group }) => group === 'Connect & publish').map(({ id }) => id)
-    ).toEqual(['tailscale', 'cloudflared']);
+    ).toEqual(['tailscale', 'cloudflared', 'netbird']);
     for (const entry of extensionCatalog) {
       expect(new URL(entry.download).protocol).toBe('https:');
       expect(new URL(entry.guide).protocol).toBe('https:');

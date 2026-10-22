@@ -1,3 +1,4 @@
+import { normalizeHandoffProvenance } from './app/handoff-store';
 import type { RecentDiscovery } from './ProtocolShellContext';
 
 export const recentDiscoveryLimit = 12;
@@ -91,6 +92,16 @@ function normalizeRecentDiscovery(value: unknown): RecentDiscovery | null {
     return null;
   }
 
+  const handoffProvenance =
+    input.handoffProvenance === undefined
+      ? undefined
+      : normalizeHandoffProvenance(input.handoffProvenance);
+  if (
+    handoffProvenance === null ||
+    (handoffProvenance && Date.parse(handoffProvenance.observedAt) !== Date.parse(discoveredAt))
+  )
+    return null;
+
   const protocols = boundedStrings(input.protocols, 3, 16);
   const services = boundedStrings(input.services, 64, 1024);
   const details = boundedStrings(input.details, 64, 2048);
@@ -158,6 +169,7 @@ function normalizeRecentDiscovery(value: unknown): RecentDiscovery | null {
     detailsTruncated: booleanOrFalse(input.detailsTruncated),
     latencyMs: input.latencyMs,
     discoveredAt,
+    ...(handoffProvenance ? { handoffProvenance } : {}),
   };
 }
 

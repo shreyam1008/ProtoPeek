@@ -124,7 +124,7 @@
 }
 .pp-capnp-connect button[type="submit"] {
   background: var(--pp-accent);
-  color: white;
+  color: var(--pp-inverse-text);
 }
 .pp-capnp-status,
 .pp-capnp-error {

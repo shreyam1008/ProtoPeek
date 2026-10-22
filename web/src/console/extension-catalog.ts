@@ -1,4 +1,11 @@
-export const extensionIds = ['tailscale', 'cloudflared', 'wireshark', 'nmap', 'aria2'] as const;
+export const extensionIds = [
+  'tailscale',
+  'cloudflared',
+  'netbird',
+  'wireshark',
+  'nmap',
+  'aria2',
+] as const;
 export type ExtensionId = (typeof extensionIds)[number];
 export type SetupPlatform = 'windows' | 'darwin' | 'linux';
 export type ExtensionObservation = {
@@ -23,7 +30,13 @@ export type ExtensionDefinition = {
   group: 'Connect & publish' | 'Inspect traffic & services' | 'Transfer files';
   summary: string;
   tool: string;
-  route: '/network/tailnet' | '/tunnels' | '/network/packets' | '/network/nmap' | '/downloader';
+  route:
+    | '/network/tailnet'
+    | '/tunnels'
+    | '/network/packets'
+    | '/network/nmap'
+    | '/downloader'
+    | '/extensions/netbird';
   openLabel: string;
   download: string;
   guide: string;
@@ -70,6 +83,24 @@ export const extensionCatalog: readonly ExtensionDefinition[] = [
     },
     afterSetup:
       'Open the workbench to inspect configuration and service state. Installing the connector does not publish a service.',
+  },
+  {
+    id: 'netbird',
+    name: 'NetBird',
+    group: 'Connect & publish',
+    summary: 'Inspect installed private-network peers, ICE paths, relays, management and DNS.',
+    tool: 'netbird',
+    route: '/extensions/netbird',
+    openLabel: 'Open NetBird',
+    download: 'https://docs.netbird.io/get-started/install',
+    guide: 'https://docs.netbird.io/manage/peers/peer-management',
+    setup: {
+      windows: 'Install the official NetBird Windows client and its daemon.',
+      darwin: 'Install the official NetBird macOS client and its daemon.',
+      linux: 'Install NetBird using the official package instructions for your distribution.',
+    },
+    afterSetup:
+      'Sign in with the native client first. ProtoPeek inspects only when requested; installation is separate from connection.',
   },
   {
     id: 'wireshark',

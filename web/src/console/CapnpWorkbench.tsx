@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
 import {
@@ -10,12 +10,17 @@ import {
   loadCapnpSchema,
   readCapnpFiles,
 } from './capnp-api';
+import type { CapnpBindings, CapnpPlanStep } from './capnp-plan-api';
 import { ProtocolInfo } from './ProtocolInfo';
 import './capnp.css';
 
 type SchemaInput = { schemaBase64?: string; files?: CapnpSource[]; root?: string };
 const methodKey = (method: { interfaceId: string; ordinal: number }) =>
   `${method.interfaceId}/${method.ordinal}`;
+
+const AdvancedPanel = lazy(() =>
+  import('./CapnpAdvancedPanel').then((module) => ({ default: module.CapnpAdvancedPanel }))
+);
 
 export function CapnpWorkbench() {
   const [schema, setSchema] = useState<CapnpSchema | null>(null);
@@ -28,6 +33,8 @@ export function CapnpWorkbench() {
   const [serverName, setServerName] = useState('');
   const [rootCaPem, setRootCaPem] = useState('');
   const [params, setParams] = useState('{}');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [bindings, setBindings] = useState<CapnpBindings>({});
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -62,7 +69,11 @@ export function CapnpWorkbench() {
       ) ?? [],
     [schema, filter]
   );
-  const response = result ? JSON.stringify(result.result, null, 2) : '';
+  const response = result ? JSON.stringify(result.plan ?? result.result, null, 2) : '';
+  const executionIdentity = useMemo(
+    () => JSON.stringify([address, transport, timeout, serverName, rootCaPem]),
+    [address, transport, timeout, serverName, rootCaPem]
+  );
 
   function cancel() {
     active.current?.abort();
@@ -108,6 +119,8 @@ export function CapnpWorkbench() {
       setSchema(loaded);
       setSelection(loaded.methods[0] ? methodKey(loaded.methods[0]) : '');
       setParams('{}');
+      setBindings({});
+      setAdvancedOpen(false);
       setSourceOpen(false);
       setMessage(
         loaded.methods.length
@@ -124,11 +137,11 @@ export function CapnpWorkbench() {
       }
     }
   }
-  async function send() {
+  async function send(steps?: CapnpPlanStep[]) {
     if (!schema || !method || busy) return;
     const controller = new AbortController();
     active.current = controller;
-    setBusy('Calling');
+    setBusy(steps ? 'Running plan' : 'Calling');
     setError('');
     setMessage('');
     setResult(null);
@@ -138,23 +151,38 @@ export function CapnpWorkbench() {
       const seconds = Number(timeout);
       if (!Number.isFinite(seconds) || seconds < 0.1 || seconds > 30)
         throw new Error('Timeout must be 0.1–30 seconds.');
-      const value = await callCapnp(
-        {
-          schemaBase64: schema.schemaBase64,
-          address: address.trim(),
-          transport,
-          serverName: transport === 'tls' ? serverName.trim() : '',
-          rootCaPem: transport === 'tls' ? rootCaPem : '',
-          interfaceId: method.interfaceId,
-          ordinal: method.ordinal,
-          timeoutMs: Math.round(seconds * 1000),
-          params,
-        },
-        controller.signal
-      );
+      const target = {
+        schemaBase64: schema.schemaBase64,
+        address: address.trim(),
+        transport,
+        serverName: transport === 'tls' ? serverName.trim() : '',
+        rootCaPem: transport === 'tls' ? rootCaPem : '',
+        timeoutMs: Math.round(seconds * 1000),
+      };
+      const value = steps
+        ? await (await import('./capnp-plan-api')).callCapnpPlan(
+            { ...target, steps },
+            controller.signal
+          )
+        : await callCapnp(
+            {
+              ...target,
+              interfaceId: method.interfaceId,
+              ordinal: method.ordinal,
+              params,
+              ...bindings,
+            },
+            controller.signal
+          );
       if (active.current === controller) {
         setResult(value);
-        setMessage('Call completed.');
+        setMessage(
+          value.plan
+            ? value.plan.completed
+              ? 'Call plan completed.'
+              : 'Call plan stopped. Earlier sent calls may have taken effect.'
+            : 'Call completed.'
+        );
       }
     } catch (cause) {
       if (active.current === controller)
@@ -294,6 +322,8 @@ export function CapnpWorkbench() {
                   onClick={() => {
                     setSelection(methodKey(item));
                     setParams('{}');
+                    setBindings({});
+                    setAdvancedOpen(false);
                     setResult(null);
                     setError('');
                     setMessage('');
@@ -368,6 +398,35 @@ export function CapnpWorkbench() {
             </button>
           )}
         </form>
+        {schema && method ? (
+          <details
+            className="pp-capnp-tls"
+            open={advancedOpen}
+            onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+          >
+            <summary>
+              {method.typeParameters?.length || method.implicitParameters?.length
+                ? 'Generic type bindings & capability plan'
+                : 'Capability call plan & type bindings'}
+            </summary>
+            {advancedOpen ? (
+              <Suspense fallback={<p>Loading advanced calls…</p>}>
+                <AdvancedPanel
+                  key={selection}
+                  schema={schema}
+                  method={method}
+                  params={params}
+                  bindings={bindings}
+                  onBindingsChange={setBindings}
+                  onRun={(steps) => void send(steps)}
+                  busy={Boolean(busy)}
+                  executionIdentity={executionIdentity}
+                  targetLabel={`${address.trim()} · ${transport === 'tls' ? 'verified TLS' : 'plaintext TCP'} · ${timeout}s total timeout`}
+                />
+              </Suspense>
+            ) : null}
+          </details>
+        ) : null}
         {transport === 'tls' ? (
           <details className="pp-capnp-tls">
             <summary>TLS identity & custom CA</summary>

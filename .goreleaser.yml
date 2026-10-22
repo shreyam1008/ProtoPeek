@@ -96,6 +96,10 @@ nfpms:
         dst: /usr/share/doc/protopeek/licenses/go-capnp-MIT.txt
       - src: third_party/licenses/zeropool-APACHE-2.0.txt
         dst: /usr/share/doc/protopeek/licenses/zeropool-APACHE-2.0.txt
+      - src: third_party/licenses/quic-go-MIT.txt
+        dst: /usr/share/doc/protopeek/licenses/quic-go-MIT.txt
+      - src: third_party/licenses/qpack-MIT.txt
+        dst: /usr/share/doc/protopeek/licenses/qpack-MIT.txt
       - src: web/site/public/man/protopeek.1
         dst: /usr/share/man/man1/protopeek.1
       - src: web/site/public/man/pp.1

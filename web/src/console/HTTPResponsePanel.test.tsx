@@ -25,6 +25,21 @@ afterEach(() => {
 });
 
 describe('HTTPResponsePanel', () => {
+  it('keeps response content named and keyboard focusable before and after evidence arrives', () => {
+    const { rerender } = render(<HTTPResponsePanel response={null} loading={false} error={null} />);
+    const content = screen.getByRole('region', { name: 'HTTP response content' });
+    expect(content).toHaveAttribute('tabindex', '0');
+    content.focus();
+    expect(content).toHaveFocus();
+    expect(content).toHaveTextContent('Send a request');
+
+    rerender(<HTTPResponsePanel response={response} loading={false} error={null} />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Headers' }));
+    expect(content).toContainElement(screen.getByRole('tabpanel', { name: 'Headers' }));
+    content.focus();
+    expect(content).toHaveFocus();
+  });
+
   it('formats JSON while preserving the raw response when toggled', () => {
     render(
       <HTTPResponsePanel

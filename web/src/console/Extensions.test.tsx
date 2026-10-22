@@ -43,13 +43,21 @@ describe('Extensions', () => {
     const services = screen.getByRole('region', { name: 'Connect & publish' });
     expect(within(services).getByRole('heading', { name: 'Tailscale' })).toBeVisible();
     expect(within(services).getByRole('heading', { name: 'Cloudflare Tunnel' })).toBeVisible();
-    expect(screen.getAllByRole('article')).toHaveLength(5);
+    expect(within(services).getByRole('heading', { name: 'NetBird' })).toBeVisible();
+    expect(screen.getAllByRole('article')).toHaveLength(extensionIds.length);
     expect(
       within(screen.getByRole('navigation', { name: 'Extensions tools' }))
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
-    ).toEqual(['/extensions', '/network/tailnet', '/tunnels', '/network/nmap']);
-    expect(screen.getAllByText('Not found')).toHaveLength(5);
+    ).toEqual([
+      '/extensions',
+      '/network/tailnet',
+      '/extensions/netbird',
+      '/tunnels',
+      '/extensions/publish',
+      '/network/nmap',
+    ]);
+    expect(screen.getAllByText('Not found')).toHaveLength(extensionIds.length);
     expect(screen.getByLabelText('Setup instructions for')).toHaveValue('linux');
     expect(screen.getByRole('link', { name: 'Read a packet file' })).toHaveAttribute(
       'href',
@@ -106,7 +114,7 @@ describe('Extensions', () => {
       'href',
       'https://tailscale.com/download'
     );
-    expect(screen.getAllByText('Not checked')).toHaveLength(5);
+    expect(screen.getAllByText('Not checked')).toHaveLength(extensionIds.length);
     fireEvent.click(screen.getByRole('button', { name: 'Refresh tools' }));
     await screen.findAllByText('Not found');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();

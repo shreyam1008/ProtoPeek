@@ -56,8 +56,8 @@
   text-align: left;
 }
 .pp-tailnet nav button[aria-pressed="true"] {
-  color: var(--pp-accent);
-  background: var(--pp-accent-soft);
+  color: var(--pp-color-accent-strong);
+  background: var(--pp-color-accent-soft);
 }
 .pp-tailnet-content {
   min-width: 0;
@@ -177,4 +177,25 @@
     border-left: none;
     padding-left: 0;
   }
+}
+
+.pp-tailnet-custom {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+  max-width: 640px;
+}
+.pp-tailnet-custom p {
+  line-height: 1.5;
+}
+
+.pp-tailnet-custom label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.pp-tailnet .pp-tailnet-custom input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
 }

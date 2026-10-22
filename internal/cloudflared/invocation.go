@@ -13,6 +13,17 @@ func observationFromArgs(manager, label string, args []string) ServiceObservatio
 	for index := 1; index < len(args); index++ {
 		name, inline, hasInline := strings.Cut(args[index], "=")
 		switch strings.ToLower(name) {
+		case "--logfile", "--metrics":
+			value := inline
+			if !hasInline && index+1 < len(args) {
+				index++
+				value = args[index]
+			}
+			if name == "--logfile" {
+				result.LogFile = cleanArgumentPath(value)
+			} else {
+				result.Metrics = boundedText(value, 128)
+			}
 		case "--config":
 			if hasInline {
 				result.ConfigPath = cleanArgumentPath(inline)
@@ -68,6 +79,12 @@ func mergeServiceObservation(base, parsed ServiceObservation) ServiceObservation
 	}
 	if parsed.CredentialSource == "" {
 		parsed.CredentialSource = base.CredentialSource
+	}
+	if parsed.LogFile == "" {
+		parsed.LogFile = base.LogFile
+	}
+	if parsed.Metrics == "" {
+		parsed.Metrics = base.Metrics
 	}
 	return parsed
 }

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -12,6 +12,8 @@ import {
   evaluateBundleBudgets,
   measureBundleDirectory,
   runBundleBudgetCheck,
+  startupAssetNames,
+  staticJavaScriptImports,
 } from '../../../scripts/bundle-budget';
 
 const budgets: BundleBudget[] = [
@@ -24,6 +26,67 @@ const budgets: BundleBudget[] = [
 ];
 
 describe('bundle budget contract', () => {
+  it('rejects a partly matching aggregate when a named feature stylesheet disappeared', () => {
+    const budget: BundleBudget = {
+      label: 'family',
+      pattern: /\.css$/,
+      mode: 'aggregate',
+      maxRawBytes: 100,
+      maxGzipBytes: 100,
+      requiredMembers: [/^first-/, /^second-/],
+    };
+    expect(
+      evaluateBundleBudgets([{ name: 'first-a.css', rawBytes: 1, gzipBytes: 1 }], [budget])
+    ).toEqual(['family: missing required member ^second-']);
+  });
+  it('counts root-relative startup assets and rejects an empty or missing entry graph', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'protopeek-startup-entry-'));
+    const directory = join(root, 'assets');
+    try {
+      await mkdir(directory);
+      await writeFile(join(directory, 'index-a.js'), 'export{};');
+      await writeFile(join(root, 'index.html'), '<script src="/assets/index-a.js"></script>');
+      expect([...(await startupAssetNames(directory))]).toEqual(['index-a.js']);
+      await writeFile(join(root, 'index.html'), '<link href="./assets/other.js">');
+      await expect(startupAssetNames(directory)).rejects.toThrow('Missing console startup index');
+      await writeFile(join(root, 'index.html'), '<main>missing entry</main>');
+      await expect(startupAssetNames(directory)).rejects.toThrow('Missing console startup index');
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+  it('counts HTML preloads and transitive static imports while leaving tools lazy', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'protopeek-startup-'));
+    const directory = join(root, 'assets');
+    try {
+      await mkdir(directory);
+      await writeFile(
+        join(root, 'index.html'),
+        '<script type="module" src="./assets/index-a.js"></script><link rel="modulepreload" href="./assets/preload-b.js">'
+      );
+      await writeFile(
+        join(directory, 'index-a.js'),
+        'import{a}from"./helper-c.js";import("./lazy-d.js");'
+      );
+      await writeFile(join(directory, 'preload-b.js'), 'export{};');
+      await writeFile(join(directory, 'helper-c.js'), 'export{a}from"./preload-b.js";');
+      expect([...(await startupAssetNames(directory))].sort()).toEqual([
+        'helper-c.js',
+        'index-a.js',
+        'preload-b.js',
+      ]);
+      expect(
+        staticJavaScriptImports(
+          'import("./lazy.js");import"./side.js";export{x}from"./reexport.js";'
+        )
+      ).toEqual(['side.js', 'reexport.js']);
+      expect(staticJavaScriptImports('/*! license */import{x}from"./eager.js";')).toEqual([
+        'eager.js',
+      ]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
   it('keeps deliberate console split chunks under explicit budgets', () => {
     const byLabel = (label: string) => {
       const budget = consoleBundleBudgets.find((candidate) => candidate.label === label);
@@ -42,7 +105,7 @@ describe('bundle budget contract', () => {
     for (const asset of ['index-hash.js', 'console-core-hash.js', 'rolldown-runtime-hash.js']) {
       expect(initial.pattern.test(asset)).toBe(true);
     }
-    expect(initial.pattern.test('console-icons-hash.js')).toBe(false);
+    expect(initial.pattern.test('console-icons-hash.js')).toBe(true);
   });
 
   it('accepts an exact-boundary asset', () => {

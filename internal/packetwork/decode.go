@@ -103,6 +103,7 @@ func decodePacket(raw []byte, link uint32) Packet {
 		} else if total > len(raw) {
 			p.Truncated = true
 		}
+		p.fragmented = be.Uint16(raw[6:8])&0x3fff != 0
 		if be.Uint16(raw[6:8])&0x1fff != 0 {
 			p.Info = "Non-initial IPv4 fragment; transport not decoded"
 			return p
@@ -137,6 +138,7 @@ func decodePacket(raw []byte, link uint32) Packet {
 			}
 			size := (int(raw[1]) + 1) * 8
 			if protocol == 44 {
+				p.fragmented = true
 				size = 8
 				if len(raw) < 8 {
 					return short()
@@ -161,6 +163,7 @@ func decodePacket(raw []byte, link uint32) Packet {
 	switch protocol {
 	case 6:
 		p.Protocol = "TCP"
+		p.Transport = "TCP"
 		if len(raw) < 20 {
 			return short()
 		}
@@ -181,6 +184,8 @@ func decodePacket(raw []byte, link uint32) Packet {
 		}
 		p.Info = fmt.Sprintf("%s · seq %d · ack %d · payload %d B", strings.Join(flags, ", "), be.Uint32(raw[4:8]), be.Uint32(raw[8:12]), len(raw)-header)
 		payload := raw[header:]
+		p.TCP = &TCPHeader{Sequence: be.Uint32(raw[4:8]), Acknowledgment: be.Uint32(raw[8:12]), Flags: raw[13], PayloadBytes: len(payload)}
+		p.payload = payload
 		if (p.SourcePort == 53 || p.DestinationPort == 53) && len(payload) >= 2 {
 			n := int(be.Uint16(payload[:2]))
 			if n <= len(payload)-2 {
@@ -190,6 +195,7 @@ func decodePacket(raw []byte, link uint32) Packet {
 		decodeApplication(&p, payload)
 	case 17:
 		p.Protocol = "UDP"
+		p.Transport = "UDP"
 		if len(raw) < 8 {
 			return short()
 		}
@@ -208,6 +214,7 @@ func decodePacket(raw []byte, link uint32) Packet {
 		if p.SourcePort == 53 || p.DestinationPort == 53 || p.SourcePort == 5353 || p.DestinationPort == 5353 {
 			decodeDNS(&p, raw[8:])
 		}
+		decodeDatagram(&p, raw[8:])
 	case 1, 58:
 		p.Protocol = "ICMP"
 		if protocol == 58 {

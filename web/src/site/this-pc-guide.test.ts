@@ -34,7 +34,17 @@ describe('This Device release guide', () => {
     expect(guide).toMatch(/two partial reads have no interface in\s+common/);
     expect(guide).toMatch(/evidence is no more than five\s+minutes old/);
     expect(guide).toContain('performs no DNS resolution, probe, connection');
-    expect(guide).toContain('active-hop probing supports Linux UDP and Windows IPv4/IPv6 ICMP');
+    expect(guide).toMatch(
+      /stable active-hop probing supports Linux UDP and Windows\s+IPv4\/IPv6 ICMP/
+    );
+    expect(guide).toContain(
+      'current source adds unprivileged macOS ICMP with its own native acceptance gate'
+    );
+    expect(guide).toContain('Stable v0.6.1 reports macOS sampling as unsupported');
+    expect(guide).toMatch(/current source reads native\s+`NET_RT_IFLIST2` counters/);
+    expect(guide).toContain(
+      'socket activity and process ownership remain outside the implemented macOS contract'
+    );
     expect(guide).not.toContain('macOS and Windows report listeners');
     expect(guide).not.toContain('for the planned native Windows backend');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');

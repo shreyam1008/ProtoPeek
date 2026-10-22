@@ -11,6 +11,19 @@ permissions:
   contents: read
 
 jobs:
+  go-vulnerabilities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Check reachable Go vulnerabilities
+        env:
+          GOFLAGS: -mod=readonly
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+
   docker-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -34,6 +47,9 @@ jobs:
 
       - name: Frontend quality gate
         run: bun run test
+
+      - name: Verify Windows manifest preparation boundaries
+        run: bun test scripts/prepare-winget.test.ts
 
       - name: Build site and embedded app
         run: bun run build
@@ -92,6 +108,30 @@ jobs:
 
       - name: Go test
         run: go test ./...
+
+      - name: Native macOS network evidence
+        if: runner.os == 'macOS'
+        env:
+          CGO_ENABLED: '0'
+        shell: bash
+        run: |
+          status=0
+          go test -count=1 -json ./internal/netpath ./internal/thispc -run '^TestNativeDarwin' > native-darwin-tests.jsonl || status=$?
+          python3 - <<'PY'
+          import json
+          events = [json.loads(line) for line in open('native-darwin-tests.jsonl', encoding='utf-8')]
+          expected = {
+              'TestNativeDarwinEchoReachesIPv4AndIPv6Loopback',
+              'TestNativeDarwinCancellationClosesOwnedEndpoint',
+              'TestNativeDarwinCountersObserveOwnedLoopbackTraffic',
+          }
+          passed = {event.get('Test') for event in events if event.get('Action') == 'pass'}
+          missing = expected - passed
+          for event in events:
+              if event.get('Output'): print(event['Output'], end='')
+          if missing: raise SystemExit('Missing native test passes: ' + ', '.join(sorted(missing)))
+          PY
+          exit "$status"
 
       - name: Compile both commands
         run: go build ./cmd/protopeek ./cmd/pp
@@ -368,6 +408,8 @@ jobs:
             grep -Eq '(^|/)protopeek$' <<<"$contents"
             grep -Eq '(^|/)pp$' <<<"$contents"
             grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
             grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
             grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
             grep -Fq "$(basename "$archive")" dist/checksums.txt
@@ -383,12 +425,25 @@ jobs:
             grep -Eq '(^|/)aria2-notices/COPYING$' <<<"$contents"
             grep -Eq '(^|/)aria2-notices/README.md$' <<<"$contents"
             grep -Eq '(^|/)third_party/licenses/go-capnp-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
             grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
             grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
             grep -Fq "$(basename "$archive")" dist/checksums.txt
             test -f "$archive.sbom.json"
           done
           test "$archive_count" -gt 0
+          deb_count=0
+          for package in dist/*.deb; do
+            test -f "$package" || continue
+            deb_count=$((deb_count + 1))
+            contents="$(dpkg-deb --contents "$package")"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/quic-go-MIT\.txt$' <<<"$contents"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/qpack-MIT\.txt$' <<<"$contents"
+            grep -Fq "$(basename "$package")" dist/checksums.txt
+          done
+          test "$deb_count" -gt 0
+          (cd dist && sha256sum --check checksums.txt)
           test -s .local/aria2-1.37.0-companion-sources.tar.gz
           source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"
           grep -Eq '(^|/)SOURCES.json$' <<<"$source_contents"

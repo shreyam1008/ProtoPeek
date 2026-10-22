@@ -1,7 +1,9 @@
 import { compareItems, rankItem } from '@tanstack/match-sorter-utils';
 import { Search, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-
+import { commandDestinationFeatures } from './app/feature-commands';
+import type { FeatureRoute } from './app/feature-registry';
+import { type DiagnosticMode, diagnosticModes } from './network-diagnostics';
 import { useDialogFocus } from './use-dialog-focus';
 
 export type PaletteAction = {
@@ -17,11 +19,13 @@ export function CommandPalette({
   actions,
   onClose,
   loadExtraActions,
+  onNavigate,
 }: {
   open: boolean;
   actions: PaletteAction[];
   onClose: () => void;
   loadExtraActions?: () => Promise<PaletteAction[]>;
+  onNavigate?: (route: FeatureRoute, mode?: DiagnosticMode) => void;
 }) {
   const [extraActions, setExtraActions] = useState<PaletteAction[]>([]);
   const [loadError, setLoadError] = useState('');
@@ -57,7 +61,29 @@ export function CommandPalette({
 
   const visibleActions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    const allActions = [...actions, ...extraActions];
+    const routeActions: PaletteAction[] = onNavigate
+      ? commandDestinationFeatures.map((feature) => ({
+          id: feature.id,
+          label: feature.command.label,
+          keywords: feature.command.keywords,
+          run: () => onNavigate(feature.route),
+        }))
+      : [];
+    const diagnosticActions: PaletteAction[] = onNavigate
+      ? diagnosticModes.map(([mode, label, detail]) => ({
+          id: `diagnostic-${mode}`,
+          label: `Diagnose: ${label}`,
+          keywords: detail,
+          run: () => onNavigate('/network/diagnostics', mode),
+        }))
+      : [];
+    const allActions = [
+      ...routeActions.slice(0, 4),
+      ...actions,
+      ...routeActions.slice(4),
+      ...diagnosticActions,
+      ...extraActions,
+    ];
     if (!normalized) return allActions;
     const tokens = normalized.split(/\s+/).slice(0, 12);
     return allActions
@@ -75,7 +101,7 @@ export function CommandPalette({
           a.index - b.index
       )
       .map(({ action }) => action);
-  }, [actions, extraActions, query]);
+  }, [actions, extraActions, query, onNavigate]);
   const visibleActiveIndex = activeIndex < visibleActions.length ? activeIndex : 0;
   const activeAction = visibleActions[visibleActiveIndex];
 

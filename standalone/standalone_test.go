@@ -10,6 +10,7 @@ var spaDeepLinkTestRoutes = []string{
 	"/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/protocols/capnp",
 	"/network", "/network/packets", "/network/ports", "/network/nmap", "/network/tailnet",
 	"/network/route", "/network/path", "/network/local", "/network/map", "/network/history",
+	"/network/diagnostics", "/extensions/netbird", "/extensions/publish",
 	"/downloader", "/this-pc", "/tunnels", "/extensions", "/agents", "/security", "/settings",
 	"/grpc", "/http", "/downloads", "/routes", "/roadmap", "/updates",
 }

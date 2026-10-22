@@ -1,5 +1,9 @@
-import { decodeHTTPDraft, encodeHTTPDraft, type HTTPDraft } from './http-draft-store';
-import { normalizeHTTPDraftURL } from './http-request-draft';
+import {
+  decodeHTTPDraft,
+  encodeHTTPDraft,
+  type HTTPDraft,
+  persistHTTPDraftURL,
+} from './http-draft-store';
 
 export const httpLibraryKey = 'protopeek.httpLibrary.v1';
 const maxBytes = 512 * 1024;
@@ -31,6 +35,11 @@ function parse(raw: string): HTTPRecipe[] {
     ids.add(item.id);
     const draft = decodeHTTPDraft(item.draft);
     if (!draft) throw new Error('A saved request cannot be read.');
+    if (
+      !draft.url ||
+      (draft.rememberBody && new TextEncoder().encode(draft.body).length > 64 * 1024)
+    )
+      throw new Error('Imported requests need a valid URL and bodies no larger than 64 KiB.');
     return { id: item.id, name: item.name, savedAt: item.savedAt, draft };
   });
 }
@@ -59,8 +68,7 @@ function encode(requests: HTTPRecipe[]) {
 export function saveHTTPRecipe(name: string, draft: HTTPDraft, replaceID?: string): HTTPRecipe[] {
   name = name.trim();
   if (!name || name.length > 80) throw new Error('Give this request a name up to 80 characters.');
-  if (!normalizeHTTPDraftURL(draft.url).ok)
-    throw new Error('Enter a valid HTTP(S) URL before saving.');
+  if (!persistHTTPDraftURL(draft.url)) throw new Error('Enter a valid HTTP(S) URL before saving.');
   if (draft.rememberBody && new TextEncoder().encode(draft.body).length > 64 * 1024)
     throw new Error('Saved request bodies are limited to 64 KiB.');
   const loaded = readHTTPLibrary();
@@ -105,4 +113,31 @@ export function exportHTTPLibrary(): string {
 
 export function resetHTTPLibrary() {
   localStorage.removeItem(httpLibraryKey);
+}
+
+export type HTTPLibraryImport = {
+  requests: HTTPRecipe[];
+  previous: string | null;
+  conflicts: number;
+};
+
+export function previewHTTPLibraryImport(raw: string): HTTPLibraryImport {
+  const requests = parse(raw);
+  const previous = localStorage.getItem(httpLibraryKey);
+  const current = previous === null ? [] : parse(previous);
+  const ids = new Set(current.map((item) => item.id));
+  return { requests, previous, conflicts: requests.filter((item) => ids.has(item.id)).length };
+}
+
+export function importHTTPLibrary(preview: HTTPLibraryImport, mode: 'merge' | 'replace') {
+  if (localStorage.getItem(httpLibraryKey) !== preview.previous)
+    throw new Error('The library changed after preview. Choose the file again before importing.');
+  const imported = parse(encode(preview.requests));
+  const ids = new Set(imported.map((item) => item.id));
+  const current = preview.previous === null ? [] : parse(preview.previous);
+  const requests =
+    mode === 'replace' ? imported : [...imported, ...current.filter((item) => !ids.has(item.id))];
+  const raw = encode(requests);
+  localStorage.setItem(httpLibraryKey, raw);
+  return requests;
 }

@@ -16,6 +16,7 @@ import { compactDate } from '@/shared/runtime';
 import { fetchBootstrap } from './api';
 import { homeEntryFeatures } from './app/feature-registry';
 import { prepareDiscoveryTarget } from './discovery-target';
+import { OperationHistoryControl } from './OperationHistoryControl';
 import { useProtocolShell } from './ProtocolShellContext';
 import './dashboard.css';
 
@@ -23,25 +24,25 @@ const quickStarts = [
   {
     route: '/protocols/http',
     label: 'HTTP request',
-    detail: 'Send a request. See the full response.',
+    detail: 'Inspect a response.',
     icon: Globe2,
   },
   {
     route: '/protocols/grpc',
     label: 'gRPC call',
-    detail: 'Connect, choose a method, and invoke.',
+    detail: 'Call a method.',
     icon: Server,
   },
   {
     route: '/network/local',
     label: 'Nearby devices',
-    detail: 'Find a device and inspect its services.',
+    detail: 'Local services.',
     icon: Radar,
   },
   {
     route: '/downloader',
     label: 'Download a file',
-    detail: 'Queue, pause, resume, and verify.',
+    detail: 'Queue and verify.',
     icon: Download,
   },
 ] as const;
@@ -58,7 +59,9 @@ export function Dashboard() {
     useProtocolShell();
   const [scanTarget, setScanTarget] = useState('');
   const [targetError, setTargetError] = useState('');
-  const [handoffError, setHandoffError] = useState('');
+  const [handoffError, setHandoffError] = useState<{ message: string; target: string } | null>(
+    null
+  );
   const targetRef = useRef<HTMLInputElement | null>(null);
   const openInitialScan = useEffectEvent((target: string) => {
     if (claimInitialScan && !claimInitialScan(target)) return;
@@ -91,18 +94,19 @@ export function Dashboard() {
     else openScan();
   }
   function openRecent(discovery: (typeof discoveries)[number], kind: 'grpc' | 'http') {
-    setHandoffError('');
+    setHandoffError(null);
     const result = kind === 'grpc' ? openGRPCDiscovery(discovery) : openHTTPDiscovery(discovery);
-    if (result && !result.ok) setHandoffError(result.error);
+    if (result && !result.ok) setHandoffError({ message: result.error, target: discovery.address });
   }
   return (
     <div className="pp-home">
       <PageHeader className="pp-home-header">
         <div>
           <h1>What do you need to check?</h1>
-          <p>Your local service workbench. Start with an address or open a tool.</p>
+          <p>Start with an address or open a tool.</p>
         </div>
       </PageHeader>
+      <OperationHistoryControl />
       <div className="pp-home-content">
         <section className="pp-home-start" aria-labelledby="home-target-title">
           <div className="pp-home-start-heading">
@@ -150,7 +154,7 @@ export function Dashboard() {
             </p>
           ) : null}
           <p id="home-target-help" className="pp-home-hint">
-            Uses the host and port from a URL. Checks start when you submit.
+            Uses a URL’s host and port; runs only on submit.
           </p>
         </section>
         <div className="pp-home-columns">
@@ -181,7 +185,13 @@ export function Dashboard() {
             </header>
             {handoffError ? (
               <p className="pp-home-error" role="alert">
-                {handoffError}
+                {handoffError.message}{' '}
+                <button
+                  type="button"
+                  onClick={() => openScan({ initialTarget: handoffError.target, autoStart: false })}
+                >
+                  Scan again
+                </button>
               </p>
             ) : null}
             {discoveries.length ? (
@@ -219,8 +229,8 @@ export function Dashboard() {
             ) : (
               <div className="pp-home-empty">
                 <Server aria-hidden="true" />
-                <strong>Keep useful addresses close</strong>
-                <p>Services you discover appear here, ready to open in the right workbench.</p>
+                <strong>Keep services close</strong>
+                <p>Open a recent service.</p>
                 <button type="button" onClick={() => targetRef.current?.focus()}>
                   Check an address <ArrowRight aria-hidden="true" />
                 </button>
@@ -229,7 +239,7 @@ export function Dashboard() {
           </section>
         </div>
         <section className="pp-home-more" aria-labelledby="home-more-title">
-          <h2 id="home-more-title">More ways to investigate</h2>
+          <h2 id="home-more-title">More tools</h2>
           <div>
             {moreTools.map((feature) => {
               const Icon = moreIcons[feature.id as keyof typeof moreIcons];
@@ -246,8 +256,8 @@ export function Dashboard() {
         <details className="pp-home-policy">
           <summary>What discovery checks</summary>
           <p>
-            An explicit port checks that port; a bare host checks 50051 and 443. TCP, HTTP HEAD and
-            gRPC reflection use bounded timeouts. Review private-address access in discovery.
+            Checks a specified port, or 50051/443 for a host. Bounded TCP, HTTP HEAD and gRPC
+            reflection probes require private-network consent.
           </p>
         </details>
       </div>

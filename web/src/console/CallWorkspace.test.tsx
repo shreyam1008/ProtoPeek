@@ -67,6 +67,91 @@ describe('CallWorkspace', () => {
     vi.unstubAllGlobals();
   });
 
+  it('shows conversion relay errors with retained evidence and an unobserved final status', async () => {
+    const relayError = 'Request message 1 could not be converted to protobuf: expected an integer.';
+    render(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            error: relayError,
+            latencyMs: 2,
+            result: {
+              ...response,
+              finalStatusObserved: false,
+              responses: [],
+              headers: [],
+              trailers: [],
+              requests: { total: 1, sent: 0 },
+              timings: { headersMs: null, firstMessageMs: null, trailersMs: null, totalMs: 1 },
+              relayError,
+            },
+          },
+        })}
+      />
+    );
+    expect(screen.getByRole('status', { name: 'RPC status ERROR' })).toBeVisible();
+    expect(screen.getByText(relayError)).toBeVisible();
+    fireEvent.click(screen.getByRole('tab', { name: 'Status' }));
+    expect(await screen.findByText('Not observed')).toBeVisible();
+    expect(screen.getAllByText(relayError).some((element) => element.tagName === 'STRONG')).toBe(
+      true
+    );
+    expect(screen.getByText('0/1 sent')).toBeVisible();
+    expect(screen.queryByText('OK (0)')).not.toBeInTheDocument();
+  });
+
+  it('shows live partial messages and keeps selection and evidence after local cancellation', async () => {
+    const timings = response.timings;
+    const secondMessage = response.responses[1];
+    if (!timings || !secondMessage) throw new Error('Response fixture missing');
+    const partial = {
+      ...response,
+      finalStatusObserved: false,
+      trailers: [],
+      error: null,
+      timings: { ...timings, trailersMs: null },
+    };
+    const { rerender } = render(
+      <CallWorkspace
+        {...props({ invokeState: { loading: true, result: partial, error: null, latencyMs: 40 } })}
+      />
+    );
+    const second = await screen.findByRole('button', { name: /2.*Message 2/ });
+    expect(screen.getByRole('status', { name: 'RPC status STREAMING' })).toBeInTheDocument();
+    fireEvent.click(second);
+    const appended = {
+      ...partial,
+      responses: [...partial.responses, { ...secondMessage, sequence: 3, elapsedMs: 50 }],
+    };
+    rerender(
+      <CallWorkspace
+        {...props({ invokeState: { loading: true, result: appended, error: null, latencyMs: 50 } })}
+      />
+    );
+    expect(screen.getByRole('button', { name: /2.*Message 2/ })).toHaveClass('is-active');
+    rerender(
+      <CallWorkspace
+        {...props({
+          invokeState: {
+            loading: false,
+            cancelled: true,
+            result: appended,
+            error: 'Invocation cancelled.',
+            latencyMs: 55,
+          },
+        })}
+      />
+    );
+    expect(screen.getByRole('status', { name: 'RPC status CANCELLED' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /2.*Message 2/ })).toHaveClass('is-active');
+    expect(screen.getByText(/Retained messages remain available/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Status' }));
+    expect(await screen.findByText('Not observed')).toBeInTheDocument();
+    expect(screen.queryByText('OK (0)')).toBeNull();
+    expect(screen.queryByText('RPC completed successfully.')).toBeNull();
+  });
+
   it('runs shortcuts only inside request controls and ignores repeats, composition, and modal ownership', () => {
     const onInvoke = vi.fn();
     const onCancel = vi.fn();

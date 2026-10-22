@@ -34,6 +34,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - HTTP workbench: https://protopeek.shreyam1008.com.np/http-workbench/ — Stable · v0.6.1
 - Learn gRPC: https://protopeek.shreyam1008.com.np/learn-grpc/ — Stable · v0.6.1
 - Network workbench: https://protopeek.shreyam1008.com.np/network-workbench/ — Current source · Nightly
+- Network diagnostics: https://protopeek.shreyam1008.com.np/network-diagnostics/ — Current source · after v0.6.1
 - Network evidence boundaries: https://protopeek.shreyam1008.com.np/route-and-nmap-evidence/ — Stable · v0.6.1
 - This Device evidence: https://protopeek.shreyam1008.com.np/this-pc/ — Stable · v0.6.1
 - Extensions and setup: https://protopeek.shreyam1008.com.np/extensions/ — Current source
@@ -42,7 +43,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - Website security evidence: https://protopeek.shreyam1008.com.np/security/ — Stable · v0.6.1
 - Local AI agents: https://protopeek.shreyam1008.com.np/ai-agents/ — Current source · after v0.6.1
 - Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.1
-- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Stable · v0.6.1
+- Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Current source + stable checkpoint
 - Transport boundaries: https://protopeek.shreyam1008.com.np/transport-boundaries/ — Architecture guide
 - Competitive workflow decisions: https://protopeek.shreyam1008.com.np/competitive-landscape/ — Research record
 - VS Code and Open VSX spec: https://protopeek.shreyam1008.com.np/vscode-extension-spec/ — Planned · not shipped

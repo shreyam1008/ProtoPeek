@@ -620,6 +620,9 @@ function WebsiteObservationPanel({
                 <small className="pp-security-recovery">
                   Review the website and your connection, then choose Observe website to retry.
                 </small>
+                <Link to="/network/diagnostics" search={{ mode: 'diagnose' }}>
+                  Use Diagnostics for a private endpoint or TLS trust check
+                </Link>
               </span>
             </div>
           ) : null}
@@ -673,6 +676,7 @@ function WebsiteObservationResultView({
   onExplore: (section: 'paths' | 'names') => void;
 }) {
   const { openScan } = useProtocolShell();
+  const [handoffError, setHandoffError] = useState('');
   const endpoint = new URL(result.url);
   const headers = Object.entries(result.http.headers).sort(([left], [right]) =>
     left.localeCompare(right)
@@ -702,7 +706,24 @@ function WebsiteObservationResultView({
       </p>
 
       <nav className="pp-website-next-actions" aria-label="Explore this website">
-        <Link to="/network/path" onClick={() => preparePathTarget(result.dns.hostname)}>
+        <Link
+          to="/network/path"
+          onClick={(event) => {
+            if (
+              !preparePathTarget(result.dns.hostname, {
+                source: 'website-observation',
+                quality: 'observed',
+                observedAt: result.observedAt,
+                path: '/security',
+              })
+            ) {
+              event.preventDefault();
+              setHandoffError(
+                'This observation is stale or has an invalid target. Refresh it before opening a path draft.'
+              );
+            }
+          }}
+        >
           Trace route <ArrowRight aria-hidden="true" />
         </Link>
         <Link to="/network/ports" search={{ host: result.dns.hostname }}>
@@ -725,6 +746,7 @@ function WebsiteObservationResultView({
           Check standard paths <ArrowRight aria-hidden="true" />
         </button>
       </nav>
+      {handoffError ? <p role="alert">{handoffError}</p> : null}
 
       <div className="pp-security-observation-grid">
         <article>

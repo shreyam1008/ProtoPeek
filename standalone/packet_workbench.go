@@ -26,12 +26,17 @@ func registerPacketWorkbench(mux *http.ServeMux) {
 	})
 	operations := map[string]http.HandlerFunc{
 		"analyze": func(w http.ResponseWriter, r *http.Request) {
+			values := r.URL.Query()["reconstruct"]
+			if len(values) > 1 || (len(values) == 1 && values[0] != "true" && values[0] != "false") {
+				http.Error(w, "Use reconstruct=true or reconstruct=false", http.StatusBadRequest)
+				return
+			}
 			raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, packetwork.MaxFileBytes))
 			if err != nil {
 				http.Error(w, "Capture file exceeds 16 MiB or could not be read", 400)
 				return
 			}
-			result, err := packetwork.Analyze(r.Context(), raw)
+			result, err := packetwork.AnalyzeWithOptions(r.Context(), raw, packetwork.AnalyzeOptions{ReconstructTCP: len(values) == 1 && values[0] == "true"})
 			if err != nil {
 				http.Error(w, err.Error(), 400)
 				return

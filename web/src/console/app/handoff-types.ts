@@ -4,6 +4,7 @@ export const handoffKinds = ['grpc-target-draft', 'http-url-draft'] as const;
 export const handoffDraftKinds = [
   ...handoffKinds,
   'next-hop-target-draft',
+  'path-target-draft',
   'publish-origin-draft',
 ] as const;
 
@@ -65,6 +66,7 @@ export type HandoffDraft =
   | { kind: 'http-url-draft'; target: HTTPURLRef }
   | { kind: 'grpc-target-draft'; target: GRPCTargetRef }
   | { kind: 'next-hop-target-draft'; target: NextHopTargetRef }
+  | { kind: 'path-target-draft'; target: NextHopTargetRef }
   | { kind: 'publish-origin-draft'; origin: LocalServiceRef };
 
 export type HandoffEnvelope = {

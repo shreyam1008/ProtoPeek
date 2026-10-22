@@ -1,5 +1,5 @@
-// Package packetwork reads bounded packet metadata without retaining application
-// payloads, resolving names, or loading a native capture library into ProtoPeek.
+// Package packetwork reads bounded packet evidence. Payload retention requires
+// explicit options; it never resolves names or loads a native capture library.
 package packetwork
 
 import (
@@ -16,29 +16,45 @@ const MaxRecords = 20000
 const MaxRows = 2000
 
 type Packet struct {
-	Number          int    `json:"number"`
-	Timestamp       string `json:"timestamp,omitempty"`
-	Interface       int    `json:"interface"`
-	Length          uint32 `json:"length"`
-	Captured        int    `json:"captured"`
-	Source          string `json:"source"`
-	Destination     string `json:"destination"`
-	SourcePort      uint16 `json:"sourcePort,omitempty"`
-	DestinationPort uint16 `json:"destinationPort,omitempty"`
-	Protocol        string `json:"protocol"`
-	Info            string `json:"info"`
-	Truncated       bool   `json:"truncated"`
+	Number          int        `json:"number"`
+	Timestamp       string     `json:"timestamp,omitempty"`
+	Interface       int        `json:"interface"`
+	Section         int        `json:"section"`
+	Length          uint32     `json:"length"`
+	Captured        int        `json:"captured"`
+	Source          string     `json:"source"`
+	Destination     string     `json:"destination"`
+	SourcePort      uint16     `json:"sourcePort,omitempty"`
+	DestinationPort uint16     `json:"destinationPort,omitempty"`
+	Protocol        string     `json:"protocol"`
+	Transport       string     `json:"transport,omitempty"`
+	TCP             *TCPHeader `json:"-"`
+	Info            string     `json:"info"`
+	Truncated       bool       `json:"truncated"`
+	payload         []byte
+	fragmented      bool
 }
 
+type TCPHeader struct {
+	Sequence       uint32 `json:"sequence"`
+	Acknowledgment uint32 `json:"acknowledgment"`
+	Flags          uint8  `json:"flags"`
+	PayloadBytes   int    `json:"payloadBytes"`
+}
+
+type AnalyzeOptions struct{ ReconstructTCP bool }
+
 type Report struct {
-	Format        string         `json:"format"`
-	Packets       []Packet       `json:"packets"`
-	PacketCount   int            `json:"packetCount"`
-	WireBytes     uint64         `json:"wireBytes"`
-	CapturedBytes uint64         `json:"capturedBytes"`
-	Protocols     map[string]int `json:"protocols"`
-	Limited       bool           `json:"limited"`
-	Warnings      []string       `json:"warnings"`
+	Format         string             `json:"format"`
+	Packets        []Packet           `json:"packets"`
+	PacketCount    int                `json:"packetCount"`
+	WireBytes      uint64             `json:"wireBytes"`
+	CapturedBytes  uint64             `json:"capturedBytes"`
+	Protocols      map[string]int     `json:"protocols"`
+	Limited        bool               `json:"limited"`
+	Warnings       []string           `json:"warnings"`
+	Reconstruction *TCPReconstruction `json:"reconstruction,omitempty"`
+	reconstructor  *tcpReconstructor
 }
 
 type captureInterface struct {
@@ -49,7 +65,14 @@ type captureInterface struct {
 }
 
 func Analyze(ctx context.Context, raw []byte) (Report, error) {
+	return AnalyzeWithOptions(ctx, raw, AnalyzeOptions{})
+}
+
+func AnalyzeWithOptions(ctx context.Context, raw []byte, options AnalyzeOptions) (Report, error) {
 	r := Report{Packets: []Packet{}, Protocols: map[string]int{}, Warnings: []string{}}
+	if options.ReconstructTCP {
+		r.reconstructor = newTCPReconstructor()
+	}
 	if len(raw) < 4 || len(raw) > MaxFileBytes {
 		return r, errors.New("choose a PCAP or PCAPNG file up to 16 MiB")
 	}
@@ -61,13 +84,26 @@ func Analyze(ctx context.Context, raw []byte) (Report, error) {
 		r.Format = "PCAP"
 		err = r.readClassic(ctx, raw)
 	}
+	if r.reconstructor != nil {
+		var reconstructionErr error
+		r.Reconstruction, reconstructionErr = r.reconstructor.finish(ctx)
+		if err == nil {
+			err = reconstructionErr
+		}
+		r.reconstructor = nil
+	}
 	return r, err
 }
 
-func (r *Report) append(raw []byte, length uint32, link uint32, iface int, timestamp string) {
+func (r *Report) append(raw []byte, length uint32, link uint32, iface, section int, timestamp string) {
 	p := decodePacket(raw, link)
-	p.Number, p.Timestamp, p.Interface, p.Length, p.Captured = r.PacketCount+1, timestamp, iface, length, len(raw)
+	p.Number, p.Timestamp, p.Interface, p.Section, p.Length, p.Captured = r.PacketCount+1, timestamp, iface, section, length, len(raw)
 	p.Truncated = p.Truncated || uint32(len(raw)) < length
+	if r.reconstructor != nil {
+		r.reconstructor.add(p)
+	}
+	// Never retain the backing capture bytes in metadata, including the default-off path.
+	p.payload = nil
 	r.PacketCount++
 	r.WireBytes += uint64(length)
 	r.CapturedBytes += uint64(len(raw))
@@ -151,7 +187,7 @@ func (r *Report) readClassic(ctx context.Context, raw []byte) error {
 		if uint64(fraction) >= divisor {
 			return errors.New("invalid PCAP timestamp fraction")
 		}
-		r.append(raw[pos:pos+int(n)], wire, iface.link, 0, stamp(uint64(order.Uint32(h[:4]))*divisor+uint64(fraction), iface))
+		r.append(raw[pos:pos+int(n)], wire, iface.link, 0, 0, stamp(uint64(order.Uint32(h[:4]))*divisor+uint64(fraction), iface))
 		pos += int(n)
 	}
 	return nil
@@ -288,7 +324,7 @@ func (r *Report) readNG(ctx context.Context, raw []byte) error {
 				return errors.New("invalid PCAPNG packet length")
 			}
 			ticks := uint64(order.Uint32(body[4:8]))<<32 | uint64(order.Uint32(body[8:12]))
-			r.append(body[20:20+int(captured)], wire, iface.link, int(id), stamp(ticks, iface))
+			r.append(body[20:20+int(captured)], wire, iface.link, int(id), sections-1, stamp(ticks, iface))
 		case 3:
 			if len(body) < 4 || len(interfaces) == 0 {
 				return errors.New("invalid simple PCAPNG packet")
@@ -302,7 +338,7 @@ func (r *Report) readNG(ctx context.Context, raw []byte) error {
 			if uint64((uint64(captured)+3)&^3) != uint64(len(body)-4) {
 				return errors.New("invalid simple PCAPNG packet length")
 			}
-			r.append(body[4:4+int(captured)], wire, iface.link, 0, "")
+			r.append(body[4:4+int(captured)], wire, iface.link, 0, sections-1, "")
 		case 4, 5, 0x0000000a: // Name resolution, statistics and decryption secrets are not retained.
 		default:
 			r.warning(fmt.Sprintf("Skipped unsupported PCAPNG block type 0x%x.", kind))

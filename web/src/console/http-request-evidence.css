@@ -62,3 +62,8 @@
   background: var(--pp-color-active);
   color: var(--pp-color-accent-strong);
 }
+
+.pp-http-response-content:focus-visible {
+  outline: 2px solid var(--pp-color-accent);
+  outline-offset: -2px;
+}

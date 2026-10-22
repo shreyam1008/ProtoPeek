@@ -72,10 +72,12 @@ func (d detector) inspect(options Options) Snapshot {
 	capture.Message = detectionMessage(capture, "dumpcap was found. Capture permissions and interfaces are checked when you open live capture.", "Install Wireshark with capture support, then refresh. Offline capture-file inspection works without it.")
 	nmap := d.locate("nmap", "nmap", d.windowsPaths("Nmap", "nmap.exe"))
 	nmap.Message = detectionMessage(nmap, "Open Nmap to review an explicit scan. No scan has started.", "Install Nmap, then refresh. The built-in port scanner works without it.")
+	netbird := d.locate("netbird", "netbird", d.windowsPaths("NetBird", "netbird.exe"))
+	netbird.Message = detectionMessage(netbird, "Open NetBird to inspect its existing client, daemon and peer evidence.", "Install the official NetBird client, then refresh. Installation does not join a network.")
 	return Snapshot{
 		SchemaVersion: 1, Platform: d.platform, Architecture: d.architecture,
 		ObservedAt: d.now().UTC().Format(time.RFC3339Nano),
-		Extensions: []Extension{tailscale, cloudflared, capture, nmap, d.aria2(options)},
+		Extensions: []Extension{tailscale, cloudflared, capture, nmap, d.aria2(options), netbird},
 	}
 }
 

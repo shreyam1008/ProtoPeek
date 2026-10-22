@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/shreyam1008/ProtoPeek/internal/netbird"
+	"github.com/shreyam1008/ProtoPeek/internal/publishsession"
 	"github.com/shreyam1008/ProtoPeek/internal/thispc"
 	"github.com/shreyam1008/ProtoPeek/internal/tunnels"
 	"github.com/shreyam1008/ProtoPeek/standalone"
@@ -52,6 +54,20 @@ func localTunnelService(unsafeAllowRemote bool) standalone.TunnelService {
 		return nil
 	}
 	return tunnels.NewService()
+}
+
+func localNetBirdService(unsafeAllowRemote bool) standalone.NetBirdService {
+	if unsafeAllowRemote {
+		return nil
+	}
+	return netbird.New()
+}
+
+func localPublishSessionService(unsafeAllowRemote bool) *publishsession.Supervisor {
+	if unsafeAllowRemote {
+		return nil
+	}
+	return publishsession.New()
 }
 
 func requestHostname(hostport string) string {
