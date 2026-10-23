@@ -16,21 +16,39 @@ export type CapnpPlanTarget = {
   timeoutMs: number;
 };
 
+export function validateCapnpCall(call: CapnpPlanStep) {
+  validateCapnpSteps([call], true);
+}
+
 export function validateCapnpPlan(steps: CapnpPlanStep[]) {
+  validateCapnpSteps(steps, false);
+}
+
+function validateCapnpSteps(steps: CapnpPlanStep[], single: boolean) {
   if (!steps.length || steps.length > 8) throw new Error('A call plan needs 1–8 steps.');
   for (const [index, step] of steps.entries()) {
+    const label = single ? 'Request' : `Step ${index + 1}`;
+    const context = single ? '' : ` in step ${index + 1}`;
+    // Native schema.go accepts at most 128 methods per interface, indexed 0–127.
     if (
       !/^0x[\da-f]{1,16}$/i.test(step.interfaceId) ||
       !Number.isInteger(step.ordinal) ||
       step.ordinal < 0 ||
       step.ordinal > 127
     )
-      throw new Error(`Choose a schema method for step ${index + 1}.`);
+      throw new Error(
+        single ? 'Choose a schema method.' : `Choose a schema method for step ${index + 1}.`
+      );
     if (new TextEncoder().encode(step.params).byteLength > 65536)
-      throw new Error(`Step ${index + 1} JSON exceeds 64 KiB.`);
-    const params = JSON.parse(step.params);
+      throw new Error(`${label} JSON exceeds 64 KiB.`);
+    let params: unknown;
+    try {
+      params = JSON.parse(step.params);
+    } catch {
+      throw new Error(`${label} JSON is invalid.`);
+    }
     if (!params || typeof params !== 'object' || Array.isArray(params))
-      throw new Error(`Step ${index + 1} JSON must be an object.`);
+      throw new Error(`${label} JSON must be an object.`);
     if (
       step.target &&
       (!Number.isInteger(step.target.step) ||
@@ -40,13 +58,17 @@ export function validateCapnpPlan(steps: CapnpPlanStep[]) {
         step.target.path.length > 8 ||
         step.target.path.some((name) => !/^\w{1,128}$/.test(name)))
     )
-      throw new Error(`Step ${index + 1} must use a named capability from an earlier step.`);
+      throw new Error(
+        single
+          ? 'Single calls use the bootstrap object.'
+          : `${label} must use a named capability from an earlier step.`
+      );
     if (
       step.methodTypes &&
       (step.methodTypes.length > 64 ||
         step.methodTypes.some((name) => !name.trim() || name.length > 512))
     )
-      throw new Error(`Bind every generic method type in step ${index + 1}.`);
+      throw new Error(`Bind every generic method type${context}.`);
     if (
       step.typeBindings &&
       (Object.keys(step.typeBindings).length > 64 ||
@@ -57,14 +79,11 @@ export function validateCapnpPlan(steps: CapnpPlanStep[]) {
             types.some((name) => !name.trim() || name.length > 512)
         ))
     )
-      throw new Error(`Invalid generic scope bindings in step ${index + 1}.`);
+      throw new Error(`Invalid generic scope bindings${context}.`);
   }
 }
 
-export async function callCapnpPlan(
-  input: CapnpPlanTarget & { steps: CapnpPlanStep[] },
-  signal: AbortSignal
-): Promise<CapnpResult> {
+export function encodeCapnpPlan(input: CapnpPlanTarget & { steps: CapnpPlanStep[] }) {
   validateCapnpPlan(input.steps);
   const { steps, ...target } = input;
   // Preserve original JSON tokens, including exact unquoted 64-bit integers.
@@ -74,6 +93,15 @@ export async function callCapnpPlan(
   const body = `${JSON.stringify(target).slice(0, -1)},"steps":[${encoded.join(',')}]}`;
   if (new TextEncoder().encode(body).byteLength > 4 * 1024 * 1024)
     throw new Error('Call plan and compiled schema exceed 4 MiB.');
+  return body;
+}
+
+export async function callCapnpPlan(
+  input: CapnpPlanTarget & { steps: CapnpPlanStep[] },
+  signal: AbortSignal
+): Promise<CapnpResult> {
+  const body = encodeCapnpPlan(input);
+  const { steps } = input;
   const data = await requestCapnp('call', input, signal, 768 * 1024, body);
   if (
     !data ||

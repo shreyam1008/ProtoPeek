@@ -92,6 +92,7 @@ export function AppBar(props: AppBarProps) {
                 <Link
                   key={item.id}
                   to={props.destinationRoutes?.[item.id] ?? item.route}
+                  preload={item.id === 'extensions' ? false : undefined}
                   className={`pp-app-navigation-link${active ? ' is-active' : ''}`}
                   activeOptions={{ exact: true }}
                   aria-current={active ? 'page' : undefined}

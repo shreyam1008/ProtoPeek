@@ -43,6 +43,19 @@ export const diagnosticModes = [
 ] as const;
 
 export type DiagnosticMode = (typeof diagnosticModes)[number][0];
+export type DiagnosticTargetScheme = 'http' | 'https' | null;
+
+/** Explicit URL transport takes precedence over the choice for a bare authority. */
+export function diagnosticTargetScheme(value: string): DiagnosticTargetScheme {
+  try {
+    const parsed = new URL(value.trim());
+    if (!parsed.hostname) return null;
+    return parsed.protocol === 'http:' ? 'http' : parsed.protocol === 'https:' ? 'https' : null;
+  } catch {
+    return null;
+  }
+}
+
 /** A diagnostic draft never carries URL credentials, paths, query values or fragments. */
 export function diagnosticDraftTarget(value: string): string | undefined {
   try {
@@ -175,9 +188,13 @@ export type DiagnosticResult = {
 export function diagnosticHandoff(
   result: DiagnosticResult,
   protocol: 'http' | 'grpc',
-  tlsRequested: boolean
+  tlsRequested: boolean,
+  submittedScheme: DiagnosticTargetScheme = null
 ): PendingHandoffInput {
-  const secure = tlsRequested || Boolean(result.tls) || result.mode === 'http3';
+  const secure =
+    submittedScheme === 'https' ||
+    (submittedScheme !== 'http' &&
+      (tlsRequested || Boolean(result.tls) || result.mode === 'http3'));
   if (!/^(?:\[[^\]]+\]|[^:[\]\s/?#@]+):\d{1,5}$/.test(result.target))
     throw new Error('The diagnostic did not return a normalized target. Run it again.');
   if (protocol === 'http' && result.target.includes('%'))

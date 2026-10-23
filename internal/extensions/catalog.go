@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
+	"github.com/shreyam1008/ProtoPeek/internal/extensions/catalogids"
 	"github.com/shreyam1008/ProtoPeek/internal/packetwork"
 )
 
@@ -50,35 +51,68 @@ type detector struct {
 }
 
 func Inspect(options Options) Snapshot {
+	return nativeDetector().inspect(options)
+}
+
+func nativeDetector() detector {
 	return detector{
 		platform: runtime.GOOS, architecture: runtime.GOARCH,
 		lookPath: exec.LookPath, stat: os.Stat, getenv: os.Getenv,
 		captureTool: packetwork.FindCaptureTool, bundleInfo: bundledaria2.Inspect,
 		now: time.Now,
-	}.inspect(options)
+	}
 }
 
 func (d detector) inspect(options Options) Snapshot {
-	tailscale := d.locate("tailscale", "tailscale", d.tailscalePaths())
-	tailscale.Message = detectionMessage(tailscale, "Open Tailscale to inspect its existing login, daemon, and devices.", "Install the official Tailscale client, then refresh.")
-	cloudflared := d.locate("cloudflared", "cloudflared", nil)
-	cloudflared.Message = detectionMessage(cloudflared, "Open Cloudflare Tunnel to inspect its service and configuration.", "cloudflared was not found on PATH. Open Cloudflare Tunnel to check a service installation or see setup guidance.")
-	capture := d.locate("wireshark", "dumpcap", nil)
-	if capture.Status == "missing" {
-		if path, err := d.captureTool(); err == nil && validPath(path) {
-			capture.Status, capture.Source, capture.Path = "detected", "standard-location", path
-		}
+	entries := make([]Extension, 0, 6)
+	for _, id := range []string{"tailscale", "cloudflared", "wireshark", "nmap", "aria2", "netbird"} {
+		entries = append(entries, d.nativeExtension(id, options))
 	}
-	capture.Message = detectionMessage(capture, "dumpcap was found. Capture permissions and interfaces are checked when you open live capture.", "Install Wireshark with capture support, then refresh. Offline capture-file inspection works without it.")
-	nmap := d.locate("nmap", "nmap", d.windowsPaths("Nmap", "nmap.exe"))
-	nmap.Message = detectionMessage(nmap, "Open Nmap to review an explicit scan. No scan has started.", "Install Nmap, then refresh. The built-in port scanner works without it.")
-	netbird := d.locate("netbird", "netbird", d.windowsPaths("NetBird", "netbird.exe"))
-	netbird.Message = detectionMessage(netbird, "Open NetBird to inspect its existing client, daemon and peer evidence.", "Install the official NetBird client, then refresh. Installation does not join a network.")
 	return Snapshot{
 		SchemaVersion: 1, Platform: d.platform, Architecture: d.architecture,
 		ObservedAt: d.now().UTC().Format(time.RFC3339Nano),
-		Extensions: []Extension{tailscale, cloudflared, capture, nmap, d.aria2(options), netbird},
+		Extensions: entries,
 	}
+}
+
+func (d detector) nativeExtension(id string, options Options) Extension {
+	switch id {
+	case "tailscale":
+		entry := d.locate(id, "tailscale", d.tailscalePaths())
+		entry.Message = detectionMessage(entry, "Open Tailscale to inspect its existing login, daemon, and devices.", "Install the official Tailscale client, then refresh.")
+		return entry
+	case "cloudflared":
+		entry := d.locate(id, "cloudflared", nil)
+		entry.Message = detectionMessage(entry, "Open Cloudflare Tunnel to inspect its service and configuration.", "cloudflared was not found on PATH. Open Cloudflare Tunnel to check a service installation or see setup guidance.")
+		return entry
+	case "wireshark":
+		entry := d.locate(id, "dumpcap", nil)
+		if entry.Status == "missing" {
+			if path, err := d.captureTool(); err == nil && validPath(path) {
+				entry.Status, entry.Source, entry.Path = "detected", "standard-location", path
+			}
+		}
+		entry.Message = detectionMessage(entry, "dumpcap was found. Capture permissions and interfaces are checked when you open live capture.", "Install Wireshark with capture support, then refresh. Offline capture-file inspection works without it.")
+		return entry
+	case "nmap":
+		entry := d.locate(id, "nmap", d.windowsPaths("Nmap", "nmap.exe"))
+		entry.Message = detectionMessage(entry, "Open Nmap to review an explicit scan. No scan has started.", "Install Nmap, then refresh. The built-in port scanner works without it.")
+		return entry
+	case "netbird":
+		entry := d.locate(id, "netbird", d.windowsPaths("NetBird", "netbird.exe"))
+		entry.Message = detectionMessage(entry, "Open NetBird to inspect its existing client, daemon and peer evidence.", "Install the official NetBird client, then refresh. Installation does not join a network.")
+		return entry
+	case "aria2":
+		return d.aria2(options)
+	default:
+		return Extension{ID: id, Status: "unavailable", Source: "none", Message: "Unknown native extension."}
+	}
+}
+
+// KnownID performs no host lookup. Validate before reading optional host settings.
+func KnownID(id string) bool {
+	_, known := catalogids.Lookup(id)
+	return known
 }
 
 func (d detector) locate(id, name string, candidates []string) Extension {
@@ -152,7 +186,7 @@ func (d detector) aria2(options Options) Extension {
 		result.Message = "This build includes an aria2 companion. It is prepared only when you start Downloader."
 		if info.CacheError != "" {
 			result.Status = "unavailable"
-			result.Message = info.CacheError
+			result.Message = boundedCacheError(info.CacheError)
 		} else if info.CachedPath != "" && validPath(info.CachedPath) {
 			result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
 			result.Message = "The included aria2 companion is already cached and its checksum matches. Downloader is not started by this check."
@@ -161,6 +195,27 @@ func (d detector) aria2(options Options) Extension {
 	}
 	result.Message = "Install aria2 or set its executable path in Files. This build has no bundled download engine."
 	return result
+}
+
+// Leave room for the version-two lookup-scope prefix. Never expose control
+// characters or split a UTF-8 rune in a cache error supplied by the OS.
+func boundedCacheError(value string) string {
+	const maximum = 1500
+	var message strings.Builder
+	for _, character := range value {
+		if unicode.IsControl(character) {
+			continue
+		}
+		if message.Len()+utf8.RuneLen(character) > maximum-len("…") {
+			message.WriteString("…")
+			break
+		}
+		message.WriteRune(character)
+	}
+	if clean := strings.TrimSpace(message.String()); clean != "" {
+		return clean
+	}
+	return "The included aria2 cache could not be verified."
 }
 
 func detectionMessage(extension Extension, found, missing string) string {

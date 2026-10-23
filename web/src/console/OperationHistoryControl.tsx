@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import type { ReceiptOperation } from './app/operation-receipts';
+import './operation-history-control.css';
 
 const OperationHistory = lazy(() => import('./OperationHistory'));
 export function OperationHistoryControl({

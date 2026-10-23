@@ -7,8 +7,10 @@ import {
   type DiagnosticCheck,
   type DiagnosticMode,
   type DiagnosticResult,
+  type DiagnosticTargetScheme,
   diagnosticHandoff,
   diagnosticModes,
+  diagnosticTargetScheme,
 } from './network-diagnostics';
 import { ProtocolShellContext } from './ProtocolShellContext';
 import { OperationStatus } from './shell/OperationStatus';
@@ -26,7 +28,7 @@ export function NetworkDiagnostics() {
   const [serverName, setServerName] = useState('');
   const [alpn, setALPN] = useState('h2,http/1.1');
   const [caPem, setCAPEM] = useState('');
-  const [testTls, setTestTls] = useState(!incoming.target?.startsWith('http://'));
+  const [testTls, setTestTls] = useState(true);
   const [samples, setSamples] = useState(5);
   const [intervalMs, setIntervalMs] = useState(250);
   const [payload, setPayload] = useState('');
@@ -36,6 +38,7 @@ export function NetworkDiagnostics() {
   const [proxyPassword, setProxyPassword] = useState('');
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [resultTLSRequested, setResultTLSRequested] = useState(false);
+  const [resultScheme, setResultScheme] = useState<DiagnosticTargetScheme>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -46,12 +49,16 @@ export function NetworkDiagnostics() {
     if (result) resultRegion.current?.focus();
   }, [result]);
   const dns = mode === 'dns' || mode === 'dns-compare';
-  const tls = mode === 'tls' || mode === 'http3' || (mode === 'diagnose' && testTls);
+  const targetScheme = diagnosticTargetScheme(target);
+  const effectiveTestTLS = targetScheme ? targetScheme === 'https' : testTls;
+  const tls = mode === 'tls' || mode === 'http3' || (mode === 'diagnose' && effectiveTestTLS);
   const exchange = mode === 'tcp-exchange' || mode === 'udp-exchange';
   const proxyMode = mode === 'http-proxy' || mode === 'socks5-proxy';
   const description = diagnosticModes.find(([id]) => id === mode)?.[2];
   async function run() {
     if (controller.current) return;
+    const submittedScheme = targetScheme;
+    const submittedTLSRequested = tls;
     const abort = new AbortController();
     controller.current = abort;
     setBusy(true);
@@ -79,7 +86,7 @@ export function NetworkDiagnostics() {
                 .filter(Boolean)
             : [],
           caPem: tls ? caPem : '',
-          testTls,
+          testTls: effectiveTestTLS,
           samples,
           intervalMs,
           payload: exchange ? payload : '',
@@ -97,7 +104,8 @@ export function NetworkDiagnostics() {
             ? 'success'
             : 'failed';
       if (!abort.signal.aborted) {
-        setResultTLSRequested(tls);
+        setResultTLSRequested(submittedTLSRequested);
+        setResultScheme(submittedScheme);
         setResult(data);
       }
     } catch (cause) {
@@ -120,7 +128,9 @@ export function NetworkDiagnostics() {
   function prepareRequest(protocol: 'http' | 'grpc') {
     if (!result || !shell) return;
     try {
-      const prepared = shell.openHandoff(diagnosticHandoff(result, protocol, resultTLSRequested));
+      const prepared = shell.openHandoff(
+        diagnosticHandoff(result, protocol, resultTLSRequested, resultScheme)
+      );
       if (!prepared.ok)
         setNotice(`${prepared.error} Choose Run diagnostic to refresh the evidence.`);
     } catch (cause) {
@@ -226,14 +236,23 @@ export function NetworkDiagnostics() {
               </label>
             )}
             {mode === 'diagnose' && (
-              <label className="pp-diag-checkbox">
-                <input
-                  type="checkbox"
-                  checked={testTls}
-                  onChange={(event) => setTestTls(event.target.checked)}
-                />
-                Verify TLS after connecting
-              </label>
+              <div>
+                <label className="pp-diag-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={effectiveTestTLS}
+                    disabled={targetScheme !== null}
+                    aria-describedby={targetScheme ? 'diagnostics-tls-scheme' : undefined}
+                    onChange={(event) => setTestTls(event.target.checked)}
+                  />
+                  Verify TLS after connecting
+                </label>
+                {targetScheme && (
+                  <small id="diagnostics-tls-scheme">
+                    Set by {targetScheme}://. Enter a host and port to choose TLS here.
+                  </small>
+                )}
+              </div>
             )}
             {dns && (
               <>

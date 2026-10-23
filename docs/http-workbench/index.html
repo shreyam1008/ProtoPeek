@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HTTP workbench","description":"Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export.","url":"https://protopeek.shreyam1008.com.np/http-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/http-workbench/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/http-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"HTTP workbench","item":"https://protopeek.shreyam1008.com.np/http-workbench/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"HTTP workbench","description":"Send bounded HTTP and REST requests locally with methods, headers, auth, bodies, TLS verification, redirect control, timing, response evidence, and cURL export.","url":"https://protopeek.shreyam1008.com.np/http-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/http-workbench/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/http-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"HTTP workbench","item":"https://protopeek.shreyam1008.com.np/http-workbench/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -69,8 +69,8 @@
               <h1 id="page-title">HTTP workbench</h1>
               <p>What did this HTTP service actually return?</p>
 
-    <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.1
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Stable core + current source
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -142,6 +142,9 @@
               <div class="pp-doc-prose">
                 <p>Current source places request settings and response evidence in vertical tabs beside the editors. Request and response remain visible together at desktop widths; narrow screens expose a pane switch. Arrow Up/Down navigates each side list.</p>
 <p>ProtoPeek sends one bounded HTTP or REST request through the local Go process and keeps request choices, transport evidence, and the response together. The workbench ships in stable v0.5.0.</p>
+<h2 id="make-your-first-request">Make your first request</h2>
+<p>Open <strong>Inspect → HTTP</strong>, paste the full URL, and choose <strong>Send</strong>. Status, body, headers and timing appear beside the request. No account, collection or discovery scan is needed first.</p>
+<p>In matching current source, choose <strong>HTTP request</strong> on Home, paste the URL, and select <strong>Open HTTP</strong>. The full path and query prepare an unsent draft; Send remains explicit. <strong>Find a service instead</strong> is a separate discovery action. Existing unsent work follows the workbench’s draft-recovery rules.</p>
 <h2 id="build-one-explicit-request">Build one explicit request</h2>
 <p>Choose the method and an absolute <code>http://</code> or <code>https://</code> URL. Add duplicate query parameters, headers, live auth, a raw body, timeout, and redirect policy only when the request needs them.</p>
 <p>The live editor can hold credentials for the request you intend to send. Automatic history strips URL user information, redacts credential-like query values, keeps only a small non-sensitive header allowlist, and never persists the request body.</p>
@@ -171,10 +174,9 @@
 <p>Copy as cURL validates the same prepared request as Send. It preserves the method, duplicate query values, non-sensitive headers, timeout, and body while omitting auth and credential-like headers. Redirect-enabled drafts are refused because a portable command cannot reproduce ProtoPeek’s complete redirect policy.</p>
 <p>The copied command runs in your shell. Its DNS, proxy, trust roots, network namespace, cURL version, and implicit headers can differ from the ProtoPeek relay.</p>
 <h2 id="deliberate-limits">Deliberate limits</h2>
-<h3 id="current-source-draft-recovery-and-event-streams">Current-source draft recovery and event streams</h3>
+<h3 id="current-source-draft-recovery">Current-source draft recovery</h3>
 <p>Unsent HTTP drafts recover in the same browser after navigation or restart. Credential-like query values and headers are redacted; auth must be entered again. Bodies stay in memory unless “Remember body in this browser” is enabled. Draft storage is bounded to 256 KiB, and storage failures are shown in the workbench. JSON responses offer a pretty/raw toggle without changing copied bytes.</p>
-<p>Inspect → Event streams (current source, after v0.5.0) connects to <code>ws://</code> / <code>wss://</code> WebSockets or <code>http://</code> / <code>https://</code> SSE endpoints through the local Go server. WebSocket supports text/JSON and base64 binary messages, custom headers, and negotiated subprotocols. SSE displays multiline data, event names, and last-event IDs. TLS certificates are verified; redirects are not followed.</p>
-<p>Connect starts traffic; Disconnect or leaving the workbench closes the upstream connection. The duration is explicit (0.1–120 seconds, default 60). Each session stops at 500 received messages or 2 MiB, with a 64 KiB per-message limit and 200 WebSocket sends. The UI retains the latest 200 rows; timestamps are browser observation times since Connect, not one-way network latency. Two simultaneous stream sessions are allowed per server. Headers and payloads remain in memory. SSE does not retry automatically; an explicit <code>Last-Event-ID</code> header can request resumption from a compatible server.</p>
+<p>For a live WebSocket or SSE connection, use the separate <a href="/event-streams/">Event streams workbench</a>. Its finite sessions, negotiated subprotocols, event IDs and send/disconnect controls retain their protocol-specific evidence. The WebSocket/SSE foundation is available in stable v0.6.1.</p>
 <p>ProtoPeek does not currently provide automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.</p>
 <h2 id="go-deeper">Go deeper</h2>
 <ul><li><a href="/network-workbench/">See how network path evidence stays separate</a>.</li><li><a href="/transport-boundaries/">Read the transport and workspace boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.6.1</a>.</li></ul>
@@ -185,7 +187,7 @@
               <section class="pp-doc-side-card">
                 <div class="pp-doc-side-label">On this page</div>
                 <div class="pp-doc-toc">
-                  <a class="level-2" href="#build-one-explicit-request">Build one explicit request</a><a class="level-2" href="#start-from-an-api-definition">Start from an API definition</a><a class="level-2" href="#keep-transport-choices-visible">Keep transport choices visible</a><a class="level-2" href="#read-the-response-as-http">Read the response as HTTP</a><a class="level-2" href="#reuse-without-hiding-secrets">Reuse without hiding secrets</a><a class="level-3" href="#current-source-saved-requests">Current-source saved requests</a><a class="level-3" href="#current-source-additions-22-october-2026">Current-source additions · 22 October 2026</a><a class="level-2" href="#deliberate-limits">Deliberate limits</a><a class="level-3" href="#current-source-draft-recovery-and-event-streams">Current-source draft recovery and event streams</a><a class="level-2" href="#go-deeper">Go deeper</a>
+                  <a class="level-2" href="#make-your-first-request">Make your first request</a><a class="level-2" href="#build-one-explicit-request">Build one explicit request</a><a class="level-2" href="#start-from-an-api-definition">Start from an API definition</a><a class="level-2" href="#keep-transport-choices-visible">Keep transport choices visible</a><a class="level-2" href="#read-the-response-as-http">Read the response as HTTP</a><a class="level-2" href="#reuse-without-hiding-secrets">Reuse without hiding secrets</a><a class="level-3" href="#current-source-saved-requests">Current-source saved requests</a><a class="level-3" href="#current-source-additions-22-october-2026">Current-source additions · 22 October 2026</a><a class="level-2" href="#deliberate-limits">Deliberate limits</a><a class="level-3" href="#current-source-draft-recovery">Current-source draft recovery</a><a class="level-2" href="#go-deeper">Go deeper</a>
                 </div>
               </section>
 
@@ -197,20 +199,20 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements.</p>
+                <p>Stable v0.6.1 includes the HTTP foundation. Environment templates, library import and reviewed cURL import below require matching current source.</p>
               </section>
             </aside>
           </div>
 
 
     <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
-      <a href="/grpc-workbench/">
+      <a href="/install/">
         <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
-        <strong>gRPC workbench</strong>
+        <strong>Install ProtoPeek</strong>
       </a>
-      <a href="/learn-grpc/">
+      <a href="/grpc-workbench/">
         <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
-        <strong>Learn gRPC</strong>
+        <strong>gRPC workbench</strong>
       </a>
     </nav>
 

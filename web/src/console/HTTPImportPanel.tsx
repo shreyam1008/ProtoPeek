@@ -4,13 +4,15 @@ import { type ImportedHTTPRequest, parseCurlCommand } from './http-curl-import';
 import './http-tools.css';
 
 export function HTTPImportPanel({
+  initialCommand = '',
   onLoad,
   onClose,
 }: {
+  initialCommand?: string;
   onLoad: (request: ImportedHTTPRequest) => void;
   onClose: () => void;
 }) {
-  const [command, setCommand] = useState('');
+  const [command, setCommand] = useState(initialCommand);
   const [preview, setPreview] = useState<ImportedHTTPRequest | null>(null);
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -45,11 +47,15 @@ export function HTTPImportPanel({
         <textarea
           ref={inputRef}
           value={command}
-          maxLength={512 * 1024}
           spellCheck={false}
           onChange={(event) => {
-            setCommand(event.target.value);
             setPreview(null);
+            const next = event.target.value;
+            if (next.length > 512 * 1024 || new TextEncoder().encode(next).length > 512 * 1024) {
+              setError('cURL import is limited to 512 KiB. The previous command is unchanged.');
+              return;
+            }
+            setCommand(next);
             setError('');
           }}
         />

@@ -34,3 +34,22 @@ it('previews browser compression differences and live-only cookies before loadin
   });
   expect(request).not.toHaveBeenCalled();
 });
+
+it('rejects oversized UTF-8 edits without silently truncating or keeping an outdated preview', () => {
+  render(
+    <HTTPImportPanel
+      initialCommand="curl https://fixture.test/"
+      onLoad={vi.fn()}
+      onClose={vi.fn()}
+    />
+  );
+  const input = screen.getByLabelText('cURL command');
+  fireEvent.click(screen.getByRole('button', { name: 'Preview request' }));
+  expect(screen.getByRole('group', { name: 'cURL request preview' })).toBeVisible();
+  fireEvent.change(input, {
+    target: { value: `curl https://fixture.test/ ${'é'.repeat(256 * 1024)}` },
+  });
+  expect(screen.getByRole('alert')).toHaveTextContent('512 KiB');
+  expect(input).toHaveValue('curl https://fixture.test/');
+  expect(screen.queryByRole('group', { name: 'cURL request preview' })).not.toBeInTheDocument();
+});

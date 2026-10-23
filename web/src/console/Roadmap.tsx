@@ -16,7 +16,11 @@ const roadmap = [
       ],
       [
         'Local AI agents',
-        'Opt-in MCP/CLI adapters for HTTP, gRPC, events, Cap’n Proto, shared packet metadata and host tools. Native results, write controls, bounded activity and cancellation.',
+        '23 opt-in MCP/CLI tools for HTTP, gRPC, events, Cap’n Proto, shared packet metadata, host evidence and explicit extension checks. Native results, write controls, bounded activity and cancellation.',
+      ],
+      [
+        'Optional extension library',
+        '20 entries: six native workbenches and fourteen command, MCP, endpoint or external companions. Setup packs load only when selected; host checks are explicit. No automatic installation or vendor execution.',
       ],
       [
         'Host port scanner',

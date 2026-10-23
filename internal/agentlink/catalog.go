@@ -43,7 +43,14 @@ Packet tools require acknowledgeSharing=true because captured addresses and meta
 packets_capture also requires consent=true, write actions and an already installed capture tool with
 OS permission. Never install or elevate implicitly. No packet payload reconstruction is exposed.
 Tunnel mutations, unrestricted diagnostics, file browsing, WebSocket sends and persistent event
-sessions are not exposed. A receive-only event connection closes before its result returns.`
+sessions are not exposed. A receive-only event connection closes before its result returns.
+extensions_list returns fixed IDs/capabilities without host IO. extension_inspect locates only
+one allowlisted command; it never runs commands or checks accounts, models or daemons. Local
+executable paths reach this paired client/model. Aria2 can read its engine setting and verify
+an already cached bundle checksum. Cancellation detaches from slow filesystem calls; at most
+two lookup slots remain occupied until those calls return. ChatGPT is external guidance only.
+Captured handler output is limited to 512 KiB; retained activity receipts are limited to 64 KiB.
+The 1 MiB contract constant is not a promise to retain that much response data.`
 
 type Tool struct {
 	Name               string          `json:"name"`
@@ -79,6 +86,7 @@ func buildCatalog() []Tool {
 		{Name: "download_action", Description: "Pause, resume or cancel one known download job ID. Requires write actions. Cancel does not delete downloaded files. Never guess IDs; read download_queue.", Route: "/downloader", Method: "POST", Writes: true, InputSchema: json.RawMessage(object(`"id":{"type":"string","pattern":"^[a-fA-F0-9]{16}$"},"action":{"type":"string","enum":["pause","resume","cancel"]}`, `"id","action"`))},
 	}
 	specs = append(specs, protocolTools()...)
+	specs = append(specs, extensionTools()...)
 	for i := range specs {
 		var schema jsonschema.Schema
 		if err := json.Unmarshal(specs[i].InputSchema, &schema); err != nil {

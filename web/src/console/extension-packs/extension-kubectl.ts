@@ -1,0 +1,34 @@
+import type { ExtensionPack } from '../extension-pack';
+
+const extension = {
+  tool: 'kubectl',
+  download: 'https://kubernetes.io/docs/tasks/tools/',
+  guide: 'https://kubernetes.io/docs/reference/kubectl/generated/kubectl_port-forward/',
+  setup: {
+    windows:
+      'Use the official Windows client instructions and configure your own authorized cluster context.',
+    darwin:
+      'Use the official macOS client instructions and configure your own authorized cluster context.',
+    linux:
+      'Use the official Linux client instructions and configure your own authorized cluster context.',
+  },
+  afterSetup:
+    'Choose your context, namespace and service in the native client. Start and own the forward yourself, then inspect its actual listening local port.',
+  notes: [
+    'Installing kubectl grants no cluster access. ProtoPeek does not read kubeconfig or run cluster commands here.',
+    'The example binds 127.0.0.1 in the current namespace. Replace service/example deliberately; stop the native forward when finished.',
+  ],
+  commands: [
+    {
+      label: 'Example: loopback-only service forward',
+      text: 'kubectl port-forward --address 127.0.0.1 service/example 8080:80',
+    },
+  ],
+  endpoint: {
+    url: 'http://127.0.0.1:8080/',
+    notice:
+      'Example forwarded HTTP port. Verify context, service and the listening local port before Send.',
+  },
+} satisfies ExtensionPack;
+
+export default extension;

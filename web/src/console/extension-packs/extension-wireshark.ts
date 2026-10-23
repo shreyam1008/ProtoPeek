@@ -1,0 +1,24 @@
+import type { ExtensionPack } from '../extension-pack';
+
+const extension = {
+  tool: 'dumpcap from Wireshark',
+  download: 'https://www.wireshark.org/download.html',
+  guide: 'https://wiki.wireshark.org/CaptureSetup/CapturePrivileges',
+  setup: {
+    windows:
+      'Install Wireshark with dumpcap and the Npcap capture driver. Follow the installer’s capture-permission choices.',
+    darwin: 'Install Wireshark and its ChmodBPF helper for capture permissions.',
+    linux:
+      'Install your distribution’s dumpcap or Wireshark package and follow its capture-group permission setup.',
+  },
+  afterSetup:
+    'Open Live capture to check interfaces and permissions. Reading an existing PCAP or PCAPNG file needs no Wireshark installation.',
+  notes: [
+    'Capture requires installed dumpcap and OS permission; ProtoPeek does not install drivers or request elevation.',
+    'Packet-file reading is core; payload reconstruction is opt-in. Captured addresses and payloads can be private.',
+  ],
+  route: '/network/packets',
+  openLabel: 'Open live capture',
+} satisfies ExtensionPack;
+
+export default extension;

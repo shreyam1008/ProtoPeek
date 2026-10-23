@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHandoffEnvelope } from './app/handoff-store';
+import type { PendingHandoffInput } from './app/handoff-types';
 import { NetworkDiagnostics } from './NetworkDiagnostics';
 import {
   type DiagnosticResult,
@@ -8,7 +9,9 @@ import {
   diagnosticHandoff,
   diagnosticModes,
   diagnosticsSearch,
+  diagnosticTargetScheme,
 } from './network-diagnostics';
+import { ProtocolShellContext, type ProtocolShellValue } from './ProtocolShellContext';
 
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), search: {} as Record<string, string> }));
 vi.mock('./api', () => ({ fetchJSON: mocks.fetch }));
@@ -36,6 +39,107 @@ beforeEach(() => {
 });
 
 describe('Diagnostics workspace', () => {
+  const handoffModes = [
+    'diagnose',
+    'tls',
+    'ip-compare',
+    'availability',
+    'tcp-exchange',
+    'http-proxy',
+    'socks5-proxy',
+    'http2',
+    'http3',
+  ] as const;
+  it.each(
+    handoffModes.flatMap((mode) =>
+      (['http', 'https', null] as const).map((scheme) => ({ mode, scheme }))
+    )
+  )('preserves submitted $scheme transport in $mode handoffs', async ({ mode, scheme }) => {
+    mocks.search = {
+      mode,
+      target: `${scheme ? `${scheme}://` : ''}example.test:8443`,
+    };
+    mocks.fetch.mockResolvedValue({ ...result, mode, target: 'example.test:8443' });
+    const openHandoff = vi.fn((input: PendingHandoffInput) => {
+      const checked = createHandoffEnvelope(input, { now: Date.parse(result.observedAt) + 1000 });
+      expect(checked.ok).toBe(true);
+      return checked.ok ? { ...checked, storage: 'memory' as const } : checked;
+    });
+    render(
+      <ProtocolShellContext.Provider value={{ openHandoff } as unknown as ProtocolShellValue}>
+        <NetworkDiagnostics />
+      </ProtocolShellContext.Provider>
+    );
+    if (mode === 'http-proxy' || mode === 'socks5-proxy')
+      fireEvent.change(screen.getByLabelText('Proxy address'), {
+        target: { value: '127.0.0.1:1080' },
+      });
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Run diagnostic' }));
+    await screen.findByRole('region', { name: 'Diagnostic result' });
+    const secure = scheme ? scheme === 'https' : ['diagnose', 'tls', 'http3'].includes(mode);
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare HTTP request' }));
+    expect(openHandoff.mock.lastCall?.[0].draft).toEqual({
+      kind: 'http-url-draft',
+      target: { kind: 'http-url', url: `${secure ? 'https' : 'http'}://example.test:8443/` },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare gRPC target' }));
+    expect(openHandoff.mock.lastCall?.[0].draft).toEqual({
+      kind: 'grpc-target-draft',
+      target: { kind: 'grpc-target', address: 'example.test:8443', plaintext: !secure },
+    });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('derives an explicit scheme visibly and keeps the manual TLS choice for bare targets', async () => {
+    mocks.fetch.mockResolvedValue(result);
+    render(<NetworkDiagnostics />);
+    const checkbox = screen.getByRole('checkbox', { name: 'Verify TLS after connecting' });
+    const target = screen.getByLabelText('Target');
+    fireEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+    fireEvent.change(target, { target: { value: 'HTTPS://example.test:8443' } });
+    expect(checkbox).toBeChecked();
+    expect(checkbox).toBeDisabled();
+    expect(screen.getByText(/Set by https:\/\//)).toBeVisible();
+    expect(checkbox).toHaveAccessibleDescription(/Set by https:\/\//);
+    fireEvent.change(target, { target: { value: 'http://example.test:8443' } });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Run diagnostic' }));
+    await screen.findByRole('region', { name: 'Diagnostic result' });
+    expect(JSON.parse(mocks.fetch.mock.calls[0][1].body).testTls).toBe(false);
+    fireEvent.change(target, { target: { value: 'example.test:8443' } });
+    expect(checkbox).toBeEnabled();
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).not.toHaveAttribute('aria-describedby');
+  });
+
+  it('keeps the submitted transport when the next draft is edited after completion', async () => {
+    mocks.search = { mode: 'availability', target: 'https://example.test:8443' };
+    mocks.fetch.mockResolvedValue({ ...result, mode: 'availability', target: 'example.test:8443' });
+    const openHandoff = vi.fn(() => ({ ok: false as const, error: 'Fixture only' }));
+    render(
+      <ProtocolShellContext.Provider value={{ openHandoff } as unknown as ProtocolShellValue}>
+        <NetworkDiagnostics />
+      </ProtocolShellContext.Provider>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Run diagnostic' }));
+    await screen.findByRole('region', { name: 'Diagnostic result' });
+    fireEvent.change(screen.getByLabelText('Target'), {
+      target: { value: 'http://different.test:8080' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare HTTP request' }));
+    expect(openHandoff).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draft: {
+          kind: 'http-url-draft',
+          target: { kind: 'http-url', url: 'https://example.test:8443/' },
+        },
+      })
+    );
+  });
+
   it.each(['dns', 'http2'] as const)('preserves repeated %s observations', async (mode) => {
     mocks.search = { mode, target: '127.0.0.1:8080' };
     const record = { name: 'fixture.', type: 'TXT', value: 'Repeated evidence', ttlSeconds: 10 };
@@ -179,6 +283,13 @@ it('prepares only an authority for diagnostics without URL secrets or resource d
   expect(diagnosticDraftTarget('http://localhost/private')).toBe('http://localhost');
   expect(diagnosticDraftTarget('file:///secret')).toBeUndefined();
   expect(diagnosticDraftTarget('{{base}}/resource')).toBeUndefined();
+});
+
+it('parses explicit HTTP transport case-insensitively without guessing a bare authority', () => {
+  expect(diagnosticTargetScheme(' HTTP://localhost:8080/ ')).toBe('http');
+  expect(diagnosticTargetScheme('HTTPS://[::1]:8443')).toBe('https');
+  expect(diagnosticTargetScheme('localhost:8080')).toBeNull();
+  expect(diagnosticTargetScheme('file:///private')).toBeNull();
 });
 
 it('uses the real broker and preserves attempted TLS through failed verification or connection', () => {

@@ -5,10 +5,33 @@ import {
   createRouter,
   lazyRouteComponent,
   redirect,
+  useLocation,
 } from '@tanstack/react-router';
+import { type AgentClient, agentClient } from './agent-client-kind';
 import type { DiagnosticMode } from './network-diagnostics';
 import { ProtocolFrame } from './ProtocolFrame';
 import { RouteError, RouteNotFound, RoutePending } from './shell/RouteState';
+
+declare module '@tanstack/history' {
+  interface HistoryState {
+    diagnosticInvocation?: number;
+  }
+}
+
+const LazyDiagnostics = lazyRouteComponent(
+  () => import('./NetworkDiagnostics'),
+  'NetworkDiagnostics'
+);
+
+function DiagnosticsRoute() {
+  const invocation = useLocation({
+    select: ({ state }) =>
+      Number.isSafeInteger(state.diagnosticInvocation) && (state.diagnosticInvocation ?? -1) >= 0
+        ? state.diagnosticInvocation
+        : 0,
+  });
+  return <LazyDiagnostics key={invocation} />;
+}
 
 const rootRoute = createRootRoute({ component: ProtocolFrame, notFoundComponent: RouteNotFound });
 const dashboardRoute = createRoute({
@@ -83,7 +106,7 @@ const diagnosticsRoute = createRoute({
         : undefined,
   }),
   remountDeps: ({ search }) => [search.mode, search.target],
-  component: lazyRouteComponent(() => import('./NetworkDiagnostics'), 'NetworkDiagnostics'),
+  component: DiagnosticsRoute,
 });
 const tailnetRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -122,6 +145,12 @@ const tunnelsRoute = createRoute({
 const extensionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/extensions',
+  validateSearch: (search: Record<string, unknown>): { extension?: string } => ({
+    extension:
+      typeof search.extension === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(search.extension)
+        ? search.extension
+        : undefined,
+  }),
   component: lazyRouteComponent(() => import('./Extensions'), 'Extensions'),
 });
 const routesRoute = createRoute({
@@ -152,7 +181,11 @@ const settingsRoute = createRoute({
 const agentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/agents',
-  component: lazyRouteComponent(() => import('./AgentWorkbench'), 'AgentWorkbench'),
+  validateSearch: (search: Record<string, unknown>): { client?: AgentClient } => ({
+    client: agentClient(search.client),
+  }),
+  remountDeps: ({ search }) => search.client,
+  component: lazyRouteComponent(() => import('./AgentWorkbench'), 'AgentWorkbenchRoute'),
 });
 const updatesRoute = createRoute({
   getParentRoute: () => rootRoute,

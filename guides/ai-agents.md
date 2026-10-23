@@ -1,14 +1,17 @@
 # Local AI agents
 
-The original adapter is published in the [opt-in edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge), outside v0.6.1 stable.
-**The expanded protocol and packet catalog below describes current source, 22 October 2026.**
-Read `protopeek agent tools` from the running build for its actual capabilities; an older edge binary
+The original adapter is published in the [legacy Edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge), outside v0.6.1 stable.
+**The expanded protocol, packet and extension catalog below describes current source, 23 October 2026.**
+[Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is the separate rolling
+preview. Read `protopeek agent tools` from the running build for its actual capabilities; an older archive
 can expose fewer tools. ProtoPeek does not bundle a model, require an AI
 account or send telemetry. Your agent and browser share the running workbench's Go services.
 
 ## Connect and watch
 
-1. Start ProtoPeek and open **Settings → AI agents → Enable agent connection**.
+1. Start ProtoPeek, open its browser URL through **`127.0.0.1`**, then choose
+   **Settings → AI agents → Enable agent connection**. Pairing deliberately requires literal
+   loopback; if you opened `localhost`, use the offered `127.0.0.1` link first.
    Leave **Allow write actions** off for inspection. Enable it for HTTP POST/PUT/PATCH/DELETE
    download controls, gRPC connections/calls/disconnection, Cap’n Proto calls and packet capture.
    RPC methods can have side effects regardless of their names. Disable the connection to change that choice.
@@ -30,6 +33,16 @@ For clients that accept an `mcpServers` JSON object:
   }
 }
 ```
+
+Current source also offers client-specific **configuration fragments** for Codex CLI, Claude
+Code, Gemini CLI and OpenCode from their Extensions entries and AI agent setup. AI agent setup
+also offers LM Studio, whose Extensions Endpoint guide links to that profile through
+**Configure LM Studio**, plus a generic profile. Merge the fragment
+under the named key in your existing client file rather than replacing unrelated settings.
+The generated profile shows the executable origin; choose the PATH variant only when your MCP
+client can resolve `protopeek`. A missing pairing-file location blocks copying, rather than
+creating an incomplete profile. Formats were checked against official client docs on 23 October
+2026; this does not establish real installed-client/account acceptance.
 
 The surrounding configuration format and reload step belong to your MCP client. This is a
 standard stdio server: stdout contains protocol messages only. The
@@ -55,6 +68,19 @@ not completion: inspect the actual queue status. Download jobs continue after th
 Cancelling a tool cannot undo an upstream request or delete a downloaded file.
 
 ## CLI and agent instructions
+
+### Public API discovery
+
+The public documentation publishes an [API catalog](https://protopeek.shreyam1008.com.np/.well-known/api-catalog),
+[OpenAPI document](https://protopeek.shreyam1008.com.np/openapi.json),
+[ARD manifest](https://protopeek.shreyam1008.com.np/.well-known/ai-catalog.json),
+[MCP Server Card](https://protopeek.shreyam1008.com.np/.well-known/mcp/server-card.json),
+[authentication metadata](https://protopeek.shreyam1008.com.np/auth.md) and
+[Agent Skill index](https://protopeek.shreyam1008.com.np/.well-known/agent-skills/index.json).
+These describe the project; they do not enable or pair a running workbench. Use that build's
+live tool catalog and generated configuration for local execution.
+
+### Run an explicit CLI call
 
 Shell-based agents can use the same connection without MCP:
 
@@ -92,6 +118,8 @@ during initialization and by `workbench_info`. Ctrl+C or MCP cancellation stops 
 | `scan_ports` | One host, at most 1,024 selected TCP ports | Inspection with active probes |
 | `route_lookup` | Selected local next-hop route; may resolve DNS | Inspection |
 | `tailnet_inspect` | Installed Tailscale status and peers | Inspection |
+| `extensions_list` | The 20 IDs and integration levels; no host lookup | Inspection |
+| `extension_inspect` | One selected entry’s CLI-location evidence; ChatGPT web remains external | Inspection, explicit host lookup for detectable entries |
 | `download_queue` | Shared engine, configuration and queue | Inspection |
 | `download_start_engine` | Start configured/bundled aria2 | Writes |
 | `download_add` | Queue one URL in the configured directory | Writes |
@@ -126,6 +154,13 @@ the receipt partial. Calls close their capability connection before returning.
 open/close/limit evidence. It closes the upstream connection before returning, sends no application
 messages and leaves no reusable WebSocket session. A finite read is not a health monitor.
 
+Extension tools do not install or execute vendors, start services, authenticate, pull models or
+publish ports. `extension_inspect` accepts one catalog ID, never an executable path. It checks
+this process’s PATH and reviewed fixed locations; aria2 may read/hash an existing cached bundle.
+The result is location evidence, not proof the application is installed, running or signed in.
+The ChatGPT web entry performs no host lookup and provides no local stdio connector or hosted
+relay. Local Codex CLI configuration remains a separate workflow.
+
 Packet tools require `acknowledgeSharing=true`: addresses, DNS names and other captured metadata
 are sent to the chosen agent/model. Analysis accepts supplied bytes only, not a filename. Capture
 also needs `consent=true`, write actions, installed dumpcap and current OS permission; no installation
@@ -153,8 +188,9 @@ active calls. It leaves already queued downloads under their ordinary queue cont
   `maxDurationSeconds: 35` reserving five seconds for native final/partial evidence. Other protocol
   and packet adapters declare 30 seconds; event reads are additionally limited to 0.1–10 seconds.
   Inspect the live catalog for per-tool limits.
-- Arguments fit within 128 KiB, with smaller per-tool limits. Oversized output becomes an
-  explicit truncated preview.
+- Arguments fit within 128 KiB, with smaller per-tool limits. Handler response capture is bounded
+  to 512 KiB; retained activity receipts keep at most 64 KiB. Oversized output becomes an explicit
+  truncated preview, not a promise to preserve a 1 MiB result.
 - Raw packet and compiled-schema base64 must decode to at most 64 KiB. The entire request still
   fits within the existing 128 KiB envelope; metadata and params share that budget.
 - The latest 32 receipts retain at most 64 KiB each in memory. Inputs are not stored in activity.

@@ -63,6 +63,9 @@ Cap’n Proto is not HTTP or gRPC and does not supply an HTTP-style header edito
 
 ## Generic bindings and capability plans · current source
 
+First expand **Capability call plan & type bindings**, or **Generic type bindings & capability plan**
+when the selected method has generic parameters.
+
 **Generic type bindings** supplies the selected interface/method's type arguments. Use the shown
 schema parameters and supported type expressions; unresolved or incompatible bindings fail
 validation instead of guessing a schema.

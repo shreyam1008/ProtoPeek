@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { type CapnpPlanStep, callCapnpPlan } from './capnp-plan-api';
+import {
+  type CapnpPlanStep,
+  callCapnpPlan,
+  encodeCapnpPlan,
+  validateCapnpCall,
+  validateCapnpPlan,
+} from './capnp-plan-api';
 
 afterEach(() => vi.unstubAllGlobals());
 const target = {
@@ -37,6 +43,32 @@ const evidence = () => ({
       error: undefined as string | undefined,
     })),
   },
+});
+
+it('rejects an oversized encoded plan locally before starting transport', () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+  expect(() =>
+    encodeCapnpPlan({ ...target, schemaBase64: 'A'.repeat(4 * 1024 * 1024), steps })
+  ).toThrow('4 MiB');
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('keeps the native 128-method ceiling and gives single calls request-specific errors', () => {
+  expect(() => validateCapnpCall({ ...steps[0], ordinal: 127 })).not.toThrow();
+  expect(() => validateCapnpCall({ ...steps[0], ordinal: 200 })).toThrow('Choose a schema method.');
+  expect(() => validateCapnpCall({ ...steps[0], params: '[]' })).toThrow(
+    'Request JSON must be an object.'
+  );
+  expect(() => validateCapnpCall({ ...steps[0], methodTypes: [''] })).toThrow(
+    'Bind every generic method type.'
+  );
+});
+
+it('names the malformed plan step without treating it as the main request', () => {
+  expect(() => validateCapnpPlan([steps[0], steps[0], { ...steps[0], params: '{bad}' }])).toThrow(
+    'Step 3 JSON is invalid.'
+  );
 });
 
 it('sends original numeric JSON tokens for every explicitly started step', async () => {

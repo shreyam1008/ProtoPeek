@@ -36,7 +36,7 @@ export const releaseCapabilities = [
   {
     featureId: 'events',
     releaseStatus: 'stable',
-    docsSlug: 'http-workbench',
+    docsSlug: 'event-streams',
   },
   { featureId: 'capnp', releaseStatus: 'stable', docsSlug: 'capnp-workbench' },
   {

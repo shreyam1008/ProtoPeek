@@ -56,6 +56,7 @@ import { ProtocolInfo } from './ProtocolInfo';
 import { protocolShellEvents } from './ProtocolShellContext';
 import { OperationStatus } from './shell/OperationStatus';
 import { shouldHandleWorkbenchShortcut } from './workbench-shortcut';
+import './http-workbench.css';
 
 const OpenAPIImportPanel = lazy(() =>
   import('./OpenAPIWorkbenchAddons').then((module) => ({ default: module.OpenAPIImportPanel }))
@@ -79,6 +80,12 @@ type RequestTab = 'params' | 'headers' | 'auth' | 'body';
 type BodyMode = 'none' | 'json' | 'text';
 type AuthMode = 'none' | 'bearer' | 'basic' | 'api-key';
 type CurlCopyNotice = { kind: 'success' | 'error'; message: string };
+type HandoffRecovery = {
+  draft: HTTPDraft;
+  auth: { mode: AuthMode; name: string; user: string; secret: string };
+  tab: RequestTab;
+  recipe: HTTPRecipe | null;
+};
 
 const requestTabs: Array<{ value: RequestTab; label: string }> = [
   { value: 'params', label: 'Params' },
@@ -114,6 +121,7 @@ export function HTTPWorkbench() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<string | null>(null);
   const [handoffNotice, setHandoffNotice] = useState<string | null>(null);
+  const [handoffRecovery, setHandoffRecovery] = useState<HandoffRecovery | null>(null);
   const [historyStorageError, setHistoryStorageError] = useState<string | null>(null);
   const [curlCopyNotice, setCurlCopyNotice] = useState<CurlCopyNotice | null>(null);
   const [openAPIImportOpen, setOpenAPIImportOpen] = useState(false);
@@ -125,6 +133,8 @@ export function HTTPWorkbench() {
   const [openAPIRailVisible, setOpenAPIRailVisible] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [curlImportOpen, setCurlImportOpen] = useState(false);
+  const [curlImportNotice, setCurlImportNotice] = useState<string | null>(null);
+  const [curlImportInput, setCurlImportInput] = useState({ command: '', revision: 0 });
   const [environment, setEnvironment] = useState<HTTPEnvironment | null>(null);
   const [activeRecipe, setActiveRecipe] = useState<HTTPRecipe | null>(null);
   const [history, setHistory] = useState<HTTPHistoryEntry[]>(() =>
@@ -183,13 +193,27 @@ export function HTTPWorkbench() {
     setOpenAPIImportOpen(false);
   }
 
+  function closeCurlImport() {
+    setCurlImportOpen(false);
+    setCurlImportInput((current) => ({ command: '', revision: current.revision + 1 }));
+  }
+
+  function openCurlImport(command = '') {
+    closeOpenAPIImport();
+    setCurlImportNotice(null);
+    setCurlImportInput((current) => ({ command, revision: current.revision + 1 }));
+    setCurlImportOpen(true);
+  }
+
   function invalidateActiveRequest() {
     closeOpenAPIImport();
-    setCurlImportOpen(false);
+    closeCurlImport();
+    setCurlImportNotice(null);
     setActiveRecipe(null);
     setSelectedOpenAPIOperation(null);
     setDraftNotice(null);
     setHandoffNotice(null);
+    setHandoffRecovery(null);
     setRequestCancelled(false);
     requestGenerationRef.current++;
     curlCopyGenerationRef.current++;
@@ -348,10 +372,37 @@ export function HTTPWorkbench() {
       consumePendingHandoff('http-url-draft') ??
       (includeLegacy ? consumeLegacyHandoff('http-url-draft') : null);
     if (!pending) return;
+    const previous = {
+      draft: {
+        method,
+        url,
+        params,
+        headers,
+        bodyMode,
+        body,
+        rememberBody,
+        timeoutSeconds,
+        followRedirects,
+      },
+      auth: { mode: authMode, name: authName, user: authUser, secret: authSecret },
+      tab: requestTab,
+      recipe: activeRecipe,
+    };
+    const hasPreviousDraft =
+      method !== 'GET' ||
+      url !== 'http://localhost:8080/' ||
+      params.length > 0 ||
+      headers.length > 0 ||
+      bodyMode !== 'none' ||
+      body !== '' ||
+      authMode !== 'none' ||
+      timeoutSeconds !== 30 ||
+      followRedirects;
     resetRequest(
       pending.draft.target.url,
       `${handoffEvidence(pending.provenance, 'storage' in pending && pending.storage === 'memory')}. Review the URL, then choose Send; no request has been sent.`
     );
+    if (hasPreviousDraft) setHandoffRecovery(previous);
   });
 
   useEffect(() => {
@@ -398,6 +449,7 @@ export function HTTPWorkbench() {
   function invalidateCurlCopy() {
     curlCopyGenerationRef.current++;
     setCurlCopyNotice(null);
+    setCurlImportNotice(null);
   }
 
   const prepareCurrentDraft = useCallback(
@@ -449,6 +501,7 @@ export function HTTPWorkbench() {
 
   async function handleSend() {
     if (abortRef.current || requestPending) return;
+    setCurlImportNotice(null);
     hideOpenAPIDrawer();
     setRequestCancelled(false);
     setValidationError(null);
@@ -467,6 +520,7 @@ export function HTTPWorkbench() {
     sentExecutionRef.current = JSON.stringify(input);
     setSentRequest({ method: input.method, url: sanitizeURLForPersistence(input.url) });
     setHandoffNotice(null);
+    setHandoffRecovery(null);
     if (prepared.redactedQueryCount > 0) {
       setHistoryNotice(
         `${prepared.redactedQueryCount} redacted query ${prepared.redactedQueryCount === 1 ? 'value was' : 'values were'} left blank. Re-enter before sending if the endpoint requires them.`
@@ -667,6 +721,28 @@ export function HTTPWorkbench() {
     setTimeoutSeconds(draft.timeoutSeconds);
     setFollowRedirects(draft.followRedirects);
     setDraftNotice(`Loaded “${recipe.name}”. Re-enter credentials before sending.`);
+    if (window.matchMedia?.('(max-width: 760px)').matches) setLibraryOpen(false);
+  }
+
+  function restoreHandoffDraft() {
+    if (!handoffRecovery) return;
+    const { draft, auth, tab, recipe } = handoffRecovery;
+    resetRequest(draft.url);
+    setMethod(draft.method);
+    setParams(draft.params);
+    setHeaders(draft.headers);
+    setBodyMode(draft.bodyMode);
+    setBody(draft.body);
+    setRememberBody(draft.rememberBody);
+    setTimeoutSeconds(draft.timeoutSeconds);
+    setFollowRedirects(draft.followRedirects);
+    setAuthMode(auth.mode);
+    setAuthName(auth.name);
+    setAuthUser(auth.user);
+    setAuthSecret(auth.secret);
+    setRequestTab(tab);
+    setActiveRecipe(recipe);
+    setDraftNotice('Previous draft restored. No request has been sent.');
   }
 
   function loadCurl(request: ImportedHTTPRequest) {
@@ -681,6 +757,7 @@ export function HTTPWorkbench() {
     setAuthName(request.auth.name);
     setAuthUser(request.auth.user);
     setAuthSecret(request.auth.secret);
+    setRequestTab(request.draft.bodyMode === 'none' ? 'params' : 'body');
     setDraftNotice(
       'cURL loaded. Review before sending. Credentials stay in this live editor; body is not saved.'
     );
@@ -730,6 +807,7 @@ export function HTTPWorkbench() {
           onClick={() => {
             setLibraryOpen((open) => !open);
             setOpenAPIRailVisible(false);
+            setMobilePane('request');
           }}
         >
           Saved requests
@@ -742,7 +820,7 @@ export function HTTPWorkbench() {
             setOpenAPIImportError(null);
             if (openAPIImportOpen) closeOpenAPIImport();
             else setOpenAPIImportOpen(true);
-            setCurlImportOpen(false);
+            closeCurlImport();
           }}
         >
           <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
@@ -752,15 +830,20 @@ export function HTTPWorkbench() {
           className="pp-openapi-import-trigger"
           aria-expanded={curlImportOpen}
           onClick={() => {
-            closeOpenAPIImport();
-            setCurlImportOpen(!curlImportOpen);
+            if (curlImportOpen) closeCurlImport();
+            else openCurlImport();
           }}
         >
           Import cURL
         </button>
         {curlImportOpen ? (
           <Suspense fallback={null}>
-            <HTTPImportPanel onLoad={loadCurl} onClose={() => setCurlImportOpen(false)} />
+            <HTTPImportPanel
+              key={curlImportInput.revision}
+              initialCommand={curlImportInput.command}
+              onLoad={loadCurl}
+              onClose={closeCurlImport}
+            />
           </Suspense>
         ) : null}
         {openAPICollection ? (
@@ -848,6 +931,21 @@ export function HTTPWorkbench() {
             invalidateCurlCopy();
             setURL(event.target.value);
           }}
+          onPaste={(event) => {
+            const command = event.clipboardData.getData('text/plain');
+            if (!/^\s*curl(?:\.exe)?(?:\s|$)/i.test(command)) return;
+            event.preventDefault();
+            if (
+              command.length > 512 * 1024 ||
+              new TextEncoder().encode(command).length > 512 * 1024
+            ) {
+              setCurlImportNotice(
+                'cURL import is limited to 512 KiB. The current request is unchanged.'
+              );
+              return;
+            }
+            openCurlImport(command);
+          }}
           aria-label="Request URL"
           spellCheck={false}
           placeholder="https://api.example.test/v1/items"
@@ -863,6 +961,11 @@ export function HTTPWorkbench() {
         </button>
       </div>
 
+      {curlImportNotice ? (
+        <div className="pp-http-curl-notice is-error" role="alert">
+          {curlImportNotice}
+        </div>
+      ) : null}
       <OperationStatus busy={requestPending} label="Sending HTTP request" />
       {requestPending ? (
         <p className="pp-http-running-notice" role="status">
@@ -888,12 +991,20 @@ export function HTTPWorkbench() {
       {handoffNotice ? (
         <div className="pp-http-replay-notice" role="status">
           <Clock3 className="pp-http-notice-icon" aria-hidden="true" />
-          <span>{handoffNotice}</span>
+          <span>{handoffNotice} HTTP drafts autosave with recognized credentials redacted.</span>
+          {handoffRecovery ? (
+            <button type="button" className="pp-http-restore-draft" onClick={restoreHandoffDraft}>
+              Restore previous draft
+            </button>
+          ) : null}
           <button
             type="button"
             className="pp-http-notice-dismiss"
             aria-label="Dismiss HTTP handoff notice"
-            onClick={() => setHandoffNotice(null)}
+            onClick={() => {
+              setHandoffNotice(null);
+              setHandoffRecovery(null);
+            }}
           >
             <X className="pp-http-notice-icon" aria-hidden="true" />
           </button>
@@ -941,7 +1052,11 @@ export function HTTPWorkbench() {
           },
         ]}
         value={mobilePane}
-        onChange={setMobilePane}
+        onChange={(pane) => {
+          setMobilePane(pane);
+          if (pane === 'response' && window.matchMedia?.('(max-width: 760px)').matches)
+            setLibraryOpen(false);
+        }}
         className="pp-http-mobile-tabs"
       />
 

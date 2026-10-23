@@ -1,8 +1,9 @@
-import { Link } from '@tanstack/react-router';
-import { Bot, Check, Copy, LoaderCircle, RefreshCw, Square, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearch } from '@tanstack/react-router';
+import { Bot, LoaderCircle, RefreshCw, Square, X } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
 import { type AgentResult, type AgentState, agentFetch } from './agent-api';
+import type { AgentClient } from './agent-client-kind';
 import { normalizeHTTPResponse } from './api';
 import { featureForPath } from './app/feature-registry';
 import { HTTPResponsePanel } from './HTTPResponsePanel';
@@ -11,27 +12,28 @@ import './agent-workbench.css';
 const example =
   'Use ProtoPeek to inspect my local listeners. Check the HTTP service I select, explain its response and timing, and show the results in ProtoPeek. Do not change services or download files.';
 
-export function AgentWorkbench() {
+const AgentClientSetup = lazy(() =>
+  import('./AgentClientSetup').then((module) => ({ default: module.AgentClientSetup }))
+);
+
+export function AgentWorkbenchRoute() {
+  const incoming = useSearch({ from: '/agents' });
+  return <AgentWorkbench initialClient={incoming.client} />;
+}
+
+function agentError(cause: unknown, fallback: string) {
+  const message = cause instanceof Error ? cause.message : fallback;
+  return message.trim() === 'local browser session required'
+    ? 'On the ProtoPeek host, open this workbench via 127.0.0.1 (with the same port and path) to pair your agent.'
+    : message;
+}
+
+export function AgentWorkbench({
+  initialClient = 'generic',
+}: {
+  initialClient?: AgentClient;
+} = {}) {
   const [snapshot, setSnapshot] = useState<AgentState | null>(null);
-  const setup = useMemo(
-    () =>
-      JSON.stringify(
-        {
-          mcpServers: {
-            protopeek: {
-              command: snapshot?.executable || 'protopeek',
-              args: ['mcp'],
-              ...(snapshot?.connectionFile
-                ? { env: { PROTOPEEK_AGENT_CONNECTION: snapshot.connectionFile } }
-                : {}),
-            },
-          },
-        },
-        null,
-        2
-      ),
-    [snapshot?.executable, snapshot?.connectionFile]
-  );
   const [error, setError] = useState('');
   const [live, setLive] = useState(true);
   const [visible, setVisible] = useState(!document.hidden);
@@ -81,9 +83,7 @@ export function AgentWorkbench() {
           after = next.revision;
         } catch (cause) {
           if (!controller.signal.aborted) {
-            setError(
-              cause instanceof Error ? cause.message : 'Agent activity could not be loaded.'
-            );
+            setError(agentError(cause, 'Agent activity could not be loaded.'));
             setLive(false);
           }
           return;
@@ -148,12 +148,13 @@ export function AgentWorkbench() {
       }
     } catch (cause) {
       if (!controller.signal.aborted)
-        setError(cause instanceof Error ? cause.message : 'Agent setting could not be changed.');
+        setError(agentError(cause, 'Agent setting could not be changed.'));
     } finally {
       if (!controller.signal.aborted) setBusy('');
     }
   }
   async function copy(label: string, text: string) {
+    setCopied('');
     try {
       await navigator.clipboard.writeText(text);
       setCopied(label);
@@ -173,7 +174,13 @@ export function AgentWorkbench() {
           <span>Local MCP · shared workbench</span>
         </div>
         <span className={`pp-agent-status ${snapshot?.enabled ? 'is-enabled' : ''}`}>
-          {snapshot ? (snapshot.enabled ? 'Connection enabled' : 'Connection off') : 'Connecting…'}
+          {snapshot
+            ? snapshot.enabled
+              ? 'Connection enabled'
+              : 'Connection off'
+            : error
+              ? 'Connection unavailable'
+              : 'Connecting…'}
         </span>
       </PageHeader>
       {error ? (
@@ -217,34 +224,34 @@ export function AgentWorkbench() {
             )}
             {snapshot?.enabled ? 'Disable and cancel active calls' : 'Enable agent connection'}
           </button>
-          <div className="pp-agent-code-title">
-            <strong>MCP configuration</strong>
-            <button
-              type="button"
-              onClick={() => void copy('config', setup)}
-              aria-label="Copy MCP configuration"
-            >
-              {copied === 'config' ? <Check /> : <Copy />}
-            </button>
-          </div>
-          <figure aria-label="MCP configuration">
-            <pre>{setup}</pre>
-          </figure>
+          {snapshot ? (
+            <Suspense fallback={<p role="status">Loading client configuration…</p>}>
+              <AgentClientSetup
+                initialClient={initialClient}
+                executable={snapshot.executable}
+                connectionFile={snapshot.connectionFile}
+                copied={copied === 'config'}
+                onCopy={(config) => void copy('config', config)}
+              />
+            </Suspense>
+          ) : !error ? (
+            <p role="status">Loading client configuration…</p>
+          ) : null}
           <details>
             <summary>Connection walkthrough</summary>
             <ol>
               <li>
                 <strong>Pair this workbench</strong>
                 <p>
-                  Save a private connection file on this machine. Keep ProtoPeek running; pair again
-                  after a restart.
+                  Enable the agent connection above. ProtoPeek maintains a private pairing file on
+                  this host. Keep the workbench running.
                 </p>
               </li>
               <li>
                 <strong>Add ProtoPeek to your agent</strong>
                 <p>
-                  This MCP entry uses the running binary and its pairing file, so your agent
-                  attaches to this workbench.
+                  Merge the selected client fragment into its configuration file, then reload the
+                  client. It launches the MCP process and attaches to this workbench.
                 </p>
               </li>
               <li>
@@ -279,8 +286,9 @@ export function AgentWorkbench() {
               provider. No cloud sync.
             </p>
             <p>
-              Two calls at a time, 60 seconds each. Cancellation cannot undo a request already
-              received by a service. Queued downloads continue separately.
+              Two calls at a time, up to 60 seconds; protocol tools have shorter limits.
+              Cancellation cannot undo a request already received by a service. Queued downloads
+              continue separately.
             </p>
           </details>
           <details>
@@ -336,8 +344,14 @@ export function AgentWorkbench() {
           </div>
           {!snapshot ? (
             <p role="status">
-              <LoaderCircle className="pp-agent-spin" />
-              Loading connection and activity…
+              {error ? (
+                'Connection and activity unavailable. Fix the connection, then use Refresh agent activity to retry.'
+              ) : (
+                <>
+                  <LoaderCircle className="pp-agent-spin" />
+                  Loading connection and activity…
+                </>
+              )}
             </p>
           ) : !snapshot.records.length ? (
             <div className="pp-agent-empty">

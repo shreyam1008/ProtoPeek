@@ -6,6 +6,15 @@ switch. Arrow Up/Down navigates each side list.
 
 ProtoPeek sends one bounded HTTP or REST request through the local Go process and keeps request choices, transport evidence, and the response together. The workbench ships in stable v0.5.0.
 
+## Make your first request
+
+Open **Inspect → HTTP**, paste the full URL, and choose **Send**. Status, body, headers and timing
+appear beside the request. No account, collection or discovery scan is needed first.
+
+In matching current source, choose **HTTP request** on Home, paste the URL, and select **Open HTTP**.
+The full path and query prepare an unsent draft; Send remains explicit. **Find a service instead** is a
+separate discovery action. Existing unsent work follows the workbench’s draft-recovery rules.
+
 ## Build one explicit request
 
 Choose the method and an absolute `http://` or `https://` URL. Add duplicate query parameters, headers, live auth, a raw body, timeout, and redirect policy only when the request needs them.
@@ -101,24 +110,16 @@ The copied command runs in your shell. Its DNS, proxy, trust roots, network name
 
 ## Deliberate limits
 
-### Current-source draft recovery and event streams
+### Current-source draft recovery
 
 Unsent HTTP drafts recover in the same browser after navigation or restart. Credential-like query
 values and headers are redacted; auth must be entered again. Bodies stay in memory unless
 “Remember body in this browser” is enabled. Draft storage is bounded to 256 KiB, and storage failures
 are shown in the workbench. JSON responses offer a pretty/raw toggle without changing copied bytes.
 
-Inspect → Event streams (current source, after v0.5.0) connects to `ws://` / `wss://` WebSockets or
-`http://` / `https://` SSE endpoints through the local Go server. WebSocket supports text/JSON and
-base64 binary messages, custom headers, and negotiated subprotocols. SSE displays multiline data,
-event names, and last-event IDs. TLS certificates are verified; redirects are not followed.
-
-Connect starts traffic; Disconnect or leaving the workbench closes the upstream connection. The
-duration is explicit (0.1–120 seconds, default 60). Each session stops at 500 received messages or
-2 MiB, with a 64 KiB per-message limit and 200 WebSocket sends. The UI retains the latest 200 rows;
-timestamps are browser observation times since Connect, not one-way network latency. Two simultaneous
-stream sessions are allowed per server. Headers and payloads remain in memory. SSE does not retry
-automatically; an explicit `Last-Event-ID` header can request resumption from a compatible server.
+For a live WebSocket or SSE connection, use the separate [Event streams workbench](event-streams.md).
+Its finite sessions, negotiated subprotocols, event IDs and send/disconnect controls retain their
+protocol-specific evidence. The WebSocket/SSE foundation is available in stable v0.6.1.
 
 ProtoPeek does not currently provide automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
 

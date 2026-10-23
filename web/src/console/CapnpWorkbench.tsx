@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { AccessibleTabs } from './AccessibleTabs';
 import {
   type CapnpResult,
   type CapnpSchema,
@@ -26,6 +27,7 @@ export function CapnpWorkbench() {
   const [schema, setSchema] = useState<CapnpSchema | null>(null);
   const [input, setInput] = useState<SchemaInput | null>(null);
   const [selection, setSelection] = useState('');
+  const [mobilePane, setMobilePane] = useState<'request' | 'response'>('request');
   const [filter, setFilter] = useState('');
   const [address, setAddress] = useState('localhost:7000');
   const [transport, setTransport] = useState('tcp');
@@ -43,6 +45,7 @@ export function CapnpWorkbench() {
   const [sourceOpen, setSourceOpen] = useState(true);
   const [pastedSource, setPastedSource] = useState('');
   const active = useRef<AbortController | null>(null);
+  const requestInput = useRef<HTMLTextAreaElement | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     void capnpCapabilities(controller.signal)
@@ -75,6 +78,17 @@ export function CapnpWorkbench() {
     [address, transport, timeout, serverName, rootCaPem]
   );
 
+  function selectMethod(key: string) {
+    setSelection(key);
+    setParams('{}');
+    setBindings({});
+    setAdvancedOpen(false);
+    setResult(null);
+    setError('');
+    setMessage('');
+    setMobilePane('request');
+  }
+
   function cancel() {
     active.current?.abort();
     active.current = null;
@@ -95,6 +109,7 @@ export function CapnpWorkbench() {
       setSchema(null);
       setResult(null);
       setSelection('');
+      setMobilePane('request');
     } catch (cause) {
       if (active.current === controller)
         setError(cause instanceof Error ? cause.message : 'Unable to read schema files.');
@@ -118,6 +133,8 @@ export function CapnpWorkbench() {
       if (active.current !== controller) return;
       setSchema(loaded);
       setSelection(loaded.methods[0] ? methodKey(loaded.methods[0]) : '');
+      setFilter('');
+      setMobilePane('request');
       setParams('{}');
       setBindings({});
       setAdvancedOpen(false);
@@ -138,16 +155,14 @@ export function CapnpWorkbench() {
     }
   }
   async function send(steps?: CapnpPlanStep[]) {
-    if (!schema || !method || busy) return;
+    if (!schema || !method || busy || active.current) return;
     const controller = new AbortController();
     active.current = controller;
     setBusy(steps ? 'Running plan' : 'Calling');
     setError('');
     setMessage('');
-    setResult(null);
+    let dispatched = false;
     try {
-      if (new TextEncoder().encode(params).length > 65536)
-        throw new Error('Request JSON exceeds 64 KiB.');
       const seconds = Number(timeout);
       if (!Number.isFinite(seconds) || seconds < 0.1 || seconds > 30)
         throw new Error('Timeout must be 0.1–30 seconds.');
@@ -159,18 +174,38 @@ export function CapnpWorkbench() {
         rootCaPem: transport === 'tls' ? rootCaPem : '',
         timeoutMs: Math.round(seconds * 1000),
       };
+      const plan = await import('./capnp-plan-api');
+      if (active.current !== controller) return;
+      const call = {
+        interfaceId: method.interfaceId,
+        ordinal: method.ordinal,
+        params,
+        ...bindings,
+        methodTypes: method.implicitParameters?.length
+          ? Array.from(
+              { length: method.implicitParameters.length },
+              (_, index) => bindings.methodTypes?.[index] ?? ''
+            )
+          : bindings.methodTypes,
+      };
+      if (steps) plan.encodeCapnpPlan({ ...target, steps });
+      else plan.validateCapnpCall(call);
+      setResult(null);
+      setMobilePane('response');
+      if (window.matchMedia?.('(max-width: 760px)').matches) {
+        requestAnimationFrame(() => {
+          const tab = document.getElementById('capnp-mobile-pane-tab-response');
+          tab?.focus();
+          tab?.scrollIntoView?.({ block: 'start' });
+        });
+      }
+      dispatched = true;
       const value = steps
-        ? await (await import('./capnp-plan-api')).callCapnpPlan(
-            { ...target, steps },
-            controller.signal
-          )
+        ? await plan.callCapnpPlan({ ...target, steps }, controller.signal)
         : await callCapnp(
             {
               ...target,
-              interfaceId: method.interfaceId,
-              ordinal: method.ordinal,
-              params,
-              ...bindings,
+              ...call,
             },
             controller.signal
           );
@@ -185,8 +220,13 @@ export function CapnpWorkbench() {
         );
       }
     } catch (cause) {
-      if (active.current === controller)
+      if (active.current === controller) {
         setError(cause instanceof Error ? cause.message : 'Call failed.');
+        if (!dispatched && !steps) {
+          setMobilePane('request');
+          requestAnimationFrame(() => requestInput.current?.focus());
+        }
+      }
     } finally {
       if (active.current === controller) {
         active.current = null;
@@ -302,7 +342,7 @@ export function CapnpWorkbench() {
         </details>
         {schema ? (
           <>
-            <label>
+            <label className="pp-capnp-method-search">
               Find a method
               <input
                 type="search"
@@ -310,6 +350,21 @@ export function CapnpWorkbench() {
                 maxLength={128}
                 onChange={(event) => setFilter(event.target.value)}
               />
+            </label>
+            <label className="pp-capnp-mobile-method">
+              Method
+              <select
+                aria-label="Cap’n Proto method"
+                value={selection}
+                disabled={Boolean(busy)}
+                onChange={(event) => selectMethod(event.target.value)}
+              >
+                {schema.methods.map((item) => (
+                  <option key={methodKey(item)} value={methodKey(item)}>
+                    {item.interfaceName.split(':').pop()} · {item.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <nav aria-label="Cap’n Proto methods">
               {methods.map((item) => (
@@ -319,15 +374,7 @@ export function CapnpWorkbench() {
                   aria-label={`${item.interfaceName} ${item.name}`}
                   aria-current={selection === methodKey(item) ? 'true' : undefined}
                   disabled={Boolean(busy)}
-                  onClick={() => {
-                    setSelection(methodKey(item));
-                    setParams('{}');
-                    setBindings({});
-                    setAdvancedOpen(false);
-                    setResult(null);
-                    setError('');
-                    setMessage('');
-                  }}
+                  onClick={() => selectMethod(methodKey(item))}
                 >
                   <small title={item.interfaceName}>{item.interfaceName.split(':').pop()}</small>
                   <strong>{item.name}</strong>
@@ -462,8 +509,27 @@ export function CapnpWorkbench() {
           </p>
         ) : null}
         {method ? (
+          <AccessibleTabs
+            id="capnp-mobile-pane"
+            label="Cap’n Proto workspace pane"
+            tabs={[
+              { value: 'request' as const, label: 'Request' },
+              { value: 'response' as const, label: 'Response' },
+            ]}
+            value={mobilePane}
+            onChange={setMobilePane}
+            className="pp-capnp-pane-tabs"
+          />
+        ) : null}
+        {method ? (
           <div className="pp-capnp-editors">
-            <section aria-label="Cap’n Proto request">
+            <section
+              aria-label="Cap’n Proto request"
+              role="tabpanel"
+              aria-labelledby="capnp-mobile-pane-tab-request"
+              id="capnp-mobile-pane-panel-request"
+              className={mobilePane !== 'request' ? 'pp-capnp-pane-hidden' : undefined}
+            >
               <header>
                 <strong>{method.name}</strong>
                 <small>
@@ -491,6 +557,7 @@ export function CapnpWorkbench() {
               <label className="pp-capnp-json">
                 Request JSON
                 <textarea
+                  ref={requestInput}
                   aria-label="Cap’n Proto request JSON"
                   value={params}
                   onChange={(event) => setParams(event.target.value)}
@@ -500,10 +567,21 @@ export function CapnpWorkbench() {
                 />
               </label>
             </section>
-            <section aria-label="Cap’n Proto response">
+            <section
+              aria-label="Cap’n Proto response"
+              role="tabpanel"
+              aria-labelledby="capnp-mobile-pane-tab-response"
+              id="capnp-mobile-pane-panel-response"
+              className={mobilePane !== 'response' ? 'pp-capnp-pane-hidden' : undefined}
+            >
               <header>
                 <strong>Response</strong>
                 <div>
+                  {busy === 'Calling' || busy === 'Running plan' ? (
+                    <button type="button" className="pp-capnp-response-cancel" onClick={cancel}>
+                      Cancel active call
+                    </button>
+                  ) : null}
                   <button type="button" disabled={!result} onClick={() => void copy()}>
                     Copy
                   </button>
@@ -528,7 +606,7 @@ export function CapnpWorkbench() {
                 </>
               ) : (
                 <p className="pp-capnp-empty">
-                  {busy === 'Calling'
+                  {busy === 'Calling' || busy === 'Running plan'
                     ? 'Waiting for the peer…'
                     : 'Call the selected method to inspect its response.'}
                 </p>

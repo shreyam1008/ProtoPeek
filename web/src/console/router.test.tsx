@@ -117,7 +117,7 @@ describe('protocol routes', () => {
       await screen.findByRole('heading', { name: 'What do you need to check?' })
     ).toBeInTheDocument();
     const recent = screen.getByRole('region', { name: 'Recent services' });
-    expect(within(recent).getByText('Keep services close')).toBeVisible();
+    expect(within(recent).getByText('Services you discover appear here.')).toBeVisible();
     expect(recent.querySelectorAll('article')).toHaveLength(0);
   });
 

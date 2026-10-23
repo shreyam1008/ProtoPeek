@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { renderToString } from 'react-dom/server';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('public site', () => {
   it('keeps the mobile navigation small and keyboard dismissible', () => {
@@ -60,10 +63,20 @@ describe('public site', () => {
       'href',
       '/extensions/'
     );
-    expect(within(product).getByText(/Current source: check this host/)).toBeVisible();
-    expect(within(product).getByRole('link', { name: /choose grpc or http/i })).toHaveAttribute(
+    expect(within(product).getByText(/Current source: native workbenches/)).toBeVisible();
+    expect(within(product).getByRole('link', { name: /make your first request/i })).toHaveAttribute(
       'href',
-      '/docs/#protocols'
+      '/http-workbench/'
+    );
+    const protocols = screen.getByRole('navigation', { name: 'Protocol guides' });
+    expect(
+      within(protocols)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'))
+    ).toEqual(['/http-workbench/', '/grpc-workbench/', '/event-streams/', '/capnp-workbench/']);
+    expect(screen.getByRole('link', { name: 'Install stable v0.6.1' })).toHaveAttribute(
+      'href',
+      '#install'
     );
     expect(within(product).getByRole('link', { name: /trace the path/i })).toHaveAttribute(
       'href',
@@ -79,7 +92,7 @@ describe('public site', () => {
     );
   });
 
-  it('uses only repository-verified screenshots and separates current edge captures from stable install commands', () => {
+  it('keeps dated legacy Edge screenshots separate from stable install commands', () => {
     render(<App />);
 
     const evidence = screen.getByRole('region', { name: 'One workbench. Real evidence.' });
@@ -91,19 +104,22 @@ describe('public site', () => {
       '/assets/protopeek-workspace-edge-mobile.png',
       '/assets/protopeek-workspace-edge-desktop.png',
     ]);
-    expect(within(evidence).getByText('Edge · persistent desktop navigation')).toBeVisible();
-    expect(within(evidence).getByText('Edge · responsive Home')).toBeVisible();
+    expect(within(evidence).getByText('Legacy Edge · persistent desktop navigation')).toBeVisible();
+    expect(within(evidence).getByText('Legacy Edge · responsive Home')).toBeVisible();
   });
 
   it('shows one concise install command and switches it by operating system', () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('unknown');
     render(<App />);
 
     const install = screen.getByRole('region', { name: 'Ready when you are.' });
-    expect(within(install).getByRole('button', { name: 'macOS' })).toHaveAttribute(
+    expect(within(install).getByRole('button', { name: 'macOS / Linux' })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-    expect(within(install).getByRole('textbox', { name: 'macOS install command' })).toHaveValue(
+    expect(
+      within(install).getByRole('textbox', { name: 'macOS / Linux install command' })
+    ).toHaveValue(
       'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh'
     );
     expect(within(install).getAllByRole('textbox')).toHaveLength(1);
@@ -116,6 +132,35 @@ describe('public site', () => {
       'href',
       '/install/'
     );
+  });
+
+  it('prerenders a working neutral command and a Windows fallback without browser detection', () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('Win32');
+    const html = renderToString(<App />);
+    expect(html).toContain('aria-label="macOS / Linux install command"');
+    expect(html).toContain(
+      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh'
+    );
+    expect(html).toContain('<noscript>');
+    expect(html).toContain('Windows PowerShell:');
+    expect(html).toContain(
+      'irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex'
+    );
+  });
+
+  it('suggests Windows only after mount and preserves a manual platform selection', () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('Win32');
+    const view = render(<App />);
+    expect(screen.getByRole('textbox', { name: 'Windows install command' })).toBeVisible();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    fireEvent.click(screen.getByRole('button', { name: 'macOS / Linux' }));
+    view.rerender(<App />);
+    expect(screen.getByRole('textbox', { name: 'macOS / Linux install command' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Windows' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('reports copy success only after the active command is written', async () => {
@@ -132,14 +177,20 @@ describe('public site', () => {
     });
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy macOS command' }));
-    expect(screen.queryByRole('button', { name: 'macOS command copied' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy macOS / Linux command' }));
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole('button', { name: 'macOS / Linux command copied' })
+    ).not.toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(
       'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh'
     );
 
     resolveWrite?.();
-    expect(await screen.findByRole('button', { name: 'macOS command copied' })).toBeVisible();
+    expect(
+      await screen.findByRole('button', { name: 'macOS / Linux command copied' })
+    ).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent('Command copied.');
   });
 
   it('selects the command for manual copy and states the privacy boundary', async () => {
@@ -149,11 +200,12 @@ describe('public site', () => {
     });
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Linux' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Copy Linux command' }));
+    fireEvent.click(screen.getByRole('button', { name: 'macOS / Linux' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy macOS / Linux command' }));
     expect(await screen.findByText(/clipboard unavailable/i)).toBeVisible();
+    expect(screen.getByRole('status')).toHaveTextContent('Clipboard unavailable.');
 
-    const command = screen.getByRole('textbox', { name: 'Linux install command' });
+    const command = screen.getByRole('textbox', { name: 'macOS / Linux install command' });
     await waitFor(() => expect(command).toHaveFocus());
     expect(command).toHaveProperty('selectionStart', 0);
     expect(command).toHaveProperty('selectionEnd', command.getAttribute('value')?.length);

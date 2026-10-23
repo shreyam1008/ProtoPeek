@@ -1,12 +1,3 @@
-.pp-operation-history {
-  font-size: 0.75rem;
-  padding: 0.65rem;
-  border: 1px solid var(--pp-border);
-  border-radius: 0.5rem;
-}
-.pp-operation-history summary {
-  cursor: pointer;
-}
 .pp-operation-history-view {
   display: grid;
   gap: 0.6rem;

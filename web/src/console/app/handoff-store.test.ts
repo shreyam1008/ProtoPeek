@@ -446,6 +446,24 @@ describe('pending handoff broker', () => {
     expect(consumePendingHandoff('grpc-target-draft', { now })).toBeNull();
     expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   });
+  it('replaces an older persisted draft with a memory-only URL without storing query secrets', () => {
+    storePendingHandoff(grpcInput, { now });
+    const url = 'https://example.test/private?access_token=sentinel';
+    const stored = storePendingHandoff(
+      input({
+        kind: 'http-url-draft',
+        target: { kind: 'http-url', url },
+      }),
+      { now, memoryOnly: true }
+    );
+    expect(stored).toMatchObject({ ok: true, storage: 'memory' });
+    expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
+    expect(consumePendingHandoff('http-url-draft', { now })).toMatchObject({
+      storage: 'memory',
+      draft: { target: { url } },
+    });
+    expect(consumePendingHandoff('http-url-draft', { now })).toBeNull();
+  });
 
   it('does not consume another route kind', () => {
     const stored = storePendingHandoff(grpcInput, { now });

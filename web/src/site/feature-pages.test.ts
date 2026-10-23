@@ -96,12 +96,28 @@ describe('connected public feature guides', () => {
     }
   });
 
-  it('groups current guides by the v0.6 product contract without claiming planned providers', () => {
+  it('lets keyboard readers scroll named guide tables without changing their table semantics', () => {
+    const guide = parseHtml('docs/extensions/index.html');
+    const tables = Array.from(guide.querySelectorAll('.pp-doc-prose table'));
+    expect(tables.length).toBeGreaterThan(0);
+    for (const table of tables) {
+      expect(table.getAttribute('tabindex')).toBe('0');
+      expect(table.hasAttribute('role')).toBe(false);
+      const headingId = table.getAttribute('aria-labelledby');
+      expect(headingId).toBeTruthy();
+      expect(guide.getElementById(headingId ?? '')?.textContent?.trim()).toBeTruthy();
+      expect(table.querySelectorAll('th').length).toBeGreaterThan(0);
+    }
+    expect(tables[0]?.getAttribute('aria-labelledby')).toBe('six-native-workbenches');
+  });
+
+  it('groups the protocol family and existing domains without inventing provider pages', () => {
     const groupByPage = Object.fromEntries(registry.pages.map((page) => [page.id, page.group]));
 
     expect(groupByPage).toMatchObject({
       'grpc-workbench': 'protocols',
       'http-workbench': 'protocols',
+      'event-streams': 'protocols',
       security: 'protocols',
       'network-workbench': 'network',
       'this-pc': 'network',
@@ -116,14 +132,19 @@ describe('connected public feature guides', () => {
     );
   });
 
-  it('documents the five real extensions with host setup and honest detection states', () => {
+  it('documents the 20-entry library without treating every entry as a native adapter', () => {
     const page = registry.pages.find((candidate) => candidate.id === 'extensions');
     expect(page?.status?.label).toBe('Current source');
     expect(page?.status?.detail).toContain('Stable v0.6.1 retains the earlier navigation');
     const guide = parseHtml('docs/extensions/index.html');
     const text = guide.body.textContent?.replace(/\s+/g, ' ') ?? '';
-    for (const tool of ['Tailscale', 'Cloudflare Tunnel', 'Wireshark capture', 'Nmap', 'aria2']) {
-      expect(text).toContain(tool);
+    const catalog = JSON.parse(
+      readRepositoryFile('web/src/console/extension-manifest.json')
+    ) as Array<{ name: string; capability: string }>;
+    expect(catalog).toHaveLength(20);
+    expect(catalog.filter((entry) => entry.capability === 'native-workbench')).toHaveLength(6);
+    for (const entry of catalog) {
+      expect(text).toContain(entry.name);
     }
     for (const status of ['Detected', 'Included', 'Not found', 'Unavailable']) {
       expect(text).toContain(status);
@@ -132,7 +153,24 @@ describe('connected public feature guides', () => {
     expect(text).toContain('Detected does not mean ready');
     expect(text).toContain('Detection does not start a process');
     expect(text).toContain('does not require Wireshark, dumpcap or Npcap');
-    expect(text).toContain('Headscale administration, NetBird, Tailscale Serve/Funnel');
+    for (const level of [
+      'Native workbench',
+      'Command guide',
+      'MCP setup',
+      'Endpoint guide',
+      'External link',
+    ])
+      expect(text).toContain(level);
+    expect(text).toContain('Opening the catalog does not inspect tools or load every detail pack');
+    expect(text).toContain('Pins and manual setup-platform choices');
+    expect(text).toContain('only catalog and platform IDs in this browser');
+    expect(text).toContain('Check this host');
+    expect(text).toContain('Never publish the Caddy admin port');
+    expect(text).toContain('existing Windows x64 aria2 bundle is the explicit exception');
+    expect(text).toContain('Headscale administration, integrated sign-in/elevation');
+    expect(text).not.toContain(
+      'NetBird, Tailscale Serve/Funnel, integrated sign-in and automatic tool installation remain outside'
+    );
     for (const href of [
       'https://tailscale.com/download',
       'https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/',
@@ -146,6 +184,38 @@ describe('connected public feature guides', () => {
     for (const route of ['/tunnels', '/network/tailnet', '/network/nmap']) {
       expect(text).toContain(route);
     }
+  });
+
+  it('places Event streams between gRPC and Capnp with its real finite-session contract', () => {
+    const protocols = registry.pages.filter((page) => page.group === 'protocols');
+    expect(protocols.slice(0, 5).map((page) => page.id)).toEqual([
+      'http-workbench',
+      'grpc-workbench',
+      'event-streams',
+      'capnp-workbench',
+      'security',
+    ]);
+    const event = parseHtml('docs/event-streams/index.html');
+    const text = event.body.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('500 received messages or 2 MiB');
+    expect(text).toContain('64 KiB per-message limit');
+    expect(text).toContain('latest 200 timeline rows');
+    expect(text).toContain('does not reconnect automatically');
+    expect(text).toContain('browser observation times');
+    const related = event.querySelector('nav[aria-label="Related ProtoPeek guides"]');
+    expect(
+      Array.from(related?.querySelectorAll('a') ?? []).map((link) => link.getAttribute('href'))
+    ).toEqual(['/grpc-workbench/', '/capnp-workbench/']);
+    expect(
+      parseHtml('docs/grpc-workbench/index.html').querySelector(
+        'nav[aria-label="Related ProtoPeek guides"] a[href="/event-streams/"]'
+      )
+    ).not.toBeNull();
+    expect(
+      parseHtml('docs/capnp-workbench/index.html').querySelector(
+        'nav[aria-label="Related ProtoPeek guides"] a[href="/event-streams/"]'
+      )
+    ).not.toBeNull();
   });
 
   it('keeps wrapped Cloudflare guide bullets inside their list items', () => {

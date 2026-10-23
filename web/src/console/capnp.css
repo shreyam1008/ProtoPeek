@@ -91,6 +91,11 @@
   flex-direction: column;
   gap: 4px;
 }
+.pp-capnp .pp-capnp-mobile-method,
+.pp-capnp-pane-tabs,
+.pp-capnp .pp-capnp-response-cancel {
+  display: none;
+}
 .pp-capnp-sidebar nav button {
   text-align: left;
   display: flex;
@@ -227,10 +232,50 @@
     max-height: 280px;
     flex-shrink: 0;
   }
+  .pp-capnp-sidebar nav,
+  .pp-capnp .pp-capnp-method-search {
+    display: none;
+  }
+  .pp-capnp .pp-capnp-mobile-method {
+    display: flex;
+  }
+  .pp-capnp .pp-capnp-response-cancel {
+    display: inline-flex;
+  }
+  .pp-capnp-pane-tabs {
+    display: flex;
+    flex: none;
+  }
+  .pp-capnp-pane-tabs button {
+    flex: 1;
+    min-height: 44px;
+  }
+  .pp-capnp-pane-tabs button[aria-selected="true"] {
+    color: var(--pp-color-accent-strong);
+    border-color: var(--pp-color-accent);
+  }
+  .pp-capnp input,
+  .pp-capnp select,
+  .pp-capnp button,
+  .pp-capnp summary {
+    min-height: 44px;
+  }
+  .pp-capnp summary {
+    align-content: center;
+  }
   .pp-capnp-main {
     overflow: visible;
   }
   .pp-capnp-editors {
     grid-template-columns: 1fr;
+  }
+  .pp-capnp-editors > .pp-capnp-pane-hidden {
+    display: none;
+  }
+  .pp-capnp-editors header {
+    flex-wrap: wrap;
+  }
+  .pp-capnp-editors header > div {
+    flex-wrap: wrap;
   }
 }

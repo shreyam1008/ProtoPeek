@@ -40,7 +40,10 @@ export type ProtocolShellValue = {
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
   claimInitialScan?: (target: unknown) => boolean;
-  openHandoff: (handoff: PendingHandoffInput) => HandoffWriteResult;
+  openHandoff: (
+    handoff: PendingHandoffInput,
+    options?: { memoryOnly?: boolean }
+  ) => HandoffWriteResult;
   openGRPCDiscovery: (result: ScanResult, provenance?: HandoffProvenance) => HandoffWriteResult;
   openHTTPDiscovery: (result: ScanResult, provenance?: HandoffProvenance) => HandoffWriteResult;
 };

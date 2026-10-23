@@ -59,7 +59,7 @@
   border-radius: 0.36rem;
   padding: 0.48rem 0.78rem;
   background: color-mix(in srgb, var(--pp-accent-soft) 66%, transparent);
-  color: var(--pp-accent-signal);
+  color: var(--pp-accent-strong);
   font-size: 0.72rem;
   font-weight: 740;
   line-height: 1.2;
@@ -328,7 +328,7 @@
 .this-pc-bottom-tabs button:focus-visible,
 .this-pc-bottom-tabs button.is-active {
   background: var(--pp-accent-soft);
-  color: var(--pp-accent-signal);
+  color: var(--pp-accent-strong);
 }
 
 .this-pc-tabs button.is-active,

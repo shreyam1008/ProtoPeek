@@ -73,6 +73,30 @@
       "height": 844,
       "sha256": "534394248efd6d5d9057857f7ca331765ff2f0f7457a65f558cc3bc5424c82c6",
       "workflow": "Real in-app browser capture of the Go-served production assets from verified commit 197033801f7b2a229018d26937627e9dd53f0249. No simulated services, private credentials or generated UI."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-source-home-20261023.png",
+      "alt": "Current-source ProtoPeek Home with direct unsent HTTP or gRPC entry",
+      "platform": "desktop",
+      "capturedVersion": "unreleased current-source preview, 23 October 2026",
+      "releaseStatus": "unreleased-source",
+      "capturedAt": "2026-10-23",
+      "width": 1365,
+      "height": 900,
+      "sha256": "2458428809e71dffa962fe4a10cd032024dcf4dbdc52cbbe4dd43c4594820068",
+      "workflow": "Real local installed Chrome 155 capture on Windows, 1365 by 900 CSS pixels, against the Go-served unreleased source preview. The entry is empty and prepares no request or discovery. This is UI evidence, not a release or provider acceptance."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-source-extensions-20261023.png",
+      "alt": "Current-source ProtoPeek Extensions library with 20 optional entries and explicit capability labels",
+      "platform": "desktop",
+      "capturedVersion": "unreleased current-source preview, 23 October 2026",
+      "releaseStatus": "unreleased-source",
+      "capturedAt": "2026-10-23",
+      "width": 1365,
+      "height": 900,
+      "sha256": "7bc3f3d5d7b11222f56a85e68f8d7d752ac671fddf608c7dbfacf1664a883796",
+      "workflow": "Real local installed Chrome 155 capture on Windows, 1365 by 900 CSS pixels, against the Go-served unreleased source preview. The library shows 20 entries with no host checks requested. This is UI evidence, not vendor installation, account acceptance or a released extension marketplace."
     }
   ]
 }

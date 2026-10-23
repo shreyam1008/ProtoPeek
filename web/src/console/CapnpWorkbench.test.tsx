@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { CapnpWorkbench } from './CapnpWorkbench';
 import { callCapnp, readCapnpFiles } from './capnp-api';
@@ -256,4 +256,204 @@ it('discards a reviewed plan when reloading a schema with the same method IDs', 
   await screen.findByLabelText('Cap’n Proto response JSON');
   expect(sent).toHaveLength(1);
   expect(JSON.parse(sent[0] ?? '{}').schemaBase64).toBe('BBBB');
+});
+
+it('reveals and focuses the mobile response when a call starts, keeps Cancel there, and never steals focus on completion', async () => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: true }))
+  );
+  let finish: (value: Response) => void = () => {};
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL) => {
+      if (url.pathname.endsWith('capabilities')) return Response.json({ available: false });
+      if (url.pathname.endsWith('schema')) return Response.json(schema);
+      return new Promise<Response>((resolve) => {
+        finish = resolve;
+      });
+    })
+  );
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  const panes = screen.getByRole('tablist', { name: 'Cap’n Proto workspace pane' });
+  const responseTab = within(panes).getByRole('tab', { name: 'Response' });
+  responseTab.scrollIntoView = vi.fn();
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  await waitFor(() => expect(responseTab).toHaveAttribute('aria-selected', 'true'));
+  await waitFor(() => expect(responseTab).toHaveFocus());
+  expect(responseTab.scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+  expect(
+    within(screen.getByRole('tabpanel', { name: 'Response' })).getByRole('button', {
+      name: 'Cancel active call',
+    })
+  ).toBeEnabled();
+  const requestTab = within(panes).getByRole('tab', { name: 'Request' });
+  fireEvent.click(requestTab);
+  requestTab.focus();
+  await act(async () => finish(Response.json(response)));
+  expect(requestTab).toHaveAttribute('aria-selected', 'true');
+  expect(requestTab).toHaveFocus();
+  expect(screen.getByLabelText('Cap’n Proto response JSON')).toHaveValue(
+    JSON.stringify(response.result, null, 2)
+  );
+  expect(screen.queryByRole('button', { name: 'Cancel active call' })).not.toBeInTheDocument();
+});
+
+it('cancels directly from the mobile response and rejects late peer evidence', async () => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: true }))
+  );
+  let finish: (value: Response) => void = () => {};
+  let signal: AbortSignal | null | undefined;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: URL, options?: RequestInit) => {
+      if (url.pathname.endsWith('capabilities')) return Response.json({ available: false });
+      if (url.pathname.endsWith('schema')) return Response.json(schema);
+      signal = options?.signal;
+      return new Promise<Response>((resolve) => {
+        finish = resolve;
+      });
+    })
+  );
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Cancel active call' }));
+  expect(signal?.aborted).toBe(true);
+  await act(async () => finish(Response.json(response)));
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Cancelled. A request already delivered to the peer may have taken effect.'
+  );
+  expect(screen.queryByLabelText('Cap’n Proto response JSON')).not.toBeInTheDocument();
+});
+
+it.each([
+  ['malformed', '{bad}', /Request JSON is invalid/],
+  ['non-object', '[]', /JSON must be an object/],
+  ['oversized UTF-8', `{"text":"${'é'.repeat(32768)}"}`, /64 KiB/],
+])('keeps %s JSON errors in the mobile request editor without a peer call', async (_name, params, message) => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: true }))
+  );
+  const fetchMock = vi.fn(async (url: URL) =>
+    Response.json(url.pathname.endsWith('capabilities') ? { available: false } : schema)
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  const input = screen.getByLabelText('Cap’n Proto request JSON');
+  fireEvent.change(input, { target: { value: params } });
+  const panes = within(screen.getByRole('tablist', { name: 'Cap’n Proto workspace pane' }));
+  const responseTab = panes.getByRole('tab', { name: 'Response' });
+  responseTab.scrollIntoView = vi.fn();
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(message as RegExp);
+  await waitFor(() => expect(input).toHaveFocus());
+  expect(input).toHaveValue(params as string);
+  expect(panes.getByRole('tab', { name: 'Request' })).toHaveAttribute('aria-selected', 'true');
+  expect(responseTab.scrollIntoView).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.some(([url]) => url.pathname.endsWith('/call'))).toBe(false);
+});
+
+it('requires complete generic method bindings locally before revealing mobile Response', async () => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: true }))
+  );
+  const fetchMock = vi.fn(async (url: URL) =>
+    Response.json(
+      url.pathname.endsWith('capabilities')
+        ? { available: false }
+        : { ...schema, methods: [{ ...method, implicitParameters: ['T', 'U'] }] }
+    )
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.change(screen.getByLabelText('Selected method method type T'), {
+    target: { value: 'Text' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Bind every generic method type');
+  expect(
+    within(screen.getByRole('tablist', { name: 'Cap’n Proto workspace pane' })).getByRole('tab', {
+      name: 'Request',
+    })
+  ).toHaveAttribute('aria-selected', 'true');
+  expect(fetchMock.mock.calls.some(([url]) => url.pathname.endsWith('/call'))).toBe(false);
+});
+
+it('names a malformed later plan step and preserves the active pane and review-button focus', async () => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: true }))
+  );
+  const fetchMock = vi.fn(async (url: URL) =>
+    Response.json(
+      url.pathname.endsWith('capabilities')
+        ? { available: false }
+        : url.pathname.endsWith('schema')
+          ? schema
+          : response
+    )
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.click(screen.getByRole('button', { name: 'Call method' }));
+  await screen.findByLabelText('Cap’n Proto response JSON');
+  fireEvent.click(screen.getByText('Capability call plan · up to 8 steps'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
+  fireEvent.change(screen.getByLabelText('Step 3 request JSON'), { target: { value: '{bad}' } });
+  const review = screen.getByRole('button', { name: 'Review plan' });
+  review.focus();
+  fireEvent.click(review);
+  expect(screen.getByRole('alert')).toHaveTextContent('Step 3 JSON is invalid.');
+  expect(review).toHaveFocus();
+  expect(
+    within(screen.getByRole('tablist', { name: 'Cap’n Proto workspace pane' })).getByRole('tab', {
+      name: 'Response',
+    })
+  ).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByLabelText('Cap’n Proto request JSON')).not.toHaveFocus();
+  expect(screen.queryByRole('button', { name: 'Run reviewed plan' })).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls.filter(([url]) => url.pathname.endsWith('/call'))).toHaveLength(1);
+});
+
+it('uses the compact picker to change methods without connecting, and resets the request pane', async () => {
+  const fetchMock = vi.fn(async (url: URL) => {
+    if (url.pathname.endsWith('capabilities')) return Response.json({ available: false });
+    if (url.pathname.endsWith('schema'))
+      return Response.json({
+        ...schema,
+        methods: [method, { ...method, ordinal: 2, name: 'next' }],
+      });
+    return Response.json(response);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CapnpWorkbench />);
+  await loadFixture();
+  fireEvent.change(screen.getByLabelText('Cap’n Proto request JSON'), {
+    target: { value: '{"a":1}' },
+  });
+  const panes = screen.getByRole('tablist', { name: 'Cap’n Proto workspace pane' });
+  fireEvent.click(within(panes).getByRole('tab', { name: 'Response' }));
+  fireEvent.change(screen.getByRole('combobox', { name: 'Cap’n Proto method' }), {
+    target: { value: `${method.interfaceId}/2` },
+  });
+  expect(screen.getByRole('button', { name: 'example.capnp:Workbench next' })).toHaveAttribute(
+    'aria-current',
+    'true'
+  );
+  expect(screen.getByLabelText('Cap’n Proto request JSON')).toHaveValue('{}');
+  expect(within(panes).getByRole('tab', { name: 'Request' })).toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  expect(fetchMock.mock.calls.some(([url]) => url.pathname.endsWith('/call'))).toBe(false);
 });

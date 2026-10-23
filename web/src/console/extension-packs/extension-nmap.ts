@@ -1,0 +1,22 @@
+import type { ExtensionPack } from '../extension-pack';
+
+const extension = {
+  tool: 'nmap',
+  download: 'https://nmap.org/download.html',
+  guide: 'https://nmap.org/book/install.html',
+  setup: {
+    windows: 'Use the official Nmap Windows installer and include its command-line tool on PATH.',
+    darwin: 'Follow Nmap’s macOS installation instructions and make nmap available on PATH.',
+    linux: 'Install Nmap using your distribution’s package manager.',
+  },
+  afterSetup:
+    'A scan starts only when you request one. The built-in TCP port scanner and XML import work without Nmap.',
+  notes: [
+    'Review the authorized target, ports and bounded plan before starting a scan.',
+    'Offline XML import needs no Nmap installation and does not verify a hinted protocol.',
+  ],
+  route: '/network/nmap',
+  openLabel: 'Open Nmap',
+} satisfies ExtensionPack;
+
+export default extension;

@@ -34,7 +34,10 @@ export const maximumHandoffTTLMilliseconds = 15 * 60 * 1_000;
 export const handoffClockSkewMilliseconds = 30 * 1_000;
 
 type HandoffTimeOptions = { now?: number };
-export type CreateHandoffOptions = HandoffTimeOptions & { ttlMilliseconds?: number };
+export type CreateHandoffOptions = HandoffTimeOptions & {
+  ttlMilliseconds?: number;
+  memoryOnly?: boolean;
+};
 export type HandoffValidationResult =
   | { ok: true; value: HandoffEnvelope }
   | { ok: false; error: string };
@@ -512,6 +515,11 @@ export function storePendingHandoff(
   memoryRaw = serialized;
   memoryLoaded = true;
   scheduleExpiry(created.value, options.now ?? Date.now());
+  if (options.memoryOnly) {
+    removePersisted();
+    memoryOnly = true;
+    return { ok: true, value: created.value, storage: 'memory' };
+  }
   const storage = sessionStorage();
   if (!storage) {
     memoryOnly = true;

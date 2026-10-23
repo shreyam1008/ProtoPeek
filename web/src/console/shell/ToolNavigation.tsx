@@ -24,6 +24,7 @@ export function ToolNavigation({
             <Link
               key={feature.id}
               to={feature.route}
+              preload={destination === 'extensions' ? false : undefined}
               className={`pp-tool-link${active?.id === feature.id ? ' is-active' : ''}`}
               aria-current={active?.id === feature.id ? 'page' : undefined}
               activeOptions={{ exact: true }}

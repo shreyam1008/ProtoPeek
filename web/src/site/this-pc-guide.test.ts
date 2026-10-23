@@ -78,8 +78,13 @@ describe('This Device release guide', () => {
       documentTitle: 'This Device: Ports, Public IP & Speed Evidence | ProtoPeek',
       description:
         'Inspect bounded Linux and Windows sockets, process owners and interface traffic, plus explicit public-IP/BGP and Cloudflare quality checks in ProtoPeek.',
-      lastModified: '2026-09-07',
     });
+    const lastModified = sourcePage?.lastModified;
+    expect(lastModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const article = JSON.parse(
+      page.querySelector('script[type="application/ld+json"]')?.textContent ?? '{}'
+    ) as { dateModified?: string };
+    expect(article.dateModified).toBe(lastModified);
     expect(sourcePage?.keywords).toEqual(
       expect.arrayContaining([
         'Windows socket ownership',
@@ -99,7 +104,13 @@ describe('This Device release guide', () => {
     expect(docsHub.querySelector('a[href="/this-pc/"]')?.textContent).toContain(
       'This Device evidence'
     );
-    expect(sitemap).toContain('<loc>https://protopeek.shreyam1008.com.np/this-pc/</loc>');
+    const sitemapPage = Array.from(
+      new DOMParser().parseFromString(sitemap, 'application/xml').querySelectorAll('url')
+    ).find(
+      (entry) =>
+        entry.querySelector('loc')?.textContent === 'https://protopeek.shreyam1008.com.np/this-pc/'
+    );
+    expect(sitemapPage?.querySelector('lastmod')?.textContent).toBe(lastModified);
   });
 
   it('pins and redistributes the direct benchmark dependency with its licence notice', () => {

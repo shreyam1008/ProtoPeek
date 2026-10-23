@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import extensionManifest from '../web/src/console/extension-manifest.json';
 
 export type BundleAsset = {
   name: string;
@@ -24,6 +25,35 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  ...extensionManifest.map(({ id, name }) => ({
+    label: `Optional ${name} setup JavaScript`,
+    pattern: new RegExp(`^extension-${id}-.+\\.js$`),
+    maxRawBytes: 1.5 * kibibyte,
+    maxGzipBytes: 0.8 * kibibyte,
+  })),
+  {
+    label: 'Complete optional extension library JavaScript',
+    pattern: new RegExp(
+      `^(?:Extensions|ExtensionDetails|AgentClientSetup|extension-(?:catalog|${extensionManifest.map(({ id }) => id).join('|')}))-.+\\.js$`
+    ),
+    mode: 'aggregate',
+    requiredMembers: [
+      /^Extensions-.+\.js$/,
+      /^ExtensionDetails-.+\.js$/,
+      /^AgentClientSetup-.+\.js$/,
+      /^extension-catalog-.+\.js$/,
+      ...extensionManifest.map(({ id }) => new RegExp(`^extension-${id}-.+\\.js$`)),
+    ],
+    // Measured 20 independently lazy packs, index, detail and client setup. No vendor runtime.
+    maxRawBytes: 46 * kibibyte,
+    maxGzipBytes: 22 * kibibyte,
+  },
+  {
+    label: 'Optional extension detail CSS',
+    pattern: /^ExtensionDetails-.+\.css$/,
+    maxRawBytes: 2.5 * kibibyte,
+    maxGzipBytes: 1 * kibibyte,
+  },
   // October networking family: independently lazy features. All assets still
   // count toward suite totals; existing workbench and startup caps stay below.
   {
@@ -500,8 +530,12 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // It exceeds the initial provisional 128/40 KiB estimate; the owner requested
     // the full family/roadmap. Admission is bounded here, with <18 KiB raw spare,
     // every asset counted, and original startup/base-workbench ceilings intact.
-    maxRawBytes: 1310 * kibibyte,
-    maxGzipBytes: 454 * kibibyte,
+    // October 23: the requested20-entry optional library, client-format setup,
+    // and workflow repairs measure 1,371,420 /473,640 (+40,335 /19,427).
+    // Every pack has an individual cap and the complete lazy journey is capped.
+    // Original startup, Home, HTTP/gRPC and shared/base CSS ceilings remain fixed.
+    maxRawBytes: 1355 * kibibyte,
+    maxGzipBytes: 470 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -516,7 +550,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Pinned-Bun baseline 364,765 raw / 73,711 gzip; family 379,499 / 79,075.
     // Growth 14,734 / 5,364 covers lazy evidence/forms and accessible mobile
     // scrolling. Shared and existing base CSS caps stay fixed.
-    maxRawBytes: 374 * kibibyte,
+    // Twenty-entry library/detail and mobile access:384,591 raw (+5,092).
+    maxRawBytes: 380 * kibibyte,
     maxGzipBytes: 80 * kibibyte,
   },
 ];

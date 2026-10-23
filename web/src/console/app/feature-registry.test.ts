@@ -23,6 +23,7 @@ const publicDocsSlugs = new Set([
   'cloudflare-tunnels',
   'downloader',
   'extensions',
+  'event-streams',
   'feature-roadmap',
   'grpc-workbench',
   'http-workbench',

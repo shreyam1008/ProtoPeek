@@ -191,8 +191,8 @@ export function ProtocolFrame() {
   }, []);
 
   const openHandoff = useCallback(
-    (handoff: PendingHandoffInput) => {
-      const stored = storePendingHandoff(handoff);
+    (handoff: PendingHandoffInput, options?: { memoryOnly?: boolean }) => {
+      const stored = storePendingHandoff(handoff, options);
       if (!stored.ok) return stored;
       const route = handoffDestinationRoutes[stored.value.draft.kind];
       setScanOpen(false);
@@ -379,9 +379,24 @@ export function ProtocolFrame() {
           <CommandPalette
             open
             actions={actions}
-            onNavigate={(route, mode) =>
-              void navigate({ to: route, search: mode ? { mode } : undefined })
-            }
+            onNavigate={(route, mode) => {
+              void navigate({
+                to: route,
+                search: mode ? { mode } : undefined,
+                ...(route === '/network/diagnostics'
+                  ? {
+                      state: (current) => ({
+                        diagnosticInvocation:
+                          Number.isSafeInteger(current.diagnosticInvocation) &&
+                          (current.diagnosticInvocation ?? -1) >= 0 &&
+                          (current.diagnosticInvocation ?? 0) < Number.MAX_SAFE_INTEGER
+                            ? (current.diagnosticInvocation ?? 0) + 1
+                            : 1,
+                      }),
+                    }
+                  : {}),
+              });
+            }}
             loadExtraActions={loadSavedActions}
             onClose={() => setCommandOpen(false)}
           />

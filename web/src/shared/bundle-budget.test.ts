@@ -26,6 +26,34 @@ const budgets: BundleBudget[] = [
 ];
 
 describe('bundle budget contract', () => {
+  it('requires all twenty separate optional packs and caps each one as well as the full library', () => {
+    const packs = consoleBundleBudgets.filter(
+      ({ label }) => label.startsWith('Optional ') && label.endsWith(' setup JavaScript')
+    );
+    expect(packs).toHaveLength(20);
+    const all = consoleBundleBudgets.find(
+      ({ label }) => label === 'Complete optional extension library JavaScript'
+    );
+    expect(all?.requiredMembers).toHaveLength(24);
+    const fixture = (all?.requiredMembers ?? []).map((pattern) => ({
+      name: pattern.source.replace('^', '').replace('-.+\\.js$', '-fixture.js'),
+      rawBytes: 1,
+      gzipBytes: 1,
+    }));
+    expect(evaluateBundleBudgets(fixture, [all as BundleBudget])).toEqual([]);
+    const missing = fixture.filter(({ name }) => !name.startsWith('extension-kubectl-'));
+    expect(
+      evaluateBundleBudgets(missing, [all as BundleBudget]).some((error) =>
+        error.includes('missing required member')
+      )
+    ).toBe(true);
+    expect(
+      evaluateBundleBudgets(
+        [{ name: 'extension-kubectl-large.js', rawBytes: 2000, gzipBytes: 700 }],
+        [packs.find(({ pattern }) => pattern.test('extension-kubectl-large.js')) as BundleBudget]
+      )
+    ).toEqual([expect.stringContaining('raw bytes exceeds')]);
+  });
   it('rejects a partly matching aggregate when a named feature stylesheet disappeared', () => {
     const budget: BundleBudget = {
       label: 'family',

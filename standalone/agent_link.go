@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/agentlink"
+	"github.com/shreyam1008/ProtoPeek/internal/extensions"
 	"github.com/shreyam1008/ProtoPeek/internal/portscan"
 )
 
@@ -377,6 +378,15 @@ func (m *agentManager) execute(ctx context.Context, tool agentlink.Tool, input j
 			args.TimeoutMS = 350
 		}
 		input, _ = json.Marshal(args)
+	}
+	if tool.Name == "extension_inspect" {
+		var args struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(input, &args); err != nil || !extensions.KnownID(args.ID) {
+			return agentlink.Result{Status: http.StatusBadRequest, Preview: "unknown extension id"}
+		}
+		endpoint += "?" + url.Values{"id": {args.ID}}.Encode()
 	}
 	if (tool.Method == http.MethodGet && tool.Name != "grpc_schema") || tool.Name == "tailnet_inspect" || tool.Name == "download_start_engine" {
 		input = nil // These existing endpoints require an absent body, not an empty JSON object.

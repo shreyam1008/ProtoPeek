@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 )
@@ -168,5 +170,36 @@ func TestCatalogBoundsAndRejectsUnsafePathMetadata(t *testing.T) {
 				t.Fatalf("unsafe path escaped: %#v", entry)
 			}
 		}
+	}
+}
+
+func TestAria2CacheErrorsRemainBoundedAndReadableInBothSnapshotVersions(t *testing.T) {
+	for _, test := range []struct{ name, cacheError string }{
+		{"long", "Checksum mismatch: " + strings.Repeat("x", 4096)},
+		{"controls", "Cache\x00path\nfailed\r\t\x7f\u0085\x1b[31m"},
+		{"unicode", strings.Repeat("é界🙂", 700)},
+		{"rune-boundary", strings.Repeat("x", 1496) + "🙂tail"},
+		{"invalid-utf8", "bad UTF-8 \xff\xfe"},
+		{"only-controls", "\x00\n\t\u0085"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			d := fixtureDetector()
+			d.lookPath = func(string) (string, error) { return "", exec.ErrNotFound }
+			d.bundleInfo = func() bundledaria2.Metadata {
+				return bundledaria2.Metadata{Included: true, ArchiveBytes: 1234, CacheError: test.cacheError}
+			}
+			legacy := d.inspect(Options{Aria2ConfigKnown: true}).Extensions[4]
+			if legacy.Status != "unavailable" || legacy.Message == "" || len(legacy.Message) > 1500 || !utf8.ValidString(legacy.Message) || strings.IndexFunc(legacy.Message, unicode.IsControl) >= 0 {
+				t.Fatalf("unsafe legacy cache error: status=%s bytes=%d valid=%v", legacy.Status, len(legacy.Message), utf8.ValidString(legacy.Message))
+			}
+			single, err := d.inspectOne("aria2", Options{Aria2ConfigKnown: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			entry := single.Extensions[0]
+			if entry.Status != "unavailable" || len(entry.Message) > 2048 || !utf8.ValidString(entry.Message) || strings.IndexFunc(entry.Message, unicode.IsControl) >= 0 || !strings.HasSuffix(entry.Message, legacy.Message) {
+				t.Fatalf("unsafe prefixed cache error: status=%s bytes=%d valid=%v", entry.Status, len(entry.Message), utf8.ValidString(entry.Message))
+			}
+		})
 	}
 }
