@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Media Downloads &amp; Webpage Capture | ProtoPeek</title>
+    <meta name="description" content="Save direct media and original HTML with native Go, or choose verified optional site engines. Review formats, bounded queues and local storage behavior." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/media-downloads/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="Media Downloads &amp; Webpage Capture | ProtoPeek" />
+    <meta property="og:description" content="Save direct media and original HTML with native Go, or choose verified optional site engines. Review formats, bounded queues and local storage behavior." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/media-downloads/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Media Downloads &amp; Webpage Capture | ProtoPeek" />
+    <meta name="twitter:description" content="Save direct media and original HTML with native Go, or choose verified optional site engines. Review formats, bounded queues and local storage behavior." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Media and webpages","description":"Save direct media and original HTML with native Go, or choose verified optional site engines. Review formats, bounded queues and local storage behavior.","url":"https://protopeek.shreyam1008.com.np/media-downloads/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/media-downloads/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/media-downloads.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Media and webpages","item":"https://protopeek.shreyam1008.com.np/media-downloads/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">Media and webpages</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">Media and webpages</h1>
+              <p>How can I save media, a gallery, or an original webpage?</p>
+
+    <span class="pp-page-status is-guide is-full">
+      <i aria-hidden="true"></i>Current source
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>Native direct media</li><li>Optional site engines</li><li>Bounded local queue</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-downloader">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>How can I save media, a gallery, or an original webpage?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-media-downloads-title visual-media-downloads-description">
+        <title id="visual-media-downloads-title">Media and webpages evidence path</title>
+        <desc id="visual-media-downloads-description">Queue to Control to Verify</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Queue</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">Control</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Verify</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Open <strong>Files → Downloader → Media, galleries &amp; webpages</strong> in the v0.7.0 build. Ordinary file downloads retain their existing aria2 queue and CLI. Direct exchange between ProtoPeek devices has its own <a href="/local-transfer/">Local transfer</a> workspace.</p>
+<h2 id="what-each-option-saves">What each option saves</h2>
+<table tabindex="0" aria-labelledby="what-each-option-saves"><thead><tr><th>Option</th><th>Implementation</th><th>Capability</th></tr></thead><tbody><tr><td>Direct &amp; page media</td><td>Native Go, no installation</td><td>Direct HTTP(S) files; image, video, audio and Open Graph links in HTML; original HTML snapshots</td></tr><tr><td>Video &amp; audio</td><td>Optional yt-dlp</td><td>Supported video sites, YouTube URLs and bounded playlist ranges; original audio or video</td></tr><tr><td>Images &amp; galleries</td><td>Optional gallery-dl</td><td>Supported image sites, galleries and albums</td></tr><tr><td>Webpage archive</td><td>Separately installed ArchiveBox</td><td>A dedicated local collection with title, HTML, screenshot and PDF extractors, subject to installed dependencies</td></tr></tbody></table>
+<p>Go inspection reads at most 4 MiB of HTML and returns the first 100 unique media links. It does not execute JavaScript, unlock protected content, render a page or discover every image a browser could load. Original HTML snapshots leave linked assets external. They are not self-contained offline archives. Use ArchiveBox when a rendered webpage capture is needed.</p>
+<p>Select positions 1–10000, at most 100 items per job. Each job gets a separate <code>ProtoPeek-&lt;id&gt;</code> output directory. Two jobs can run concurrently; history is capped at 128 jobs. Removing history preserves files. Downloads continue while ProtoPeek is running, including after closing the page. Cancel stops native requests or the external process tree. Retry preserves completed files; native incomplete files restart, while external engines may resume their own partial formats. An app restart leaves interrupted work stopped until explicitly retried.</p>
+<p>Normal cancellation and application shutdown ask the OS to stop the owned process group or tree. An abrupt process kill or OS crash can leave external helpers alive; an interrupted job shown after restart does not prove those helpers were stopped.</p>
+<h2 id="one-click-setup">One-click setup</h2>
+<p>The install button fetches the pinned upstream distribution, checks its exact byte count and SHA-256 digest, and stores it with license notices and a provenance receipt in the private ProtoPeek media tools directory. No terminal, separate Python setup or administrator prompt is needed for a supported managed build. Installed engines are used only for explicit jobs.</p>
+<p>Current managed builds and approximate compressed download sizes:</p>
+<table tabindex="0" aria-labelledby="one-click-setup"><thead><tr><th>Engine</th><th>Windows x64</th><th>Linux x64</th><th>macOS</th></tr></thead><tbody><tr><td>yt-dlp 2026.08.19</td><td>17 MiB</td><td>39 MiB</td><td>35 MiB</td></tr><tr><td>gallery-dl 1.32.12</td><td>21.5 MiB</td><td>23 MiB</td><td>Install separately</td></tr><tr><td>Deno</td><td>41 MiB</td><td>40 MiB</td><td>37–40 MiB</td></tr><tr><td>FFmpeg + ffprobe 9.0.2</td><td>110 MiB</td><td>Install separately</td><td>Install separately</td></tr></tbody></table>
+<p>Video setup includes missing managed FFmpeg and a JavaScript runtime when a local Node installation is not available. The UI displays their combined download size. The executable bundle is larger on disk after unpacking. No automatic update or idle network check runs. <code>internal/media/tools.json</code> is the authoritative pinned asset manifest. Linux ARM64 yt-dlp and Deno, plus both macOS architectures, are also included. Other configurations show actual capability and installation help.</p>
+<p>The Windows FFmpeg package is Gyan&#39;s versioned essentials build, linked from <a href="https://ffmpeg.org/download.html" rel="noreferrer" target="_blank">FFmpeg&#39;s download page</a>. Its archive license and README identify the build configuration and source revision. yt-dlp standalone executables have aggregate third-party notices in addition to the Unlicense source; Deno and gallery-dl retain their own upstream notices. These are separate upstream distributions, downloaded on request, and are not embedded in ProtoPeek.</p>
+<p>FFmpeg enables separate video/audio merging. Without it, video selection is limited to a combined format. Audio keeps the source&#39;s native audio format; there is no implicit MP3 conversion. Node must meet yt-dlp&#39;s supported runtime version requirements. TLS verification stays enabled. User config files, arbitrary command flags, external yt-dlp plugins and remote components are not loaded.</p>
+<p>ArchiveBox has a larger Python/browser/tool stack and does not officially support native Windows. ProtoPeek can invoke a separately installed compatible CLI on Linux/macOS, with no recursive crawl and no Internet Archive submission. On Windows the UI links to upstream Docker/WSL setup; it does not claim to install Docker or enable Windows features. Its collection index reports per-format success/failure; a completed command does not prove every requested format saved.</p>
+<h2 id="architecture-and-size">Architecture and size</h2>
+<p>Go owns request validation, HTML extraction, streaming, the local queue, installer verification, process cancellation and saved history. It adds no new Go dependency. Media and file views load independently; neither optional Python engine is embedded into the application binary. The new route has an 18 KiB raw JavaScript budget; the aggregate allowance grows by this route and 4 KiB of CSS, while startup and existing file-view limits remain unchanged.</p>
+<p>Reimplementing the common path in Go keeps it small. Retaining maintained site extractors avoids pretending that generic HTML parsing covers YouTube signatures, site APIs or frequent platform changes. Speed depends on bandwidth, source limits, format and post-processing; there is no universal speed guarantee.</p>
+<p>References: <a href="https://github.com/yt-dlp/yt-dlp" rel="noreferrer" target="_blank">yt-dlp</a>, <a href="https://github.com/mikf/gallery-dl" rel="noreferrer" target="_blank">gallery-dl</a> (active releases on Codeberg), <a href="https://github.com/ArchiveBox/ArchiveBox" rel="noreferrer" target="_blank">ArchiveBox</a>, <a href="https://github.com/imputnet/cobalt" rel="noreferrer" target="_blank">Cobalt</a>. No Cobalt extractor code is copied. External executables keep their own upstream licenses: gallery-dl is GPL-2.0, FFmpeg builds have GPL components, ArchiveBox is MIT, and yt-dlp standalone executables contain third-party components beyond its Unlicense source.</p>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#what-each-option-saves">What each option saves</a><a class="level-2" href="#one-click-setup">One-click setup</a><a class="level-2" href="#architecture-and-size">Architecture and size</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/media-downloads.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/media-downloads.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>Implemented in this checkout; stable publication and installed-engine acceptance are separate gates.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/downloader/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>Downloader</strong>
+      </a>
+      <a href="/local-transfer/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Local transfer</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

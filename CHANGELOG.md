@@ -5,6 +5,9 @@ version source of truth.
 
 ## v0.7.0 — 2026-10-23
 
+- Adds independently lazy media, gallery and webpage downloads inside Files → Downloader.
+  Go handles direct files and bounded HTML media discovery; supported site extractors and
+  richer archives use explicit optional engines with pinned installation and retained notices.
 - Adds Files → Local transfer for direct TLS 1.3 ProtoPeek-to-ProtoPeek file exchange,
   receiver approval, cancellation and SHA-256 receipts over LAN or existing VPN routes.
   Both devices enable a temporary session; no VPN provisioning, relay or partial resume.

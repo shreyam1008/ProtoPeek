@@ -106,7 +106,7 @@ const commands = [
   {
     id: 'downloader',
     label: 'Open Downloader',
-    keywords: 'download transfer queue artifact aria2',
+    keywords: 'download transfer queue artifact aria2 media video audio galleries webpage',
   },
   {
     id: 'local-transfer',

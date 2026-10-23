@@ -85,9 +85,20 @@ describe('release metadata', () => {
     expect(packaging).toContain('prerelease: true');
     expect(packaging).toContain('make_latest: false');
     expect(packaging).not.toMatch(/^(brews|scoops|dockers):/m);
-    expect(readRepositoryFile('.github/workflows/snap.yml')).not.toContain('  push:');
-    expect(stable).toContain('unsquashfs -d "$snap_root"');
+    const manualSnap = readRepositoryFile('.github/workflows/snap.yml');
+    expect(manualSnap).not.toContain('  push:');
+    for (const workflow of [stable, manualSnap]) {
+      expect(workflow).toContain('bash scripts/verify-snap.sh');
+      expect(workflow).toContain('bash scripts/prepare-snap-version.sh');
+      expect(workflow).toContain('snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79');
+      expect(workflow).toContain('subject-path: ./dist/*.snap');
+    }
+    expect(manualSnap).not.toContain('--clobber');
+    const snapVerification = readRepositoryFile('scripts/verify-snap.sh');
+    expect(snapVerification).toContain('unsquashfs -d "$snap_root/root"');
     const snap = readRepositoryFile('snap/snapcraft.yaml');
+    expect(snap).toContain('cat .protopeek-release-version');
+    expect(snap).not.toContain('product.json');
     for (const license of [
       'go-capnp-MIT.txt',
       'zeropool-APACHE-2.0.txt',
@@ -95,7 +106,7 @@ describe('release metadata', () => {
       'qpack-MIT.txt',
     ]) {
       expect(snap).toContain(license);
-      expect(stable).toContain(license);
+      expect(snapVerification).toContain(license);
     }
   });
 

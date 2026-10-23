@@ -161,9 +161,9 @@ jobs:
           PY
           exit "$status"
 
-      - name: Local transfer concurrency checks
+      - name: Local transfer and media concurrency checks
         if: runner.os == 'Linux'
-        run: go test -race ./internal/localshare -count=1
+        run: go test -race ./internal/localshare ./internal/media -count=1
 
       - name: Compile both commands
         run: go build ./cmd/protopeek ./cmd/pp
@@ -396,6 +396,9 @@ jobs:
       - name: Test release verification trust and isolation boundaries
         run: python3 scripts/verify-published-release.test.py
 
+      - name: Test isolated Snap version handoff
+        run: bash scripts/test-snap-version.sh
+
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
           syft-version: v1.51.0
@@ -467,7 +470,7 @@ jobs:
             grep -Fq "$(basename "$archive")" dist/checksums.txt
             test -f "$archive.sbom.json"
           done
-          test "$archive_count" -gt 0
+          test "$archive_count" -eq 8
           deb_count=0
           for package in dist/*.deb; do
             test -f "$package" || continue
@@ -477,7 +480,13 @@ jobs:
             grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/qpack-MIT\.txt$' <<<"$contents"
             grep -Fq "$(basename "$package")" dist/checksums.txt
           done
-          test "$deb_count" -gt 0
+          test "$deb_count" -eq 3
+          # GoReleaser hashes checksum.extra_files at their source paths; it
+          # does not stage them in dist. Keep the full checksum check strict.
+          for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
+            cp "$extra" "dist/$(basename "$extra")"
+          done
+          test "$(wc -l < dist/checksums.txt)" -eq 22
           (cd dist && sha256sum --check checksums.txt)
           test -s .local/aria2-1.37.0-companion-sources.tar.gz
           source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"

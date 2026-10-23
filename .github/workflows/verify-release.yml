@@ -26,66 +26,26 @@ on:
 permissions:
   contents: read
 
+# Only the selected draft invocation grants push visibility for unpublished
+# assets. Both invocations execute the same three-OS acceptance implementation.
 jobs:
-  native:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - name: Download only the bounded authenticated draft asset plan
-        if: inputs.mode == 'draft'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
-          RELEASE_SHA: ${{ inputs.expected_sha }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = if ($IsWindows) { 'python' } else { 'python3' }
-          $assets = Join-Path $env:RUNNER_TEMP 'protopeek-release-draft-assets'
-          New-Item -ItemType Directory -Path $assets -ErrorAction Stop | Out-Null
-          $metadata = Join-Path $assets 'release-metadata.json'
-          & gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:RELEASE_TAG" | Out-File -LiteralPath $metadata -Encoding utf8
-          if ($LASTEXITCODE -ne 0) { throw 'Draft metadata read failed.' }
-          $plan = & $python scripts/verify-published-release.py --tag $env:RELEASE_TAG --sha $env:RELEASE_SHA --draft-plan $metadata
-          if ($LASTEXITCODE -ne 0) { throw 'Draft download plan validation failed.' }
-          foreach ($asset in ($plan | ConvertFrom-Json)) {
-            & gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern $asset --dir $assets
-            if ($LASTEXITCODE -ne 0) { throw "Draft asset download failed: $asset" }
-          }
-      - name: Verify selected release mode, install and upgrade
-        shell: pwsh
-        env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          RELEASE_SHA: ${{ inputs.expected_sha }}
-          PREVIOUS_TAG: ${{ inputs.previous_tag }}
-          RELEASE_MODE: ${{ inputs.mode }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $python = if ($IsWindows) { 'python' } else { 'python3' }
-          $arguments = @('scripts/verify-published-release.py', '--tag', $env:RELEASE_TAG, '--sha', $env:RELEASE_SHA, '--previous-tag', $env:PREVIOUS_TAG, '--mode', $env:RELEASE_MODE, '--install', '--ephemeral-default', '--output', (Join-Path $env:RUNNER_TEMP 'protopeek-release-acceptance'))
-          if ($env:RELEASE_MODE -eq 'draft') {
-            $assets = Join-Path $env:RUNNER_TEMP 'protopeek-release-draft-assets'
-            $arguments += @('--metadata', (Join-Path $assets 'release-metadata.json'), '--asset-dir', $assets)
-          }
-          & $python @arguments
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Retain verification evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: protopeek-release-verification-${{ runner.os }}-${{ github.run_id }}
-          path: |
-            ${{ runner.temp }}/protopeek-release-acceptance/report.json
-            ${{ runner.temp }}/protopeek-release-acceptance/*.log
-            ${{ runner.temp }}/protopeek-release-acceptance/*metadata.json
-          if-no-files-found: error
+  draft:
+    if: inputs.mode == 'draft'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release-native-acceptance.yml
+    with:
+      mode: draft
+      tag: ${{ inputs.tag }}
+      expected_sha: ${{ inputs.expected_sha }}
+      previous_tag: ${{ inputs.previous_tag }}
+  public:
+    if: inputs.mode == 'public'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release-native-acceptance.yml
+    with:
+      mode: public
+      tag: ${{ inputs.tag }}
+      expected_sha: ${{ inputs.expected_sha }}
+      previous_tag: ${{ inputs.previous_tag }}

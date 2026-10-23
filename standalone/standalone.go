@@ -162,6 +162,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	registerTransferHandlers(&mux, uiOpts.transferService)
 	registerExtensions(&mux, uiOpts.transferService)
 	registerLocalShareHandlers(&mux, uiOpts.localShareService)
+	registerMediaHandlers(&mux, uiOpts.mediaService, uiOpts.mediaServiceFactory)
 	registerThisPCHandlers(&mux, uiOpts.thisPCService)
 	registerTunnelHandlers(&mux, uiOpts.tunnelService)
 	if uiOpts.networkDiagnostics {

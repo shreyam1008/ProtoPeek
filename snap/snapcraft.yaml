@@ -17,19 +17,15 @@ parts:
     build-snaps:
       - go/1.26/stable
     override-build: |
-      tag="${GITHUB_REF_NAME:-}"
-      if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        tag="$(git describe --tags --exact-match --match 'v[0-9]*' 2>/dev/null || true)"
-      fi
-      if [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        version="${tag#v}"
-      else
-        version="$(sed -n 's/^[[:space:]]*\"version\"[[:space:]]*:[[:space:]]*\"\([0-9][0-9.]*\)\".*/\1/p' product.json | head -n 1)"
-      fi
-      if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        echo "stable ProtoPeek tag is required to build the Snap" >&2
+      # The workflow validates the tag and manuals before copying this explicit
+      # source file into the isolated build. Host CI environment and Git metadata
+      # are not version authorities inside the Snapcraft container.
+      tag="$(cat .protopeek-release-version 2>/dev/null || true)"
+      if [[ ! "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+        echo "Run scripts/prepare-snap-version.sh with the exact stable tag before building." >&2
         exit 1
       fi
+      version="${tag#v}"
       craftctl set version="$version"
       mkdir -p "$CRAFT_PART_INSTALL/bin"
       CGO_ENABLED=0 go build -trimpath -buildvcs=false \

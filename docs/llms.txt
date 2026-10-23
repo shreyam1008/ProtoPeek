@@ -27,6 +27,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 Current source uses Home, Inspect, Network, Extensions, Files and Settings. Home prepares unsent HTTP or explicit TLS/plaintext gRPC drafts; discovery is a separate action. Source implementation does not establish publication, native-client, provider-account or package acceptance.
 
+- Media and webpages: Current source adds native direct files, HTML media discovery and original HTML snapshots, plus explicit optional site engines with verified installation. Media remains inside the lazy Files workflow. Guide: https://protopeek.shreyam1008.com.np/media-downloads/
 - Local transfer: Current source adds direct TLS 1.3 transfers between ProtoPeek devices with receiver approval, cancellation and SHA-256 receipts. Existing LAN/VPN routes carry traffic; VPN provisioning and relays are not included. Guide: https://protopeek.shreyam1008.com.np/local-transfer/
 - HTTP recipes: Current source adds environment templates, session-only secrets, request-library import and reviewed cURL import. Loading prepares an unsent editor. Guide: https://protopeek.shreyam1008.com.np/http-workbench/
 - gRPC stream evidence: Current source renders incremental native messages, headers and completion evidence. Local cancellation retains messages without inventing final server status. Guide: https://protopeek.shreyam1008.com.np/grpc-workbench/
@@ -58,6 +59,7 @@ Native macOS socket/process ownership and foreground publishing remain unavailab
 - Extensions and setup: https://protopeek.shreyam1008.com.np/extensions/ — Current source
 - Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable core + current source
 - Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.1
+- Media and webpages: https://protopeek.shreyam1008.com.np/media-downloads/ — Current source
 - Local transfer: https://protopeek.shreyam1008.com.np/local-transfer/ — Current source
 - Local AI agents: https://protopeek.shreyam1008.com.np/ai-agents/ — Current source · after v0.6.1
 - Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.1

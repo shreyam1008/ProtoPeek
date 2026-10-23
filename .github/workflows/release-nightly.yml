@@ -98,7 +98,7 @@ jobs:
 
           Install with `PROTOPEEK_CHANNEL=nightly` using the verified installer. Once installed, run `pp update` or `protopeek update`, or open Settings → Updates. Both commands follow the installed channel by default. Updates verify SHA-256 and require restarting existing servers after active work finishes.
 
-          Nightly may contain regressions. Stable remains available through the default installer; use `pp update --channel stable` to switch back. Stable v0.6.1 does not include the update command yet, so switching back requires an installer run to get Nightly again.
+          Nightly may contain regressions. Stable remains available through the default installer; use `pp update --channel stable` to switch back. Releases before v0.7.0 require an installer run to change channels.
 
           Windows, macOS and Linux archives, checksums, SBOMs and build attestations accompany this build. See the repository CHANGELOG for development changes and the installation guide for recovery instructions.
           NOTES

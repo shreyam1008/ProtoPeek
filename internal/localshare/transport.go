@@ -276,8 +276,18 @@ func (s *Service) Connect(ctx context.Context, address, fingerprint string) (Pee
 	if s.server == nil {
 		return Peer{}, errors.New("Enable local transfer first")
 	}
-	if len(s.peers) >= 128 {
-		return Peer{}, errors.New("Nearby device limit reached")
+	s.prunePeers(p.Seen)
+	if _, known := s.peers[p.ID]; !known && len(s.peers) >= maxPeers {
+		var oldest Peer
+		for _, discovered := range s.peers {
+			if !discovered.Manual && (oldest.ID == "" || discovered.Seen.Before(oldest.Seen)) {
+				oldest = discovered
+			}
+		}
+		if oldest.ID == "" {
+			return Peer{}, errors.New("Connected device limit reached; restart sharing to clear this session")
+		}
+		delete(s.peers, oldest.ID)
 	}
 	s.peers[p.ID] = p
 	return p, nil

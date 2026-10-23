@@ -1,0 +1,52 @@
+name: Check native Snap candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'snap/**'
+      - 'scripts/*snap*'
+      - '.github/workflows/snap*.yml'
+      - '.github/workflows/release.yml'
+      - 'web/site/public/man/*.1'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Prepare candidate version from packaged manuals
+        run: |
+          set -euo pipefail
+          version="$(awk -F '"' 'NR == 1 {print $4}' web/site/public/man/protopeek.1)"
+          version="${version#ProtoPeek }"
+          bash scripts/test-snap-version.sh
+          bash scripts/prepare-snap-version.sh "v$version"
+      - name: Build with the release Snapcraft environment
+        id: snapcraft
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1
+      - name: Verify actual candidate bytes and native commands
+        run: |
+          set -euo pipefail
+          command -v unsquashfs >/dev/null || { sudo apt-get update; sudo apt-get install -y squashfs-tools; }
+          bash scripts/verify-snap.sh "$(cat .protopeek-release-version)" "${{ steps.snapcraft.outputs.snap }}"
+      - name: Install and remove the actual classic package
+        run: |
+          tag="$(cat .protopeek-release-version)"
+          bash scripts/test-snap-install.sh "$tag" "dist/protopeek_${tag#v}_amd64.snap"
+      - name: Retain candidate evidence without publishing a release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: protopeek-snap-candidate-${{ github.sha }}
+          path: dist/*.snap*
+          if-no-files-found: error

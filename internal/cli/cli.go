@@ -46,6 +46,7 @@ import (
 	_ "google.golang.org/grpc/xds"
 
 	"github.com/shreyam1008/ProtoPeek/internal"
+	"github.com/shreyam1008/ProtoPeek/internal/media"
 	"github.com/shreyam1008/ProtoPeek/standalone"
 )
 
@@ -609,9 +610,11 @@ func Run() {
 	if err != nil {
 		fail(err, "Failed to load downloader host configuration")
 	}
+	processMediaService := &mediaServiceOwner{enabled: !*unsafeAllowRemote, create: media.New}
 	var transferShutdownOnce sync.Once
 	shutdownTransfers := func() {
 		transferShutdownOnce.Do(func() {
+			processMediaService.Close()
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), downloadCommandShutdownTime)
 			defer cancel()
 			if err := processTransferService.Shutdown(shutdownCtx); err != nil {
@@ -685,7 +688,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
-		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService), standalone.WithMediaServiceFactory(processMediaService.Get))
 		if processLocalShareService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithLocalShareService(processLocalShareService))
 		}
@@ -849,7 +852,7 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithGRPCOptions(gRPCOptions))
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
-		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService), standalone.WithMediaServiceFactory(processMediaService.Get))
 		if processLocalShareService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithLocalShareService(processLocalShareService))
 		}

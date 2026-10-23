@@ -1,6 +1,8 @@
 """Offline regression checks for release-verifier trust and isolation boundaries."""
 
 import hashlib
+import copy
+from contextlib import redirect_stdout
 import importlib.util
 import io
 import json
@@ -22,6 +24,24 @@ SHA = "a" * 40
 
 
 class PublishedReleaseVerification(unittest.TestCase):
+    def test_dispatch_scopes_write_visibility_to_draft_and_reuses_native_acceptance(self):
+        workflows = SCRIPT.parent.parent / ".github/workflows"
+        dispatch = (workflows / "verify-release.yml").read_text(encoding="utf-8")
+        jobs = dict(verify.re.findall(r"(?ms)^  (draft|public):\n(.*?)(?=^  [a-z][a-z_-]*:|\Z)", dispatch.split("\njobs:\n", 1)[1]))
+        self.assertEqual(set(jobs), {"draft", "public"})
+        for mode, permission in (("draft", "write"), ("public", "read")):
+            self.assertIn("if: inputs.mode == '" + mode + "'", jobs[mode])
+            self.assertIn("permissions:\n      contents: " + permission, jobs[mode])
+            self.assertIn("uses: ./.github/workflows/release-native-acceptance.yml", jobs[mode])
+            self.assertNotIn("steps:", jobs[mode])
+        native = (workflows / "release-native-acceptance.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_call:", native)
+        self.assertNotRegex(native, r"(?m)^\s*permissions:")
+        self.assertIn("os: [ubuntu-latest, macos-latest, windows-latest]", native)
+        self.assertRegex(native, r"(?s)uses: actions/setup-go@[^\n]+\n\s+with:\n\s+go-version-file: go.mod\n\s+token: ''")
+        self.assertEqual(native.count("GH_TOKEN:"), 1)
+        self.assertRegex(native, r"(?s)if: inputs.mode == 'draft'\n\s+shell: pwsh\n\s+env:\n\s+GH_TOKEN:")
+
     def test_checksums_refuse_duplicate_traversal_and_malformed_entries(self):
         good = ("a" * 64 + "  release.zip\n").encode()
         self.assertEqual(verify.checksums(good), {"release.zip": "a" * 64})
@@ -58,6 +78,63 @@ class PublishedReleaseVerification(unittest.TestCase):
                 verify.asset(value, "release.zip", output)
             get.assert_not_called()
             self.assertEqual(list(output.iterdir()), [])
+
+    def test_draft_untagged_browser_url_uses_exact_api_and_local_byte_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            assets, output = root / "assets", root / "output"
+            assets.mkdir()
+            output.mkdir()
+            data = b"actual draft bytes"
+            (assets / "release.zip").write_bytes(data)
+            item = {"id": 456, "name": "release.zip", "url": verify.API + "/releases/assets/456", "browser_download_url": verify.BASE + "untagged-123456/release.zip", "size": len(data), "digest": "sha256:" + verify.digest(data)}
+            metadata = {"id": 123, "url": verify.API + "/releases/123", "tag_name": "v1.2.3", "draft": True, "prerelease": False, "assets": [item]}
+            metadata_path = root / "metadata.json"
+            metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+            with patch.object(verify, "resolve_tag", return_value=SHA), patch.object(verify, "get") as get:
+                value = verify.release("v1.2.3", SHA, None, metadata_path)
+                value["assetDirectory"] = str(assets)
+                self.assertEqual(verify.asset(value, "release.zip", output), data)
+            get.assert_not_called()
+            self.assertEqual(value["releaseId"], 123)
+            self.assertEqual(value["downloaded"][0]["assetId"], 456)
+            # Untagged URLs are never accepted as public release downloads.
+            with self.assertRaisesRegex(ValueError, "authority/name"):
+                verify.asset_identity({"tag": "v1.2.3", "assets": {"release.zip": item}}, "release.zip")
+
+    def test_draft_api_identity_cannot_redirect_authorized_downloads(self):
+        item = {"id": 456, "name": "release.zip", "url": verify.API + "/releases/assets/456", "size": 8, "digest": "sha256:" + "a" * 64}
+        value = {"draft": True, "releaseId": 123, "assets": {"release.zip": item}}
+        for field, bad in (("id", 0), ("name", "different.zip"), ("url", "https://attacker.invalid/assets/456"), ("url", verify.API + "/releases/assets/789"), ("digest", "")):
+            changed = copy.deepcopy(value)
+            changed["assets"]["release.zip"][field] = bad
+            with self.subTest(field=field, bad=bad), patch.object(verify, "get") as get, self.assertRaises(ValueError):
+                verify.asset(changed, "release.zip", Path("unused"))
+            get.assert_not_called()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metadata.json"
+            metadata = {"id": 123, "url": verify.API + "/releases/999", "tag_name": "v1.2.3", "draft": True, "prerelease": False, "assets": [item]}
+            for bad in (metadata, {**metadata, "url": verify.API + "/releases/123", "assets": [item, {**item, "name": "other.zip"}]}):
+                path.write_text(json.dumps(bad), encoding="utf-8")
+                with self.assertRaises(ValueError), patch.object(verify, "resolve_tag") as resolve:
+                    verify.release("v1.2.3", SHA, None, path)
+                resolve.assert_not_called()
+
+    def test_draft_download_plan_emits_only_bounded_asset_api_identities(self):
+        names = ["protopeek_1.2.3_windows_x86_64.zip", "protopeek_1.2.3_windows_x86_64.zip.sbom.json", "checksums.txt", "install.sh", "install.ps1", "aria2-1.37.0-companion-sources.tar.gz"]
+        assets = [{"id": 456 + index, "name": name, "url": verify.API + "/releases/assets/" + str(456 + index), "browser_download_url": verify.BASE + "untagged-123/" + name, "size": 8, "digest": "sha256:" + "a" * 64} for index, name in enumerate(names)]
+        with tempfile.TemporaryDirectory() as directory:
+            metadata = Path(directory) / "metadata.json"
+            metadata.write_text(json.dumps({"id": 123, "url": verify.API + "/releases/123", "tag_name": "v1.2.3", "draft": True, "prerelease": False, "assets": assets}), encoding="utf-8")
+            stdout = io.StringIO()
+            with patch.object(sys, "argv", [str(SCRIPT), "--tag", "v1.2.3", "--sha", SHA, "--draft-plan", str(metadata)]), patch.object(verify.platform, "system", return_value="Windows"), patch.object(verify.platform, "machine", return_value="amd64"), patch.object(verify, "resolve_tag", return_value=SHA), redirect_stdout(stdout):
+                self.assertEqual(verify.main(), 0)
+            plan = json.loads(stdout.getvalue())
+            self.assertEqual(plan["releaseId"], 123)
+            self.assertEqual([item["name"] for item in plan["assets"]], names)
+            self.assertEqual([item["id"] for item in plan["assets"]], list(range(456, 462)))
+            self.assertTrue(all(item["url"].startswith(verify.API + "/releases/assets/") for item in plan["assets"]))
+            self.assertNotIn("browser_download_url", stdout.getvalue())
 
     def test_archive_traversal_and_symlink_refused_without_binary_execution(self):
         for symlink in (False, True):
@@ -101,6 +178,46 @@ class PublishedReleaseVerification(unittest.TestCase):
         self.assertNotIn("GH_TOKEN", env)
         self.assertNotIn("GITHUB_TOKEN", env)
         self.assertEqual(env.get("HOME"), os.environ.get("HOME"))
+
+    def test_smoke_server_uses_owned_home_including_macos_config_location(self):
+        observed = {}
+
+        def capture(args, **kwargs):
+            observed.update(kwargs["env"])
+            raise RuntimeError("fixture stops before process launch")
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            profile = root / "smoke-profile"
+            original_home = os.environ.get("HOME")
+            with patch.object(verify.subprocess, "Popen", side_effect=capture), self.assertRaisesRegex(RuntimeError, "before process launch"):
+                verify.smoke(root / "never-executed", {}, profile, "smoke", root, [])
+            self.assertEqual(Path(observed["HOME"]), profile / "home")
+            self.assertTrue((Path(observed["HOME"]) / "Library/Application Support").is_relative_to(profile))
+            self.assertTrue(Path(observed["HOME"]).is_dir())
+            self.assertEqual(os.environ.get("HOME"), original_home)
+
+    def test_default_cleanup_removes_new_empty_parents_and_preserves_existing_or_nonempty(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory).resolve()
+            baseline = home / ".local"
+            baseline.mkdir()
+            prefix, manuals = baseline / "bin", baseline / "share/man/man1"
+            missing = verify.missing_default_directories(home, (prefix, manuals))
+            self.assertNotIn(baseline, missing)
+            prefix.mkdir(parents=True)
+            manuals.mkdir(parents=True)
+            self.assertEqual(verify.remove_new_empty_directories(home, missing), [])
+            self.assertTrue(baseline.is_dir())
+            self.assertFalse((baseline / "share").exists())
+            self.assertFalse(prefix.exists())
+            missing = verify.missing_default_directories(home, (manuals,))
+            manuals.mkdir(parents=True)
+            keep = manuals / "unrelated.txt"
+            keep.write_text("preserve")
+            retained = verify.remove_new_empty_directories(home, missing)
+            self.assertEqual(keep.read_text(), "preserve")
+            self.assertEqual(len(retained), 3)
 
     def test_public_install_cannot_inherit_test_download_overrides(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -168,6 +285,8 @@ class PublishedReleaseVerification(unittest.TestCase):
                             result = verify.install(root / ("install.ps1" if windows else "install.sh"), value, prefix, root / "profile", "matrix", root, windows, draft, default)
                         args, env = calls[0]
                         explicit = draft or not default
+                        if default:
+                            self.assertEqual(env.get("HOME"), os.environ.get("HOME"))
                         if windows:
                             self.assertEqual("-Version" in args, explicit)
                             if explicit:

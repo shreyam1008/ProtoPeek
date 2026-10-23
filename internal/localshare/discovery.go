@@ -51,7 +51,8 @@ func (s *Service) startDiscovery(ctx context.Context) {
 				continue
 			}
 			s.mu.Lock()
-			if a.Fingerprint != s.fingerprint && len(s.peers) < 128 && !s.peers[a.Fingerprint].Manual {
+			previous, known := s.peers[a.Fingerprint]
+			if a.Fingerprint != s.fingerprint && (known || len(s.peers) < maxPeers) && !previous.Manual {
 				s.peers[a.Fingerprint] = Peer{ID: a.Fingerprint, Name: a.Name, Address: net.JoinHostPort(source.IP.String(), fmt.Sprint(a.Port)), Seen: time.Now()}
 			}
 			s.mu.Unlock()

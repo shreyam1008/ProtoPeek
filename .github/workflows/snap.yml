@@ -3,17 +3,14 @@ name: Build and attach Snap
 on:
   workflow_dispatch:
     inputs:
-      source_ref:
-        description: Git ref containing the Snap packaging
-        required: true
-        default: master
       release_tag:
         description: Existing GitHub release tag to receive the artifact
         required: true
-        default: v0.6.1
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 concurrency:
   group: protopeek-snap
@@ -25,32 +22,53 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check out release source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.source_ref || github.ref }}
+          ref: ${{ inputs.release_tag }}
           fetch-depth: 0
+
+      - name: Require the exact release source and an absent asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$TAG^{commit}")"
+          asset="protopeek_${TAG#v}_amd64.snap"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets > "$RUNNER_TEMP/snap-release.json"
+          jq -e --arg asset "$asset" '[.assets[].name | select(. == $asset or . == ($asset + ".sha256"))] | length == 0' "$RUNNER_TEMP/snap-release.json"
+
+      - name: Prepare the exact Snap version inside the build source
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: bash scripts/prepare-snap-version.sh "$TAG"
 
       - name: Build classic Snap candidate
         id: snapcraft
-        uses: snapcore/action-build@v1
+        uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1
 
-      - name: Attach Snap and checksum to release
+      - name: Verify and attach Snap and checksum to release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.release_tag || github.ref_name }}
+          TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          version="${TAG#v}"
-          asset="protopeek_${version}_amd64.snap"
-          snap_path="${{ steps.snapcraft.outputs.snap }}"
-          if [[ "$snap_path" != "$asset" ]]; then cp "$snap_path" "$asset"; fi
-          sha256sum "$asset" > "${asset}.sha256"
-          gh release upload "$TAG" "$asset" "${asset}.sha256" --repo "$GITHUB_REPOSITORY" --clobber
+          command -v unsquashfs >/dev/null || { sudo apt-get update; sudo apt-get install -y squashfs-tools; }
+          bash scripts/verify-snap.sh "$TAG" "${{ steps.snapcraft.outputs.snap }}"
+          asset="protopeek_${TAG#v}_amd64.snap"
+          bash scripts/test-snap-install.sh "$TAG" "dist/$asset"
+          # No clobber: concurrent or later runs must preserve a verified asset.
+          gh release upload "$TAG" "dist/$asset" "dist/${asset}.sha256" --repo "$GITHUB_REPOSITORY"
+
+      - name: Attest verified Snap candidate
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: ./dist/*.snap
 
       - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: protopeek-snap
-          path: ${{ steps.snapcraft.outputs.snap }}
+          path: dist/*.snap*
           if-no-files-found: error

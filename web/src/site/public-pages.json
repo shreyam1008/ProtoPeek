@@ -25,7 +25,7 @@
     {
       "id": "files",
       "title": "Transfer artifacts",
-      "description": "Queue, control, and verify bounded local downloads through local aria2c, bundled on Windows x64."
+      "description": "Download artifacts, save selected media or webpages, and exchange encrypted files directly between ProtoPeek devices."
     },
     {
       "id": "preferences",
@@ -676,6 +676,29 @@
       "lastModified": "2026-09-07"
     },
     {
+      "id": "media-downloads",
+      "path": "/media-downloads/",
+      "slug": "media-downloads",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "files",
+      "title": "Media and webpages",
+      "documentTitle": "Media Downloads & Webpage Capture | ProtoPeek",
+      "description": "Save direct media and original HTML with native Go, or choose verified optional site engines. Review formats, bounded queues and local storage behavior.",
+      "question": "How can I save media, a gallery, or an original webpage?",
+      "section": "Files",
+      "sourcePath": "guides/media-downloads.md",
+      "lastModified": "2026-10-23",
+      "status": {
+        "label": "Current source",
+        "tone": "guide",
+        "detail": "Implemented in this checkout; stable publication and installed-engine acceptance are separate gates."
+      },
+      "highlights": ["Native direct media", "Optional site engines", "Bounded local queue"],
+      "visual": "downloader",
+      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+    },
+    {
       "id": "local-transfer",
       "path": "/local-transfer/",
       "slug": "local-transfer",
@@ -934,6 +957,12 @@
     }
   ],
   "currentCapabilities": [
+    {
+      "id": "media-downloads",
+      "label": "Media and webpages",
+      "guide": "media-downloads",
+      "summary": "Current source adds native direct files, HTML media discovery and original HTML snapshots, plus explicit optional site engines with verified installation. Media remains inside the lazy Files workflow."
+    },
     {
       "id": "local-transfer",
       "label": "Local transfer",

@@ -44,7 +44,7 @@ type Snapshot = {
 const active = new Set(['waiting', 'pending', 'sending', 'receiving']);
 const bytes = (n: number) =>
   n < 1024
-    ? `${n} B`
+    ? `${Math.round(n)} B`
     : n < 1024 ** 2
       ? `${(n / 1024).toFixed(1)} KB`
       : n < 1024 ** 3
@@ -75,20 +75,22 @@ export function LocalTransfer() {
   const operation = useRef<AbortController | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const mounted = useRef(true);
+  const snapshotRevision = useRef(0);
   const peer = snapshot?.peers.find((p) => p.id === selected);
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
+    const revision = ++snapshotRevision.current;
     try {
       const next = await command('snapshot', {}, signal);
-      if (!signal?.aborted && mounted.current) {
+      if (!signal?.aborted && mounted.current && revision === snapshotRevision.current) {
         setSnapshot(next);
         setReadError('');
       }
     } catch (cause) {
-      if (!signal?.aborted && mounted.current)
+      if (!signal?.aborted && mounted.current && revision === snapshotRevision.current)
         setReadError(cause instanceof Error ? cause.message : 'Could not read transfers.');
     } finally {
-      if (!signal?.aborted && mounted.current) setLoading(false);
+      if (!signal?.aborted && mounted.current && revision === snapshotRevision.current)
+        setLoading(false);
     }
   }, []);
   useEffect(() => {
@@ -102,30 +104,35 @@ export function LocalTransfer() {
       operation.current?.abort();
     };
   }, [refresh]);
+  const pollDelay = sending || snapshot?.jobs.some((job) => active.has(job.state)) ? 1000 : 4000;
   useEffect(() => {
     if (!snapshot?.running) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       if (document.visibilityState !== 'hidden') await refresh(controller.signal);
-      if (!controller.signal.aborted) timer = setTimeout(poll, 1000);
+      if (!controller.signal.aborted) timer = setTimeout(poll, pollDelay);
     };
-    timer = setTimeout(poll, 1000);
+    timer = setTimeout(poll, pollDelay);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [snapshot?.running, refresh]);
+  }, [snapshot?.running, pollDelay, refresh]);
   async function run(action: string, body: object = {}) {
     if (operation.current) return false;
     const controller = new AbortController();
     operation.current = controller;
+    ++snapshotRevision.current;
     setBusy(action);
     setError('');
     setNotice('');
     try {
       const next = await command(action, body, controller.signal);
-      if (!controller.signal.aborted && mounted.current) setSnapshot(next);
+      if (!controller.signal.aborted && mounted.current) {
+        ++snapshotRevision.current;
+        setSnapshot(next);
+      }
       return !controller.signal.aborted;
     } catch (cause) {
       if (!controller.signal.aborted && mounted.current)
@@ -201,13 +208,13 @@ export function LocalTransfer() {
         </div>
         <span className="pp-share-status">
           <Radio size={14} />
-          {snapshot?.running
-            ? 'Discoverable'
+          {snapshot
+            ? snapshot.running
+              ? 'Discoverable'
+              : 'Offline'
             : loading
               ? 'Checking…'
-              : snapshot
-                ? 'Offline'
-                : 'Unavailable'}
+              : 'Unavailable'}
         </span>
       </PageHeader>
       {(error || readError) && (
@@ -251,7 +258,13 @@ export function LocalTransfer() {
         <section className="pp-share-setup">
           <h2>Local transfer unavailable</h2>
           <p>Check that the safe local ProtoPeek launcher is running, then retry.</p>
-          <button type="button" onClick={() => void refresh()}>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              void refresh();
+            }}
+          >
             Retry connection
           </button>
         </section>

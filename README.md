@@ -58,6 +58,7 @@ with reflection or your schema. **Find a service instead** is available when you
 | Set up an optional tool | [Extensions](guides/extensions.md) | v0.7.0: 20 optional entries with install guidance and clearly labelled integration levels; no automatic checks or installs |
 | Send a local file | [Local transfer](guides/local-transfer.md) | v0.7.0: encrypted direct ProtoPeek-to-ProtoPeek transfer over LAN or existing VPN routes; receiver approval and SHA-256 receipts |
 | Download an artifact | [Downloader](https://protopeek.shreyam1008.com.np/downloader/) | Resumable local queue and SHA-256 evidence |
+| Save media or a page | [Media downloads](guides/media-downloads.md) | v0.7.0: native direct files and HTML media; optional verified site engines and webpage archives |
 
 Windows x64 includes an aria2 fallback for Downloader; other platforms use installed aria2.
 TCP port scans and bounded private-network discovery are built in. Nmap, live capture through
@@ -185,6 +186,13 @@ invoke explicitly installed tools such as Tailscale, Nmap, dumpcap, aria2, and
 cloudflared. The Snap Store candidate workflow is manual and credential-gated;
 publication is not claimed until the package has passed a Linux desktop smoke
 test.
+
+The v0.7.0 release workflow builds and verifies the GitHub Snap candidate before
+publication. A local maintainer build starts from the exact stable tag and runs
+`bash scripts/prepare-snap-version.sh "$TAG"` with that tag before `snapcraft`; the isolated
+build reads that validated tag file and refuses a missing version. The manual
+GitHub repair workflow can attach an absent candidate without replacing an existing one.
+Verify a local result with `bash scripts/verify-snap.sh "$TAG" path/to/candidate.snap`.
 
 Agent setup and API discovery are documented in [Local AI agents](guides/ai-agents.md).
 ProtoPeek does not host your model or sign into provider accounts for you.
@@ -352,6 +360,14 @@ Exact retry/resume requires the source URL and any supplied headers. The form cl
 after queueing and queue/API results never return them, but ProtoPeek and aria2c retain the required
 values in private local host state (mode 0600 where supported). Do not use credentials on a machine
 whose local account or transfer-state directory you do not trust.
+
+The v0.7.0 build adds **Media, galleries & webpages** inside Downloader. Go handles direct files,
+HTML media discovery and original HTML snapshots without installing another engine. YouTube and
+supported social sites use optional one-click, SHA-256-verified yt-dlp or gallery-dl installation.
+The local media queue supports bounded playlist/gallery ranges, progress, cancellation and retry.
+ArchiveBox is an optional separate application for richer webpage captures; it is not bundled
+and native Windows is unavailable. See [media downloads](guides/media-downloads.md) for exact
+capabilities, dependencies and limitations. Older v0.6.1 does not include this workspace.
 
 The CLI contract remains deliberately smaller:
 

@@ -8,6 +8,7 @@ restores its changes. Requires Python3 and Go's read-only `version -m` command.
 """
 
 import argparse
+import errno
 import hashlib
 from html.parser import HTMLParser
 import io
@@ -95,6 +96,11 @@ def release(tag, expected_sha, output, metadata_path=None):
     require(metadata["tag_name"] == tag and metadata["prerelease"] is False, "Release tag/type mismatch")
     require(metadata["draft"] is bool(metadata_path), "Release visibility does not match explicit draft/public mode")
     require(metadata_path or metadata["published_at"], "Release is not published stable")
+    release_id = metadata.get("id")
+    if metadata_path:
+        require(type(release_id) is int and release_id > 0 and metadata.get("url") == API + "/releases/" + str(release_id), "Draft release API identity mismatch")
+        asset_ids = [item.get("id") for item in metadata["assets"]]
+        require(all(type(item) is int and item > 0 for item in asset_ids) and len(asset_ids) == len(set(asset_ids)), "Draft asset IDs are invalid or duplicated")
     sha = resolve_tag(tag)
     require(expected_sha is None or sha == expected_sha, "Published tag commit differs from explicit expected SHA")
     require(len(metadata["assets"]) <= 256, "Asset inventory exceeds its bound")
@@ -102,15 +108,27 @@ def release(tag, expected_sha, output, metadata_path=None):
     require(len(names) == len(set(names)), "Duplicate asset names")
     if output:
         (output / (tag + "-metadata.json")).write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    return {"tag": tag, "sha": sha, "assets": {asset["name"]: asset for asset in metadata["assets"]}, "downloaded": []}
+    return {"tag": tag, "sha": sha, "draft": bool(metadata_path), "releaseId": release_id, "assets": {asset["name"]: asset for asset in metadata["assets"]}, "downloaded": []}
+
+
+def asset_identity(value, name):
+    require(name in value["assets"], "Missing release asset " + name)
+    item = value["assets"][name]
+    if value.get("draft"):
+        require(type(value.get("releaseId")) is int and value["releaseId"] > 0, "Draft release identity missing")
+        require(type(item.get("id")) is int and item["id"] > 0 and item.get("name") == name and item.get("url") == API + "/releases/assets/" + str(item["id"]), "Draft asset API identity mismatch")
+        require(re.fullmatch(r"sha256:[a-f0-9]{64}", item.get("digest") or ""), "Draft asset digest missing or invalid")
+    else:
+        require(item["browser_download_url"] == BASE + value["tag"] + "/" + name, "Asset authority/name mismatch")
+    size = item["size"]
+    require(type(size) is int and 0 < size <= MAX_ASSET, "Invalid release asset size")
+    return item
 
 
 def asset(value, name, output):
-    require(name in value["assets"], "Missing release asset " + name)
-    item = value["assets"][name]
-    require(item["browser_download_url"] == BASE + value["tag"] + "/" + name, "Asset authority/name mismatch")
+    item = asset_identity(value, name)
     size = item["size"]
-    require(type(size) is int and 0 < size <= MAX_ASSET, "Invalid release asset size")
+    require(not value.get("draft") or value.get("assetDirectory"), "Draft assets require authenticated local downloads")
     if value.get("assetDirectory"):
         local = Path(value["assetDirectory"]) / name
         require(local.is_file() and not local.is_symlink() and local.stat().st_size == size, "Draft file size/type mismatch: " + name)
@@ -125,7 +143,7 @@ def asset(value, name, output):
     path = output / name
     with path.open("xb") as stream:
         stream.write(data)
-    value["downloaded"].append({"name": name, "bytes": len(data), "sha256": sha})
+    value["downloaded"].append({"name": name, "assetId": item.get("id"), "bytes": len(data), "sha256": sha})
     return data
 
 
@@ -220,8 +238,12 @@ def clean_environment():
     return {key: value for key, value in os.environ.items() if not key.upper().startswith("PROTOPEEK_") and key.upper() not in {"GH_TOKEN", "GITHUB_TOKEN"}}
 
 
-def child_environment(profile):
+def child_environment(profile, isolate_home=False):
     env = clean_environment()
+    if isolate_home:
+        home = profile / "home"
+        home.mkdir(parents=True, exist_ok=True)
+        env["HOME"] = str(home)
     for key, name in {"APPDATA": "appdata", "LOCALAPPDATA": "localappdata", "XDG_CONFIG_HOME": "config", "XDG_CACHE_HOME": "cache", "XDG_DATA_HOME": "data", "XDG_STATE_HOME": "state", "TEMP": "temp", "TMP": "temp", "TMPDIR": "temp"}.items():
         path = profile / name
         path.mkdir(parents=True, exist_ok=True)
@@ -310,6 +332,33 @@ def install(installer, value, prefix, profile, label, output, windows, draft=Fal
     return {"tag": value["tag"], "versions": versions, "verifiedInstalledHashes": {name: value["hashes"][name] for name in names}, "installerSource": "verified-file-URLs (draft only)" if draft else "anonymous-official-release-URLs", "versionSelection": "explicit-tag" if explicit_version else "latest-stable-resolver"}
 
 
+def missing_default_directories(home, targets):
+    missing = set()
+    for target in targets:
+        directory = target
+        while directory != home:
+            require(directory.resolve().is_relative_to(home), "Default directory escapes ephemeral runner home")
+            if not directory.exists():
+                missing.add(directory)
+            directory = directory.parent
+    return sorted(missing, key=lambda path: len(path.parts), reverse=True)
+
+
+def remove_new_empty_directories(home, directories):
+    retained = []
+    for directory in sorted(directories, key=lambda path: len(path.parts), reverse=True):
+        require(directory.resolve().is_relative_to(home) and directory != home, "Cleanup directory escapes ephemeral runner home")
+        try:
+            directory.rmdir()
+        except FileNotFoundError:
+            continue
+        except OSError as error:
+            if error.errno not in (errno.ENOTEMPTY, errno.EEXIST):
+                raise
+            retained.append(str(directory.relative_to(home)))
+    return retained
+
+
 def ephemeral_default(installer, value, output, windows, draft):
     runner_temp = os.environ.get("RUNNER_TEMP")
     require(os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted" and runner_temp and output.is_relative_to(Path(runner_temp).resolve()), "Default-path acceptance is restricted to an ephemeral GitHub-hosted runner sandbox")
@@ -331,7 +380,7 @@ def ephemeral_default(installer, value, output, windows, draft):
         files = [prefix / name for name in ("protopeek", "pp", ".protopeek-install")] + [man_dir / name for name in ("protopeek.1", "pp.1")]
         require(all(not path.exists() and not path.is_symlink() for path in files), "Default ProtoPeek target exists; refusing overwrite")
         require(prefix.resolve().is_relative_to(home) and man_dir.resolve().is_relative_to(home), "Default install escapes the ephemeral runner home")
-        directories = [path for path in (prefix, man_dir) if not path.exists()]
+        directories = missing_default_directories(home, (prefix, man_dir))
     result = None
     try:
         result = install(installer, value, prefix, output / "default-version-profile", "ephemeral-default", output, windows, draft, True, man_dir)
@@ -357,12 +406,10 @@ def ephemeral_default(installer, value, output, windows, draft):
             if path.exists():
                 require(path.is_file() and not path.is_symlink(), "Unexpected default-install cleanup target")
                 path.unlink()
-        for directory in directories:
-            if directory.exists():
-                require(directory.resolve().is_relative_to(home), "Cleanup directory escapes ephemeral runner home")
-                directory.rmdir()  # Only known, newly created empty directories; never recursive.
+        retained = remove_new_empty_directories(home, directories)
         if result is not None:
-            result["cleanup"] = "Exact created files removed; Windows user PATH restored; no recursive home deletion."
+            result["cleanup"] = "Exact created files and newly created empty directories removed; Windows user PATH restored; no recursive home deletion."
+            result["retainedNonemptyDirectories"] = retained
 
 
 class Assets(HTMLParser):
@@ -390,7 +437,7 @@ def local_request(url, headers=None):
 
 
 def smoke(binary, value, profile, label, output, expected_catalog):
-    env = child_environment(profile)
+    env = child_environment(profile, isolate_home=True)
     log_path = output / (label + "-server.log")
     process, address = None, None
     with log_path.open("wb") as log:
@@ -470,12 +517,10 @@ def main():
         names = [archive, archive + ".sbom.json", "checksums.txt", "install.sh", "install.ps1", "aria2-1.37.0-companion-sources.tar.gz"]
         total = 0
         for name in names:
-            item = value["assets"].get(name)
-            require(item and item["browser_download_url"] == BASE + args.tag + "/" + name, "Draft asset authority mismatch")
-            require(type(item["size"]) is int and 0 < item["size"] <= MAX_ASSET, "Draft asset size exceeds bound")
+            item = asset_identity(value, name)
             total += item["size"]
         require(total <= 512 << 20, "Draft download plan exceeds its aggregate bound")
-        print(json.dumps(names))
+        print(json.dumps({"releaseId": value["releaseId"], "assets": [{"id": value["assets"][name]["id"], "name": name, "url": value["assets"][name]["url"], "size": value["assets"][name]["size"], "digest": value["assets"][name]["digest"]} for name in names]}))
         return 0
     require(not args.install or args.previous_tag and TAG.fullmatch(args.previous_tag), "Published previous tag required for install/upgrade acceptance")
     require(not args.ephemeral_default or args.install, "Default-path acceptance requires --install")

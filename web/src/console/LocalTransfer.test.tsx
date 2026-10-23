@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { LocalTransfer } from './LocalTransfer';
 
@@ -24,6 +24,7 @@ const running = {
   peers: [{ id: 'b'.repeat(64), name: 'Laptop', address: '192.168.1.2:53318' }],
 };
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -150,4 +151,139 @@ it('rejects ambiguous manual invitations without contacting a peer', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Connect device' }));
   expect(screen.getByRole('alert')).toHaveTextContent('Paste the receiver’s connection text');
   expect(fetch.mock.calls).toHaveLength(1);
+});
+
+it('backs off idle polling and refreshes active offers and transfers every second', async () => {
+  vi.useFakeTimers();
+  const job = {
+    id: 'offer1',
+    name: 'capture.pcap',
+    peer: 'Laptop',
+    size: 100,
+    bytes: 0,
+    direction: 'receive',
+    state: 'pending',
+    started: new Date().toISOString(),
+  };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => running })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ ...running, jobs: [job] }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...running, jobs: [{ ...job, state: 'receiving' }] }),
+    })
+    .mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...running, jobs: [{ ...job, state: 'completed' }] }),
+    });
+  vi.stubGlobal('fetch', fetch);
+  render(<LocalTransfer />);
+  await act(async () => {});
+  await act(async () => vi.advanceTimersByTimeAsync(3999));
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await act(async () => vi.advanceTimersByTimeAsync(1));
+  expect(screen.getByRole('button', { name: 'Accept file' })).toBeVisible();
+  await act(async () => vi.advanceTimersByTimeAsync(1000));
+  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(screen.getByRole('button', { name: 'Cancel capture.pcap' })).toBeVisible();
+  await act(async () => vi.advanceTimersByTimeAsync(1000));
+  expect(fetch).toHaveBeenCalledTimes(4);
+  await act(async () => vi.advanceTimersByTimeAsync(3999));
+  expect(fetch).toHaveBeenCalledTimes(4);
+  await act(async () => vi.advanceTimersByTimeAsync(1));
+  expect(fetch).toHaveBeenCalledTimes(5);
+});
+
+it('stays Offline after Stop aborts an in-flight poll and ignores its late snapshot', async () => {
+  vi.useFakeTimers();
+  let pollSignal: AbortSignal | undefined;
+  let resolvePoll!: (response: object) => void;
+  let snapshots = 0;
+  const fetch = vi.fn(async (url: string, init: RequestInit) => {
+    if (url.endsWith('/stop')) return { ok: true, json: async () => stopped };
+    if (++snapshots === 1) return { ok: true, json: async () => running };
+    pollSignal = init.signal as AbortSignal;
+    return new Promise((resolve) => {
+      resolvePoll = resolve;
+    });
+  });
+  vi.stubGlobal('fetch', fetch);
+  render(<LocalTransfer />);
+  await act(async () => {});
+  await act(async () => vi.advanceTimersByTimeAsync(4000));
+  expect(snapshots).toBe(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+  await act(async () => {});
+  expect(pollSignal?.aborted).toBe(true);
+  expect(screen.getByText('Offline')).toBeVisible();
+  expect(screen.queryByText('Checking…')).not.toBeInTheDocument();
+  await act(async () => resolvePoll({ ok: true, json: async () => running }));
+  expect(screen.getByRole('button', { name: 'Enable local transfer' })).toBeDisabled();
+  expect(screen.getByText('Offline')).toBeVisible();
+  await act(async () => vi.advanceTimersByTimeAsync(12000));
+  expect(snapshots).toBe(2);
+});
+
+it('ignores a delayed send-cleanup snapshot that arrives after Stop sharing', async () => {
+  vi.useFakeTimers();
+  let resolveCleanup!: (response: object) => void;
+  let cleanupSignal: AbortSignal | null | undefined;
+  let snapshots = 0;
+  const fetch = vi.fn(async (url: string, init: RequestInit) => {
+    if (url.endsWith('/stop')) return { ok: true, json: async () => stopped };
+    if (url.includes('/send?')) return { ok: true, json: async () => ({}) };
+    if (++snapshots === 1) return { ok: true, json: async () => running };
+    cleanupSignal = init.signal;
+    return new Promise((resolve) => {
+      resolveCleanup = resolve;
+    });
+  });
+  vi.stubGlobal('fetch', fetch);
+  render(<LocalTransfer />);
+  await act(async () => {});
+  fireEvent.click(screen.getByRole('button', { name: /Laptop 192/ }));
+  fireEvent.change(screen.getByLabelText(/Select files to send/), {
+    target: { files: [new File(['owned fixture'], 'capture.txt')] },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Send 1 file' }));
+  await act(async () => {});
+  expect(screen.getByText('Files received and checksums matched.')).toBeVisible();
+  expect(snapshots).toBe(2);
+  expect(cleanupSignal).toBeUndefined();
+  fireEvent.click(screen.getByRole('button', { name: 'Stop sharing' }));
+  await act(async () => {});
+  expect(screen.getByText('Offline')).toBeVisible();
+  await act(async () => resolveCleanup({ ok: true, json: async () => running }));
+  expect(screen.getByText('Offline')).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Stop sharing' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Enable local transfer' })).toBeDisabled();
+  await act(async () => vi.advanceTimersByTimeAsync(12000));
+  expect(snapshots).toBe(2);
+});
+
+it('keeps sub-kilobyte transfer speeds readable without long fractional bytes', async () => {
+  vi.useFakeTimers();
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => ({
+      ...running,
+      jobs: [
+        {
+          id: 'active1',
+          name: 'capture.pcap',
+          peer: 'Laptop',
+          size: 2048,
+          bytes: 512,
+          direction: 'receive',
+          state: 'receiving',
+          started: new Date(Date.now() - 3000).toISOString(),
+        },
+      ],
+    }),
+  }));
+  vi.stubGlobal('fetch', fetch);
+  render(<LocalTransfer />);
+  await act(async () => {});
+  expect(screen.getByText('512 B / 2.0 KB · 171 B/s average')).toBeVisible();
 });

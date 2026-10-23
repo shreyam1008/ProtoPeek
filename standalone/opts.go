@@ -9,6 +9,8 @@ import (
 	"path"
 	"reflect"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/media"
 )
 
 // WebFormContainerTemplateData is the param type for templates that embed the webform HTML.
@@ -352,6 +354,8 @@ type handlerOptions struct {
 	pathTraceHandler        http.Handler
 	transferService         TransferService
 	localShareService       LocalShareService
+	mediaService            *media.Service
+	mediaServiceFactory     func() (*media.Service, error)
 	thisPCService           ThisPCService
 	tunnelService           TunnelService
 	netbirdService          NetBirdService

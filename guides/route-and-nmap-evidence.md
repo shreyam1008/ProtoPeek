@@ -200,7 +200,7 @@ is interactive through 160 nodes, 640 relationships, and 64 groups; above any bo
 
 ## Optional installed Nmap
 
-**Network → Nmap** uses a separately installed executable only after the user reviews a literal
+**Extensions → Nmap** uses a separately installed executable only after the user reviews a literal
 IP or private IPv4 `/24`-or-smaller scope and starts the scan. The two admitted modes are TCP connect
 and light service detection. No arbitrary flags, scripts, hostnames, automatic installation or
 elevation are accepted. Service-detection probes are additional application traffic, not a passive

@@ -30,6 +30,7 @@ const DefaultPort = 53318
 const protocol = "protopeek-share/1"
 const maxJobs = 64
 const maxOffers = 4
+const maxPeers = 128
 const offerBodyTimeout = 5 * time.Second
 
 type Peer struct {
@@ -182,12 +183,9 @@ func (s *Service) Snapshot() Snapshot {
 			}
 		}
 	}
-	for id, p := range s.peers {
-		if !p.Manual && time.Since(p.Seen) > 3*time.Minute {
-			delete(s.peers, id)
-		} else {
-			out.Peers = append(out.Peers, p)
-		}
+	s.prunePeers(time.Now())
+	for _, p := range s.peers {
+		out.Peers = append(out.Peers, p)
 	}
 	for _, j := range s.jobs {
 		out.Jobs = append(out.Jobs, *j)
@@ -196,6 +194,16 @@ func (s *Service) Snapshot() Snapshot {
 	sort.Slice(out.Jobs, func(i, j int) bool { return out.Jobs[i].Started.After(out.Jobs[j].Started) })
 	return out
 }
+
+// Caller holds mu. Manually pinned receivers remain until this session ends.
+func (s *Service) prunePeers(now time.Time) {
+	for id, p := range s.peers {
+		if !p.Manual && now.Sub(p.Seen) > 3*time.Minute {
+			delete(s.peers, id)
+		}
+	}
+}
+
 func (s *Service) newJob(name, peer, direction string, size int64, cancel context.CancelFunc) (*Job, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

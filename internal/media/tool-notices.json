@@ -1,0 +1,40 @@
+[
+  {
+    "engine": "yt-dlp",
+    "version": "2026.08.19",
+    "distribution": "yt-dlp standalone distribution, including bundled third-party components",
+    "sourceUrl": "https://github.com/yt-dlp/yt-dlp/tree/2026.08.19",
+    "files": [
+      {"name": "LICENSE.txt", "url": "https://raw.githubusercontent.com/yt-dlp/yt-dlp/2026.08.19/LICENSE", "size": 1211, "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c"},
+      {"name": "THIRD_PARTY_LICENSES.txt", "url": "https://raw.githubusercontent.com/yt-dlp/yt-dlp/2026.08.19/THIRD_PARTY_LICENSES.txt", "size": 243550, "sha256": "472aefe951c7db35e1657c1d13fd337140511ed6f2b329205105ad441c5a02b7"}
+    ]
+  },
+  {
+    "engine": "deno",
+    "version": "v2.9.6",
+    "distribution": "Deno standalone distribution",
+    "sourceUrl": "https://github.com/denoland/deno/tree/v2.9.6",
+    "files": [
+      {"name": "LICENSE.txt", "url": "https://raw.githubusercontent.com/denoland/deno/v2.9.6/LICENSE.md", "size": 1074, "sha256": "f62497fffecc0852960c8d3e6934b9db86d16396e9b604072e923892cae3a588"}
+    ]
+  },
+  {
+    "engine": "gallery-dl",
+    "version": "v1.32.12",
+    "distribution": "gallery-dl standalone distribution",
+    "sourceUrl": "https://github.com/mikf/gallery-dl/tree/v1.32.12",
+    "files": [
+      {"name": "LICENSE.txt", "url": "https://raw.githubusercontent.com/mikf/gallery-dl/v1.32.12/LICENSE", "size": 18092, "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"}
+    ]
+  },
+  {
+    "engine": "ffmpeg",
+    "version": "9.0.2",
+    "distribution": "Gyan.dev FFmpeg Windows essentials build (GPLv3)",
+    "sourceUrl": "https://github.com/FFmpeg/FFmpeg/commit/946fcce07b",
+    "files": [
+      {"name": "LICENSE", "archive": true, "size": 35147, "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"},
+      {"name": "README.txt", "archive": true, "size": 41577, "sha256": "0342de6bb39dd421cbec2c00d89ad274b640d75ad3f2cab09ffd647ce2d8f949"}
+    ]
+  }
+]

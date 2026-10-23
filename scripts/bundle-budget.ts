@@ -392,17 +392,37 @@ export const consoleBundleBudgets: BundleBudget[] = [
     maxGzipBytes: 9 * kibibyte,
   },
   {
-    label: 'Downloader workspace JavaScript',
-    pattern: /^Downloader-.+\.js$/,
+    label: 'File downloader workspace JavaScript',
+    pattern: /^FileDownloader-.+\.js$/,
     // Host history, restore/stop controls and foreground progress: 24,860 raw bytes.
     maxRawBytes: 25 * kibibyte,
     maxGzipBytes: 8 * kibibyte,
   },
   {
-    label: 'Downloader workspace CSS',
-    pattern: /^Downloader-.+\.css$/,
+    label: 'File downloader workspace CSS',
+    pattern: /^FileDownloader-.+\.css$/,
     maxRawBytes: 16 * kibibyte,
     maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'Downloader mode navigation JavaScript',
+    pattern: /^Downloader-.+\.js$/,
+    maxRawBytes: 3 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
+  {
+    label: 'Media downloader JavaScript',
+    pattern: /^MediaDownloader-.+\.js$/,
+    maxRawBytes: 18 * kibibyte,
+    maxGzipBytes: 6 * kibibyte,
+  },
+  {
+    label: 'Media and mode navigation CSS',
+    pattern: /^(?:MediaDownloader|Downloader)-.+\.css$/,
+    mode: 'aggregate',
+    requiredMembers: [/^MediaDownloader-.+\.css$/, /^Downloader-.+\.css$/],
+    maxRawBytes: 5 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
   },
   {
     label: 'Downloader advanced-options CSS',
@@ -548,8 +568,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Every pack has an individual cap and the complete lazy journey is capped.
     // Original startup, Home, HTTP/gRPC and shared/base CSS ceilings remain fixed.
     // The separately capped local-transfer route adds at most 12/5 KiB raw/gzip.
-    maxRawBytes: 1367 * kibibyte,
-    maxGzipBytes: 475 * kibibyte,
+    // Media adds a separately capped 18 KiB view and 3 KiB mode switch.
+    maxRawBytes: 1388 * kibibyte,
+    maxGzipBytes: 483 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -566,8 +587,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // scrolling. Shared and existing base CSS caps stay fixed.
     // Twenty-entry library/detail and mobile access:384,591 raw (+5,092).
     // Local transfer adds at most 5/2 KiB CSS independently capped above.
-    maxRawBytes: 385 * kibibyte,
-    maxGzipBytes: 82 * kibibyte,
+    // Media and its mode switch add at most 5/2 KiB, independently capped.
+    maxRawBytes: 390 * kibibyte,
+    maxGzipBytes: 84 * kibibyte,
   },
 ];
 
