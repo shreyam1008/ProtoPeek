@@ -140,18 +140,18 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>&gt; v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release &gt; assets and never falls back to a prerelease.</p>
+                <p>&gt; The default resolver installs the <a href="https://github.com/shreyam1008/ProtoPeek/releases/latest" rel="noreferrer" target="_blank">latest published stable release</a> &gt; from immutable, checksum-verified GitHub assets. It never falls back to a draft or prerelease. &gt; A source tag or candidate build does not make an archive available.</p>
 <h2 id="install-through-an-owned-package-channel">Install through an owned package channel</h2>
 <p>Homebrew on macOS or Linux installs both <code>protopeek</code> and <code>pp</code>, plus both manpages:</p>
 <pre class="pp-doc-code"><code data-lang="sh">brew install shreyam1008/tap/protopeek</code></pre>
 <p>Scoop on Windows installs both executable shims from the owned bucket:</p>
 <pre class="pp-doc-code"><code data-lang="powershell">scoop bucket add shreyam https://github.com/shreyam1008/scoop-bucket
 scoop install shreyam/protopeek</code></pre>
-<p>The formula and manifest pin release archives by SHA-256 and declare aria2 as a package dependency. Check the manifest for its packaged version; the direct resolver selects latest stable. Update with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>; uninstall with <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>.</p>
+<p>The formula and manifest pin release archives by SHA-256 and declare aria2 as a package dependency. Check the manifest for its packaged version; the direct resolver selects latest stable. GitHub releases, Homebrew, Scoop and APT promote versions independently. A new source version does not update an installed package or prove that its channel has promoted the same version. Update with <code>brew upgrade protopeek</code> or <code>scoop update protopeek</code>; uninstall with <code>brew uninstall protopeek</code> or <code>scoop uninstall protopeek</code>.</p>
 <h2 id="install-through-the-release-resolver">Install through the release resolver</h2>
 <pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh</code></pre>
 <p>The installer verifies the selected archive against the matching <code>checksums.txt</code> before extraction. It provides <code>protopeek</code> and the short <code>pp</code> command unless an unrelated <code>pp</code> already occupies the install directory; that file is never overwritten. Older verified archives that contain only <code>protopeek</code> are supported by deriving the alias from that verified binary.</p>
-<p>v0.6.1 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.</p>
+<p>Windows x64 archives from v0.6.1 onward bundle pinned aria2 1.37.0 inside the executable. It is extracted only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.</p>
 <p>Windows PowerShell installs per user and updates the user PATH without requiring administrator access:</p>
 <pre class="pp-doc-code"><code data-lang="powershell">irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <p>To inspect the script first:</p>
@@ -161,12 +161,12 @@ Get-Content .\install.ps1
 <h2 id="install-a-pinned-release">Install a pinned release</h2>
 <p>The Windows PowerShell 5.1 and PowerShell 7 compatible per-user installer adds a <strong>ProtoPeek</strong> Start-menu shortcut. It opens the browser and minimizes the console. The shortcut uses loopback port <code>8844</code>, keeping the browser origin stable so drafts and appearance survive a restart. Use <code>-UIPort</code> to choose another port if it is occupied, or <code>-NoShortcuts</code> for a CLI-only installation. <code>-ShortcutDir</code> supports a custom Start-menu destination. A shortcut pointing at a different installation is preserved. The console process remains the server: closing the browser leaves downloads running; stopping the server requires queue recovery on next start. Reopen the existing browser address while the server is running instead of starting a second copy.</p>
 <p>The bundled engine adds about 2.36 MiB compressed to Windows x64 builds. Its upstream Windows TLS implementation does not support TLS 1.3-only servers; configure another aria2 build if needed. Source and notices are documented in <code>internal/bundledaria2/README.md</code> and accompany the release.</p>
-<p>The installers accept a pinned immutable tag:</p>
+<p>The installers accept a pinned immutable tag that has published release assets. These examples deliberately select the historical v0.6.1 release, for reproducing that version or rolling back; omit <code>PROTOPEEK_VERSION</code> to select latest stable instead:</p>
 <pre class="pp-doc-code"><code data-lang="sh">PROTOPEEK_VERSION=v0.6.1 sh -c &quot;$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)&quot;</code></pre>
 <pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.1&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <h2 id="nightly-builds">Nightly builds</h2>
-<p>Every successful push build from <code>main</code> or <code>master</code> refreshes the single <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly prerelease</a>. It carries the latest development work without changing stable v0.6.1, GitHub Latest, Homebrew, Scoop, or a numbered stable version. Nightly is opt-in and may contain regressions. No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.</p>
+<p>Every successful push build from <code>main</code> or <code>master</code> refreshes the single <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly prerelease</a>. It carries the latest development work without changing GitHub Latest, a numbered stable release, Homebrew or Scoop. Nightly is opt-in and may contain regressions. No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.</p>
 <p>Windows PowerShell (also works from System32):</p>
 <pre class="pp-doc-code"><code data-lang="powershell">$env:PROTOPEEK_CHANNEL = &#39;nightly&#39;
 Remove-Item Env:PROTOPEEK_VERSION -ErrorAction SilentlyContinue
@@ -177,9 +177,9 @@ try {
 }</code></pre>
 <p>macOS / Linux:</p>
 <pre class="pp-doc-code"><code data-lang="sh">curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | PROTOPEEK_CHANNEL=nightly PROTOPEEK_VERSION= sh</code></pre>
-<p>A pinned <code>PROTOPEEK_VERSION</code> overrides the channel, which is why these examples clear it. Subsequent <code>pp update</code> or <code>protopeek update</code> commands follow the installed Nightly channel. Use <code>--channel stable</code> to return to stable; stable v0.6.1 does not include the updater yet. Legacy <code>PROTOPEEK_CHANNEL=edge</code> remains supported, but Edge is now published manually. Stable resolution never falls back to either preview channel.</p>
-<h2 id="upgrade-from-the-cli-or-ui-new-on-nightly">Upgrade from the CLI or UI (new on Nightly)</h2>
-<p>These commands are included in Nightly builds, not the v0.6.1 stable binary. Existing older installs need one installer run to obtain them. Then either name works:</p>
+<p>A pinned <code>PROTOPEEK_VERSION</code> overrides the channel, which is why these examples clear it. Subsequent <code>pp update</code> or <code>protopeek update</code> commands follow the installed Nightly channel. Use <code>--channel stable</code> to return to the latest published stable release. The historical v0.6.1 binary does not include the updater; switching to it removes that command. Legacy <code>PROTOPEEK_CHANNEL=edge</code> remains supported, but Edge is now published manually. Stable resolution never falls back to either preview channel.</p>
+<h2 id="upgrade-from-the-cli-or-ui">Upgrade from the CLI or UI</h2>
+<p>These commands are included in the v0.7.0 build and in compatible Nightly builds. The v0.6.1 binary lacks them and needs one installer upgrade to a published build containing the updater. Then either name works:</p>
 <pre class="pp-doc-code"><code data-lang="sh">pp update
 protopeek update --check
 pp update --channel nightly
@@ -208,7 +208,7 @@ docker run --rm -p 127.0.0.1:8080:8080 protopeek:dev</code></pre>
               <section class="pp-doc-side-card">
                 <div class="pp-doc-side-label">On this page</div>
                 <div class="pp-doc-toc">
-                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#nightly-builds">Nightly builds</a><a class="level-2" href="#upgrade-from-the-cli-or-ui-new-on-nightly">Upgrade from the CLI or UI (new on Nightly)</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
+                  <a class="level-2" href="#install-through-an-owned-package-channel">Install through an owned package channel</a><a class="level-2" href="#install-through-the-release-resolver">Install through the release resolver</a><a class="level-2" href="#install-a-pinned-release">Install a pinned release</a><a class="level-2" href="#nightly-builds">Nightly builds</a><a class="level-2" href="#upgrade-from-the-cli-or-ui">Upgrade from the CLI or UI</a><a class="level-2" href="#upgrade-and-rollback">Upgrade and rollback</a><a class="level-2" href="#uninstall">Uninstall</a><a class="level-2" href="#docker">Docker</a>
                 </div>
               </section>
 

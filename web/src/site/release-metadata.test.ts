@@ -14,30 +14,61 @@ function readRepositoryFile(path: string) {
   return readRepositoryBytes(path).toString('utf8').replaceAll('\r\n', '\n');
 }
 
+const product = JSON.parse(readRepositoryFile('product.json')) as {
+  latestRelease: { version: string; status: string; url: string };
+  releaseCandidate?: { version: string; status: string };
+  distributions: Array<{
+    channel: string;
+    status: string;
+    url: string;
+    version?: string;
+    verifiedAt?: string;
+  }>;
+};
+const stableVersion = product.latestRelease.version;
+const packagedVersion = product.releaseCandidate?.version ?? stableVersion;
+
 describe('release metadata', () => {
   it('keeps the stable release and independently promoted package versions explicit', () => {
-    const product = JSON.parse(readRepositoryFile('product.json')) as {
-      latestRelease: { version: string; status: string; url: string };
-      distributions: Array<{ channel: string; version?: string; verifiedAt?: string }>;
-    };
     const packageVersions = Object.fromEntries(
       product.distributions.map((channel) => [channel.channel, channel.version])
     );
 
     expect(product.latestRelease).toEqual({
-      version: '0.6.1',
+      version: stableVersion,
       status: 'published',
-      url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1',
+      url: `https://github.com/shreyam1008/ProtoPeek/releases/tag/v${stableVersion}`,
     });
-    expect(packageVersions['GitHub Releases']).toBe('0.6.1');
-    expect(packageVersions['Homebrew Tap']).toBe('0.6.1');
-    expect(packageVersions['Scoop Bucket']).toBe('0.6.1');
-    expect(
-      product.distributions.find((channel) => channel.channel === 'Homebrew Tap')?.verifiedAt
-    ).toBe('2026-09-07');
-    expect(
-      product.distributions.find((channel) => channel.channel === 'Scoop Bucket')?.verifiedAt
-    ).toBe('2026-09-07');
+    expect(stableVersion).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(packageVersions['GitHub Releases']).toBe(stableVersion);
+    for (const name of ['Homebrew Tap', 'Scoop Bucket']) {
+      const channel = product.distributions.find((item) => item.channel === name);
+      expect(channel?.status).toBe('live');
+      expect(channel?.version).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(channel?.verifiedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(channel?.url).toMatch(/^https:\/\/github.com\/shreyam1008\//);
+    }
+    if (product.releaseCandidate) {
+      expect(product.releaseCandidate.status).toBe('prepared');
+      expect(product.releaseCandidate.version).toMatch(/^\d+\.\d+\.\d+$/);
+      expect(product.releaseCandidate.version).not.toBe(stableVersion);
+    }
+    const readme = readRepositoryFile('README.md');
+    expect(readme).toContain(`v${packagedVersion}`);
+    if (packagedVersion !== stableVersion) {
+      expect(readme).not.toContain(`Latest stable: v${stableVersion}`);
+    }
+    const stable = readRepositoryFile('.goreleaser.yml');
+    expect(stable).toContain('use_existing_draft: true');
+    expect(stable).toContain('replace_existing_artifacts: true');
+    const checksumSection = stable.split('\nchecksum:\n')[1]?.split('\nsboms:')[0];
+    for (const file of [
+      './install.sh',
+      './install.ps1',
+      './.local/aria2-1.37.0-companion-sources.tar.gz',
+    ]) {
+      expect(checksumSection).toContain(`glob: ${file}`);
+    }
   });
 
   it('publishes branch builds only to Nightly and keeps stable promotion explicit', () => {
@@ -54,6 +85,18 @@ describe('release metadata', () => {
     expect(packaging).toContain('prerelease: true');
     expect(packaging).toContain('make_latest: false');
     expect(packaging).not.toMatch(/^(brews|scoops|dockers):/m);
+    expect(readRepositoryFile('.github/workflows/snap.yml')).not.toContain('  push:');
+    expect(stable).toContain('unsquashfs -d "$snap_root"');
+    const snap = readRepositoryFile('snap/snapcraft.yaml');
+    for (const license of [
+      'go-capnp-MIT.txt',
+      'zeropool-APACHE-2.0.txt',
+      'quic-go-MIT.txt',
+      'qpack-MIT.txt',
+    ]) {
+      expect(snap).toContain(license);
+      expect(stable).toContain(license);
+    }
   });
 
   it('aligns public discovery metadata and packaged manual headers', () => {
@@ -72,8 +115,8 @@ describe('release metadata', () => {
     const document = new DOMParser().parseFromString(siteIndex, 'text/html');
     expect(document.title).toBe(registry.pages.find((page) => page.id === 'home')?.documentTitle);
     expect(document.title).toContain('gRPC, HTTP');
-    expect(siteIndex).toContain('"softwareVersion": "0.6.1"');
-    expect(siteIndex).toContain('/releases/tag/v0.6.1');
+    expect(siteIndex).toContain(`"softwareVersion": "${stableVersion}"`);
+    expect(siteIndex).toContain(`/releases/tag/v${stableVersion}`);
     expect(siteIndex).toContain('six areas: Home, Inspect, Network, Publish, Files, and Settings');
     expect(siteIndex).toContain(
       '<meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />'
@@ -81,7 +124,7 @@ describe('release metadata', () => {
     expect(siteIndex).toContain('<meta property="og:image:width" content="1200" />');
     expect(siteIndex).toContain('<meta property="og:image:height" content="630" />');
     expect(manifest.theme_color).toBe('#0b5cff');
-    expect(llms).toContain('v0.6.1 is the current stable release');
+    expect(llms).toContain(`v${stableVersion} is the current stable release`);
     expect(llms).toContain('Homebrew and Scoop manifests identify their package versions');
     expect(llms).toContain('Windows x64 includes pinned aria2 1.37.0');
     expect(llms).toContain('Headscale HTTPS login-server flow and native NetBird');
@@ -113,8 +156,9 @@ describe('release metadata', () => {
 
     const protopeekMan = readRepositoryFile('web/site/public/man/protopeek.1');
     const ppMan = readRepositoryFile('web/site/public/man/pp.1');
-    expect(protopeekMan).toMatch(/^\.TH PROTOPEEK 1 "September 2026" "ProtoPeek 0\.6\.1"/);
-    expect(ppMan).toMatch(/^\.TH PP 1 "September 2026" "ProtoPeek 0\.6\.1"/);
+    // Match the stable-tag guard's exact fourth quoted field, including patch version.
+    expect(protopeekMan.split('\n')[0]?.split('"')[3]).toBe(`ProtoPeek ${packagedVersion}`);
+    expect(ppMan.split('\n')[0]?.split('"')[3]).toBe(`ProtoPeek ${packagedVersion}`);
     expect(protopeekMan).toContain('.B protopeek download');
     expect(protopeekMan).toContain('subcommand ships in ProtoPeek v0.5.0');
     expect(protopeekMan).toContain('Windows x64 includes pinned aria2 1.37.0');
@@ -147,9 +191,7 @@ describe('release metadata', () => {
     );
     expect(readme).toContain('<a id="install"></a>');
     expect(readme).toContain('<a id="usage"></a>');
-    expect(readme).toContain(
-      'Current source: install guidance and clearly labelled integration levels; stable v0.6.1 uses Network → Tailscale and Publish'
-    );
+    expect(readme).toContain('clearly labelled integration levels');
     expect(readme).not.toMatch(/\b\d+ UI tests\b/);
     expect(readme).not.toMatch(/nightly[^\n]{0,80}\b[0-9a-f]{7,40}\b/i);
     const source = new DOMParser().parseFromString(

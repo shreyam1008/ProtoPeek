@@ -1,10 +1,11 @@
 # Route, path, discovery, and Nmap evidence boundary
 
-ProtoPeek keeps four network-evidence paths separate because they have different authority and
+ProtoPeek keeps network-evidence workflows separate because they have different authority and
 trust models. Next-hop lookup reads the local kernel without probes. Network Path sends a bounded,
 consented active probe plan. Local discovery opens selected TCP connections inside one authorized
-private IPv4 scope. The Nmap path imports a file produced elsewhere. None is a general-purpose or
-ambient network scanner.
+private IPv4 scope. Optional installed Nmap runs one reviewed bounded scan; offline XML import reads
+evidence produced elsewhere without running Nmap. None silently starts an ambient scan, and an open
+TCP port is not proof of an application protocol or healthy service.
 
 ## Next-hop route lookup
 
@@ -197,6 +198,19 @@ represents logical observed/manual/inferred/unknown evidence, never asserted phy
 is interactive through 160 nodes, 640 relationships, and 64 groups; above any bound, a complete
 100-record paged node/group/relationship inventory replaces the map without dropping records.
 
+## Optional installed Nmap
+
+**Network → Nmap** uses a separately installed executable only after the user reviews a literal
+IP or private IPv4 `/24`-or-smaller scope and starts the scan. The two admitted modes are TCP connect
+and light service detection. No arbitrary flags, scripts, hostnames, automatic installation or
+elevation are accepted. Service-detection probes are additional application traffic, not a passive
+interpretation of the port number.
+
+The adapter permits 1,024 ports and 4,096 host-port pairs, at most 32 parallel connections,
+15 seconds per host and a 30-second command deadline. Those bounds are distinct from the built-in
+host scanner's full-range sequential batches. Cancellation terminates this invocation; partial XML
+is labelled as incomplete evidence. See the [installed Nmap workflow](network-workbench.md#installed-nmap-in-current-source).
+
 ## Offline Nmap XML import
 
 `POST /api/nmap/import` accepts raw `application/xml` previously produced by `nmap -oX`. It never
@@ -226,11 +240,11 @@ non-open states are shown as imported evidence but cannot be verified by the cur
 
 ## Remaining wider boundaries
 
-- **Bundled Nmap execution:** not planned for the core binary because executable discovery, argument construction, platform packaging, and scan scope widen the operational boundary. Any future companion would require an explicit executable choice, previewed scope, hard budgets, and an auditable command; offline XML import does not imply that design exists.
+- **Optional Nmap:** the installed adapter admits only the reviewed TCP connect/light service modes and fixed scope limits above. ProtoPeek does not bundle or install Nmap/Npcap. The separate XML importer never executes an external tool.
 - **Native active-hop acceptance:** Windows ICMP ships in v0.6.1; current source adds macOS ICMP. Exact-commit platform tests and real intermediate-router acceptance remain required. No trace action hides an executable install or privilege escalation.
 - **Broader, public, or IPv6 range discovery:** excluded from the current local workflow. The implemented path stays inside one authorized RFC 1918 IPv4 `/24`-or-smaller scope and one exact selected-TCP profile.
 - **Nmap-to-topology boundary · current source, 22 October 2026:** Network history previews bounded XML conversion and exact omitted host/identity/port/service counts before saving a new workspace and immutable snapshot. Source scan time stays unknown, imported hints remain unverified, and no links are invented. Import does not execute Nmap, overwrite another map or contact hosts.
-- **Live capture:** gated because it can require privilege and expose secrets. Release requires an explicit lifecycle, redaction/export policy, and dependable cross-platform teardown.
+- **Live capture:** the optional installed-dumpcap adapter has an explicit start/cancel lifecycle and bounded host-visible recording. Real capture-driver/permission and cross-platform teardown acceptance remain gates; packet-file fixtures do not establish them. Encrypted traffic is not decrypted.
 
 For the user workflow, storage behavior, and Now/Soon/Later plan, see the
 [network workbench guide](/network-workbench/).

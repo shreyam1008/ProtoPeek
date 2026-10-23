@@ -1,7 +1,8 @@
 # Install, upgrade, uninstall, and rollback
 
-> v0.6.1 is the current stable release. The default resolver installs it from immutable GitHub release
-> assets and never falls back to a prerelease.
+> The default resolver installs the [latest published stable release](https://github.com/shreyam1008/ProtoPeek/releases/latest)
+> from immutable, checksum-verified GitHub assets. It never falls back to a draft or prerelease.
+> A source tag or candidate build does not make an archive available.
 
 ## Install through an owned package channel
 
@@ -20,6 +21,8 @@ scoop install shreyam/protopeek
 
 The formula and manifest pin release archives by SHA-256 and declare aria2 as a package
 dependency. Check the manifest for its packaged version; the direct resolver selects latest stable.
+GitHub releases, Homebrew, Scoop and APT promote versions independently. A new source version
+does not update an installed package or prove that its channel has promoted the same version.
 Update with `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
 
@@ -35,7 +38,7 @@ command unless an unrelated `pp` already occupies the install directory; that
 file is never overwritten. Older verified archives that contain only
 `protopeek` are supported by deriving the alias from that verified binary.
 
-v0.6.1 Windows x64 archives bundle pinned aria2 1.37.0 inside the executable. It is extracted
+Windows x64 archives from v0.6.1 onward bundle pinned aria2 1.37.0 inside the executable. It is extracted
 only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64
 and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.
 
@@ -69,7 +72,9 @@ The bundled engine adds about 2.36 MiB compressed to Windows x64 builds. Its ups
 TLS implementation does not support TLS 1.3-only servers; configure another aria2 build if needed.
 Source and notices are documented in `internal/bundledaria2/README.md` and accompany the release.
 
-The installers accept a pinned immutable tag:
+The installers accept a pinned immutable tag that has published release assets. These examples
+deliberately select the historical v0.6.1 release, for reproducing that version or rolling back;
+omit `PROTOPEEK_VERSION` to select latest stable instead:
 
 ```sh
 PROTOPEEK_VERSION=v0.6.1 sh -c "$(curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh)"
@@ -84,8 +89,8 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 
 Every successful push build from `main` or `master` refreshes the single
 [Nightly prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly).
-It carries the latest development work without changing stable v0.6.1, GitHub Latest,
-Homebrew, Scoop, or a numbered stable version. Nightly is opt-in and may contain regressions.
+It carries the latest development work without changing GitHub Latest, a numbered stable
+release, Homebrew or Scoop. Nightly is opt-in and may contain regressions.
 No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.
 
 Windows PowerShell (also works from System32):
@@ -108,14 +113,16 @@ curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/instal
 
 A pinned `PROTOPEEK_VERSION` overrides the channel, which is why these examples clear it.
 Subsequent `pp update` or `protopeek update` commands follow the installed Nightly channel.
-Use `--channel stable` to return to stable; stable v0.6.1 does not include the updater yet.
+Use `--channel stable` to return to the latest published stable release. The historical
+v0.6.1 binary does not include the updater; switching to it removes that command.
 Legacy `PROTOPEEK_CHANNEL=edge` remains supported, but Edge is now published manually.
 Stable resolution never falls back to either preview channel.
 
-## Upgrade from the CLI or UI (new on Nightly)
+## Upgrade from the CLI or UI
 
-These commands are included in Nightly builds, not the v0.6.1 stable binary.
-Existing older installs need one installer run to obtain them. Then either name works:
+These commands are included in the v0.7.0 build and in compatible Nightly builds. The v0.6.1
+binary lacks them and needs one installer upgrade to a published build containing the updater.
+Then either name works:
 
 ```sh
 pp update

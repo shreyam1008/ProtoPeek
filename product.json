@@ -15,6 +15,10 @@
     "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
   },
   "versionSource": "Git tag consumed by .goreleaser.yml",
+  "releaseCandidate": {
+    "version": "0.7.0",
+    "status": "prepared"
+  },
   "verifyCommand": "make ci",
   "changelog": "CHANGELOG.md",
   "securityPolicy": "SECURITY.md",

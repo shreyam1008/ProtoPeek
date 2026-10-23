@@ -3,7 +3,23 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
-## Unreleased
+## v0.7.0 — 2026-10-23
+
+- Brings the service and network family together: five protocol clients, 13 diagnostic modes,
+  Nearby devices, single-host TCP scanning, routes, paths, maps and immutable history. Port ranges
+  up to 65,535 run in bounded batches; port numbers remain hints until explicitly inspected.
+- Adds 20 optional extension packs with six native workbenches and 14 guided companions, plus
+  23 opt-in local MCP/CLI tools. Detail packs load on selection; checks never install or execute
+  vendor tools. Native results and account readiness remain separate.
+- Expands packet triage with transport-aware conversations and optional bounded TCP evidence.
+  Offline PCAP/PCAPNG reading is built in; live capture uses installed dumpcap and host permissions.
+  This does not provide Wireshark's complete dissectors, decryption or unrestricted reconstruction.
+- Adds HTTP environments/libraries and reviewed cURL import, incremental gRPC streaming,
+  Cap’n Proto generic bindings and returned-capability plans, plus explicit typed unsent handoffs.
+- Uses Go 1.26.10, patched native transports and archive license notices. Release verification
+  covers actual draft binaries and public installers on Windows, Linux and macOS. Optional
+  capture drivers, real provider accounts, Microsoft Store certification and Snap Store publication
+  remain separate operational gates.
 
 - Home starts from a service address, with direct HTTP/gRPC shortcuts and compact recent services.
   The tool sidebar can collapse independently of the mobile drawer. Recent tools are navigation
@@ -57,7 +73,7 @@ version source of truth.
   Blocked paths remain rejected; transfer files and host settings retain their existing ownership.
 
 
-- Local AI agent connection: `protopeek mcp` exposes eleven bounded tools and an instruction resource;
+- Local AI agent connection: `protopeek mcp` exposes 23 bounded tools and an instruction resource;
   `protopeek agent tools`, `guide` and `call` provide the same workflows through a JSON CLI.
   Agents attach to the running UI's services with explicit local pairing and separate write access.
 - AI agents activity shows live calls, retained results, native HTTP evidence, cancellation,

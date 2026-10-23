@@ -1,8 +1,25 @@
 # ProtoPeek network workbench
 
+The current-source workbench connects service requests, connection checks, port observations and
+recorded traffic without treating them as the same evidence. Published stable builds can have earlier
+limits; check the running build and the release boundary shown on this guide.
+
+## Choose the evidence you need
+
+| Question | Start here | Required tools and boundary |
+| --- | --- | --- |
+| What does the service return? | [HTTP](http-workbench.md), [gRPC](grpc-workbench.md), [WebSocket/SSE](event-streams.md) or [Cap’n Proto](capnp-workbench.md) | Built-in protocol clients; an explicit Send or Connect starts work |
+| Which connection stage failed? | [Network diagnostics](network-diagnostics.md) | 13 bounded modes, including DNS, TLS, TCP/UDP, proxies and offline subnet planning |
+| Which TCP ports answer? | [Port scanner](#current-source-host-port-scanner) | Built-in TCP checks on one host; full-range selections use bounded batches |
+| What is in a saved capture? | [Packets](#current-source-packet-inspection) | Core PCAP/PCAPNG/.cap reader; no Wireshark install or contact with captured endpoints |
+| What traffic can this host see now? | [Capture this host](#explicit-capture-through-installed-dumpcap) | Optional installed dumpcap, capture support and OS permissions; no decryption |
+| Which nearby services were observed? | [Nearby devices](#start-with-nearby-devices) | Cached neighbors first; fresh private-scope discovery starts explicitly |
+| What did Nmap identify? | [Installed Nmap](#installed-nmap-in-current-source) or [XML import](#nmap-remains-optional-external-evidence) | Nmap is optional for scans; previously saved XML can be read without it |
+| What changed between observations? | [Saved maps and snapshots](#save-tag-and-map) | Source-labelled logical evidence, not physical cabling or a complete inventory |
+
 ## Start with nearby devices
 
-Open **Network** or choose **See nearby devices** on Home. ProtoPeek selects an available private
+Open **Network** or choose **Nearby devices** on Home. ProtoPeek selects an available private
 IPv4 interface and immediately reads this computer's identity and operating-system neighbor cache.
 Use the network selector to switch interfaces. The interface name is primary; its address and scope
 remain visible. A custom range is available in the advanced scan settings.
@@ -19,15 +36,18 @@ ports, and device-role clues retain their source. A device that does not answer 
 unknown; it is not marked offline. Expand the scan settings to change the profile or enter a custom
 private `/24` or smaller scope. The scan plan shows the exact selected ports and work limits.
 
-**Inspect ports** carries the device address into the host scanner. **Inspect traffic** prepares a
-local capture filter without starting capture. A port result can prepare a host-and-port capture;
-local socket rows can prepare a local-port capture. These handoffs never send probes by themselves.
+**Scan ports on** carries a device address into the host scanner. An open port's **Capture traffic**
+link prepares a local capture IP/port filter without starting capture; eligible local socket rows can
+prepare a local-port filter. These typed handoffs preserve their source and never send probes or
+start a recording by themselves. Review the new tool's target and explicit action before continuing.
 Save a discovery snapshot or a trace to continue in **Network evidence map**, annotate it, and
 export it. Map lines describe evidence relationships, not physical cables.
 
 ## Current-source packet inspection
 
 **Network → Packets** reads `.pcap`, `.pcapng` and `.cap` files without installing Wireshark.
+These are capture files produced by tools such as Wireshark, not a claim of equivalent dissector
+coverage or a complete Wireshark replacement. ProtoPeek exports metadata JSON, not a new capture file.
 Select a file and click **Inspect file**. The file is sent to the local ProtoPeek server for
 analysis; captured endpoints are never contacted. The table shows endpoints, ports, packet sizes,
 DNS questions, HTTP method/status, TCP flags or TLS record signatures where decoding is possible.
@@ -75,6 +95,12 @@ earlier displayed result. Permission and driver failures remain errors; ProtoPee
 or install a driver. See [Wireshark's capture guide](https://www.wireshark.org/docs/wsug_html_chunked/ChapterCapture.html)
 and the [dumpcap manual](https://www.wireshark.org/docs/man-pages/dumpcap.html).
 
+Interfaces belong to the machine running ProtoPeek. Choose Wi-Fi/Ethernet for network traffic or
+loopback for this machine's local connections. On a switched network this normally exposes another
+device's traffic only when it is visible to this host; it is not a recording of every LAN device.
+Port filters include TCP and UDP. Capture generates no service traffic, and encrypted traffic stays
+encrypted. Native installed-driver/permission acceptance remains separate from packet-file tests.
+
 Parser, typed arguments, cancellation and output limits have automated coverage. Browser testing
 on the current Windows host confirmed the real missing-tool state and a clearly labeled generated
 packet fixture; native live capture with installed OS capture support remains a platform acceptance
@@ -83,19 +109,25 @@ gap. It is not a claim that this machine's real traffic has been captured succes
 ## Current-source host port scanner
 
 Network → Port scanner checks one hostname or IP on explicitly chosen TCP ports. Common-service
-and development presets are editable, and ranges such as `8000-8010` are supported. Each run allows
-1024 unique ports, 32 concurrent connections, and 30 seconds. DNS resolves once; Auto prefers IPv4,
-and results identify the pinned address. IPv6 can be selected explicitly. Cancel or leaving the page
-aborts remaining attempts. Two scans can run per server.
+and development presets are editable, and ranges such as `8000-8010` are supported. **All ports
+(1–65535)** selects the complete TCP range. Up to 1,024 selected ports use one bounded request;
+larger selections run sequentially in 256-port batches, with at most 32 concurrent connections and
+a 30-second deadline per batch. There is no 30-second whole-run cutoff: a full range can take
+several minutes. Later batches reuse the first resolved IP; Auto initially prefers IPv4, and IPv6
+can be selected explicitly. Results retain the original host and pinned address. Two backend scan
+requests can run per server.
 
 Open means TCP connected. Closed means a refusal. No response means a timeout, not proof of a closed
-port; routing and other errors remain unreachable. Interrupted ports are marked not scanned.
+port; routing and other errors remain unreachable. Cancel stops further batches and keeps completed
+results visible; remaining ports are marked not scanned. Navigation also aborts remaining work.
 Service names are port-number hints. **Inspect service** opens a separate protocol probe before
 handing confirmed HTTP/gRPC into Inspect. No application payload is sent during the port scan.
-This is current-source functionality after v0.5.0. Scan only authorized hosts.
+This is a TCP scan, not a UDP-state check. Scan only hosts you own or are authorized to inspect.
 
-The scanner keeps settings and the last result in bounded browser storage. Restored results retain
-their observation time and are not automatically refreshed. Clear results removes the retained scan.
+The scanner saves settings and results of at most 1,024 rows in bounded browser storage. Larger
+results remain in this tab only. Restored results retain their observation time and are not
+automatically refreshed. Clear results removes the retained scan. These built-in batches do not
+change the separate Nmap or nearby-device scope limits.
 
 ## Windows path probes in current source
 
@@ -514,15 +546,9 @@ not generate network probes. All existing scan bounds remain in force.
 
 ### All TCP ports (current source)
 
-Select **All ports (1–65535)** to scan the complete TCP port range on one IP.
-Larger selections run sequentially in 256-port batches, with at most 32 concurrent
-connections inside each batch and a 30-second deadline per batch. Later batches
-use the first resolved IP. The full run can take several minutes, depending on the
-per-port timeout and how the target responds; it has no 30-second whole-run cutoff.
-Progress and completed batches remain visible. Cancel stops further batches and
-retains completed results; remaining ports are labelled not scanned. Large results
-stay in the current tab only, while scan settings are saved. Nmap and subnet limits
-are unchanged. This is a TCP scan, not a UDP scan.
+The [host port scanner](#current-source-host-port-scanner) documents the complete range,
+sequential batch limits, pinned address, cancellation and large-result storage behavior.
+Its **All ports (1–65535)** selection is separate from Nmap and nearby-device discovery.
 
 ### Starting and cancelling work (current source)
 

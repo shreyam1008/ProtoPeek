@@ -70,6 +70,41 @@ const productQuestions = [
   },
 ] as const;
 
+const networkJourneys = [
+  {
+    title: 'Check a connection',
+    detail:
+      '13 bounded modes for DNS, TCP, TLS, proxies, HTTP/2, HTTP/3 and offline subnet planning.',
+    boundary: 'Connection evidence stays separate from application health.',
+    label: 'Explore network diagnostics',
+    href: publicPagePath('network-diagnostics'),
+  },
+  {
+    title: 'Find answering TCP ports',
+    detail:
+      'Choose one host and a preset or the full 1–65,535 range, processed in bounded batches.',
+    boundary: 'Open, refused, timeout and not scanned remain distinct. This is a TCP scan.',
+    label: 'See port scanning',
+    href: `${publicPagePath('network-workbench')}#current-source-host-port-scanner`,
+  },
+  {
+    title: 'Read a packet file',
+    detail:
+      'Open PCAP, PCAPNG or .cap captures from tools such as Wireshark; filter packets and inspect conversations.',
+    boundary: 'Core reader: no Wireshark install, endpoint contact or decryption.',
+    label: 'Inspect capture-file support',
+    href: `${publicPagePath('network-workbench')}#current-source-packet-inspection`,
+  },
+  {
+    title: 'Capture this host',
+    detail:
+      'Use installed dumpcap for a finite recording on a selected local interface with an IP or port filter.',
+    boundary: 'Optional capture support and OS permissions required; only host-visible traffic.',
+    label: 'Review live capture requirements',
+    href: `${publicPagePath('network-workbench')}#explicit-capture-through-installed-dumpcap`,
+  },
+] as const;
+
 const verifiedScreenshots = [
   {
     src: '/assets/protopeek-workspace-edge-mobile.png',
@@ -110,6 +145,7 @@ export function App() {
       <main>
         <Hero />
         <ProductQuestions />
+        <NetworkFamily />
         <Evidence />
         <Install />
         <Privacy />
@@ -361,6 +397,73 @@ function ProductQuestions() {
             <ArrowRight className="size-4" aria-hidden="true" />
           </a>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function NetworkFamily() {
+  return (
+    <section
+      id="network-tools"
+      className="border-t border-black/10"
+      aria-labelledby="network-tools-title"
+    >
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
+        <p className="text-sm font-semibold text-[#0b5cff]">Current-source network family</p>
+        <h2
+          id="network-tools-title"
+          className="mt-3 text-3xl font-semibold tracking-[-0.045em] sm:text-5xl"
+        >
+          From service checks to packet evidence.
+        </h2>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-neutral-600 sm:text-lg">
+          Use protocol clients for requests, network checks for connection evidence, and capture
+          files for recorded traffic. Expanded diagnostics, full-range batches and TCP payload
+          evidence require a matching current-source build.
+        </p>
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
+          {networkJourneys.map((journey) => (
+            <article
+              key={journey.title}
+              className="flex flex-col rounded-2xl border border-black/10 p-6"
+            >
+              <h3 className="text-xl font-semibold tracking-[-0.025em]">{journey.title}</h3>
+              <p className="mt-3 text-base leading-relaxed text-neutral-600">{journey.detail}</p>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-600">{journey.boundary}</p>
+              <a
+                className="mt-5 inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold text-[#0b5cff]"
+                href={journey.href}
+              >
+                {journey.label}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </a>
+            </article>
+          ))}
+        </div>
+        <nav
+          className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-[#0b5cff]"
+          aria-label="Related network workflows"
+        >
+          <a
+            className="inline-flex min-h-11 items-center"
+            href={`${publicPagePath('network-workbench')}#start-with-nearby-devices`}
+          >
+            Nearby devices and evidence maps
+          </a>
+          <a
+            className="inline-flex min-h-11 items-center"
+            href={`${publicPagePath('network-workbench')}#network-path`}
+          >
+            Routes and measured hops
+          </a>
+          <a
+            className="inline-flex min-h-11 items-center"
+            href={`${publicPagePath('network-workbench')}#installed-nmap-in-current-source`}
+          >
+            Optional Nmap service detection
+          </a>
+        </nav>
       </div>
     </section>
   );

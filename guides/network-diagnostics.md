@@ -4,6 +4,10 @@ Current source adds **Network → Diagnostics** at `/network/diagnostics`. Choos
 enter one target and run it explicitly. The page makes no network requests on opening or
 changing modes. Results and private inputs live in this tab's memory.
 
+These 13 modes answer connection questions; they are separate from the HTTP/gRPC/WebSocket/SSE/
+Cap’n Proto workbenches, TCP port scanning and capture-file reading. HTTP/2 and HTTP/3 diagnostics
+perform the limited exchanges described below, not arbitrary application requests or packet decryption.
+
 The local CLI enables this capability only in safe local mode. Each request requires CSRF
 validation and a direct loopback peer; forwarded and remote requests are refused. Embedded
 handlers omit probes by default and must explicitly select `standalone.WithNetworkDiagnostics()`.

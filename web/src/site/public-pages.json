@@ -14,8 +14,8 @@
     },
     {
       "id": "network",
-      "title": "Understand the network path",
-      "description": "Separate this-device facts, DNS, selected routes, measured hops, authorized discovery, maps, and imported evidence."
+      "title": "Inspect networks and traffic",
+      "description": "Connect endpoint checks, TCP ports, packet files, nearby devices and measured paths while preserving each observation’s source and limits."
     },
     {
       "id": "publish",
@@ -376,9 +376,9 @@
       "generator": "markdown",
       "group": "network",
       "title": "Network workbench",
-      "documentTitle": "Network Paths, Local Discovery & Evidence Maps | ProtoPeek",
-      "description": "Explore nearby devices, inspect ports and packets, trace measured Windows/Linux hops, and save maps with source-labelled evidence and approximate hop locations.",
-      "question": "Why is this request taking that path?",
+      "documentTitle": "Network Ports, Packets & Paths | ProtoPeek",
+      "description": "Inspect TCP ports, PCAP/PCAPNG files, nearby devices and measured paths. Use optional dumpcap/Nmap with explicit scope and source-labelled evidence.",
+      "question": "What can I learn about this service’s network?",
       "section": "Current source",
       "sourcePath": "guides/network-workbench.md",
       "status": {
@@ -387,26 +387,26 @@
         "detail": "Current-source packet, snapshot and map refinements are separate from stable v0.6.1. Check the rolling Nightly release for the source included in its current archive."
       },
       "highlights": [
-        "DNS and selected route",
-        "Authorized local discovery",
-        "Logical maps and history"
+        "TCP ports and capture files",
+        "Routes and nearby devices",
+        "Optional capture and Nmap"
       ],
       "visual": "network",
       "flow": [
         {
           "verb": "Start",
-          "title": "Choose one evidence source",
-          "detail": "Open Nearby devices with a local network selected, trace a website, or import saved evidence. Active work starts with its visible action."
+          "title": "Choose an endpoint or capture",
+          "detail": "Run diagnostics, select TCP ports, load a packet file or read cached nearby devices. Active work starts explicitly."
         },
         {
           "verb": "Observe",
           "title": "Keep provenance visible",
-          "detail": "ProtoPeek labels observed, inferred, manual, imported, and unknown records separately."
+          "detail": "Keep connection state, protocol health and recorded traffic distinct, with observed, inferred, manual and unknown sources."
         },
         {
           "verb": "Save",
           "title": "Build a local evidence history",
-          "detail": "Store immutable snapshots and export canonical JSON, disclosed-loss GraphML, or flat CSV."
+          "detail": "Prepare typed drafts, compare immutable snapshots and export metadata with its source, age and limits."
         }
       ],
       "sitemap": {
@@ -434,7 +434,7 @@
         "detail": "Implemented in current source. Native runtime and release/package acceptance are separate gates; this page does not announce publication."
       },
       "highlights": [
-        "Explicit bounded operations",
+        "13 bounded diagnostic modes",
         "Protocol-native evidence",
         "Offline subnet planning"
       ],
@@ -443,7 +443,7 @@
         "changefreq": "weekly",
         "priority": "0.8"
       },
-      "lastModified": "2026-10-22"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "route-and-nmap-evidence",
@@ -454,7 +454,7 @@
       "group": "network",
       "title": "Network evidence boundaries",
       "documentTitle": "Route, Path, Discovery & Nmap Evidence Limits | ProtoPeek",
-      "description": "Read the exact safety, trust, platform, and verification boundaries for next-hop lookup, active paths, private discovery, topology, and offline Nmap XML.",
+      "description": "Read safety, trust and platform boundaries for kernel routes, active paths, TCP ports, local discovery, optional Nmap scans and imported network evidence.",
       "question": "What does each network result prove?",
       "section": "Evidence guide",
       "sourcePath": "guides/route-and-nmap-evidence.md",

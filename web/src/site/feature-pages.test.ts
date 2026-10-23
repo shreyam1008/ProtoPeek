@@ -218,6 +218,46 @@ describe('connected public feature guides', () => {
     ).not.toBeNull();
   });
 
+  it('documents core packet files, optional capture and full-range TCP batches as distinct evidence', () => {
+    const network = parseHtml('docs/network-workbench/index.html');
+    const text = network.body.textContent?.replace(/\s+/g, ' ') ?? '';
+    for (const id of [
+      'choose-the-evidence-you-need',
+      'current-source-host-port-scanner',
+      'current-source-packet-inspection',
+      'explicit-capture-through-installed-dumpcap',
+      'installed-nmap-in-current-source',
+    ])
+      expect(network.getElementById(id)).not.toBeNull();
+    for (const link of network.querySelectorAll('.pp-doc-prose table a[href^="#"]')) {
+      expect(network.getElementById(link.getAttribute('href')?.slice(1) ?? '')).not.toBeNull();
+    }
+    for (const boundary of [
+      'Core PCAP/PCAPNG/.cap reader',
+      'no Wireshark install or contact with captured endpoints',
+      'not a claim of equivalent dissector coverage',
+      'sequentially in 256-port batches',
+      'at most 32 concurrent connections',
+      '30-second deadline per batch',
+      'no 30-second whole-run cutoff',
+      'Larger results remain in this tab only',
+      'These typed handoffs preserve their source',
+      'encrypted traffic stays encrypted',
+    ])
+      expect(text).toContain(boundary);
+    expect(text).not.toContain('Each run allows 1024 unique ports');
+    const diagnostics = parseHtml('docs/network-diagnostics/index.html');
+    expect(diagnostics.querySelectorAll('.pp-doc-prose table tbody tr')).toHaveLength(13);
+    expect(diagnostics.body.textContent).toContain(
+      'not arbitrary application requests or packet decryption'
+    );
+    const nmap = parseHtml('docs/route-and-nmap-evidence/index.html');
+    expect(nmap.getElementById('optional-installed-nmap')).not.toBeNull();
+    expect(nmap.body.textContent).toContain(
+      'separate XML importer never executes an external tool'
+    );
+  });
+
   it('keeps wrapped Cloudflare guide bullets inside their list items', () => {
     const guide = parseHtml('docs/cloudflare-tunnels/index.html');
     const listItems = Array.from(guide.querySelectorAll('.pp-doc-prose li')).map((item) =>

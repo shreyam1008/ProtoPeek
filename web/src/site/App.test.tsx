@@ -108,6 +108,38 @@ describe('public site', () => {
     expect(within(evidence).getByText('Legacy Edge · responsive Home')).toBeVisible();
   });
 
+  it('connects the network family with direct guides and explicit optional capture boundaries', () => {
+    render(<App />);
+    const family = screen.getByRole('region', {
+      name: 'From service checks to packet evidence.',
+    });
+    expect(
+      within(family)
+        .getAllByRole('heading', { level: 3 })
+        .map((node) => node.textContent)
+    ).toEqual([
+      'Check a connection',
+      'Find answering TCP ports',
+      'Read a packet file',
+      'Capture this host',
+    ]);
+    const destinations = {
+      'Explore network diagnostics': '/network-diagnostics/',
+      'See port scanning': '/network-workbench/#current-source-host-port-scanner',
+      'Inspect capture-file support': '/network-workbench/#current-source-packet-inspection',
+      'Review live capture requirements':
+        '/network-workbench/#explicit-capture-through-installed-dumpcap',
+      'Optional Nmap service detection': '/network-workbench/#installed-nmap-in-current-source',
+    };
+    for (const [name, href] of Object.entries(destinations)) {
+      expect(within(family).getByRole('link', { name })).toHaveAttribute('href', href);
+    }
+    expect(family).toHaveTextContent('matching current-source build');
+    expect(family).toHaveTextContent('full 1–65,535 range');
+    expect(family).toHaveTextContent('Core reader: no Wireshark install');
+    expect(family).toHaveTextContent('OS permissions required; only host-visible traffic');
+  });
+
   it('shows one concise install command and switches it by operating system', () => {
     vi.spyOn(navigator, 'platform', 'get').mockReturnValue('unknown');
     render(<App />);

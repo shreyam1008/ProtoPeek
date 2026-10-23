@@ -40,6 +40,9 @@ parts:
         -o "$CRAFT_PART_INSTALL/bin/pp" ./cmd/pp
       install -Dm644 LICENSE "$CRAFT_PART_INSTALL/usr/share/doc/protopeek/copyright"
       install -Dm644 THIRD_PARTY_NOTICES.md "$CRAFT_PART_INSTALL/usr/share/doc/protopeek/THIRD_PARTY_NOTICES.md"
+      for license in go-capnp-MIT.txt zeropool-APACHE-2.0.txt quic-go-MIT.txt qpack-MIT.txt; do
+        install -Dm644 "third_party/licenses/$license" "$CRAFT_PART_INSTALL/usr/share/doc/protopeek/licenses/$license"
+      done
       install -Dm644 web/site/public/man/protopeek.1 "$CRAFT_PART_INSTALL/usr/share/man/man1/protopeek.1"
       install -Dm644 web/site/public/man/pp.1 "$CRAFT_PART_INSTALL/usr/share/man/man1/pp.1"
 

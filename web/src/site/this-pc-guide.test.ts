@@ -15,7 +15,13 @@ describe('This Device release guide', () => {
     const guide = readRepositoryFile('guides/this-pc.md');
     const generator = readRepositoryFile('scripts/generate-site-docs.mjs');
 
-    expect(readme).toContain('**Latest stable: v0.6.1.**');
+    const product = JSON.parse(readRepositoryFile('product.json')) as {
+      latestRelease: { version: string };
+      releaseCandidate?: { version: string };
+    };
+    expect(readme).toContain(
+      `v${product.releaseCandidate?.version ?? product.latestRelease.version}`
+    );
     expect(readme).toContain('v0.6.1 has six permanent destinations');
     expect(readme).toContain('**This Device** under Network');
     expect(readme).not.toContain('seventh, route-lazy **This PC** workspace');

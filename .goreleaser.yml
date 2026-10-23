@@ -107,6 +107,10 @@ nfpms:
 
 checksum:
   name_template: checksums.txt
+  extra_files:
+    - glob: ./install.sh
+    - glob: ./install.ps1
+    - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
 
 sboms:
   - id: archives
@@ -115,6 +119,8 @@ sboms:
 
 release:
   draft: true
+  use_existing_draft: true
+  replace_existing_artifacts: true
   extra_files:
     - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
     - glob: ./install.sh

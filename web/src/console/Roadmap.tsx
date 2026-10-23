@@ -217,8 +217,8 @@ export function Roadmap() {
         <div>
           <h1>Product roadmap</h1>
           <p>
-            Current-source capabilities and acceptance gates. Stable v0.6.1 has an earlier feature
-            set.
+            Capabilities in this build and their acceptance gates. Earlier releases may have a
+            different feature set.
           </p>
         </div>
         <input

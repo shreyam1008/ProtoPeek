@@ -11,9 +11,6 @@ on:
         description: Existing GitHub release tag to receive the artifact
         required: true
         default: v0.6.1
-  push:
-    tags:
-      - 'v*.*.*'
 
 permissions:
   contents: write
