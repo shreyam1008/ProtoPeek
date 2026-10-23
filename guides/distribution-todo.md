@@ -8,7 +8,8 @@ Updated: 2026-10-23.
 - [x] Build checksummed v0.7.0 `.deb` packages for amd64, arm64 and i386.
 - [x] Test actual Ubuntu amd64 installation, both CLI aliases, HTTP/embedded assets,
   real v0.6.1 upgrade and removal. The hosted verification recipe records lifecycle
-  and cleanup separately; its evidence upload must also pass.
+  and cleanup separately; full [39949019856](https://github.com/shreyam1008/ProtoPeek/actions/runs/39949019856)
+  passed, including receipt upload.
 - [ ] Verify Linux desktop default-browser launch and native arm64/i386 installation.
 - [x] Publish checksummed packages with v0.7.0 and GitHub provenance. Existing
   stable assets and tags were not rewritten.
@@ -27,6 +28,7 @@ invokes local network tools and host files; Store publication remains gated on a
 real desktop smoke test and review. Flathub is not a lane for the terminal-first
 product; do not submit a thin browser launcher as a desktop app.
 The existing Microsoft Store listing is public. Its validated v0.7.0.0 update
-was submitted on 23 October and is in certification; Store distribution and
-Store-signed installation/upgrade acceptance remain pending. Snap publication
+was submitted on 23 October, passed certification later that day and entered
+Publishing. The delivered Store package version remains unverified; no Store-signed
+installation/upgrade acceptance is claimed. Snap publication
 credentials are not configured in this repository as of this checkpoint.

@@ -7,11 +7,14 @@ Historical checkpoint: 11 September 2026. **Submitted: Partner Center shows In c
 The anonymous [Microsoft Store listing](https://apps.microsoft.com/detail/9MXQ75XW900Q) is now
 public, with ProtoPeek, publisher shreyam1008 and an Install/View in Store action observed.
 The public page does not identify its installed package version; old screenshot captions do
-not establish that version. The v0.7.0.0 MSIX update was submitted on 23 October: Partner Center
-shows Update in certification, Submission complete and Preprocessing, with automatic publication
-after approval. Certification completion, public0.7 delivery and actual Store installation/upgrade
-acceptance remain separate gates. The September submission
-and local-development evidence below are retained as history.
+not establish that version. The v0.7.0.0 MSIX update was submitted on 23 October; the initial
+checkpoint showed Update in certification, Submission complete and Preprocessing, with automatic
+publication after approval. Later that day certification passed and Partner Center showed
+Publishing. The public Store/WinGet listing has updated text, but its delivered package version
+has not been independently verified. No Store-signed installation or upgrade was performed;
+those native checks remain separate from certification approval. Use the official listing to
+install or update. The September submission and local-development evidence below are retained
+as history.
 
 The [v0.7.0 package build](https://github.com/shreyam1008/ProtoPeek/actions/runs/39944225831)
 passed. The downloaded 0.7.0.0 x64 MSIX SHA-256 is

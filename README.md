@@ -184,7 +184,8 @@ go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 Distribution checked 23 October 2026: GitHub, signed APT, Homebrew and Scoop provide
 v0.7.0. Public installers passed fresh installation and real v0.6.1 upgrades on
 Windows, Linux and macOS. The Microsoft Store listing is public; its v0.7.0 update
-is in certification. The checksummed Snap candidate is on GitHub; desktop acceptance,
+passed certification on 23 October. Store-signed installation remains unverified.
+The checksummed Snap candidate is on GitHub; desktop acceptance,
 maintainer credentials and Store approval remain separate. Snap Store and Flatpak
 publication are not claimed. See the [dated verification record](guides/distribution-log.md).
 See the [shared publication status](https://shreyam1008.com.np/projects/#distribution-protopeek).
@@ -193,8 +194,9 @@ Official downloads and package links: [ProtoPeek distribution tracker](https://s
 
 Microsoft Store: the [public ProtoPeek listing](https://apps.microsoft.com/detail/9MXQ75XW900Q)
 was verified on 23 October 2026. The v0.7.0.0 MSIX update was submitted the same day and
-is in certification with automatic publication after approval. The live package version is not
-shown publicly; Store0.7 delivery and Store-signed installation/upgrade acceptance remain separate. See the
+later passed certification; Partner Center showed Publishing. The public listing does not
+identify the delivered package version, and no Store-signed installation/upgrade has been verified.
+Use the official listing to install or update. See the
 [MSIX and publication record](guides/microsoft-store.md).
 
 Stable GitHub releases also include `protopeek_<version>_amd64.snap`. The

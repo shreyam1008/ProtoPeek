@@ -448,7 +448,12 @@ describe('NetworkWorkbench persistence protections', () => {
     fireEvent.change(screen.getByLabelText('Import Nmap XML into network map'), {
       target: { files: [new File(['<nmaprun/>'], 'inventory.xml')] },
     });
-    const preview = await screen.findByRole('region', { name: 'Review Nmap topology import' });
+    // Cold CI transforms the real lazy component and its CSS before rendering.
+    const preview = await screen.findByRole(
+      'region',
+      { name: 'Review Nmap topology import' },
+      { timeout: 5_000 }
+    );
     expect(within(preview).getByText(/1 port states represented as unknown/)).toBeVisible();
     expect(within(preview).getByText(/partial evidence/)).toBeVisible();
     expect(put).not.toHaveBeenCalled();

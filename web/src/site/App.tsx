@@ -685,8 +685,14 @@ function Install() {
           Flatpak publication is claimed.
         </p>
         <p className="mt-3 text-neutral-600">
-          The Microsoft Store listing is public. Its v0.7.0 update is in certification and will
-          publish automatically after approval.
+          Use the official{' '}
+          <a
+            className="text-[#0b5cff] underline"
+            href="https://apps.microsoft.com/detail/9MXQ75XW900Q"
+          >
+            Microsoft Store listing
+          </a>{' '}
+          to install or update ProtoPeek.
         </p>
         <a
           className="mt-3 block text-[#0b5cff] underline"
