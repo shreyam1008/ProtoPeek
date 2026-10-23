@@ -34,6 +34,13 @@ jobs:
         with:
           go-version-file: go.mod
           token: ''
+      - name: Verify release isolation and native PowerShell inheritance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $python = if ($IsWindows) { 'python' } else { 'python3' }
+          & $python -B scripts/verify-published-release.test.py -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Download only the bounded authenticated draft asset plan
         if: inputs.mode == 'draft'
         shell: pwsh

@@ -252,7 +252,15 @@ def child_environment(profile, isolate_home=False):
     return env
 
 
+def windows_powershell_environment(env):
+    # Python bypasses PowerShell7's normal native-child module-path cleanup.
+    # Let WindowsPowerShell5 discover its own compatible built-in modules.
+    return {key: value for key, value in env.items() if key.upper() != "PSMODULEPATH"}
+
+
 def command(args, env, log):
+    if Path(args[0]).name.lower() == "powershell.exe":
+        env = windows_powershell_environment(env)
     with log.open("wb") as stream:
         process = subprocess.Popen(args, env=env, stdout=stream, stderr=subprocess.STDOUT, start_new_session=os.name != "nt")
         try:
@@ -280,7 +288,7 @@ def command(args, env, log):
 
 def powershell_json(code, input_value=NO_INPUT):
     command = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); " + code
-    result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command], input=None if input_value is NO_INPUT else json.dumps(input_value).encode("utf-8"), capture_output=True, timeout=20, check=True)
+    result = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command], input=None if input_value is NO_INPUT else json.dumps(input_value).encode("utf-8"), capture_output=True, timeout=20, check=True, env=windows_powershell_environment(os.environ))
     return json.loads(result.stdout.decode("utf-8-sig")) if result.stdout.strip() else None
 
 
@@ -390,7 +398,7 @@ def ephemeral_default(installer, value, output, windows, draft):
             code = "$s=(New-Object -ComObject WScript.Shell).CreateShortcut($env:PROTOPEEK_VERIFY_SHORTCUT); @{target=$s.TargetPath;arguments=$s.Arguments} | ConvertTo-Json -Compress"
             env = clean_environment()
             env["PROTOPEEK_VERIFY_SHORTCUT"] = str(shortcut)
-            raw = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", code], env=env, capture_output=True, timeout=20, check=True)
+            raw = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", code], env=windows_powershell_environment(env), capture_output=True, timeout=20, check=True)
             link = json.loads(raw.stdout)
             require(Path(link["target"]).resolve() == (prefix / "protopeek.exe").resolve() and link["arguments"] == "-open-browser=true -port 8844", "Default shortcut target/launch arguments mismatch")
             result["defaultShortcut"] = {"targetMatchesInstalledBinary": True, "browserFlag": True, "port": 8844}

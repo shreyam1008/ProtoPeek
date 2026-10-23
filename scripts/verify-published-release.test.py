@@ -8,6 +8,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,50 @@ SHA = "a" * 40
 
 
 class PublishedReleaseVerification(unittest.TestCase):
+    def test_only_windows_powershell_children_normalize_inherited_module_path(self):
+        inherited = {"pSmOdUlEpAtH": "incompatible-core-modules", "KEEP": "original"}
+        for executable in ("powershell.exe", "C:/Windows/System32/WindowsPowerShell/v1.0/PowerShell.EXE", "pwsh.exe", "protopeek.exe"):
+            with self.subTest(executable=executable), tempfile.TemporaryDirectory() as directory, patch.object(verify.subprocess, "Popen") as popen:
+                popen.return_value.wait.return_value = 0
+                verify.command([executable, "fixture"], inherited, Path(directory) / "child.log")
+                actual = popen.call_args.kwargs["env"]
+                self.assertEqual(any(key.upper() == "PSMODULEPATH" for key in actual), not executable.lower().endswith("powershell.exe"))
+                self.assertEqual(actual["KEEP"], "original")
+        self.assertEqual(inherited, {"pSmOdUlEpAtH": "incompatible-core-modules", "KEEP": "original"})
+        result = subprocess.CompletedProcess([], 0, stdout=b'{"ok":true}')
+        with patch.dict(os.environ, inherited, clear=True), patch.object(verify.subprocess, "run", return_value=result) as run:
+            self.assertEqual(verify.powershell_json("fixture"), {"ok": True})
+            self.assertFalse(any(key.upper() == "PSMODULEPATH" for key in run.call_args.kwargs["env"]))
+            self.assertEqual(run.call_args.kwargs["env"]["KEEP"], "original")
+
+    @unittest.skipUnless(os.name == "nt", "Real WindowsPowerShell5 inheritance regression requires Windows")
+    def test_native_windows_powershell_hashes_with_inherited_core_module_path(self):
+        pwsh = shutil.which("pwsh.exe") or shutil.which("pwsh")
+        powershell = shutil.which("powershell.exe")
+        self.assertIsNotNone(pwsh, "Native acceptance runs from PowerShell7 and requires its installed executable")
+        self.assertIsNotNone(powershell, "WindowsPowerShell5 must be available for the official installer")
+        core = subprocess.run([pwsh, "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); @{home=$PSHOME;major=$PSVersionTable.PSVersion.Major}|ConvertTo-Json -Compress"], capture_output=True, check=True, timeout=20)
+        information = json.loads(core.stdout.decode("utf-8-sig"))
+        self.assertGreaterEqual(information["major"], 7)
+        core_modules = Path(information["home"]) / "Modules"
+        self.assertTrue(core_modules.is_dir())
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            known = root / "known-file.bin"
+            known.write_bytes(b"Native installer SHA256 regression\x00\xff\n")
+            expected = hashlib.sha256(known.read_bytes()).hexdigest()
+            env = {key: value for key, value in verify.child_environment(root / "profile").items() if key.upper() != "PSMODULEPATH"}
+            env["pSmOdUlEpAtH"] = str(core_modules)
+            literal = str(known).replace("'", "''")
+            code = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $hash=Get-FileHash -LiteralPath '" + literal + "' -Algorithm SHA256; @{hash=$hash.Hash.ToLowerInvariant();edition=$PSVersionTable.PSEdition;major=$PSVersionTable.PSVersion.Major}|ConvertTo-Json -Compress"
+            with patch.dict(os.environ, env):
+                text = verify.command([powershell, "-NoProfile", "-NonInteractive", "-Command", code], env, root / "native-hash.log")
+                through_command = json.loads(text)
+                through_json = verify.powershell_json(code)
+            for actual in (through_command, through_json):
+                self.assertEqual(actual, {"hash": expected, "edition": "Desktop", "major": 5})
+            self.assertEqual(env["pSmOdUlEpAtH"], str(core_modules))
+
     def test_dispatch_scopes_write_visibility_to_draft_and_reuses_native_acceptance(self):
         workflows = SCRIPT.parent.parent / ".github/workflows"
         dispatch = (workflows / "verify-release.yml").read_text(encoding="utf-8")
