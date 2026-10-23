@@ -246,7 +246,12 @@ export function Roadmap() {
             </button>
           ))}
         </nav>
-        <div className="pp-roadmap-grid">
+        <section
+          className="pp-roadmap-grid"
+          aria-label="Roadmap capabilities"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: This bounded capability region needs keyboard scrolling (WCAG 2.1.1).
+          tabIndex={0}
+        >
           {visible.map((group) => (
             <section key={group.slug} className={`pp-roadmap-group is-${group.slug}`}>
               <header>
@@ -269,7 +274,7 @@ export function Roadmap() {
               Try another search or choose a different status.
             </EmptyState>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

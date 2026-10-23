@@ -25,9 +25,10 @@ import (
 
 type delayedRPCHealth struct {
 	healthpb.UnimplementedHealthServer
-	finish   chan struct{}
-	canceled chan struct{}
-	failure  error
+	finish          chan struct{}
+	canceled        chan struct{}
+	failure         error
+	holdAfterCancel bool
 }
 
 func (service *delayedRPCHealth) Watch(_ *healthpb.HealthCheckRequest, stream healthpb.Health_WatchServer) error {
@@ -43,26 +44,45 @@ func (service *delayedRPCHealth) Watch(_ *healthpb.HealthCheckRequest, stream he
 		stream.SetTrailer(metadata.Pairs("last-trailer", "observed"))
 		return service.failure
 	case <-stream.Context().Done():
+		if service.holdAfterCancel {
+			// Avoid an additional handler-generated final status. The server
+			// transport can still send RST_STREAM CANCEL at its own deadline;
+			// the relay's callback deadline guard must classify that race.
+			<-service.finish
+		}
 		return stream.Context().Err()
 	}
 }
 
 func TestRPCStreamDistinguishesObservedFailureFromLocalDeadline(t *testing.T) {
 	t.Parallel()
-	for _, local := range []bool{false, true} {
-		t.Run(map[bool]string{false: "server-status", true: "local-deadline"}[local], func(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		local      bool
+		serverCode codes.Code
+	}{
+		{name: "server-permission-denied", serverCode: codes.PermissionDenied},
+		{name: "server-deadline-exceeded", serverCode: codes.DeadlineExceeded},
+		{name: "local-deadline", local: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
 			service, handler := delayedRPCFixture(t, invokeSafetyLimits{})
-			if !local {
-				service.failure = status.Error(codes.PermissionDenied, "denied by fixture")
+			if test.local {
+				service.holdAfterCancel = true
+				t.Cleanup(func() { close(service.finish) })
+			} else {
+				service.failure = status.Error(test.serverCode, "final status from fixture")
 				close(service.finish)
 			}
 			server := httptest.NewServer(handler)
 			defer server.Close()
 			body := `{"data":[{}]}`
-			if local {
+			if test.local {
 				body = `{"timeout_seconds":0.03,"data":[{}]}`
 			}
-			request, _ := http.NewRequest(http.MethodPost, server.URL+"/grpc.health.v1.Health.Watch", strings.NewReader(body))
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			request, _ := http.NewRequestWithContext(ctx, http.MethodPost, server.URL+"/grpc.health.v1.Health.Watch", strings.NewReader(body))
 			request.Header.Set("Content-Type", "application/json")
 			request.Header.Set("Accept", "application/x-ndjson")
 			response, err := http.DefaultClient.Do(request)
@@ -79,16 +99,17 @@ func TestRPCStreamDistinguishesObservedFailureFromLocalDeadline(t *testing.T) {
 				if event.Type != "complete" {
 					continue
 				}
+				encoded, _ := json.Marshal(event)
 				if event.Result == nil || event.Result.FinalStatusObserved == nil {
-					t.Fatal("missing explicit final status evidence")
+					t.Fatalf("missing explicit final status evidence: %s", encoded)
 				}
-				if local {
+				if test.local {
 					if *event.Result.FinalStatusObserved || event.Result.Error != nil || len(event.Result.Trailers) != 0 || !strings.Contains(event.RelayError, "deadline expired") {
-						t.Fatalf("local deadline invented status: %+v", event)
+						t.Fatalf("local deadline invented status: %s", encoded)
 					}
 				} else {
-					if !*event.Result.FinalStatusObserved || event.Result.Error == nil || event.Result.Error.Code != uint32(codes.PermissionDenied) {
-						t.Fatalf("observed failure lost: %+v", event)
+					if !*event.Result.FinalStatusObserved || event.Result.Error == nil || event.Result.Error.Code != uint32(test.serverCode) || event.RelayError != "" {
+						t.Fatalf("observed failure lost: %s", encoded)
 					}
 				}
 				break

@@ -101,6 +101,7 @@ type invokeSafetyLimits struct {
 	maxDuration        time.Duration
 	streamWriteTimeout time.Duration
 	onEvent            func(rpcStreamEvent) error
+	now                func() time.Time
 }
 
 func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.MethodDescriptor, options InvokeOptions, limits invokeSafetyLimits) http.Handler {
@@ -147,7 +148,7 @@ func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.Metho
 						terminal := *results
 						terminal.Responses = nil // Messages have already been delivered once.
 						terminal.Headers = nil   // The headers event already delivered this evidence.
-						finalObserved := results.finalStatusSeen && results.contextErr == nil && results.LocalLimit == nil && err == nil && r.Context().Err() == nil
+						finalObserved := results.finalStatusSeen && results.contextErr == nil && results.LocalLimit == nil && err == nil
 						terminal.FinalStatusObserved = &finalObserved
 						if !finalObserved {
 							terminal.Error, terminal.Trailers, terminal.Timings.TrailersMs = nil, []rpcMetadata{}, nil
@@ -574,10 +575,15 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 
 	ctx, cancelLocalLimit := context.WithCancelCause(ctx)
 	defer cancelLocalLimit(nil)
-	result := newRPCResult(descSource, options.EmitDefaults, &reqStats)
+	now := limits.now
+	if now == nil {
+		now = time.Now
+	}
+	result := newRPCResultWithClock(descSource, options.EmitDefaults, &reqStats, now)
 	result.maxDuration = limits.maxDuration
 	result.cancelLocalLimit = cancelLocalLimit
 	result.contextCause = func() error { return context.Cause(ctx) }
+	result.contextError = func() error { return invokeContextError(ctx, result.now()) }
 	result.onEvent = limits.onEvent
 	if result.onEvent != nil {
 		result.emit(rpcStreamEvent{Type: "started", TotalRequests: reqStats.Total})
@@ -586,7 +592,9 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 		}
 	}
 	invokeErr := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc)
-	result.contextErr = ctx.Err()
+	if !result.finalStatusSeen && result.contextErr == nil {
+		result.contextErr = result.contextError()
+	}
 	// Disarm the local wall as soon as transport work returns. If a transport
 	// error wins just before the wall, the timer must not relabel it while the
 	// result is being finalized. A wall that actually fired has already won the
@@ -614,6 +622,20 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 	}
 
 	return &result, nil
+}
+
+// A transport can observe a reached deadline before the context timer publishes
+// Err. Compare the same monotonic deadline when deciding whether final status
+// was observed; an asynchronously delayed timer must not turn a local RST into
+// evidence of the server's final gRPC status.
+func invokeContextError(ctx context.Context, now time.Time) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if deadline, ok := ctx.Deadline(); ok && !now.Before(deadline) {
+		return context.DeadlineExceeded
+	}
+	return nil
 }
 
 func (opts *InvokeOptions) overrideHeaders(reqHdrs http.Header) metadata.MD {
@@ -713,6 +735,7 @@ type rpcResult struct {
 	now                 func() time.Time
 	cancelLocalLimit    context.CancelCauseFunc
 	contextCause        func() error
+	contextError        func() error
 	retainedBytes       int
 	maxDuration         time.Duration
 	finalStatusSeen     bool
@@ -847,6 +870,12 @@ func (r *rpcResult) applyDurationLimit(duration time.Duration) {
 func (r *rpcResult) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	if r.LocalLimit != nil {
 		return
+	}
+	if r.onEvent != nil && r.contextError != nil {
+		if err := r.contextError(); err != nil {
+			r.contextErr = err
+			return
+		}
 	}
 	if r.contextCause != nil && errors.Is(r.contextCause(), errInvokeDurationLimit) {
 		return
