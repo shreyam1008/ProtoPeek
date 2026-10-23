@@ -5,6 +5,7 @@ import {
   sanitizeHTTPHeadersForPersistence,
   sanitizeURLForPersistence,
 } from '@/shared/utils';
+import { retainHTTPHeaderTemplates, sanitizeHTTPTemplateURL } from './http-environments';
 import { normalizeHTTPDraftURL } from './http-request-draft';
 
 export const httpDraftStorageKey = 'protopeek.httpDraft.v1';
@@ -73,14 +74,16 @@ export function encodeHTTPDraft(draft: HTTPDraft): string | null {
     draft.body.length > maxDraftSize
   )
     return null;
-  const normalizedURL = normalizeHTTPDraftURL(draft.url);
   const value = JSON.stringify({
     version: 1,
     method: draft.method,
     // Do not persist an unparseable authority: it can contain unfinished credentials.
-    url: normalizedURL.ok ? sanitizeURLForPersistence(normalizedURL.url) : '',
+    url: persistHTTPDraftURL(draft.url),
     params: safeParams(draft.params),
-    headers: sanitizeHTTPHeadersForPersistence(draft.headers),
+    headers: retainHTTPHeaderTemplates(
+      draft.headers,
+      sanitizeHTTPHeadersForPersistence(draft.headers)
+    ),
     bodyMode: draft.bodyMode,
     body: draft.rememberBody ? draft.body : '',
     rememberBody: draft.rememberBody,
@@ -112,14 +115,14 @@ export function decodeHTTPDraft(raw: string): HTTPDraft | null {
       value.timeoutSeconds > 120
     )
       return null;
-    const normalizedURL = normalizeHTTPDraftURL(value.url);
     return {
       method: value.method,
-      url: normalizedURL.ok
-        ? prepareURLForReplay(sanitizeURLForPersistence(normalizedURL.url)).url
-        : '',
+      url: persistHTTPDraftURL(value.url, true),
       params: prepareMetadataForReplay(safeParams(value.params)).metadata,
-      headers: prepareMetadataForReplay(sanitizeHTTPHeadersForPersistence(value.headers)).metadata,
+      headers: retainHTTPHeaderTemplates(
+        value.headers,
+        prepareMetadataForReplay(sanitizeHTTPHeadersForPersistence(value.headers)).metadata
+      ),
       bodyMode: value.bodyMode,
       body: value.rememberBody ? value.body : '',
       rememberBody: value.rememberBody,
@@ -129,6 +132,15 @@ export function decodeHTTPDraft(raw: string): HTTPDraft | null {
   } catch {
     return null;
   }
+}
+
+export function persistHTTPDraftURL(url: string, replay = false) {
+  return sanitizeHTTPTemplateURL(url, (source) => {
+    const normalized = normalizeHTTPDraftURL(source);
+    if (!normalized.ok) return '';
+    const clean = sanitizeURLForPersistence(normalized.url);
+    return replay ? prepareURLForReplay(clean).url : clean;
+  });
 }
 
 export function readHTTPDraft(): { draft: HTTPDraft; notice: string | null } {

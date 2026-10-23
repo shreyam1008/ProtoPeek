@@ -1,8 +1,11 @@
 import { Trash2 } from 'lucide-react';
+import { lazy, Suspense } from 'react';
 import type { NetworkWorkspaceV1 } from '@/console/network-model';
 import type { NetworkStoreMetadata } from '@/console/network-store';
 import { PageHeader } from '@/console/shell/PageHeader';
 import { ExportActions, NetworkEmptyState } from '../NetworkWorkspaceActions';
+
+const SnapshotComparison = lazy(() => import('./NetworkSnapshotComparison'));
 
 export function NetworkHistoryPage({
   loading,
@@ -83,6 +86,11 @@ export function NetworkHistoryPage({
                   {deleteConfirmation === workspace.id ? 'Confirm delete' : 'Delete'}
                 </button>
               </header>
+              {workspace.snapshots.length > 1 ? (
+                <Suspense fallback={<p>Loading snapshot comparison…</p>}>
+                  <SnapshotComparison key={workspace.id} snapshots={workspace.snapshots} />
+                </Suspense>
+              ) : null}
               {workspace.snapshots.map((snapshot, index) => (
                 <article key={snapshot.id}>
                   <i aria-hidden="true" />

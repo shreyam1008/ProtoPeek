@@ -1,9 +1,21 @@
 import { Link } from '@tanstack/react-router';
 import { ArrowRight, LoaderCircle, Route, Save, ShieldCheck, Square } from 'lucide-react';
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
 import { classNames, compactDate } from '@/shared/runtime';
+import { handoffEvidence } from './app/handoff-display';
+import type { ConsumedHandoffFor } from './app/handoff-store';
+import { type ReceiptOutcome, recordOperationReceipt } from './app/operation-receipts';
 import type { IPAttribution } from './ip-attribution';
 import {
   buildHopRows,
@@ -12,8 +24,10 @@ import {
   summarizePathTrace,
 } from './network-path';
 import { fetchPathCapabilities, type PathTraceRequest, traceNetworkPath } from './network-path-api';
-import { normalizePathDestination, takePathTarget } from './network-path-draft';
+import { normalizePathDestination, takePathHandoff } from './network-path-draft';
+import { OperationHistoryControl } from './OperationHistoryControl';
 import { ProtocolInfo } from './ProtocolInfo';
+import { protocolShellEvents } from './ProtocolShellContext';
 import { OperationStatus } from './shell/OperationStatus';
 import { rememberPathWebsiteTarget } from './website-draft';
 
@@ -46,12 +60,49 @@ export function NetworkPathPanel({
   const [running, setRunning] = useState(false);
   const [saved, setSaved] = useState(false);
   const traceAbortRef = useRef<AbortController | null>(null);
+  const traceReceiptRef = useRef<{ target: string; started: number } | null>(null);
+  const [handoff, setHandoff] = useState<ConsumedHandoffFor<'path-target-draft'> | null>(null);
+
+  const finishReceipt = useCallback((outcome: ReceiptOutcome, count?: number) => {
+    const started = traceReceiptRef.current;
+    if (!started) return;
+    traceReceiptRef.current = null;
+    recordOperationReceipt({
+      operation: 'path',
+      outcome,
+      target: { kind: 'next-hop-target', target: started.target },
+      durationMs: performance.now() - started.started,
+      count,
+    });
+  }, []);
+
+  const applyPathDraft = useEffectEvent((explicit?: string) => {
+    const pending = takePathHandoff();
+    const draft = explicit || pending?.draft.target.target;
+    if (!draft) return;
+    const active = traceAbortRef.current;
+    if (active) {
+      finishReceipt('stale');
+      traceAbortRef.current = null;
+      active.abort();
+      setRunning(false);
+    }
+    setDestination(draft);
+    setHandoff(explicit ? null : pending);
+    setTrace(null);
+    setTraceError('');
+    setSaved(false);
+  });
 
   useEffect(() => {
-    const savedTarget = takePathTarget();
-    const draft = initialDestination || savedTarget;
-    if (draft) setDestination(draft);
+    applyPathDraft(initialDestination);
   }, [initialDestination]);
+
+  useEffect(() => {
+    const apply = () => applyPathDraft();
+    window.addEventListener(protocolShellEvents.pendingHandoff, apply);
+    return () => window.removeEventListener(protocolShellEvents.pendingHandoff, apply);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,9 +127,11 @@ export function NetworkPathPanel({
       });
     return () => {
       controller.abort();
+      finishReceipt('cancelled');
       traceAbortRef.current?.abort();
+      traceAbortRef.current = null;
     };
-  }, [capabilityAttempt]);
+  }, [capabilityAttempt, finishReceipt]);
 
   const availableCapabilities =
     capabilities?.capabilities.filter(
@@ -123,6 +176,7 @@ export function NetworkPathPanel({
     setTrace(null);
     setTraceError('');
     setSaved(false);
+    setHandoff(null);
   }
 
   async function runTrace() {
@@ -136,7 +190,9 @@ export function NetworkPathPanel({
     }
     const controller = new AbortController();
     traceAbortRef.current = controller;
+    traceReceiptRef.current = { target, started: performance.now() };
     setRunning(true);
+    setHandoff(null);
     setTrace(null);
     setTraceError('');
     setSaved(false);
@@ -157,12 +213,24 @@ export function NetworkPathPanel({
       );
       if (traceAbortRef.current !== controller) return;
       if (controller.signal.aborted) {
+        finishReceipt('cancelled');
         setTraceError('Path trace cancelled.');
         return;
       }
       setTrace(result);
+      finishReceipt(
+        result.reached
+          ? 'success'
+          : result.termination === 'cancelled'
+            ? 'cancelled'
+            : result.termination === 'unreachable'
+              ? 'failed'
+              : 'partial',
+        result.hops.length
+      );
     } catch (error) {
       if (traceAbortRef.current !== controller) return;
+      finishReceipt(controller.signal.aborted ? 'cancelled' : 'failed');
       if (
         controller.signal.aborted ||
         (error instanceof DOMException && error.name === 'AbortError')
@@ -177,7 +245,7 @@ export function NetworkPathPanel({
       }
     } finally {
       if (traceAbortRef.current === controller) traceAbortRef.current = null;
-      setRunning(false);
+      if (traceAbortRef.current === null) setRunning(false);
     }
   }
 
@@ -205,6 +273,12 @@ export function NetworkPathPanel({
           </span>
         )}
       </PageHeader>
+      <OperationHistoryControl operations={['path']} />
+      {handoff ? (
+        <p role="status">
+          {handoffEvidence(handoff.provenance, handoff.storage === 'memory')}. No trace was started.
+        </p>
+      ) : null}
 
       <details className="pp-path-target-examples">
         <summary>Example targets · Cloudflare / Google DNS</summary>

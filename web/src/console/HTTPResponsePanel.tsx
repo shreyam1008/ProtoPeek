@@ -225,7 +225,12 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
         onChange={setTab}
         className="pp-response-tabs pp-workbench-side-tabs"
       />
-      <div className="pp-http-response-content">
+      <section
+        className="pp-http-response-content"
+        aria-label="HTTP response content"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: This bounded response region needs keyboard scrolling (WCAG 2.1.1).
+        tabIndex={0}
+      >
         {responseTabs.map(({ value }) => (
           <TabPanel
             key={value}
@@ -237,7 +242,7 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
             {tab === value ? renderResponseTab(value) : null}
           </TabPanel>
         ))}
-      </div>
+      </section>
     </section>
   );
 });

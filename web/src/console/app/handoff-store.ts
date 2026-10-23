@@ -34,7 +34,10 @@ export const maximumHandoffTTLMilliseconds = 15 * 60 * 1_000;
 export const handoffClockSkewMilliseconds = 30 * 1_000;
 
 type HandoffTimeOptions = { now?: number };
-export type CreateHandoffOptions = HandoffTimeOptions & { ttlMilliseconds?: number };
+export type CreateHandoffOptions = HandoffTimeOptions & {
+  ttlMilliseconds?: number;
+  memoryOnly?: boolean;
+};
 export type HandoffValidationResult =
   | { ok: true; value: HandoffEnvelope }
   | { ok: false; error: string };
@@ -268,7 +271,7 @@ function draft(value: unknown): HandoffDraft | null {
     const target = grpcRef(value.target);
     return target ? { kind: value.kind, target } : null;
   }
-  if (value.kind === 'next-hop-target-draft') {
+  if (value.kind === 'next-hop-target-draft' || value.kind === 'path-target-draft') {
     const target = nextHopRef(value.target);
     return target ? { kind: value.kind, target } : null;
   }
@@ -291,7 +294,7 @@ function timestamp(value: unknown): Timestamp | null {
   return normalized && result === normalized[0] ? normalized : null;
 }
 
-function provenance(value: unknown): HandoffProvenance | null {
+export function normalizeHandoffProvenance(value: unknown): HandoffProvenance | null {
   if (!record(value)) return null;
   const expectedFields =
     3 + Number(value.path !== undefined) + Number(value.evidenceIds !== undefined);
@@ -342,7 +345,7 @@ export function normalizeHandoffEnvelope(
   const id = identifier(value.id, handoffLimits.idLength);
   const createdAt = timestamp(value.createdAt);
   const expiresAt = timestamp(value.expiresAt);
-  const normalizedProvenance = provenance(value.provenance);
+  const normalizedProvenance = normalizeHandoffProvenance(value.provenance);
   const normalizedDraft = draft(value.draft);
   if (!id || !createdAt || !expiresAt || !normalizedProvenance || !normalizedDraft) {
     return fail('The handoff envelope contains invalid values.');
@@ -512,6 +515,11 @@ export function storePendingHandoff(
   memoryRaw = serialized;
   memoryLoaded = true;
   scheduleExpiry(created.value, options.now ?? Date.now());
+  if (options.memoryOnly) {
+    removePersisted();
+    memoryOnly = true;
+    return { ok: true, value: created.value, storage: 'memory' };
+  }
   const storage = sessionStorage();
   if (!storage) {
     memoryOnly = true;

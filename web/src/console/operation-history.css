@@ -1,0 +1,49 @@
+.pp-operation-history-view {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  min-width: 0;
+}
+.pp-operation-history-view :is(h2, h3, p) {
+  margin: 0;
+  font-size: inherit;
+}
+.pp-operation-history-view header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.pp-operation-history-view ol {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: 24rem;
+  overflow: auto;
+}
+.pp-operation-history-view li {
+  display: grid;
+  gap: 0.3rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--pp-border);
+  overflow-wrap: anywhere;
+}
+.pp-operation-history-view :is(time, span, p) {
+  color: var(--pp-muted);
+  line-height: 1.5;
+}
+.pp-operation-history-view button {
+  margin: 0.2rem;
+  border: 1px solid var(--pp-border);
+  border-radius: 0.35rem;
+  padding: 0.4rem;
+  background: var(--pp-panel);
+  color: var(--pp-ink);
+  font: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}

@@ -1,5 +1,6 @@
 import { Activity, CircleAlert, Gauge, Monitor, Radio, RefreshCw, Timer } from 'lucide-react';
 import { type KeyboardEvent, lazy, Suspense, useContext, useState } from 'react';
+import { OperationHistoryControl } from '@/console/OperationHistoryControl';
 import { ProtocolInfo } from '@/console/ProtocolInfo';
 import { ProtocolShellContext } from '@/console/ProtocolShellContext';
 import { PageHeader } from '@/console/shell/PageHeader';
@@ -145,6 +146,9 @@ export function ThisDeviceRoute() {
             </button>
           </div>
         </PageHeader>
+        <OperationHistoryControl
+          operations={['socket-inspection', 'traffic-sample', 'public-identity']}
+        />
 
         {capabilities.status === 'error' ? (
           <section

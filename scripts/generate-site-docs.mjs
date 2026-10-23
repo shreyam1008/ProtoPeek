@@ -64,6 +64,26 @@ function validateRegistry() {
     ids.add(page.id);
     paths.add(page.path);
   }
+  const capabilityIds = new Set();
+  if (!Array.isArray(registry.currentCapabilities)) {
+    throw new Error('Current-source capabilities must be declared in the public registry.');
+  }
+  for (const capability of registry.currentCapabilities) {
+    if (
+      typeof capability.id !== 'string' ||
+      typeof capability.guide !== 'string' ||
+      !/^[a-z][a-z0-9-]*$/.test(capability.id) ||
+      capabilityIds.has(capability.id) ||
+      typeof capability.label !== 'string' ||
+      !capability.label.trim() ||
+      typeof capability.summary !== 'string' ||
+      !capability.summary.trim()
+    ) {
+      throw new Error(`Invalid current-source capability: ${capability.id}`);
+    }
+    requirePage(capability.guide);
+    capabilityIds.add(capability.id);
+  }
 }
 
 async function writeDiscoveryMetadata() {
@@ -114,6 +134,12 @@ function renderLLMSText() {
         `- ${page.title}: ${siteRoot}${page.path}${page.status ? ` — ${page.status.label}` : ''}`
     )
     .join('\n');
+  const currentCapabilities = registry.currentCapabilities
+    .map((capability) => {
+      const guide = requirePage(capability.guide);
+      return `- ${capability.label}: ${capability.summary} Guide: ${siteRoot}${guide.path}`;
+    })
+    .join('\n');
   return `# ProtoPeek
 
 > ProtoPeek is a lightweight local workbench for finding, reaching, and inspecting services without flattening protocol-specific evidence.
@@ -127,20 +153,27 @@ Repository: ${repoRootURL}
 - Downloader product page: ${siteRoot}/downloader/
 
 - v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
-- Current source replaces Publish with Extensions in the same six-destination layout. Its five cards cover Tailscale, Cloudflare Tunnel, Wireshark capture, Nmap and aria2. Local detection does not run tools or prove readiness; setup uses the ProtoPeek host OS and official installation links. Existing workbench routes stay valid. Guide: ${siteRoot}/extensions/.
-- The opt-in v0.0.0-edge prerelease adds the redesigned workspace, persistent grouped navigation, destination resume, mobile command search and local MCP/CLI agents. Download: ${repoRootURL}/releases/tag/v0.0.0-edge. Stable installers do not select edge.
-- New on Nightly (v0.0.0-nightly): pp update and protopeek update share a verified direct-install updater on Windows, macOS and Linux. Settings > Updates adds manual checks, channel warnings, confirmation, cancellation and restart guidance. Managed installs show their package-manager commands. Older binaries require one installer upgrade first with PROTOPEEK_CHANNEL=nightly. Main/master pushes refresh this one rolling prerelease; stable v0.6.1 and package-manager releases are promoted separately. Legacy Edge is manual-only.
-- Edge browser acceptance and remaining native Nmap/live-capture checks: ${siteRoot}/workspace-ui/. Agent setup and activity: ${siteRoot}/ai-agents/.
-- Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence.
-- Network provides native paths on Linux/Windows, TCP port scans, private discovery, optional Nmap, PCAP/PCAPNG metadata, installed Tailscale diagnostics and local device activity on Linux/Windows.
-- Cloudflare Tunnel performs explicit local host/config inspection and guarded canonical service operations. Config writes and account mutation remain unavailable.
+- Nightly is the opt-in rolling preview built from main/master, not a stable promotion. Read its release page for the source in the current archive: ${repoRootURL}/releases/tag/v0.0.0-nightly. Source guides can describe changes that have not reached a published archive.
+- Nightly includes pp update and protopeek update for verified direct installs on Windows, macOS and Linux. Settings > Updates provides manual checks, confirmation, cancellation and restart guidance. Managed installs show their package-manager commands. Older binaries need one installer upgrade with PROTOPEEK_CHANNEL=nightly first. Stable and package-manager promotion remain separate.
+- Legacy Edge (v0.0.0-edge) is an older manual prerelease retained with dated browser evidence. It is not the rolling preview channel; stable installers do not select it. Historical acceptance: ${siteRoot}/workspace-ui/.
+- Stable Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence. Stable Network includes Linux/Windows paths, port scans, private discovery, Nmap input, packet metadata and device evidence. See each guide for platform and local-tool requirements.
+- Stable Cloudflare Tunnel provides host/config inspection and guarded canonical service operations. Current-source config writes and publishing below have separate prerequisites; account administration remains user-owned.
 - Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
 - The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
 - Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves transfers running while the server stays open; server restart restores recoverable jobs for explicit resume.
 - Nmap, dumpcap, Tailscale and cloudflared require their respective installed tools. Cap’n Proto source compilation uses the optional capnp compiler; compiled schemas work without it.
-- macOS native path probes and socket/counter activity are unsupported. Headscale, NetBird, integrated elevation/sign-in, deeper packet decoding and returned-capability RPC workflows remain planned.
 - Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
 - GoBarryGo files and history remain independent; its public redirect and retirement are not complete.
+
+## Current source — separate from stable and archive acceptance
+
+Current source uses Home, Inspect, Network, Extensions, Files and Settings. Home prepares unsent HTTP or explicit TLS/plaintext gRPC drafts; discovery is a separate action. Source implementation does not establish publication, native-client, provider-account or package acceptance.
+
+${currentCapabilities}
+
+Extensions contains 20 optional entries: six Native workbenches, seven Command guides, four MCP setup guides, two Endpoint guides and one ChatGPT web External link. Opening the catalog does not load every detail pack, inspect tools, download vendors/models or sign in. Check this host is explicit for one selected detectable entry; it uses process PATH and reviewed fixed paths without executing the tool. aria2 may read and verify an existing cached bundle. Pins and manual setup-platform choices retain only catalog and platform IDs in this browser, without credentials or results. ChatGPT web has no direct ProtoPeek stdio connector or hosted relay; local Codex setup is separate. Guide: ${siteRoot}/extensions/.
+
+Native macOS socket/process ownership and foreground publishing remain unavailable. Integrated sign-in/elevation and provider administration remain user-owned. Local AI setup and activity: ${siteRoot}/ai-agents/.
 
 ## Public features and guides
 
@@ -631,7 +664,11 @@ function renderMarkdownPage(markdown, page) {
                 )
                 .join('')}</tbody>`
             : '';
-        html.push(`<table>${thead}${tbody}</table>`);
+        const headingId = toc.at(-1)?.id;
+        const accessibleName = headingId
+          ? `aria-labelledby="${escapeAttr(headingId)}"`
+          : `aria-label="${escapeAttr(`${title} table`)}"`;
+        html.push(`<table tabindex="0" ${accessibleName}>${thead}${tbody}</table>`);
       }
       continue;
     }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
 import { usePagination } from '@/shared/use-pagination';
@@ -9,7 +9,13 @@ import { useProtocolShell } from './ProtocolShellContext';
 import { type TailAction, type TailSnapshot, tailActions } from './tailnet-api';
 import './tailnet.css';
 
+const TailnetOperationReview = lazy(() =>
+  import('./TailnetOperationReview').then((module) => ({ default: module.TailnetOperationReview }))
+);
 const sections = ['Devices', 'Accounts', 'Exit nodes', 'Diagnostics', 'Taildrop'] as const;
+const HeadscaleAccount = lazy(() =>
+  import('./HeadscaleAccount').then((module) => ({ default: module.HeadscaleAccount }))
+);
 type Section = (typeof sections)[number];
 function readView(): { section: Section; query: string } {
   try {
@@ -45,11 +51,8 @@ export function TailnetWorkbench() {
     observedAt: string;
   } | null>(null);
   const [filePath, setFilePath] = useState('');
+  const [previousProfile, setPreviousProfile] = useState('');
   const request = useRef<AbortController | null>(null);
-  const reviewHeading = useRef<HTMLHeadingElement | null>(null);
-  useEffect(() => {
-    if (draft) reviewHeading.current?.focus();
-  }, [draft]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => {
     try {
@@ -112,6 +115,11 @@ export function TailnetWorkbench() {
     request.current?.abort();
     request.current = null;
     setBusy('');
+    if (draft) {
+      setSnapshot(null);
+      setDraft(null);
+      setConsent(false);
+    }
     setMessage(
       'Operation cancelled. A daemon change or file transfer may already have occurred; refresh to check.'
     );
@@ -124,26 +132,32 @@ export function TailnetWorkbench() {
     setError('');
     setMessage('');
     try {
-      const result = await fetchJSON<{ output: string; arguments: string[]; observedAt: string }>(
-        'api/tailnet/action',
+      const { performTailnetAction } = await import('./tailnet-action');
+      if (controller.signal.aborted) return;
+      const result = await performTailnetAction(
         {
-          method: 'POST',
-          signal: controller.signal,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: draft.action,
-            target: draft.target,
-            path: draft.path,
-            revision: snapshot.revision,
-            consent,
-          }),
-        }
+          action: draft.action,
+          target: draft.target,
+          path: draft.path,
+          revision: snapshot.revision,
+          consent,
+        },
+        controller.signal
       );
       if (controller.signal.aborted) return;
       setOutput({ action: draft.action, text: result.output, observedAt: result.observedAt });
       setDraft(null);
       setConsent(false);
-      setMessage('Operation completed. Refresh to observe the current client state.');
+      setSnapshot(result.snapshot ?? null);
+      if (draft.action === 'login-server' && result.previousProfileId)
+        setPreviousProfile(result.previousProfileId);
+      setMessage(
+        result.outcome && result.outcome !== 'completed'
+          ? 'Operation did not complete. Review the observed state before retrying.'
+          : result.snapshot
+            ? 'CLI completed. Current daemon state was observed again.'
+            : 'Operation completed. Refresh to observe the current client state.'
+      );
     } catch (cause) {
       if (!controller.signal.aborted)
         setError(cause instanceof Error ? cause.message : 'Tailscale operation failed.');
@@ -396,6 +410,25 @@ export function TailnetWorkbench() {
                   {!snapshot.profiles.length ? (
                     <p>No saved accounts reported. Sign in using the installed Tailscale app.</p>
                   ) : null}
+                  {previousProfile &&
+                  snapshot.profiles.some(
+                    (profile) => profile.id === previousProfile && !profile.selected
+                  ) ? (
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      onClick={() => prepare('switch', previousProfile, 'Previous saved account')}
+                    >
+                      Review switch back to previous account
+                    </button>
+                  ) : null}
+                  <Suspense fallback={null}>
+                    <HeadscaleAccount
+                      busy={!!busy}
+                      accountsObserved={snapshot.accountsObserved === true}
+                      onPrepare={(url) => prepare('login-server', url, url)}
+                    />
+                  </Suspense>
                   <p>
                     Sign-in and OS permissions remain with Tailscale. ProtoPeek never asks for your
                     password.
@@ -519,51 +552,28 @@ export function TailnetWorkbench() {
             </div>
           </div>
           {draft ? (
-            <section className="pp-tailnet-review" aria-label="Review Tailscale operation">
-              <h2 ref={reviewHeading} tabIndex={-1}>
-                {tailActions[draft.action].label}
-              </h2>
-              <p>{tailActions[draft.action].detail}</p>
-              {draft.label ? (
-                <p>
-                  Target: <strong>{draft.label}</strong>
-                </p>
-              ) : null}
-              {draft.path ? (
-                <p>
-                  Path: <code>{draft.path}</code>
-                </p>
-              ) : null}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={consent}
-                  disabled={!!busy}
-                  onChange={(event) => setConsent(event.target.checked)}
-                />{' '}
-                I authorize this operation on this computer.
-              </label>
-              <div className="pp-tailnet-toolbar">
-                <button type="button" disabled={!!busy || !consent} onClick={() => void execute()}>
-                  Run selected operation
-                </button>
-                <button type="button" disabled={!!busy} onClick={() => setDraft(null)}>
-                  Dismiss operation
-                </button>
-              </div>
-            </section>
-          ) : null}
-          {output ? (
-            <section aria-label="Tailscale command result">
-              <h2>{tailActions[output.action].label} · result</h2>
-              {output.observedAt ? (
-                <small>Observed {new Date(output.observedAt).toLocaleString()}</small>
-              ) : null}
-              <pre>{output.text}</pre>
-            </section>
+            <Suspense fallback={<p role="status">Loading operation review…</p>}>
+              <TailnetOperationReview
+                draft={draft}
+                busy={!!busy}
+                consent={consent}
+                onConsent={setConsent}
+                onRun={() => void execute()}
+                onDismiss={() => setDraft(null)}
+              />
+            </Suspense>
           ) : null}
         </>
       )}
+      {output ? (
+        <section aria-label="Tailscale command result">
+          <h2>{tailActions[output.action].label} · result</h2>
+          {output.observedAt ? (
+            <small>Observed {new Date(output.observedAt).toLocaleString()}</small>
+          ) : null}
+          <pre>{output.text}</pre>
+        </section>
+      ) : null}
     </section>
   );
 }

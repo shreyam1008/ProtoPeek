@@ -32,9 +32,10 @@ Select a file and click **Inspect file**. The file is sent to the local ProtoPee
 analysis; captured endpoints are never contacted. The table shows endpoints, ports, packet sizes,
 DNS questions, HTTP method/status, TCP flags or TLS record signatures where decoding is possible.
 Filter by protocol, IP, port or decoded text; select a packet for its recorded UTC timestamp and
-details. Conversation summaries group retained packets by endpoint pair, showing direction counts,
-observed bytes and protocols. Relative times help follow the sequence. **Save metadata** exports
-this report; **Clear results** leaves the original file intact.
+details. Current source as of 22 October 2026 groups conversations by capture section/interface,
+underlying transport and endpoint pair, keeping TCP and UDP distinct even when both have a DNS
+label. Summaries show direction counts, observed bytes and timestamps. **Save metadata** exports
+this report without retained payload; **Clear results** leaves the original file intact.
 
 The reader accepts 16 MiB, parses at most 20,000 packet records and retains the first 2,000 rows.
 Counters describe parsed records, and a limit notice identifies a stopped prefix. Tables paginate
@@ -43,11 +44,23 @@ multiple sections, interface timestamp resolution/offsets, enhanced, simple and 
 blocks. Unknown block types are skipped with a notice. Link decoding covers Ethernet with up to
 two VLAN tags, raw IPv4/IPv6, loopback, Linux cooked v1/v2, ARP, TCP, UDP and ICMP.
 
-This is a header/signature reader: no TCP reassembly, checksum validation, decryption, process
+Default analysis remains metadata-only, with no checksum validation, decryption, process
 attribution or raw payload export. Non-initial IP fragments are labeled without invented ports.
-HTTP request targets and headers are omitted; DNS question names remain visible. TLS record
-signatures do not establish the protocol inside encryption. Use the original capture in Wireshark
-when deeper analysis is needed. Files, decoded rows and capture settings are session-only.
+HTTP request targets and headers are omitted; DNS question names remain visible. Current source
+also decodes bounded DHCP and QUIC-like version-header metadata; a QUIC/TLS signature does not establish
+the application inside encryption. Files, decoded rows and capture settings are session-only.
+
+### Optional TCP payload evidence · current source
+
+Before **Inspect file**, select **Reconstruct TCP payload evidence** to retain captured TCP bytes.
+This opt-in is off by default and does not apply to live capture. **View TCP payload evidence**
+shows directional segments, gaps and conflicting overlap; choose UTF-8 or hex display. Bounds are
+32 flows, 512 segments, 64 KiB per flow and 256 KiB total. Fragments are excluded and a new SYN can
+separate reuse of an endpoint tuple. Missing bytes are not invented and conflicting bytes are not
+silently chosen. This is captured sequence evidence, not a complete or decrypted application stream.
+**Forget retained payload** drops these bytes; metadata export omits them. Use the original capture
+in Wireshark for deeper analysis. Stable v0.6.1's metadata reader and earlier acceptance do not
+establish this newer reconstruction feature's release or native capture acceptance.
 
 ### Explicit capture through installed dumpcap
 
@@ -90,7 +103,8 @@ Windows now uses the built-in IP Helper ICMP echo APIs for IPv4 and IPv6 hop tra
 Windows and UDP on Linux. No traceroute executable, packet-capture driver, or elevation is requested.
 The same per-hop, probe-count, rate, and wall-time limits apply. Cancellation stops after the current
 native call returns (within its chosen per-probe timeout, at most two seconds). Scoped link-local
-IPv6 destinations and macOS probes remain unavailable. Native IPv4 and IPv6 loopback tests run on Windows.
+IPv6 destinations remain unavailable. Native IPv4 and IPv6 loopback tests run on Windows. Stable
+v0.6.1 reports macOS active probes as unsupported; current source adds the backend described below.
 
 Windows reply status and millisecond RTT are retained as native evidence. A timeout has no invented
 responder or latency. Hop RTT includes the path from this PC to that responder and back; it cannot
@@ -192,10 +206,18 @@ The backend keeps one stable UDP five-tuple where possible so load balancing is 
 probe-port changes into an artificial route change. The default destination port is `33434`.
 ICMP-only and TCP path methods are not implemented in this slice.
 
-Active hop probing is currently unsupported on Darwin because ProtoPeek does not yet
-have a verified unprivileged native backend for that platform. The capability panel explains the
-boundary; ProtoPeek does not offer a package-manager button or request administrator access. The
-read-only kernel next-hop lookup remains a separate cross-platform feature.
+### macOS native evidence · current source, 22 October 2026
+
+Current source adds unprivileged native ICMP echo probing for IPv4/IPv6 on Darwin. Auto chooses
+this backend on macOS; no traceroute executable, capture driver or elevation is requested. Reply
+matching checks probe identity and the pinned destination, preserving timeouts and per-responder
+source RTT. The fixed rate/wall limits apply, and cancellation closes the owned socket.
+
+This Device also reads aggregate native interface counters; socket/process ownership remains
+unavailable on macOS. Native macOS CI includes loopback, cancellation and traffic-counter checks.
+Cross-compilation and portable fixtures do not prove those checks ran: exact-commit macOS CI and
+real intermediate-router acceptance remain separate gates. Kernel next-hop lookup remains a
+separate cross-platform feature. The stable v0.6.1 Darwin limitation is unchanged in old binaries.
 
 ### Fixed trace limits
 
@@ -350,6 +372,14 @@ Restoring history is deliberately two-step: **Use as current map** first arms a 
 **Confirm restore** replaces the editable current map. The immutable snapshot timeline remains
 available. Dirty edits must be saved or deliberately discarded before restore.
 
+### Compare observations · current source
+
+In History, use **Compare observations** to choose **Observation A** and **Observation B**.
+The immutable snapshots stay unchanged. The comparison labels added, changed, ambiguous and
+**not observed** evidence, ignores layout/time-only changes, and keeps source enrichment visible.
+Only conservative unique identities are matched; ambiguity is not silently resolved. A host absent
+from B is not declared offline, and an observed change is not proof of its cause.
+
 ## Local storage and exchange formats
 
 The canonical lossless format is `protopeek-network` JSON version 1. Import validates the whole
@@ -399,9 +429,18 @@ without Nmap installed and never executes an imported command. The stable v0.5.0
 offline import. Current source also includes the explicit installed-tool workflow below.
 
 Imported Nmap service and device labels are untrusted hints. A literal open TCP endpoint must be
-verified through ProtoPeek's bounded scanner before opening gRPC or HTTP. A future optional path
-from Nmap XML into a network workspace can preserve that provenance, but it must not turn file
-import into hidden command execution.
+verified through ProtoPeek's bounded scanner before opening gRPC or HTTP.
+
+### Review XML as a saved map · current source
+
+In the Network workspace, choose **Import Nmap XML** for a file of at most 8 MiB. **Review imported
+map** shows retained hosts/ports, exact omitted host/identity/port/service counts, unsupported state
+conversions and partial-source warnings before **Save imported map**. Commands, scripts, OS guesses
+and traces are omitted. Import time is recorded; the source scan time remains unknown.
+
+Saving creates a new workspace and immutable snapshot with imported provenance and no inferred
+links. It does not overwrite another map, run Nmap, verify services or contact captured hosts.
+The existing Scan-dialog XML inventory import remains available separately.
 
 ### Installed Nmap in current source
 
@@ -443,15 +482,15 @@ OS fingerprinting, vulnerability scripts or hidden follow-up scans are included 
 
 ### Soon — deepen evidence without pretending certainty
 
-- A verified unprivileged native active-hop backend for Darwin.
+- Exact-commit native macOS and real intermediate-hop acceptance for the current-source backend.
 - More source-labelled enrichment beyond the current neighbor cache and mDNS records; aliases remain suggestions, not automatic datacenter claims.
-- Snapshot comparison that shows added, removed, and changed observed evidence without calling an unobserved host offline.
+- Further source-labelled comparison/enrichment beyond the current immutable A/B snapshot diff.
 - Better topology grouping and manual subnet/VLAN documentation without scan-derived VLAN claims.
 
 ### Later — optional integrations after safety and size review
 
-- Optional Nmap XML-to-workspace mapping with explicit import provenance and loss reporting; no bundled Nmap execution in the core binary.
-- Additional path methods such as native TCP or ICMP only when they have reliable unprivileged implementations and the same consent/cancellation contract.
+- Broader optional external inventory mappings after the current reviewed Nmap XML conversion; Nmap stays separately installed.
+- Additional path methods such as native TCP only with reliable unprivileged implementations and the same consent/cancellation contract.
 - Richer geographic views beyond the current offline outline and optional IP-provider locations, keeping download, privacy, and bundle costs explicit.
 - Additional packet dissectors and capture integrations beyond the current bounded file reader and optional local dumpcap capture; privilege, visibility, lifecycle, and teardown boundaries remain explicit.
 

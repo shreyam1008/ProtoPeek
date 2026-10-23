@@ -100,6 +100,22 @@ func registerTunnelHandlers(mux *http.ServeMux, service TunnelService) {
 			writeBoundedTunnelJSON(writer, http.StatusOK, value, maxTunnelOperationResponse, "Tunnel service action response could not be encoded within its safety limit")
 		}))
 	})
+	if actor, ok := service.(interface {
+		Operation(context.Context, tunnels.OperationRequest) (tunnels.OperationResult, error)
+	}); ok {
+		registerTransferConfigPOST(mux, admission, "/api/tunnels/operation", "canonical tunnel operation", func(writer http.ResponseWriter, request *http.Request) {
+			var operation tunnels.OperationRequest
+			if !decodeStrictTunnelJSONLimit(writer, request, &operation, 16<<10) {
+				return
+			}
+			value, err := actor.Operation(request.Context(), operation)
+			if err != nil {
+				writeTunnelServiceError(writer, err, "Canonical tunnel operation failed")
+				return
+			}
+			writeBoundedTunnelJSON(writer, http.StatusOK, value, 128<<10, "Canonical operation exceeded its safety limit")
+		})
+	}
 }
 
 func validateTunnelPOST(writer http.ResponseWriter, request *http.Request) bool {
@@ -129,16 +145,20 @@ func ensureEmptyTunnelBody(writer http.ResponseWriter, request *http.Request) bo
 }
 
 func decodeStrictTunnelJSON(writer http.ResponseWriter, request *http.Request, destination any) bool {
+	return decodeStrictTunnelJSONLimit(writer, request, destination, maxTunnelActionRequestBytes)
+}
+
+func decodeStrictTunnelJSONLimit(writer http.ResponseWriter, request *http.Request, destination any, maximum int64) bool {
 	contentType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
 	if err != nil || !strings.EqualFold(contentType, "application/json") {
 		writeTunnelError(writer, http.StatusUnsupportedMediaType, "Request must use application/json")
 		return false
 	}
-	if request.ContentLength > maxTunnelActionRequestBytes {
+	if request.ContentLength > maximum {
 		writeTunnelError(writer, http.StatusRequestEntityTooLarge, "Request body is too large")
 		return false
 	}
-	request.Body = http.MaxBytesReader(writer, request.Body, maxTunnelActionRequestBytes)
+	request.Body = http.MaxBytesReader(writer, request.Body, maximum)
 	data, err := io.ReadAll(request.Body)
 	if err != nil {
 		var limitError *http.MaxBytesError

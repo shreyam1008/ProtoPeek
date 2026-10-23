@@ -8,6 +8,7 @@ import { NetworkMapPage } from './topology/NetworkMapPage';
 import { useNetworkWorkspace } from './useNetworkWorkspace';
 
 const loadLocalNetworkPanel = () => import('@/console/LocalNetworkPanel');
+const LazyNmapPreview = lazy(() => import('./history/NmapTopologyPreview'));
 const LazyNetworkPathPanel = lazy(async () => {
   const module = await import('@/console/NetworkPathPanel');
   return { default: module.NetworkPathPanel };
@@ -41,8 +42,10 @@ function sectionFromPath(pathname: string): NetworkSection {
 
 export function NetworkRoute({ store }: { store?: NetworkStore }) {
   const location = useLocation();
+  const initialSubnet = (location.search as { draftSubnet?: string }).draftSubnet;
   const section = sectionFromPath(location.pathname);
   const importRef = useRef<HTMLInputElement | null>(null);
+  const nmapRef = useRef<HTMLInputElement | null>(null);
   const {
     activeID,
     deleteConfirmation,
@@ -55,6 +58,11 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
     importWorkspace,
     loadingStore,
     notice,
+    nmapPreview,
+    nmapBusy,
+    previewNmap,
+    cancelNmap,
+    saveNmap,
     restoreConfirmation,
     restoreSnapshot,
     saveEdits,
@@ -80,7 +88,7 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
         ) : null}
         {dirty ? (
           <aside className="pp-network-dirty" role="status">
-            <span>Unsaved map edits stay in this tab until you save or discard them.</span>
+            <span>Unsaved map edits stay in this tab.</span>
             <button type="button" onClick={() => void saveEdits()}>
               <Save aria-hidden="true" /> Save
             </button>
@@ -98,7 +106,7 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
           >
             <div>
               <h2 id="network-leave-title">Leave with unsaved map edits?</h2>
-              <p>Save them to browser storage, discard them, or stay in the network workbench.</p>
+              <p>Save edits in this browser, discard them, or stay here.</p>
               <div>
                 <button
                   type="button"
@@ -128,6 +136,17 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
           </div>
         ) : null}
 
+        {nmapPreview ? (
+          <Suspense fallback={<p>Loading import preview…</p>}>
+            <LazyNmapPreview
+              preview={nmapPreview}
+              busy={nmapBusy}
+              onSave={() => void saveNmap()}
+              onCancel={cancelNmap}
+            />
+          </Suspense>
+        ) : null}
+
         {section === 'path' ? (
           <Suspense fallback={<p className="pp-network-loading">Loading path tools…</p>}>
             <LazyNetworkPathPanel onSaveTrace={savePathTrace} />
@@ -136,7 +155,10 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
         {section === 'local' ? (
           <div className="pp-network-local-page">
             <Suspense fallback={<p className="pp-network-loading">Loading local scan…</p>}>
-              <LazyLocalNetworkPanel onSaveSnapshot={saveLocalSnapshot} />
+              <LazyLocalNetworkPanel
+                onSaveSnapshot={saveLocalSnapshot}
+                initialSubnet={initialSubnet}
+              />
             </Suspense>
           </div>
         ) : null}
@@ -187,6 +209,26 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
           >
             <FolderOpen aria-hidden="true" /> Import
           </button>
+          <input
+            ref={nmapRef}
+            type="file"
+            disabled={dirty || nmapBusy}
+            accept=".xml,application/xml,text/xml"
+            aria-label="Import Nmap XML into network map"
+            onChange={(event) => void previewNmap(event)}
+          />
+          <button
+            type="button"
+            disabled={dirty || nmapBusy}
+            onClick={() => nmapRef.current?.click()}
+          >
+            {nmapBusy ? 'Reading Nmap…' : 'Import Nmap XML'}
+          </button>
+          {nmapBusy && !nmapPreview ? (
+            <button type="button" onClick={cancelNmap}>
+              Cancel Nmap import
+            </button>
+          ) : null}
           <span>{workspaces.length}/20 saved</span>
         </div>
       </div>

@@ -1,0 +1,113 @@
+.pp-canonical {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  color: var(--pp-color-text);
+}
+.pp-canonical header,
+.pp-canonical-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.pp-canonical header {
+  justify-content: space-between;
+}
+.pp-canonical h3,
+.pp-canonical h4,
+.pp-canonical p {
+  margin: 0;
+}
+.pp-canonical p,
+.pp-canonical-note {
+  line-height: 1.6;
+}
+.pp-canonical fieldset,
+.pp-canonical-plan {
+  display: grid;
+  gap: 0.8rem;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 0.7rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.pp-canonical fieldset:disabled {
+  opacity: 0.7;
+}
+.pp-canonical form,
+.pp-canonical label,
+.pp-canonical-path {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.pp-canonical input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 0.4rem;
+  color: var(--pp-color-text);
+  background: var(--pp-color-surface);
+}
+.pp-canonical label:has([type="checkbox"]) {
+  display: flex;
+  align-items: start;
+}
+.pp-canonical button {
+  min-height: 2.75rem;
+}
+.pp-canonical summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+  font-weight: 650;
+}
+.pp-canonical details[open] {
+  display: grid;
+}
+.pp-canonical code,
+.pp-canonical small,
+.pp-canonical dd {
+  overflow-wrap: anywhere;
+}
+.pp-canonical dl {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.pp-canonical dt {
+  font-weight: 650;
+}
+.pp-canonical dd {
+  margin: 0 0 0.5rem;
+  font-family: monospace;
+}
+.pp-canonical-result {
+  display: grid;
+  gap: 0.7rem;
+  border-top: 1px solid var(--pp-color-stroke);
+  padding-top: 1rem;
+}
+.pp-canonical textarea {
+  width: 100%;
+  color: var(--pp-color-text);
+  resize: vertical;
+  max-height: 22rem;
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 0.7rem;
+  background: var(--pp-color-surface);
+  border: 1px solid var(--pp-color-stroke);
+  border-radius: 0.4rem;
+}
+.pp-canonical-note,
+.pp-canonical small {
+  color: var(--pp-color-text-muted);
+  font-size: 0.8rem;
+}
+.pp-canonical [role="alert"] {
+  color: var(--pp-color-danger);
+}

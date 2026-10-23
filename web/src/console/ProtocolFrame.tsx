@@ -11,7 +11,7 @@ import {
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
-import { commandDestinationFeatures, destinations } from './app/feature-registry';
+import { destinations } from './app/feature-registry';
 import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
 import { handoffDestinationRoutes } from './app/release-capabilities';
@@ -55,6 +55,8 @@ function systemPrefersDark() {
 }
 
 function discoveryProvenance(result: ScanResult): HandoffProvenance {
+  const stored = (result as Partial<RecentDiscovery>).handoffProvenance;
+  if (stored) return stored;
   const cloudflareIngress = result.details?.some((detail) =>
     detail.toLowerCase().includes('cloudflared ingress route')
   );
@@ -64,7 +66,7 @@ function discoveryProvenance(result: ScanResult): HandoffProvenance {
       : Number.NaN;
   return {
     source: cloudflareIngress ? 'cloudflare-config' : 'bounded-discovery',
-    quality: 'observed',
+    quality: cloudflareIngress ? 'inferred' : Number.isFinite(discoveredAt) ? 'manual' : 'observed',
     observedAt: new Date(Number.isFinite(discoveredAt) ? discoveredAt : Date.now()).toISOString(),
   };
 }
@@ -173,20 +175,24 @@ export function ProtocolFrame() {
     setNavigationOpen(true);
   }, []);
 
-  const recordResults = useCallback((results: ScanResult[]) => {
+  const recordResults = useCallback((results: ScanResult[], provenance?: HandoffProvenance) => {
     const detected = results.filter((result) => result.alive);
     if (!detected.length) return;
-    const discoveredAt = new Date().toISOString();
+    const discoveredAt = provenance?.observedAt ?? new Date().toISOString();
     setDiscoveries((current) => {
-      const next = detected.map((result) => ({ ...result, discoveredAt }));
+      const next = detected.map((result) => ({
+        ...result,
+        discoveredAt,
+        handoffProvenance: provenance,
+      }));
       const addresses = new Set(next.map((result) => result.address));
       return [...next, ...current.filter((result) => !addresses.has(result.address))].slice(0, 12);
     });
   }, []);
 
   const openHandoff = useCallback(
-    (handoff: PendingHandoffInput) => {
-      const stored = storePendingHandoff(handoff);
+    (handoff: PendingHandoffInput, options?: { memoryOnly?: boolean }) => {
+      const stored = storePendingHandoff(handoff, options);
       if (!stored.ok) return stored;
       const route = handoffDestinationRoutes[stored.value.draft.kind];
       setScanOpen(false);
@@ -198,9 +204,9 @@ export function ProtocolFrame() {
   );
 
   const openGRPCDiscovery = useCallback(
-    (result: ScanResult) => {
+    (result: ScanResult, provenance?: HandoffProvenance) => {
       return openHandoff({
-        provenance: discoveryProvenance(result),
+        provenance: provenance ?? discoveryProvenance(result),
         draft: {
           kind: 'grpc-target-draft',
           target: {
@@ -215,10 +221,10 @@ export function ProtocolFrame() {
   );
 
   const openHTTPDiscovery = useCallback(
-    (result: ScanResult) => {
+    (result: ScanResult, provenance?: HandoffProvenance) => {
       const url = scanResultHTTPURL(result);
       return openHandoff({
-        provenance: discoveryProvenance(result),
+        provenance: provenance ?? discoveryProvenance(result),
         draft: { kind: 'http-url-draft', target: { kind: 'http-url', url } },
       });
     },
@@ -226,21 +232,13 @@ export function ProtocolFrame() {
   );
 
   const actions = useMemo<PaletteAction[]>(() => {
-    const routeActions = commandDestinationFeatures.map((feature) => ({
-      id: feature.id,
-      label: feature.command.label,
-      keywords: feature.command.keywords,
-      run: () => void navigate({ to: feature.route }),
-    }));
     return [
-      ...routeActions.slice(0, 4),
       {
         id: 'scan',
         label: 'Probe or import discovery evidence',
         keywords: 'discover grpc http tcp nmap xml',
         run: () => openScan(),
       },
-      ...routeActions.slice(4),
       {
         id: 'theme',
         label: `Switch to ${resolvedAppearance.theme === 'light' ? 'dark' : 'light'} mode`,
@@ -258,7 +256,7 @@ export function ProtocolFrame() {
         run: openHelp,
       },
     ];
-  }, [appearance, navigate, openHelp, openScan, resolvedAppearance.theme, setAppearance]);
+  }, [appearance, openHelp, openScan, resolvedAppearance.theme, setAppearance]);
 
   const loadSavedActions = useCallback(async () => {
     const { readHTTPLibrary } = await import('./http-library');
@@ -381,6 +379,24 @@ export function ProtocolFrame() {
           <CommandPalette
             open
             actions={actions}
+            onNavigate={(route, mode) => {
+              void navigate({
+                to: route,
+                search: mode ? { mode } : undefined,
+                ...(route === '/network/diagnostics'
+                  ? {
+                      state: (current) => ({
+                        diagnosticInvocation:
+                          Number.isSafeInteger(current.diagnosticInvocation) &&
+                          (current.diagnosticInvocation ?? -1) >= 0 &&
+                          (current.diagnosticInvocation ?? 0) < Number.MAX_SAFE_INTEGER
+                            ? (current.diagnosticInvocation ?? 0) + 1
+                            : 1,
+                      }),
+                    }
+                  : {}),
+              });
+            }}
             loadExtraActions={loadSavedActions}
             onClose={() => setCommandOpen(false)}
           />

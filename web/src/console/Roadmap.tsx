@@ -7,278 +7,189 @@ import { PageHeader } from '@/console/shell/PageHeader';
 const roadmap = [
   {
     state: 'Available in this build',
-
     slug: 'available',
-
     icon: CheckCircle2,
-
     items: [
       [
         'Workbench + themes',
         'Persistent destination and tool navigation, consistent page headers, paired themes, and recent bounded discoveries.',
       ],
-
       [
         'Local AI agents',
-        'Opt-in local MCP and CLI connection, 11 bounded tools, visible activity and cancellation. No bundled AI model.',
+        '23 opt-in MCP/CLI tools for HTTP, gRPC, events, Cap’n Proto, shared packet metadata, host evidence and explicit extension checks. Native results, write controls, bounded activity and cancellation.',
       ],
-
+      [
+        'Optional extension library',
+        '20 entries: six native workbenches and fourteen command, MCP, endpoint or external companions. Setup packs load only when selected; host checks are explicit. No automatic installation or vendor execution.',
+      ],
       [
         'Host port scanner',
-
         'Custom TCP ports and ranges for one local or remote host, IPv4/IPv6, presets, cancellation, open/closed/timeout evidence, and protocol inspection handoffs.',
       ],
-
       [
         'WebSocket + SSE',
-
         'Text/binary WebSocket messages, SSE event names and IDs, headers, verified TLS, bounded live timelines, explicit connect/disconnect, and cleanup on navigation.',
       ],
-
       [
         'gRPC workbench',
-
-        'Reflection, proto/protoset schemas, all stream modes, deadlines, headers, messages, trailers, and status.',
+        'Reflection and proto/protoset schemas, incremental messages in all stream modes, deadlines, metadata, headers, trailers, native status and explicit local limits.',
       ],
-
       [
         'Cap’n Proto RPC',
-
-        'Source or compiled schemas, concrete bootstrap methods, exact 64-bit JSON values, verified TLS, deadlines, cancellation and response export. Source compilation uses an optional installed compiler.',
+        'Source or compiled schemas, exact 64-bit values, generic bindings, typed returned capabilities and plans up to eight steps. Verified TLS, partial evidence and cancellation; optional external source compiler.',
       ],
-
       [
         'HTTP workbench',
-
-        'Bounded HTTP(S), verified TLS, explicit redirects, peer, timing, headers, response bodies, and bounded credential-redacted cURL export.',
+        'Bounded HTTP(S), native timing/TLS/body evidence, a reviewed shell-free cURL import subset, and bounded credential-redacted cURL export.',
       ],
-
       [
         'Saved HTTP requests',
-
-        'Named browser-local requests with explicit body opt-in, update/delete/export, bounded storage, credential removal and global fuzzy search. Loading prepares an unsent editor.',
+        'Named browser-local requests, portable library import/merge and environment templates. Secret values stay in memory; persistence/export strip them. Loading prepares an unsent editor.',
       ],
-
       [
         'Bounded discovery',
-
         'Explicit TCP, gRPC, TLS, and HTTP evidence with fixed candidate and time limits.',
       ],
-
       [
         'Next-hop evidence',
-
         'One read-only kernel route lookup per resolved address from the ProtoPeek process; no hop probes.',
       ],
-
       [
-        'Network Path · Linux + Windows',
-
-        'Native Linux UDP and Windows IPv4/IPv6 ICMP probes, pinned destinations, per-responder RTT, saved traces and optional dated ASN/ISP/location labels.',
+        'Network Path · native platforms',
+        'Linux UDP, Windows ICMP and macOS ICMP backends, pinned destinations, responder RTT and saved sourced labels. Native macOS runtime and real-router acceptance remain distinct gates.',
       ],
-
       [
         'Authorized private discovery',
-
         'Explicit RFC 1918 IPv4 /24-or-smaller discovery with a previewed plan: bounded gRPC/HTTP inspection only on named application ports, TCP connect-only evidence elsewhere, hard limits, and cancellation.',
       ],
-
       [
         'Network map + history',
-
-        'Responsive topology and accessible inventory views, manual subnet/site/VLAN/region groups, immutable snapshots, tags and notes, bounded browser persistence, and JSON/GraphML/CSV exchange.',
+        'Logical topology and inventory, immutable A/B comparisons with ambiguous identity and not-observed states, manual notes/groups, sourced enrichment and bounded JSON/GraphML/CSV exchange.',
       ],
-
       [
         'Offline Nmap XML import',
-
-        'Bounded hints from an existing nmap -oX file. Nmap is not required for import; literal-IP endpoints are verified before opening a workbench.',
+        'Review bounded XML hints and exact conversion losses before creating a saved topology workspace. No invented edges; literal-IP endpoints require fresh protocol verification.',
       ],
-
       [
         'Installed Nmap scanner',
-
         'Explicit TCP connect or light service detection on one IP or a bounded private subnet, exact scope preview, cancellation, paginated results, export and protocol inspection handoff. Nmap is installed separately.',
       ],
-
       [
         'Packet inspection',
-
-        'Bounded PCAP/PCAPNG metadata, paginated packet details, filters and JSON export. An installed dumpcap adapter supports explicit timed IP/port capture; native capture platform acceptance is still pending.',
+        'Section/transport-aware packet and conversation triage, DHCP/QUIC-like metadata, and default-off bounded TCP payload evidence with gaps/conflicts. Metadata export excludes payload; native dumpcap acceptance remains pending.',
       ],
-
       [
         'Tailscale client workbench',
-
-        'Installed-client peers, accounts, exit-node controls, bounded diagnostics and Taildrop, with explicit reviewed operations. Integrated sign-in, elevation, Headscale administration and NetBird remain open work.',
+        'Installed Tailscale status and reviewed actions, plus a separate HTTPS Headscale login-server account flow. Native sign-in stays in the installed client; no implicit account replacement or elevation.',
       ],
-
+      [
+        'NetBird client evidence',
+        'Separate native JSON status for management, signal, ICE, relay, DNS and peers, with reviewed bounded connect/disconnect. Real account/platform acceptance remains required.',
+      ],
+      [
+        'Network diagnostics',
+        'Explicit DNS/resolver, TCP/TLS, IPv4/IPv6, finite sampling, TCP/UDP exchange, proxy, h2c and HTTP/3 evidence. Offline subnet planning prepares an unsent authorized-discovery draft.',
+      ],
+      [
+        'Session activity + typed handoffs',
+        'Up to 40 sanitized memory-only receipts, explicit clear and unsent endpoint resume. Original discovery provenance survives reload; success is never refreshed into new evidence.',
+      ],
       [
         'Browser proto folders',
-
         'Review and upload a bounded relative-path .proto manifest to the running ProtoPeek instance; folder access and schema bytes are never saved in profiles.',
       ],
-
       [
         'gRPC Health Check + Watch',
-
         'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
       ],
-
       [
         'Downloader',
-
         'HTTP(S) queues through configured, system or bundled Windows amd64 aria2c, bounded options, live progress, pause/resume, restart recovery, completed history, checksum evidence and one-shot CLI transfer.',
       ],
-
       [
         'Security evidence',
-
         'Public website HEAD/TLS evidence and JSON reports, a fixed five-path metadata plan, historical indexed names with filtering/export and unsent Inspect handoffs. No security score or automatic candidate probing.',
       ],
-
       [
         'GoBarryGo bridge',
-
         'Read-first preview, bounded copy-only preference/session import, paused imported jobs, private receipts, and guarded rollback without changing GoBarryGo source files.',
       ],
-
       [
-        'Cloudflare Tunnels · local foundation',
-
-        'Manual, read-only discovery of cloudflared, its canonical OS service, documented config candidates, config authority, ingress routes, and Docker and Wrangler availability, plus safe in-view route drafts.',
+        'Cloudflare canonical operations',
+        'Canonical host/config inspection, validation, route matching, bounded logs/metrics/diagnostics and stale-guarded service actions. Reviewed writes require the exact writable user-owned config, validation and rollback.',
       ],
-
+      [
+        'Temporary publishing sessions',
+        'Audience-first private Serve, public Quick Tunnel or Funnel; reviewed argv and prerequisites, separate origin/endpoint checks, owned foreground lifetime and Stop/expiry cleanup on Windows/Linux. All macOS modes remain unavailable; live provider acceptance stays explicit.',
+      ],
       [
         'Owned package channels',
-
         'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned v0.6.1 archives, declare aria2 as an external dependency, and provide both protopeek and pp.',
       ],
     ],
   },
-
   {
     state: 'Next',
-
     slug: 'next',
-
     icon: Compass,
-
     items: [
       [
-        'Incremental response-lab streams',
-
-        'Render each general server-stream message immediately with bounded retention while keeping headers, trailers, cancellation, and final status distinct.',
+        'Native installed-tool acceptance',
+        'Run actual macOS loopback/counter CI and native capture, account and service scenarios. Fixtures and cross-compilation do not prove installed-client or real-router behavior.',
       ],
-
       [
-        'HTTP environment profiles + library import',
-
-        'Environment variables and portable library restoration beyond the current named request save/load/export workflow.',
+        'Broader aria2 packaging',
+        'Earn reproducible per-architecture builds, source/notices and native download/install acceptance before broadening the bundled engine beyond Windows amd64.',
       ],
-
-      [
-        'cURL import',
-
-        'Parse a deliberately bounded cURL subset without silently accepting unsafe shell behavior; export is available now.',
-      ],
-
-      [
-        'Target DNS + TLS preflight',
-
-        'Explain resolution, SNI, ALPN, certificate verification, and handshake timing before an RPC or HTTP request.',
-      ],
-
-      [
-        'Darwin path backend',
-
-        'Earn native unprivileged implementations with equivalent cancellation and evidence semantics; no localized subprocess parsing or elevation prompts.',
-      ],
-
-      [
-        'Snapshot diff + sourced enrichment',
-
-        'Compare immutable observations over time. Current traces already retain optional sourced ASN/ISP/location labels; IP location does not establish a datacenter.',
-      ],
-
       [
         'WinGet package',
-
         'Prepare and owner-submit a schema-valid Windows package only after the owned Scoop path and installer have initial user feedback.',
       ],
-
       [
-        'Tunnel validation + runtime evidence',
-
-        'Add authoritative cloudflared validation, route matching, bounded logs, metrics, and diagnostics without ambient polling or credential reads.',
+        'Release and provider acceptance',
+        'Verify the exact pushed commit, native packages and actual provider accounts. Publishing a public release or store submission remains a separate owner action.',
       ],
     ],
   },
-
   {
     state: 'Exploring',
-
     slug: 'exploring',
-
     icon: Beaker,
-
     items: [
       [
-        'Nmap XML to topology',
-
-        'Map bounded existing XML hints into a saved workspace with import provenance and explicit loss notices, without executing Nmap.',
+        'Persistent capability sessions',
+        'Longer-lived Cap’n Proto capabilities need separate lifetime, revocation and recovery design. Current typed plans close their connection after at most eight steps.',
       ],
-
       [
-        'Cap’n Proto capability workflows',
-
-        'Follow returned capabilities, generic bindings and pipelined calls beyond the current concrete bootstrap method client.',
-      ],
-
-      [
-        'QUIC + HTTP/3',
-
-        'Negotiation and transport evidence once a compact, reliable cross-platform path is proven.',
+        'Advanced QUIC inspection',
+        'Current diagnostics perform a verified HTTP/3 HEAD and packet metadata recognizes version headers. Broader request and transport analysis needs its own evidence contract.',
       ],
     ],
   },
-
   {
     state: 'Gated',
-
     slug: 'gated',
-
     icon: ShieldAlert,
-
     items: [
       [
         'Bundled Nmap execution',
-
         'Not planned for the core binary. Reconsider only as an opt-in companion with explicit executable choice, previewed scope, hard budgets, and an auditable command.',
       ],
-
       [
         'Broader/public range discovery',
-
         'Why: one authorized private /24 must not become ambient or Internet-wide crawling. Gate: a distinct workflow, previewed scope, harder budgets, and a defensible user need.',
       ],
-
       [
         'Automatic datacenter geolocation claims',
-
         'Why: SIN, BOM, provider-region labels, WHOIS, and IP geolocation are hints rather than measured facilities. Gate: user-supplied sources, attribution, freshness, and confidence.',
       ],
-
       [
         'Capture elevation and deeper decoding',
-
-        'The installed-tool adapter uses existing permissions. Driver installation, integrated elevation, stream reassembly, raw payload export and decryption need separate workflows.',
+        'The installed-tool adapter uses existing permissions. Driver installation, integrated elevation, raw payload export and decryption remain separate workflows; bounded opt-in sequence evidence is available.',
       ],
-
       [
-        'Tunnel configuration writes',
-
-        'Guarded canonical-service control is available. Configuration writes and credential changes still need: deliberate elevation, least-privilege helpers, atomic writes, validation, rollback, and auditable receipts.',
+        'Administrator config + credentials',
+        'Current writes cover a writable user-owned canonical cloudflared config. Administrator-owned files, credential rotation and cloud/account changes need explicit least-privilege design and native acceptance.',
       ],
     ],
   },
@@ -305,7 +216,10 @@ export function Roadmap() {
       <PageHeader className="pp-evidence-hero">
         <div>
           <h1>Product roadmap</h1>
-          <p>What works now, what comes next, and what needs further work.</p>
+          <p>
+            Current-source capabilities and acceptance gates. Stable v0.6.1 has an earlier feature
+            set.
+          </p>
         </div>
         <input
           aria-label="Search roadmap"
@@ -332,7 +246,12 @@ export function Roadmap() {
             </button>
           ))}
         </nav>
-        <div className="pp-roadmap-grid">
+        <section
+          className="pp-roadmap-grid"
+          aria-label="Roadmap capabilities"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: This bounded capability region needs keyboard scrolling (WCAG 2.1.1).
+          tabIndex={0}
+        >
           {visible.map((group) => (
             <section key={group.slug} className={`pp-roadmap-group is-${group.slug}`}>
               <header>
@@ -355,7 +274,7 @@ export function Roadmap() {
               Try another search or choose a different status.
             </EmptyState>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

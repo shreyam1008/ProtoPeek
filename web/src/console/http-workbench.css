@@ -1,0 +1,47 @@
+.pp-http-workbench .pp-http-restore-draft {
+  flex-shrink: 0;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: var(--pp-color-text);
+  background: var(--pp-color-surface);
+  font: inherit;
+}
+.pp-http-workbench .pp-http-restore-draft:focus-visible {
+  outline: 2px solid var(--pp-color-accent);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .pp-http-workbench {
+    overflow: auto;
+  }
+  .pp-http-workbench > .pp-http-header {
+    gap: 8px;
+    padding: 10px;
+  }
+  .pp-http-workbench > .pp-http-header .pp-http-new-request {
+    display: inline-flex;
+    margin-left: 0;
+  }
+  .pp-http-workbench > .pp-http-header :is(button, summary),
+  .pp-http-workbench .pp-http-request-line :is(input, select, button),
+  .pp-http-workbench .pp-http-library :is(button, input:not([type="checkbox"])),
+  .pp-http-workbench .pp-http-restore-draft {
+    min-height: 44px;
+  }
+  .pp-http-workbench > .pp-http-header .pp-openapi-import-trigger {
+    margin-left: 0;
+  }
+  .pp-http-workbench > .pp-http-workspace {
+    flex: 1 0 320px;
+  }
+  .pp-http-workbench > .pp-http-workspace.has-library-rail {
+    grid-template-rows: minmax(0, 45%) minmax(0, 1fr);
+  }
+  .pp-http-workbench .has-library-rail > .pp-http-library {
+    max-height: none;
+  }
+  .pp-http-workbench .pp-http-replay-notice {
+    flex-wrap: wrap;
+  }
+}

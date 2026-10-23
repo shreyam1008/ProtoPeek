@@ -1,0 +1,154 @@
+[
+  {
+    "id": "tailscale",
+    "name": "Tailscale",
+    "group": "Connect & publish",
+    "summary": "Reach private services, inspect peers and review local client actions.",
+    "capability": "native-workbench",
+    "route": "/network/tailnet",
+    "openLabel": "Open Tailscale"
+  },
+  {
+    "id": "cloudflared",
+    "name": "Cloudflare Tunnel",
+    "group": "Connect & publish",
+    "summary": "Inspect local connectors and review bounded tunnel and configuration actions.",
+    "capability": "native-workbench",
+    "route": "/tunnels",
+    "openLabel": "Open Cloudflare Tunnel"
+  },
+  {
+    "id": "netbird",
+    "name": "NetBird",
+    "group": "Connect & publish",
+    "summary": "Inspect installed private-network peers, paths, relays and client state.",
+    "capability": "native-workbench",
+    "route": "/extensions/netbird",
+    "openLabel": "Open NetBird"
+  },
+  {
+    "id": "wireshark",
+    "name": "Wireshark capture",
+    "group": "Inspect traffic & services",
+    "summary": "Capture a finite traffic sample with installed dumpcap, then inspect its evidence.",
+    "capability": "native-workbench",
+    "route": "/network/packets",
+    "openLabel": "Open live capture"
+  },
+  {
+    "id": "nmap",
+    "name": "Nmap",
+    "group": "Inspect traffic & services",
+    "summary": "Run a bounded authorized scan or import an existing XML report.",
+    "capability": "native-workbench",
+    "route": "/network/nmap",
+    "openLabel": "Open Nmap"
+  },
+  {
+    "id": "aria2",
+    "name": "aria2",
+    "group": "Transfer files",
+    "summary": "Power resumable local downloads and file verification.",
+    "capability": "native-workbench",
+    "route": "/downloader",
+    "openLabel": "Open Downloader"
+  },
+  {
+    "id": "caddy",
+    "name": "Caddy",
+    "group": "Connect & publish",
+    "summary": "Set up a local reverse proxy and prepare a read-only upstream observation.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "ngrok",
+    "name": "ngrok",
+    "group": "Connect & publish",
+    "summary": "Review a vendor-managed public endpoint recipe; requires your ngrok account.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "openssh",
+    "name": "OpenSSH",
+    "group": "Connect & publish",
+    "summary": "Prepare a loopback-only SSH forward, then inspect its local service endpoint.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "docker",
+    "name": "Docker",
+    "group": "Containers & clusters",
+    "summary": "Find a container’s mapped port and prepare an unsent local HTTP request.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "podman",
+    "name": "Podman",
+    "group": "Containers & clusters",
+    "summary": "Check native container port mappings and inspect a chosen local endpoint.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "kubectl",
+    "name": "kubectl",
+    "group": "Containers & clusters",
+    "summary": "Review an authorized loopback port-forward and inspect the forwarded service.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "openssl",
+    "name": "OpenSSL",
+    "group": "Inspect traffic & services",
+    "summary": "Compare native certificate and TLS observations with built-in diagnostics.",
+    "capability": "command-guide"
+  },
+  {
+    "id": "codex",
+    "name": "Codex CLI",
+    "group": "AI & agents",
+    "summary": "Prepare a local MCP configuration fragment for your paired Codex client.",
+    "capability": "mcp-setup"
+  },
+  {
+    "id": "claude-code",
+    "name": "Claude Code",
+    "group": "AI & agents",
+    "summary": "Prepare a local MCP configuration fragment for your paired Claude Code client.",
+    "capability": "mcp-setup"
+  },
+  {
+    "id": "gemini-cli",
+    "name": "Gemini CLI",
+    "group": "AI & agents",
+    "summary": "Merge a generated local MCP fragment into your Gemini CLI settings.",
+    "capability": "mcp-setup"
+  },
+  {
+    "id": "opencode",
+    "name": "OpenCode",
+    "group": "AI & agents",
+    "summary": "Merge a generated local MCP fragment into your OpenCode configuration.",
+    "capability": "mcp-setup"
+  },
+  {
+    "id": "ollama",
+    "name": "Ollama",
+    "group": "AI & agents",
+    "summary": "Set up your local model server and prepare a request to its model-list API.",
+    "capability": "endpoint-guide"
+  },
+  {
+    "id": "lm-studio",
+    "name": "LM Studio",
+    "group": "AI & agents",
+    "summary": "Prepare an HTTP model-list request for your already-running local server.",
+    "capability": "endpoint-guide"
+  },
+  {
+    "id": "chatgpt",
+    "name": "ChatGPT web",
+    "group": "AI & agents",
+    "summary": "Open a companion guide with a fixed prompt; no local connector or service data.",
+    "capability": "external-link"
+  }
+]

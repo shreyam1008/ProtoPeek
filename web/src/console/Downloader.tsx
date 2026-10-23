@@ -36,6 +36,7 @@ import {
   transferHealthLabel,
 } from './transfer-api';
 import './downloader.css';
+import { recordOperationReceipt } from './app/operation-receipts';
 import { DirectoryPicker } from './DirectoryPicker';
 import { useTransferProgress } from './use-transfer-progress';
 
@@ -165,6 +166,7 @@ export function Downloader() {
     setBusy('add');
     setError('');
     setWarning('');
+    let receiptQueued: number | undefined;
     try {
       if (!snapshot?.health.ready) await startTransferEngine();
       const singleJob = batchCount === 1;
@@ -178,6 +180,7 @@ export function Downloader() {
           headers: headers.map(({ name, value }) => ({ name: name.trim(), value })),
         }))
       );
+      receiptQueued = result.queuedCount;
       if (result.queuedCount > 0) {
         const failedSources = result.results
           .filter((item) => !item.queued)
@@ -200,6 +203,16 @@ export function Downloader() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The download could not be started.');
     } finally {
+      recordOperationReceipt({
+        operation: 'download',
+        outcome:
+          receiptQueued === undefined || receiptQueued === 0
+            ? 'failed'
+            : receiptQueued === batchCount
+              ? 'success'
+              : 'partial',
+        count: receiptQueued,
+      });
       setBusy('');
     }
   }

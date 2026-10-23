@@ -1,10 +1,18 @@
 # Workspace UI overhaul
 
-Published in the [opt-in edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge) on 7 September 2026. Stable installers remain on v0.6.1. Scope: the complete embedded workbench UI.
+The historical UI overhaul was published in the [legacy Edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge) on 7 September 2026. Stable installers remain on v0.6.1. [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is the separate rolling preview; current source can contain later changes.
 
 ## Design contract
 
-### Current-source refinement — 18 October 2026
+### Current-source direct entry — 23 October 2026
+
+Choose **HTTP request**, **gRPC · TLS**, or **gRPC · plaintext** on Home, enter an address, and select
+**Open HTTP** or **Open gRPC**. HTTP keeps the full URL path and query. gRPC keeps the deliberate transport
+choice and accepts a service authority rather than an HTTP path. Opening prepares an unsent
+draft; **Send** or **Connect** remains a separate action. Use **Find a service instead** when you need
+bounded protocol discovery instead. A matching current-source build is required.
+
+### Earlier refinement record — 18 October 2026
 
 Home accepts a service address and offers direct HTTP/gRPC starts. Pasting a URL uses its host
 and port for discovery; credentials are rejected before probing. The tool sidebar collapses to
@@ -19,7 +27,7 @@ OpenAPI imports require an operation choice; gRPC failures retain navigation and
 Recent services survive reloads with the server's sparse scan records. An explicit CLI scan is
 consumed once by the shell, including when switching between Home and gRPC.
 
-These refinements are current source, separate from the September edge acceptance and stable
+That implementation record is separate from the September legacy Edge acceptance and stable
 v0.6.1. Current source groups optional companions in Extensions; the historical review below
 describes the earlier Publish layout.
 

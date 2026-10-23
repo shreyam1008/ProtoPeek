@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/agentlink"
+	"github.com/shreyam1008/ProtoPeek/internal/extensions"
 	"github.com/shreyam1008/ProtoPeek/internal/portscan"
 )
 
@@ -288,7 +289,11 @@ func (m *agentManager) callHandler(w http.ResponseWriter, r *http.Request) {
 		_ = json.Unmarshal(call.Arguments, &args)
 		writes = args.Method != "GET" && args.Method != "HEAD" && args.Method != "OPTIONS"
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	duration := 60 * time.Second
+	if tool.MaxDurationSeconds > 0 {
+		duration = time.Duration(tool.MaxDurationSeconds) * time.Second
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), duration)
 	defer cancel()
 	id, err := randomSessionID()
 	if err != nil {
@@ -304,7 +309,7 @@ func (m *agentManager) callHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if writes && !m.allowWrites {
 		m.mu.Unlock()
-		http.Error(w, "write actions are off; enable them in AI agents for non-read HTTP methods and download controls", http.StatusForbidden)
+		http.Error(w, "write actions are off; enable them in AI agents for HTTP mutations, RPC connections/calls, packet capture and download controls", http.StatusForbidden)
 		return
 	}
 	if m.active >= 2 {
@@ -326,10 +331,7 @@ func (m *agentManager) callHandler(w http.ResponseWriter, r *http.Request) {
 	m.mu.Unlock()
 	result := m.execute(ctx, tool, call.Arguments)
 	result.ID = id
-	result.State = "completed"
-	if result.Status >= 400 {
-		result.State = "failed"
-	}
+	result.State = agentCompletionState(tool, result)
 	if ctx.Err() != nil {
 		result.State = "cancelled"
 		result.Status = 499
@@ -377,7 +379,16 @@ func (m *agentManager) execute(ctx context.Context, tool agentlink.Tool, input j
 		}
 		input, _ = json.Marshal(args)
 	}
-	if tool.Method == http.MethodGet || tool.Name == "tailnet_inspect" || tool.Name == "download_start_engine" {
+	if tool.Name == "extension_inspect" {
+		var args struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal(input, &args); err != nil || !extensions.KnownID(args.ID) {
+			return agentlink.Result{Status: http.StatusBadRequest, Preview: "unknown extension id"}
+		}
+		endpoint += "?" + url.Values{"id": {args.ID}}.Encode()
+	}
+	if (tool.Method == http.MethodGet && tool.Name != "grpc_schema") || tool.Name == "tailnet_inspect" || tool.Name == "download_start_engine" {
 		input = nil // These existing endpoints require an absent body, not an empty JSON object.
 	}
 	if tool.Name == "download_add" {
@@ -398,9 +409,11 @@ func (m *agentManager) execute(ctx context.Context, tool agentlink.Tool, input j
 		endpoint = "/api/transfers/" + args.Action
 		input, _ = json.Marshal(map[string]string{"id": args.ID})
 	}
-	request, _ := http.NewRequestWithContext(ctx, tool.Method, endpoint, bytes.NewReader(input))
+	request, err := agentProtocolRequest(ctx, tool, endpoint, input)
+	if err != nil {
+		return agentlink.Result{Status: http.StatusBadRequest, Preview: err.Error()}
+	}
 	request.RemoteAddr = "127.0.0.1:0"
-	request.Header.Set("Content-Type", "application/json")
 	// An already authenticated, allowlisted internal dispatch. It traverses the
 	// existing operation handlers and their admission/validation limits.
 	request.AddCookie(&http.Cookie{Name: csrfCookieName, Value: "agent-internal"})
@@ -411,13 +424,16 @@ func (m *agentManager) execute(ctx context.Context, tool agentlink.Tool, input j
 		writer.status = 200
 	}
 	result := agentlink.Result{Status: writer.status, Truncated: writer.overflow}
-	if writer.overflow || !json.Valid(writer.body.Bytes()) {
+	if tool.Name == "events_read" && writer.status < 400 {
+		return agentEventResult(writer)
+	}
+	if writer.status != http.StatusNoContent && (writer.overflow || !json.Valid(writer.body.Bytes())) {
 		result.Preview = writer.body.String()
 		if len(result.Preview) > agentReceiptBytes {
 			result.Preview = result.Preview[:agentReceiptBytes]
 			result.Truncated = true
 		}
-	} else {
+	} else if writer.status != http.StatusNoContent {
 		result.Data = writer.body.Bytes()
 	}
 	return result
@@ -437,6 +453,19 @@ func (w *agentResponseWriter) WriteHeader(code int) {
 	if w.status == 0 {
 		w.status = code
 	}
+}
+
+// Event handlers flush into this bounded memory sink, never into a long-lived
+// agent transport. A failed flush retires the underlying connection immediately.
+func (w *agentResponseWriter) Flush() { _ = w.FlushError() }
+func (w *agentResponseWriter) FlushError() error {
+	if w.overflow {
+		return io.ErrShortBuffer
+	}
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	return nil
 }
 func (w *agentResponseWriter) Write(data []byte) (int, error) {
 	if w.status == 0 {

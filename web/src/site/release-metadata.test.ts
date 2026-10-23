@@ -1,8 +1,17 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+function readRepositoryBytes(path: string) {
+  return readFileSync(resolve(repositoryRoot, path));
+}
+
 function readRepositoryFile(path: string) {
-  return readFileSync(`${process.cwd()}/${path}`, 'utf8').replaceAll('\r\n', '\n');
+  return readRepositoryBytes(path).toString('utf8').replaceAll('\r\n', '\n');
 }
 
 describe('release metadata', () => {
@@ -57,7 +66,12 @@ describe('release metadata', () => {
       theme_color: string;
     };
 
-    expect(siteIndex).toContain('<title>ProtoPeek | Local Systems Workbench</title>');
+    const registry = JSON.parse(readRepositoryFile('web/src/site/public-pages.json')) as {
+      pages: Array<{ id: string; documentTitle: string }>;
+    };
+    const document = new DOMParser().parseFromString(siteIndex, 'text/html');
+    expect(document.title).toBe(registry.pages.find((page) => page.id === 'home')?.documentTitle);
+    expect(document.title).toContain('gRPC, HTTP');
     expect(siteIndex).toContain('"softwareVersion": "0.6.1"');
     expect(siteIndex).toContain('/releases/tag/v0.6.1');
     expect(siteIndex).toContain('six areas: Home, Inspect, Network, Publish, Files, and Settings');
@@ -70,7 +84,10 @@ describe('release metadata', () => {
     expect(llms).toContain('v0.6.1 is the current stable release');
     expect(llms).toContain('Homebrew and Scoop manifests identify their package versions');
     expect(llms).toContain('Windows x64 includes pinned aria2 1.37.0');
-    expect(llms).toContain('Headscale, NetBird, integrated elevation/sign-in');
+    expect(llms).toContain('Headscale HTTPS login-server flow and native NetBird');
+    expect(llms).toContain(
+      'Native macOS socket/process ownership and foreground publishing remain unavailable'
+    );
     expect(llms).toContain(
       'Downloader product page: https://protopeek.shreyam1008.com.np/downloader/'
     );
@@ -109,6 +126,55 @@ describe('release metadata', () => {
     expect(ppMan).toContain('Windows x64 also includes bundled aria2');
   });
 
+  it('keeps implemented source capabilities out of stale planned claims and labels legacy Edge', () => {
+    const registry = JSON.parse(readRepositoryFile('web/src/site/public-pages.json')) as {
+      currentCapabilities: Array<{ id: string; label: string; summary: string; guide: string }>;
+      pages: Array<{ id: string; path: string; sourcePath?: string; lastModified?: string }>;
+    };
+    const llms = readRepositoryFile('web/site/public/llms.txt');
+    const readme = readRepositoryFile('README.md');
+    for (const capability of registry.currentCapabilities) {
+      const guide = registry.pages.find((page) => page.id === capability.guide);
+      expect(guide?.sourcePath).toBeTruthy();
+      expect(llms).toContain(`${capability.label}: ${capability.summary}`);
+      expect(llms).toContain(`Guide: https://protopeek.shreyam1008.com.np${guide?.path}`);
+      expect(readme).toContain(guide?.sourcePath);
+    }
+    expect(llms).not.toContain('Config writes and account mutation remain unavailable');
+    expect(llms).not.toContain('returned-capability RPC workflows remain planned');
+    expect(readme).toContain(
+      'configured/system `aria2c` in v0.5.0; Windows x64 fallback in v0.6.1'
+    );
+    expect(readme).toContain('<a id="install"></a>');
+    expect(readme).toContain('<a id="usage"></a>');
+    expect(readme).toContain(
+      'Current source: install guidance and clearly labelled integration levels; stable v0.6.1 uses Network → Tailscale and Publish'
+    );
+    expect(readme).not.toMatch(/\b\d+ UI tests\b/);
+    expect(readme).not.toMatch(/nightly[^\n]{0,80}\b[0-9a-f]{7,40}\b/i);
+    const source = new DOMParser().parseFromString(
+      readRepositoryFile('web/site/index.html'),
+      'text/html'
+    );
+    for (const selector of [
+      'meta[name="description"]',
+      'meta[property="og:description"]',
+      'meta[name="twitter:description"]',
+    ]) {
+      const description = source.querySelector(selector)?.getAttribute('content') ?? '';
+      if (/\bedge\b/i.test(description)) expect(description).toMatch(/\blegacy\b/i);
+    }
+    const graph = JSON.parse(
+      source.querySelector('script[type="application/ld+json"]')?.textContent ?? '{}'
+    ) as { '@graph': Array<Record<string, unknown>> };
+    expect(graph['@graph'].find((item) => item['@type'] === 'WebSite')?.dateModified).toBe(
+      registry.pages.find((page) => page.id === 'home')?.lastModified
+    );
+    expect(graph['@graph'].some((item) => 'review' in item || 'aggregateRating' in item)).toBe(
+      false
+    );
+  });
+
   it('keeps consolidation and website-analysis guides split into current and planned work', () => {
     const consolidation = readRepositoryFile('guides/gobarrygo-consolidation.md');
     const security = readRepositoryFile('guides/website-analysis-security.md');
@@ -139,17 +205,21 @@ describe('release metadata', () => {
     expect(security).toMatch(/does\s+not emit a security score/);
   });
 
-  it('labels real Downloader captures as v0.5.0 release-source evidence', () => {
+  it('keeps historical release captures separate from verified unreleased source PNGs', () => {
     const manifest = JSON.parse(readRepositoryFile('guides/screenshots.json')) as {
       screenshots: Array<{
         file: string;
+        alt: string;
         capturedVersion: string;
         releaseStatus?: string;
+        width?: number;
+        height?: number;
+        sha256?: string;
         workflow: string;
       }>;
     };
 
-    expect(manifest.screenshots).toHaveLength(7);
+    expect(manifest.screenshots).toHaveLength(9);
     const releaseCaptures = manifest.screenshots.filter(
       (screenshot) => screenshot.releaseStatus === 'released-v0.5.0'
     );
@@ -165,5 +235,25 @@ describe('release metadata', () => {
           /promoted into v0\.5\.0/.test(screenshot.workflow)
       )
     ).toBe(true);
+
+    const sourceCaptures = manifest.screenshots.filter(
+      (screenshot) => screenshot.releaseStatus === 'unreleased-source'
+    );
+    expect(sourceCaptures.map((screenshot) => screenshot.file)).toEqual([
+      '../web/site/public/assets/protopeek-source-home-20261023.png',
+      '../web/site/public/assets/protopeek-source-extensions-20261023.png',
+    ]);
+    for (const capture of sourceCaptures) {
+      expect(capture.capturedVersion).toContain('unreleased current-source preview');
+      expect(capture.alt).toMatch(/^Current-source ProtoPeek (Home|Extensions)\b/);
+      expect(capture.workflow).toContain('This is UI evidence, not');
+      expect(capture.sha256).toMatch(/^[a-f0-9]{64}$/);
+      const png = readRepositoryBytes(`guides/${capture.file}`);
+      expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      expect(png.subarray(12, 16).toString()).toBe('IHDR');
+      expect(png.readUInt32BE(16)).toBe(capture.width);
+      expect(png.readUInt32BE(20)).toBe(capture.height);
+      expect(createHash('sha256').update(png).digest('hex')).toBe(capture.sha256);
+    }
   });
 });

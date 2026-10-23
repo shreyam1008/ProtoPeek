@@ -12,12 +12,14 @@ describe('Roadmap', () => {
     expect(screen.getByRole('heading', { name: 'HTTP workbench' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /^Next/ }));
     expect(screen.queryByRole('heading', { name: 'HTTP workbench' })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'cURL import' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'No matching capabilities' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /^Available/ }));
+    expect(screen.getByRole('heading', { name: 'HTTP workbench' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /^Gated/ }));
     expect(screen.getByRole('heading', { name: 'No matching capabilities' })).toBeVisible();
     expect(screen.getByRole('textbox', { name: 'Search roadmap' })).toHaveValue('cURL');
   });
-  it('lists bounded cURL export as shipped and only cURL import as Next', () => {
+  it('lists reviewed cURL import and export in this build while keeping native acceptance explicit', () => {
     render(<Roadmap />);
 
     const available = screen
@@ -31,8 +33,11 @@ describe('Roadmap', () => {
     expect(within(available).getByRole('heading', { name: 'Workbench + themes' })).toBeVisible();
     expect(within(available).queryByText('Dashboard + themes')).not.toBeInTheDocument();
     expect(within(available).getByText(/bounded.*credential-redacted cURL export/i)).toBeVisible();
-    expect(within(next).getByRole('heading', { name: 'cURL import' })).toBeVisible();
-    expect(within(next).queryByText(/cURL import\/export/i)).not.toBeInTheDocument();
+    expect(within(available).getByText(/reviewed shell-free cURL import subset/i)).toBeVisible();
+    expect(
+      within(next).getByRole('heading', { name: 'Native installed-tool acceptance' })
+    ).toBeVisible();
+    expect(within(next).queryByRole('heading', { name: 'cURL import' })).not.toBeInTheDocument();
   });
 
   it('shows the bounded network workbench as available and keeps wider scanning gated', () => {
@@ -47,7 +52,7 @@ describe('Roadmap', () => {
     if (!available || !gated) return;
 
     expect(
-      within(available).getByRole('heading', { name: 'Network Path · Linux + Windows' })
+      within(available).getByRole('heading', { name: 'Network Path · native platforms' })
     ).toBeVisible();
     expect(
       within(available).getByRole('heading', { name: 'Authorized private discovery' })
@@ -59,7 +64,7 @@ describe('Roadmap', () => {
     expect(within(gated).queryByText('Traceroute / hop probes')).not.toBeInTheDocument();
   });
 
-  it('separates the read-only tunnel foundation from privileged mutation', () => {
+  it('separates bounded canonical operations and owned publishing from administrator/account changes', () => {
     render(<Roadmap />);
 
     const available = screen
@@ -73,13 +78,16 @@ describe('Roadmap', () => {
     if (!available || !next || !gated) return;
 
     expect(
-      within(available).getByRole('heading', { name: 'Cloudflare Tunnels · local foundation' })
+      within(available).getByRole('heading', { name: 'Cloudflare canonical operations' })
     ).toBeVisible();
     expect(
-      within(next).getByRole('heading', { name: 'Tunnel validation + runtime evidence' })
+      within(available).getByRole('heading', { name: 'Temporary publishing sessions' })
     ).toBeVisible();
     expect(
-      within(gated).getByRole('heading', { name: 'Tunnel configuration writes' })
+      within(gated).getByRole('heading', { name: 'Administrator config + credentials' })
+    ).toBeVisible();
+    expect(
+      within(next).getByRole('heading', { name: 'Release and provider acceptance' })
     ).toBeVisible();
   });
 });

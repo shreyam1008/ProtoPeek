@@ -17,5 +17,5 @@ export function handoffEvidence(provenance: HandoffProvenance, memoryOnly = fals
       : provenance.quality === 'inferred'
         ? 'Inferred draft'
         : 'Manual draft';
-  return `Draft from ${source}. ${quality} captured ${compactDate(provenance.observedAt)}${memoryOnly ? '. Browser session storage was unavailable, so this draft could not survive a reload' : ''}`;
+  return `Draft from ${source}. ${quality} captured ${compactDate(provenance.observedAt)}${memoryOnly ? '. Handoff kept in memory' : ''}`;
 }

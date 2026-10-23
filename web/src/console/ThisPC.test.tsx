@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 
 const speedtestMock = vi.hoisted(() => {
   const instances: Array<{ config: unknown; pause: ReturnType<typeof vi.fn> }> = [];
@@ -215,6 +216,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  clearOperationReceipts();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   clearPendingHandoff();
@@ -477,11 +479,15 @@ describe('This PC workspace', () => {
     render(<ThisPC />);
     await waitForSnapshot();
     fireEvent.click(screen.getByRole('tab', { name: 'Traffic' }));
+    expect(readOperationReceipts()).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Sample once' }));
 
     expect(await screen.findByText('1.0 Mbps average')).toBeVisible();
     expect(screen.getByText('2.0 Mbps average')).toBeVisible();
     expect(screen.getByText(/not individual processes/i)).toBeVisible();
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'traffic-sample', outcome: 'success' },
+    ]);
   });
 
   it('supersedes the shared action owner without stuck loading or stale evidence', async () => {

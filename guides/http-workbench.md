@@ -6,6 +6,15 @@ switch. Arrow Up/Down navigates each side list.
 
 ProtoPeek sends one bounded HTTP or REST request through the local Go process and keeps request choices, transport evidence, and the response together. The workbench ships in stable v0.5.0.
 
+## Make your first request
+
+Open **Inspect → HTTP**, paste the full URL, and choose **Send**. Status, body, headers and timing
+appear beside the request. No account, collection or discovery scan is needed first.
+
+In matching current source, choose **HTTP request** on Home, paste the URL, and select **Open HTTP**.
+The full path and query prepare an unsent draft; Send remains explicit. **Find a service instead** is a
+separate discovery action. Existing unsent work follows the workbench’s draft-recovery rules.
+
 ## Build one explicit request
 
 Choose the method and an absolute `http://` or `https://` URL. Add duplicate query parameters, headers, live auth, a raw body, timeout, and redirect policy only when the request needs them.
@@ -65,8 +74,33 @@ Use the library filter, Delete, Export library or Reset library to manage stored
 Storage belongs to this browser origin: at most 50 recipes / 512 KiB total and 64 KiB per saved
 body. A corrupt/full/unavailable store produces an error and is not overwritten by a failed save.
 Other tabs refresh the list when browser storage changes. Closing/reopening the browser preserves
-the library on the same origin; it is not an account or a host-wide database. This functionality
-is in current source after v0.5.0; environment profiles and library import are still future work.
+the library on the same origin; it is not an account or a host-wide database.
+
+### Current-source additions · 22 October 2026
+
+These additions require a matching current build; the stable v0.6.1 behavior and earlier acceptance
+records do not establish their release or native acceptance.
+
+Choose **Manage environments** to create a profile, add variables, and save it, then select it in
+**Environment**. Use `{{name}}` in the URL, query fields, headers or body. Missing variables fail
+before sending; nested templates are rejected. Secret variables are accepted only in auth/header
+values. Their values stay in the open HTTP session and must be re-entered after leaving or reload;
+only names/secret flags and non-secret values persist. The store allows 20 profiles, 32 variables
+per profile and 128 KiB total. Export and saved recipes do not expand live secret values.
+
+In **Saved requests**, choose **Import request library**, inspect the preview, then choose Merge
+or Replace and **Import library**. Imported credentials are removed; included bodies are imported
+verbatim, so review them for secrets. The 50-recipe/512 KiB bounds still apply, with no silent
+eviction. Import and recipe selection prepare the editor without sending.
+
+**Import cURL** accepts a bounded Copy as cURL (bash/POSIX) subset: one HTTP(S) URL, method, headers,
+inline body and timeout, including literal `-b`/`--cookie` values and bounded ANSI-C UTF-8 quoting
+(`$'…'`). Choose **Preview request**, review it, then **Load into editor**. The preview discloses
+omitted `--compressed`/`Accept-Encoding`: the relay negotiates and decodes gzip rather than copying
+browser compression choices. Other content encodings are not decoded. Cookies and auth stay in
+memory; bodies are not automatically saved. It never runs a shell or reads cookie/header/body
+files. NUL/binary escapes, unsupported flags, proxies and insecure TLS are rejected. **Send** is
+separate.
 
 Recent HTTP calls remain local to this browser and preserve a small response summary. Replaying a history entry starts from a clean request state and leaves redacted values blank for deliberate re-entry.
 
@@ -76,26 +110,18 @@ The copied command runs in your shell. Its DNS, proxy, trust roots, network name
 
 ## Deliberate limits
 
-### Current-source draft recovery and event streams
+### Current-source draft recovery
 
 Unsent HTTP drafts recover in the same browser after navigation or restart. Credential-like query
 values and headers are redacted; auth must be entered again. Bodies stay in memory unless
 “Remember body in this browser” is enabled. Draft storage is bounded to 256 KiB, and storage failures
 are shown in the workbench. JSON responses offer a pretty/raw toggle without changing copied bytes.
 
-Inspect → Event streams (current source, after v0.5.0) connects to `ws://` / `wss://` WebSockets or
-`http://` / `https://` SSE endpoints through the local Go server. WebSocket supports text/JSON and
-base64 binary messages, custom headers, and negotiated subprotocols. SSE displays multiline data,
-event names, and last-event IDs. TLS certificates are verified; redirects are not followed.
+For a live WebSocket or SSE connection, use the separate [Event streams workbench](event-streams.md).
+Its finite sessions, negotiated subprotocols, event IDs and send/disconnect controls retain their
+protocol-specific evidence. The WebSocket/SSE foundation is available in stable v0.6.1.
 
-Connect starts traffic; Disconnect or leaving the workbench closes the upstream connection. The
-duration is explicit (0.1–120 seconds, default 60). Each session stops at 500 received messages or
-2 MiB, with a 64 KiB per-message limit and 200 WebSocket sends. The UI retains the latest 200 rows;
-timestamps are browser observation times since Connect, not one-way network latency. Two simultaneous
-stream sessions are allowed per server. Headers and payloads remain in memory. SSE does not retry
-automatically; an explicit `Last-Event-ID` header can request resumption from a compatible server.
-
-ProtoPeek does not currently provide cURL import, automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
+ProtoPeek does not currently provide automatic OpenAPI endpoint discovery, OpenAPI YAML import, a cookie jar, OAuth application marketplace, mock server, cloud sync, script runner, or team workspace. Those are separate product and security decisions, not implied features.
 
 ## Go deeper
 

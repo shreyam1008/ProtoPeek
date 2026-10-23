@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-
+import { type ReceiptOutcome, recordOperationReceipt } from '@/console/app/operation-receipts';
 import {
   fetchThisPCPublicIdentity,
   inspectThisPCActivity,
@@ -10,7 +10,6 @@ import {
   type ThisPCPublicIdentity,
   type ThisPCTrafficSample,
 } from '@/console/this-pc-api';
-
 import { deviceErrorMessage, type IdleResource, type Resource } from './device-state';
 
 type DeviceActionKind = 'activity' | 'traffic' | 'public';
@@ -18,7 +17,25 @@ type DeviceAction = {
   kind: DeviceActionKind;
   generation: number;
   controller: AbortController;
+  started: number;
+  finished: boolean;
 };
+
+function recordAction(action: DeviceAction, outcome: ReceiptOutcome, count?: number) {
+  if (action.finished) return;
+  action.finished = true;
+  recordOperationReceipt({
+    operation:
+      action.kind === 'activity'
+        ? 'socket-inspection'
+        : action.kind === 'traffic'
+          ? 'traffic-sample'
+          : 'public-identity',
+    outcome,
+    count,
+    durationMs: performance.now() - action.started,
+  });
+}
 
 export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
   const [activity, setActivity] = useState<IdleResource<ThisPCActivity>>({ status: 'idle' });
@@ -47,6 +64,7 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
       actionGenerationRef.current += 1;
       const action = actionControllerRef.current;
       actionControllerRef.current = null;
+      if (action) recordAction(action, 'cancelled');
       action?.controller.abort();
     };
   }, []);
@@ -69,10 +87,17 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     const generation = actionGenerationRef.current + 1;
     actionGenerationRef.current = generation;
     if (previous) {
+      recordAction(previous, 'stale');
       returnActionToIdle(previous.kind);
       previous.controller.abort();
     }
-    const action = { kind, generation, controller: new AbortController() };
+    const action = {
+      kind,
+      generation,
+      controller: new AbortController(),
+      started: performance.now(),
+      finished: false,
+    };
     actionControllerRef.current = action;
     return action;
   }
@@ -86,9 +111,15 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     );
   }
 
-  function settleAction(action: DeviceAction, commit: () => void) {
+  function settleAction(
+    action: DeviceAction,
+    commit: () => void,
+    outcome: ReceiptOutcome = 'success',
+    count?: number
+  ) {
     if (!actionIsCurrent(action)) return;
     actionControllerRef.current = null;
+    recordAction(action, outcome, count);
     commit();
   }
 
@@ -96,11 +127,19 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     const action = beginAction('activity');
     setActivity({ status: 'loading' });
     void inspectThisPCActivity(action.controller.signal).then(
-      (value) => settleAction(action, () => setActivity({ status: 'ready', value })),
+      (value) =>
+        settleAction(
+          action,
+          () => setActivity({ status: 'ready', value }),
+          value.status === 'partial' ? 'partial' : 'success',
+          value.listeners.length + value.connections.length
+        ),
       (error: unknown) => {
         const message = deviceErrorMessage(error, 'Local activity inspection failed.');
-        settleAction(action, () =>
-          setActivity(message ? { status: 'error', error: message } : { status: 'idle' })
+        settleAction(
+          action,
+          () => setActivity(message ? { status: 'error', error: message } : { status: 'idle' }),
+          'failed'
         );
       }
     );
@@ -111,6 +150,7 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     if (action?.kind !== 'activity') return;
     actionGenerationRef.current++;
     actionControllerRef.current = null;
+    recordAction(action, 'cancelled');
     action.controller.abort();
     setActivity({ status: 'idle' });
   }
@@ -119,11 +159,19 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     const action = beginAction('traffic');
     setTraffic({ status: 'loading' });
     void sampleThisPCTraffic(trafficDuration, action.controller.signal).then(
-      (value) => settleAction(action, () => setTraffic({ status: 'ready', value })),
+      (value) =>
+        settleAction(
+          action,
+          () => setTraffic({ status: 'ready', value }),
+          value.interfaces.every((iface) => iface.status === 'ok') ? 'success' : 'partial',
+          value.interfaces.length
+        ),
       (error: unknown) => {
         const message = deviceErrorMessage(error, 'Local traffic sample failed.');
-        settleAction(action, () =>
-          setTraffic(message ? { status: 'error', error: message } : { status: 'idle' })
+        settleAction(
+          action,
+          () => setTraffic(message ? { status: 'error', error: message } : { status: 'idle' }),
+          'failed'
         );
       }
     );
@@ -135,11 +183,24 @@ export function useDeviceActions(capabilities: Resource<ThisPCCapabilities>) {
     const action = beginAction('public');
     setPublicIdentity({ status: 'loading' });
     void fetchThisPCPublicIdentity(publicFamilies, action.controller.signal).then(
-      (value) => settleAction(action, () => setPublicIdentity({ status: 'ready', value })),
+      (value) =>
+        settleAction(
+          action,
+          () => setPublicIdentity({ status: 'ready', value }),
+          value.families.every((family) => family.status === 'ok')
+            ? 'success'
+            : value.families.some((family) => family.status === 'ok')
+              ? 'partial'
+              : 'failed',
+          value.families.filter((family) => family.status === 'ok').length
+        ),
       (error: unknown) => {
         const message = deviceErrorMessage(error, 'Public identity check failed.');
-        settleAction(action, () =>
-          setPublicIdentity(message ? { status: 'error', error: message } : { status: 'idle' })
+        settleAction(
+          action,
+          () =>
+            setPublicIdentity(message ? { status: 'error', error: message } : { status: 'idle' }),
+          'failed'
         );
       }
     );

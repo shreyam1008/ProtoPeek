@@ -22,8 +22,10 @@ planned claims explicitly separate.
   Network tool; live capture and Nmap use optional external tools. Roadmap and Help remain secondary.
 - Preserve existing routes and deep links as compatibility paths while the information architecture
   changes.
-- The installed Tailscale foundation ships in v0.6.1. Headscale, NetBird and integrated sign-in/elevation
-  remain planned. Do not present a future provider or shared publishing workflow as shipped.
+- The installed Tailscale foundation ships in v0.6.1. Current source adds a separate Headscale
+  HTTPS login-server account flow, native NetBird evidence/actions and reviewed temporary publishing.
+  Integrated sign-in/elevation and provider administration remain user-owned or gated. Keep those
+  source implementations distinct from published-release and real-account acceptance evidence.
 
 ## Feature admission
 

@@ -2,6 +2,8 @@ package standalone
 
 import (
 	"bytes"
+	"encoding/json"
+	"github.com/shreyam1008/ProtoPeek/internal/packetwork"
 	"github.com/shreyam1008/ProtoPeek/testing/packetfixture"
 	"net/http"
 	"net/http/httptest"
@@ -44,6 +46,38 @@ func TestPacketWorkbenchBoundary(t *testing.T) {
 		handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/packets/"+path, nil))
 		if w.Code != 405 {
 			t.Fatal("accepted GET", path)
+		}
+	}
+}
+
+func TestPacketReconstructionRequiresExplicitOptIn(t *testing.T) {
+	handler := Handler(nil, "", nil, nil)
+	cookie := handlerCSRFCookie(t, handler)
+	for _, query := range []string{"", "?reconstruct=false", "?reconstruct=true", "?reconstruct=1", "?reconstruct=true&reconstruct=false"} {
+		r := httptest.NewRequest(http.MethodPost, "/api/packets/analyze"+query, bytes.NewReader(packetfixture.Bytes(1)))
+		r.AddCookie(cookie)
+		r.Header.Set(csrfHeaderName, cookie.Value)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if query == "?reconstruct=1" || query == "?reconstruct=true&reconstruct=false" {
+			if w.Code != http.StatusBadRequest {
+				t.Fatalf("accepted ambiguous option %s", query)
+			}
+			continue
+		}
+		if w.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", query, w.Code, w.Body.String())
+		}
+		var report packetwork.Report
+		if err := json.Unmarshal(w.Body.Bytes(), &report); err != nil {
+			t.Fatal(err)
+		}
+		if query == "?reconstruct=true" {
+			if report.Reconstruction == nil || len(report.Reconstruction.Flows) != 1 || !bytes.Contains(report.Reconstruction.Flows[0].Directions[0].Segments[0].Data, []byte("token=redacted")) {
+				t.Fatal("explicit retained-byte evidence missing")
+			}
+		} else if report.Reconstruction != nil || strings.Contains(w.Body.String(), "reconstruction") {
+			t.Fatal("payload serialized on metadata-only path")
 		}
 	}
 }

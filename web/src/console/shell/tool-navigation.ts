@@ -19,13 +19,19 @@ export const toolGroups: Record<
     { label: 'Your network', ids: ['network-local', 'this-pc'] },
     {
       label: 'Inspect traffic & services',
-      ids: ['network-ports', 'network-packets', 'network-path', 'network-route'],
+      ids: [
+        'network-diagnostics',
+        'network-ports',
+        'network-packets',
+        'network-path',
+        'network-route',
+      ],
     },
     { label: 'Saved evidence', ids: ['network-map', 'network-history'] },
   ],
   extensions: [
     { label: 'Optional tools', ids: ['extensions'] },
-    { label: 'Connect & publish', ids: ['tailnet', 'tunnels'] },
+    { label: 'Connect & publish', ids: ['tailnet', 'netbird', 'tunnels', 'publishing'] },
     { label: 'Scanning', ids: ['network-nmap'] },
   ],
   files: [{ label: 'Transfers', ids: ['downloader'] }],

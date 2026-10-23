@@ -408,6 +408,118 @@ afterEach(() => {
 });
 
 describe('NetworkWorkbench persistence protections', () => {
+  it('previews Nmap losses without saving, then saves only on explicit review confirmation', async () => {
+    const input = {
+      hosts: [
+        {
+          id: 1,
+          status: { state: 'up', reason: 'echo-reply' },
+          addresses: [{ type: 'ipv4', address: '192.0.2.10', vendor: '' }],
+          hostnames: [],
+          ports: [
+            {
+              protocol: 'tcp',
+              port: 443,
+              state: 'open|filtered',
+              reason: 'no-response',
+              service: {
+                name: 'https',
+                product: '',
+                version: '',
+                extrainfo: '',
+                tunnel: 'ssl',
+                method: 'table',
+                confidence: '3',
+              },
+            },
+          ],
+        },
+      ],
+      hostCount: 1,
+      portCount: 1,
+      complete: false,
+      completion: 'missing',
+    };
+    const fetchMock = vi.fn(async (_request: RequestInfo | URL) => Response.json(input));
+    vi.stubGlobal('fetch', fetchMock);
+    const { store } = await seededStore();
+    await renderWorkbench(store);
+    const put = vi.spyOn(store, 'put');
+    fireEvent.change(screen.getByLabelText('Import Nmap XML into network map'), {
+      target: { files: [new File(['<nmaprun/>'], 'inventory.xml')] },
+    });
+    const preview = await screen.findByRole('region', { name: 'Review Nmap topology import' });
+    expect(within(preview).getByText(/1 port states represented as unknown/)).toBeVisible();
+    expect(within(preview).getByText(/partial evidence/)).toBeVisible();
+    expect(put).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/nmap/import');
+    fireEvent.click(within(preview).getByRole('button', { name: 'Save imported map' }));
+    await screen.findByDisplayValue('inventory');
+    expect(put).toHaveBeenCalledOnce();
+    const imported = put.mock.calls[0][0] as NetworkWorkspaceV1;
+    expect(imported.edges).toEqual([]);
+    expect(imported.nodes[0].ports[0].state).toBe('unknown');
+    expect(imported.snapshots).toHaveLength(1);
+  });
+
+  it('discards late cancelled Nmap responses', async () => {
+    const response = deferredValue<Response>();
+    const fetchMock = vi.fn(async () => response.promise);
+    vi.stubGlobal('fetch', fetchMock);
+    const { store } = await seededStore();
+    await renderWorkbench(store);
+    const put = vi.spyOn(store, 'put');
+    fireEvent.change(screen.getByLabelText('Import Nmap XML into network map'), {
+      target: { files: [new File(['<nmaprun/>'], 'late.xml')] },
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel Nmap import' }));
+    response.resolve(Response.json({ hosts: [], complete: false, completion: 'missing' }));
+    await act(async () => {
+      await response.promise;
+    });
+    expect(
+      screen.queryByRole('region', { name: 'Review Nmap topology import' })
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('Alpha network');
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('refuses to save a reviewed Nmap preview after new map edits', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          hosts: [
+            {
+              id: 1,
+              status: { state: 'up', reason: '' },
+              addresses: [{ type: 'ipv4', address: '192.0.2.2', vendor: '' }],
+              hostnames: [],
+              ports: [],
+            },
+          ],
+          complete: true,
+          completion: 'success',
+        })
+      )
+    );
+    const { store } = await seededStore();
+    await renderWorkbench(store);
+    const put = vi.spyOn(store, 'put');
+    fireEvent.change(screen.getByLabelText('Import Nmap XML into network map'), {
+      target: { files: [new File(['<nmaprun/>'], 'review.xml')] },
+    });
+    await screen.findByRole('region', { name: 'Review Nmap topology import' });
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'New local edits' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save imported map' }));
+    expect(screen.getByText(/map changed after this preview/)).toBeVisible();
+    expect(screen.getByLabelText('Workspace name')).toHaveValue('New local edits');
+    expect(put).not.toHaveBeenCalled();
+  });
   it('saves map edits and can discard later changes back to the persisted workspace', async () => {
     const { store } = await seededStore();
     await renderWorkbench(store);
@@ -663,6 +775,7 @@ describe('NetworkWorkbench persistence protections', () => {
     ).toEqual([
       'Nearby devices',
       'This Device',
+      'Diagnostics',
       'Port scanner',
       'Packets',
       'Network path',
@@ -677,6 +790,7 @@ describe('NetworkWorkbench persistence protections', () => {
     ).toEqual([
       '/network/local',
       '/this-pc',
+      '/network/diagnostics',
       '/network/ports',
       '/network/packets',
       '/network/path',

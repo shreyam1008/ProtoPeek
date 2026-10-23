@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -801,15 +801,131 @@ describe('Tunnels', () => {
     expect(within(dialog).getByText('Portable draft · Cloudflare account authority')).toBeVisible();
   });
 
-  it('labels diagnostics truthfully without duplicating host evidence', async () => {
-    stubTunnelAPI();
+  it('offers explicit canonical diagnostics without duplicating host evidence or starting operations', async () => {
+    const request = stubTunnelAPI();
     renderTunnels();
     await inspectLocalHost();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Diagnostics' }));
-    expect(screen.getAllByText('Not queried')).toHaveLength(2);
+    const operations = await screen.findByRole('region', {
+      name: 'Canonical cloudflared operations',
+    });
+    for (const name of [
+      'Validate ingress',
+      'Recent log summary',
+      'Metrics snapshot',
+      'Prepare sanitized report',
+    ]) {
+      expect(within(operations).getByRole('button', { name })).toBeEnabled();
+    }
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls.some(([url]) => String(url).includes('/api/tunnels/operation'))).toBe(
+      false
+    );
     expect(screen.queryByRole('heading', { name: 'Local tool checks' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Logs/ })).not.toBeInTheDocument();
+  });
+
+  it('recovers a private rollback reference after real host refresh, tab unmount and route remount', async () => {
+    const before = 'a'.repeat(64);
+    const after = 'c'.repeat(64);
+    let revision = before;
+    const operations: Record<string, unknown>[] = [];
+    const plan = {
+      id: 'private-plan',
+      path: snapshot.deployments[0].configPath,
+      beforeRevision: before,
+      afterRevision: after,
+      route: { hostname: 'PRIVATE_ROUTE.test', path: '', service: 'http://127.0.0.1:8080' },
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      applied: false,
+    };
+    const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/capabilities'))
+        return Response.json({
+          ...capabilities,
+          configMutation: { supported: true, reason: '' },
+        });
+      if (path.endsWith('/snapshot'))
+        return Response.json({
+          ...snapshot,
+          deployments: snapshot.deployments.map((entry, index) =>
+            index ? entry : { ...entry, configRevision: revision }
+          ),
+          configSources: snapshot.configSources.map((entry, index) =>
+            index ? entry : { ...entry, revision }
+          ),
+        });
+      if (!path.endsWith('/operation')) return new Response('unexpected', { status: 404 });
+      const body = JSON.parse(String(init?.body));
+      operations.push(body);
+      const original = revision;
+      if (body.operation === 'apply') revision = after;
+      if (body.operation === 'rollback') revision = before;
+      return Response.json({
+        operation: body.operation,
+        status: body.operation === 'plan' ? 'planned' : 'completed',
+        message: 'Native validation completed.',
+        observedAt: new Date().toISOString(),
+        plan: { ...plan, applied: revision === after },
+        ...(body.operation !== 'plan'
+          ? {
+              receipt: {
+                id: 'receipt',
+                status: 'completed',
+                beforeRevision: original,
+                afterRevision: revision,
+              },
+            }
+          : {}),
+      });
+    });
+    vi.stubGlobal('fetch', request);
+    renderTunnels();
+    await inspectLocalHost();
+    fireEvent.click(screen.getByRole('tab', { name: 'Diagnostics' }));
+    fireEvent.click(await screen.findByText('Add a route to this canonical config'));
+    fireEvent.change(screen.getByLabelText('Hostname'), { target: { value: plan.route.hostname } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview validated change' }));
+    const apply = await screen.findByRole('button', { name: 'Apply reviewed change' });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(apply);
+    await screen.findByRole('button', { name: 'Roll back this change' });
+    await waitFor(() =>
+      expect(request.mock.calls.filter(([url]) => String(url).endsWith('/snapshot'))).toHaveLength(
+        2
+      )
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Routes' }));
+    expect(
+      screen.queryByRole('region', { name: 'Canonical cloudflared operations' })
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Diagnostics' }));
+    expect(await screen.findByRole('button', { name: 'Roll back this change' })).toBeDisabled();
+    expect(sessionStorage.getItem('protopeek.canonical-rollback.v1')).not.toContain(
+      'PRIVATE_ROUTE'
+    );
+
+    cleanup();
+    const calls = request.mock.calls.length;
+    renderTunnels();
+    expect(request).toHaveBeenCalledTimes(calls);
+    expect(screen.queryByRole('button', { name: 'Roll back this change' })).not.toBeInTheDocument();
+    await inspectLocalHost();
+    fireEvent.click(screen.getByRole('tab', { name: 'Diagnostics' }));
+    const rollback = await screen.findByRole('button', { name: 'Roll back this change' });
+    expect(rollback).toBeDisabled();
+    expect(operations.map((entry) => entry.operation)).toEqual(['plan', 'apply']);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(rollback);
+    await screen.findByText('rollback: completed');
+    expect(operations[2]).toMatchObject({
+      operation: 'rollback',
+      planId: plan.id,
+      revision: after,
+      confirmed: true,
+    });
   });
 
   it('disables service mutations while the observed state is transitional or unknown', async () => {
@@ -840,5 +956,8 @@ describe('Tunnels', () => {
       'false'
     );
     expect(screen.getByRole('button', { name: 'Details' })).toBeEnabled();
+    expect(screen.getByRole('combobox', { name: 'Tunnel deployment' })).toHaveValue(
+      snapshot.deployments[0].id
+    );
   });
 });

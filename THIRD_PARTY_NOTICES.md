@@ -2,6 +2,14 @@
 
 ProtoPeek includes third-party components under their respective licenses.
 
+## QUIC and HTTP/3 (current source)
+
+`github.com/quic-go/quic-go` v0.64.1 is Copyright (c) 2016 the quic-go authors & Google, Inc.,
+under the MIT license. `github.com/quic-go/qpack` v0.6.0 is also MIT licensed. Full license
+texts are included in `third_party/licenses/quic-go-MIT.txt` and `qpack-MIT.txt` and accompany
+release archives. The pinned transport is used only by explicitly started HTTP/3 diagnostics;
+it starts no listener or background service when the application opens.
+
 ## Cap’n Proto Go runtime (current source)
 
 `capnproto.org/go/capnp/v3` v3.1.0-alpha.2 is Copyright (C) 2014 the go-capnproto

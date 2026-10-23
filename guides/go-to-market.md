@@ -6,6 +6,11 @@ ProtoPeek should launch as a small, inspectable developer tool—not as a vague
 > One local binary. Open a browser. Inspect gRPC or HTTP, read the kernel-selected next hop, and
 > verify offline discovery hints without moving credentials or history to a hosted service.
 
+**Current checkpoint · 23 October 2026:** stable remains v0.6.1. The current-source networking,
+protocol and optional-tool refinements are described in the [feature roadmap](feature-roadmap.md);
+source, rolling Nightly archives and a promoted stable release are separate evidence. Native
+provider/account and package gates do not become passes because documentation changed.
+
 ## Release gate
 
 Do not send launch traffic to `master`, an edge build, or a draft. Launch only
@@ -26,9 +31,11 @@ so the stable tag is the immutable center of this launch—not the website copy.
 
 ## Distribution order
 
-Current execution state: **v0.5.0 is the verified public baseline. Its stable release, Pages site,
+**Historical v0.5.0 distribution record:** at that checkpoint, v0.5.0 was the verified public
+baseline. Its stable release, Pages site,
 Homebrew tap, and Scoop bucket are live after their release, deployment, dependency-aware, and
-default-branch checks passed.** WinGet
+default-branch checks passed. The v0.5.0-specific paragraphs below retain that historical record;
+the current stable version is v0.6.1. WinGet
 and community launch submissions remain gated on initial package/user feedback. No third-party
 submission or founder-authored community post should be made from an agent account.
 

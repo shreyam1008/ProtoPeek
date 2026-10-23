@@ -1,0 +1,114 @@
+.pp-publishing {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.pp-publish-form,
+.pp-publish-review,
+.pp-publish-session,
+.pp-publish-help {
+  padding: 18px;
+  min-width: 0;
+}
+.pp-publish-form fieldset {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.pp-publishing label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--pp-color-text);
+}
+.pp-publishing input,
+.pp-publishing select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 5px;
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+}
+.pp-publishing button {
+  padding: 8px 12px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 5px;
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+  cursor: pointer;
+}
+.pp-publishing button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.pp-publishing button:focus-visible,
+.pp-publishing input:focus-visible,
+.pp-publishing select:focus-visible,
+.pp-publishing summary:focus-visible,
+.pp-publishing a:focus-visible {
+  outline: 2px solid var(--pp-color-accent);
+  outline-offset: 3px;
+}
+.pp-publishing p,
+.pp-publishing small,
+.pp-publishing li {
+  line-height: 1.6;
+}
+.pp-publishing small,
+.pp-publishing dt {
+  color: var(--pp-color-text-muted);
+}
+.pp-publishing a {
+  color: var(--pp-color-accent);
+  overflow-wrap: anywhere;
+}
+.pp-publishing code,
+.pp-publishing dd {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.pp-publishing dd {
+  margin: 4px 0 0;
+}
+.pp-publishing dl {
+  display: grid;
+  gap: 12px;
+  font-size: 13px;
+}
+.pp-publish-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pp-publish-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+.pp-publishing .pp-publish-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 14px 0;
+}
+.pp-publishing .pp-publish-consent input {
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+@media (max-width: 600px) {
+  .pp-publishing {
+    padding: 12px;
+  }
+  .pp-publish-fields {
+    grid-template-columns: 1fr;
+  }
+}

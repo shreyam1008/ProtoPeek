@@ -2,6 +2,8 @@ import { Link, useSearch } from '@tanstack/react-router';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { createReceiptRecorder } from './app/operation-receipts';
+import { OperationHistoryControl } from './OperationHistoryControl';
 import { ProtocolInfo } from './ProtocolInfo';
 import {
   type CaptureInterface,
@@ -13,6 +15,12 @@ import { OperationStatus } from './shell/OperationStatus';
 import './packets.css';
 
 const PacketReportView = lazy(() => import('./PacketReportView'));
+const PayloadNotice = lazy(() =>
+  import('./PacketReconstruction').then((module) => ({ default: module.PayloadNotice }))
+);
+const ReaderHelp = lazy(() =>
+  import('./PacketReconstruction').then((module) => ({ default: module.ReaderHelp }))
+);
 
 export function PacketWorkbench() {
   const incoming = useSearch({ from: '/network/packets' });
@@ -20,6 +28,8 @@ export function PacketWorkbench() {
     incoming.mode ?? (incoming.host || incoming.port ? 'live' : 'file')
   );
   const [file, setFile] = useState<File | null>(null);
+  const [reconstruct, setReconstruct] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [interfaces, setInterfaces] = useState<CaptureInterface[]>([]);
   const [iface, setIface] = useState('');
   const [host, setHost] = useState(incoming.host ?? '');
@@ -36,6 +46,7 @@ export function PacketWorkbench() {
   const [source, setSource] = useState('');
   const [reportRevision, setReportRevision] = useState(0);
   const active = useRef<AbortController | null>(null);
+  const receiptRef = useRef<ReturnType<typeof createReceiptRecorder> | null>(null);
   useEffect(() => {
     if (captureAvailable !== null) return;
     const controller = new AbortController();
@@ -45,7 +56,7 @@ export function PacketWorkbench() {
           setCaptureAvailable(value.available === true);
           setCapability(
             value.available === true
-              ? 'Capture tool found. Choose where traffic enters or leaves this ProtoPeek host.'
+              ? 'Capture tool found. Choose a local interface.'
               : typeof value.reason === 'string'
                 ? value.reason
                 : 'Capture support unavailable.'
@@ -104,10 +115,14 @@ export function PacketWorkbench() {
     () => () => {
       active.current?.abort();
       active.current = null;
+      receiptRef.current?.('cancelled');
+      receiptRef.current = null;
     },
     []
   );
   function cancel() {
+    receiptRef.current?.('cancelled');
+    receiptRef.current = null;
     active.current?.abort();
     active.current = null;
     setBusy('');
@@ -146,6 +161,10 @@ export function PacketWorkbench() {
     }
     const controller = new AbortController();
     active.current = controller;
+    const finish = createReceiptRecorder({
+      operation: operation === 'analyze' ? 'packet-file' : 'packet-capture',
+    });
+    receiptRef.current = finish;
     setBusy(operation === 'capture' ? `Capturing for up to ${seconds} seconds` : 'Reading capture');
     try {
       const input =
@@ -159,9 +178,15 @@ export function PacketWorkbench() {
               packets: 2000,
               consent: true,
             };
-      const result = await packetRequest(operation, input, controller.signal);
+      const result = await packetRequest(
+        operation === 'analyze' && reconstruct ? 'analyze?reconstruct=true' : operation,
+        input,
+        controller.signal
+      );
       if (active.current !== controller) return;
-      setReport(parsePacketReport(result));
+      const nextReport = parsePacketReport(result);
+      setReport(nextReport);
+      finish(nextReport.limited ? 'partial' : 'success', nextReport.packetCount);
       setSource(
         operation === 'analyze'
           ? (file?.name ?? 'Capture file')
@@ -170,9 +195,12 @@ export function PacketWorkbench() {
       setReportRevision((revision) => revision + 1);
       setNotice('Inspection completed. Results stay in memory until cleared or this page closes.');
     } catch (cause) {
-      if (active.current === controller)
+      if (active.current === controller) {
+        finish(controller.signal.aborted ? 'cancelled' : 'failed');
         setError(cause instanceof Error ? cause.message : 'Packet inspection failed.');
+      }
     } finally {
+      if (receiptRef.current === finish) receiptRef.current = null;
       if (active.current === controller) {
         active.current = null;
         setBusy('');
@@ -186,6 +214,7 @@ export function PacketWorkbench() {
         <ProtocolInfo protocol="packets" />
         <Link to="/network/local">Network tools</Link>
       </PageHeader>
+      <OperationHistoryControl operations={['packet-file', 'packet-capture']} />
       <aside className="pp-packet-controls" aria-label="Packet inspection controls">
         <nav aria-label="Packet sources">
           <button
@@ -217,6 +246,20 @@ export function PacketWorkbench() {
                 onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               />
             </label>
+            <label className="pp-packet-payload-toggle">
+              <input
+                type="checkbox"
+                checked={reconstruct}
+                disabled={Boolean(busy)}
+                onChange={(event) => setReconstruct(event.target.checked)}
+              />
+              Reconstruct TCP payload evidence
+            </label>
+            {reconstruct ? (
+              <Suspense fallback={null}>
+                <PayloadNotice />
+              </Suspense>
+            ) : null}
             <button
               type="button"
               disabled={!file || Boolean(busy)}
@@ -366,16 +409,13 @@ export function PacketWorkbench() {
             Cancel inspection
           </button>
         ) : null}
-        <details>
+        <details onToggle={(event) => setShowHelp(event.currentTarget.open)}>
           <summary>What this reader shows</summary>
-          <p>
-            Endpoints, packet sizes, TCP flags, DNS questions, HTTP method/status and TLS record
-            signatures. Port numbers alone do not identify an application.
-          </p>
-          <p>
-            No TCP reassembly, decryption, process attribution or payload retention. Use Wireshark
-            for deeper inspection of your original capture.
-          </p>
+          {showHelp ? (
+            <Suspense fallback={<p>Loading reader details…</p>}>
+              <ReaderHelp />
+            </Suspense>
+          ) : null}
         </details>
       </aside>
       <section className="pp-packet-results" aria-label="Packet results">
@@ -389,6 +429,11 @@ export function PacketWorkbench() {
               report={report}
               source={source}
               busy={Boolean(busy)}
+              onForgetPayload={() =>
+                setReport((current) =>
+                  current ? { ...current, reconstruction: undefined } : current
+                )
+              }
               onClear={() => {
                 setReport(null);
                 setSource('');
@@ -398,8 +443,8 @@ export function PacketWorkbench() {
           </Suspense>
         ) : (
           <EmptyState title="See what crossed a network interface">
-            Open an existing capture, or explicitly capture one IP or port on this host. Choose a
-            packet to inspect its decoded details.
+            Open a capture file or record one IP/port on this host. Select a packet for decoded
+            details.
           </EmptyState>
         )}
       </section>

@@ -162,6 +162,65 @@ describe('normalizeRecentDiscoveries', () => {
     expect(normalizeRecentDiscoveries([null, {}, { address: 7 }])).toEqual([]);
   });
 
+  it('retains bounded original provenance across reload without refreshing old evidence', () => {
+    const stored = {
+      ...discovery('localhost:8080'),
+      handoffProvenance: {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: '2026-08-21T00:00:00.000Z',
+        path: '/network/history',
+        evidenceIds: ['scan-17'],
+      },
+    };
+    expect(normalizeRecentDiscoveries(JSON.parse(JSON.stringify([stored])))).toEqual([stored]);
+  });
+
+  it.each([
+    null,
+    {},
+    { source: 'scanner', quality: 'observed', observedAt: 'not-a-date' },
+    { source: 'scanner', quality: 'certain', observedAt: '2026-08-21T00:00:00.000Z' },
+    { source: 'scanner\nprivate', quality: 'observed', observedAt: '2026-08-21T00:00:00.000Z' },
+    {
+      source: 'scanner',
+      quality: 'observed',
+      observedAt: '2026-08-21T00:00:00.000Z',
+      path: '/?secret=token',
+    },
+    {
+      source: 'scanner',
+      quality: 'observed',
+      observedAt: '2026-08-21T00:00:00.000Z',
+      headers: { Authorization: 'secret' },
+    },
+    {
+      source: 'scanner',
+      quality: 'observed',
+      observedAt: '2026-08-21T00:00:00.000Z',
+      evidenceIds: Array.from({ length: 9 }, (_, index) => `id-${index}`),
+    },
+  ])('rejects malformed persisted provenance instead of silently promoting it to manual evidence', (handoffProvenance) => {
+    expect(
+      normalizeRecentDiscoveries([{ ...discovery('localhost:8080'), handoffProvenance }])
+    ).toEqual([]);
+  });
+
+  it('rejects a provenance timestamp that conflicts with the stored observation time', () => {
+    expect(
+      normalizeRecentDiscoveries([
+        {
+          ...discovery('localhost:8080'),
+          handoffProvenance: {
+            source: 'scanner',
+            quality: 'observed',
+            observedAt: '2026-08-22T00:00:00.000Z',
+          },
+        },
+      ])
+    ).toEqual([]);
+  });
+
   it('retains at most the twelve newest valid discoveries', () => {
     const stored = Array.from({ length: 14 }, (_, index) => discovery(`127.0.0.1:${8000 + index}`));
 

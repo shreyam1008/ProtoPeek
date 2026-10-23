@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket &amp; SSE Client: Live Message Evidence | ProtoPeek</title>
+    <meta name="description" content="Connect to WebSocket or SSE services locally, inspect bounded message timelines, send text or binary WebSocket data, and stop each session explicitly." />
+    <meta name="author" content="Shreyam Adhikari" />
+    <meta name="creator" content="Shreyam Adhikari" />
+    <meta name="application-name" content="ProtoPeek" />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="theme-color" content="#0b5cff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <link rel="canonical" href="https://protopeek.shreyam1008.com.np/event-streams/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="stylesheet" href="/docs.css" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="ProtoPeek" />
+    <meta property="og:title" content="WebSocket &amp; SSE Client: Live Message Evidence | ProtoPeek" />
+    <meta property="og:description" content="Connect to WebSocket or SSE services locally, inspect bounded message timelines, send text or binary WebSocket data, and stop each session explicitly." />
+    <meta property="og:url" content="https://protopeek.shreyam1008.com.np/event-streams/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:secure_url" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="WebSocket &amp; SSE Client: Live Message Evidence | ProtoPeek" />
+    <meta name="twitter:description" content="Connect to WebSocket or SSE services locally, inspect bounded message timelines, send text or binary WebSocket data, and stop each session explicitly." />
+    <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
+    <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"WebSocket and SSE workbench","description":"Connect to WebSocket or SSE services locally, inspect bounded message timelines, send text or binary WebSocket data, and stop each session explicitly.","url":"https://protopeek.shreyam1008.com.np/event-streams/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/event-streams/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/event-streams.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"WebSocket and SSE workbench","item":"https://protopeek.shreyam1008.com.np/event-streams/"}]}}</script>
+  </head>
+  <body>
+    <a class="pp-skip-link" href="#main-content">Skip to content</a>
+    <div class="pp-doc-shell">
+      <div class="pp-doc-container">
+
+    <header class="pp-doc-topbar">
+      <a class="pp-doc-brand" href="/" aria-label="ProtoPeek home">
+        <span class="pp-doc-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M3.5 17h4l2.2-9 4.1 17 4.4-19 3.1 12H28.5"/><circle cx="28.5" cy="18" r="1.6"/></svg>
+        </span>
+        <strong>ProtoPeek</strong>
+      </a>
+      <nav class="pp-doc-nav" aria-label="Primary">
+        <a href="/#product">Product</a>
+        <a href="/docs/" aria-current="page">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M11 4h5v5M16 4l-7 7"/><path d="M14 11v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4"/></svg></a>
+      </nav>
+    </header>
+
+
+        <main id="main-content">
+
+    <nav class="pp-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+      <a href="/docs/">Guides</a><svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg><span aria-current="page">WebSocket and SSE workbench</span>
+    </nav>
+
+          <section class="pp-doc-hero" aria-labelledby="page-title">
+          <div class="pp-doc-hero-grid">
+            <div class="pp-doc-hero-copy">
+              <h1 id="page-title">WebSocket and SSE workbench</h1>
+              <p>What is this live service sending?</p>
+
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.6.1
+    </span>
+
+              <ul class="pp-doc-highlights" aria-label="Page highlights">
+                <li>WebSocket text and binary</li><li>SSE names and event IDs</li><li>Finite sessions and explicit sends</li>
+              </ul>
+            </div>
+
+    <figure class="pp-doc-visual pp-visual-http">
+      <div class="pp-doc-visual-heading">
+        <span>Evidence path</span>
+        <strong>What is this live service sending?</strong>
+      </div>
+      <svg viewBox="0 0 420 172" role="img" aria-labelledby="visual-event-streams-title visual-event-streams-description">
+        <title id="visual-event-streams-title">WebSocket and SSE workbench evidence path</title>
+        <desc id="visual-event-streams-description">Request to TLS to Response</desc>
+        <path class="pp-visual-link" d="M 130 94 H 162" /><path class="pp-visual-link" d="M 266 94 H 298" />
+
+        <g class="pp-visual-node">
+          <rect x="20" y="56" width="116" height="76" rx="10" />
+          <circle cx="38" cy="75" r="5" />
+          <text x="34" y="108">Request</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="156" y="56" width="116" height="76" rx="10" />
+          <circle cx="174" cy="75" r="5" />
+          <text x="170" y="108">TLS</text>
+        </g>
+
+        <g class="pp-visual-node">
+          <rect x="292" y="56" width="116" height="76" rx="10" />
+          <circle cx="310" cy="75" r="5" />
+          <text x="306" y="108">Response</text>
+        </g>
+
+      </svg>
+      <figcaption>One local path. Each boundary stays visible.</figcaption>
+    </figure>
+
+          </div>
+          </section>
+
+
+    <section class="pp-feature-flow" aria-label="Three-step feature path">
+
+            <article>
+              <span>01 · Connect</span>
+              <h2>Choose the native protocol</h2>
+              <p>Enter one WebSocket or SSE endpoint, headers and a finite duration. Connect starts traffic.</p>
+            </article>
+
+            <article>
+              <span>02 · Observe</span>
+              <h2>Inspect the message timeline</h2>
+              <p>Read data, encoding, named SSE events, IDs and the negotiated WebSocket subprotocol.</p>
+            </article>
+
+            <article>
+              <span>03 · Stop</span>
+              <h2>End the finite session</h2>
+              <p>Disconnect or leave the workbench to close the upstream connection. SSE does not retry automatically.</p>
+            </article>
+
+    </section>
+
+
+          <div class="pp-doc-main">
+            <article class="pp-doc-article">
+              <div class="pp-doc-prose">
+                <p>Open <strong>Inspect → Event streams</strong> to observe a service’s live messages through the local Go process. WebSocket and Server-Sent Events are available in stable v0.6.1. They retain their own connection and message evidence; this is separate from gRPC streaming RPCs.</p>
+<h2 id="connect-to-one-endpoint">Connect to one endpoint</h2>
+<ol><li><div class="pp-doc-list-title">Choose <strong>WebSocket</strong> or <strong>SSE</strong>.</div></li><li><div class="pp-doc-list-title">Enter a <code>ws://</code> or <code>wss://</code> URL for WebSocket, or <code>http://</code> or <code>https://</code> for SSE.</div></li><li><div class="pp-doc-list-title">Add headers only when needed. For WebSocket, optional subprotocol names are comma-separated.</div></li><li><div class="pp-doc-list-title">Set the session duration and choose <strong>Connect</strong>.</div></li></ol>
+<p>Opening the tool or editing the form sends nothing. Connect opens a real upstream connection from the machine running ProtoPeek, which may differ from the browser’s machine. URLs cannot contain user/password credentials or a fragment. TLS certificates are verified and redirects are not followed.</p>
+<h2 id="read-and-send-messages">Read and send messages</h2>
+<p>Choose a timeline row to read its details. WebSocket records received text or base64 binary messages and the negotiated subprotocol. After connecting, choose text or base64 encoding, prepare a message, and select <strong>Send message</strong> when you intend to deliver it. A send can change service state; connection success alone does not prove the application accepted a message.</p>
+<p>SSE is receive-only. Its timeline keeps multiline data, event names and event IDs together. ProtoPeek does not reconnect automatically. If the service supports resumption, add an explicit <code>Last-Event-ID</code> request header before a new connection.</p>
+<p>Timeline offsets are browser observation times since Connect, not server emission times or one-way latency. A disconnected or capped stream is not a complete history of the service.</p>
+<h2 id="stop-and-keep-the-limits-visible">Stop and keep the limits visible</h2>
+<p>Choose <strong>Disconnect</strong> to stop waiting and close the upstream connection. Leaving Event streams also cancels it. Previously delivered WebSocket messages may already have taken effect.</p>
+<ul><li>Duration: 0.1–120 seconds, with a 60-second default.</li><li>Each session stops at 500 received messages or 2 MiB, with a 64 KiB per-message limit.</li><li>A WebSocket session allows at most 200 sends.</li><li>The interface retains the latest 200 timeline rows; two stream sessions may run per server.</li><li>Headers and payloads stay in memory and are not an automatic saved collection.</li></ul>
+<p>These are explicit finite sessions, with no background polling, cloud sync or hidden retry. Network and service permissions still belong to the host and upstream service.</p>
+<h2 id="related-workflows">Related workflows</h2>
+<ul><li><a href="/http-workbench/">Build an HTTP request</a> for a response body, headers, redirects and timing.</li><li><a href="/grpc-workbench/">Inspect gRPC streams</a> for RPC messages, headers, trailers and final status.</li><li><a href="/transport-boundaries/">Keep transport evidence distinct</a>.</li></ul>
+              </div>
+            </article>
+
+            <aside class="pp-doc-aside">
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">On this page</div>
+                <div class="pp-doc-toc">
+                  <a class="level-2" href="#connect-to-one-endpoint">Connect to one endpoint</a><a class="level-2" href="#read-and-send-messages">Read and send messages</a><a class="level-2" href="#stop-and-keep-the-limits-visible">Stop and keep the limits visible</a><a class="level-2" href="#related-workflows">Related workflows</a>
+                </div>
+              </section>
+
+              <section class="pp-doc-side-card">
+                <div class="pp-doc-side-label">Source</div>
+                <div class="pp-doc-source-path">guides/event-streams.md</div>
+                <a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/event-streams.md" rel="noreferrer" target="_blank">Open source</a>
+              </section>
+
+              <section class="pp-doc-side-card pp-doc-boundary-card">
+                <div class="pp-doc-side-label">Product boundary</div>
+                <p>The WebSocket/SSE foundation is available in v0.6.1. Sessions start only with Connect and stop on Disconnect, navigation or their limits.</p>
+              </section>
+            </aside>
+          </div>
+
+
+    <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
+      <a href="/grpc-workbench/">
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
+        <strong>gRPC workbench</strong>
+      </a>
+      <a href="/capnp-workbench/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>Cap’n Proto workbench</strong>
+      </a>
+    </nav>
+
+        </main>
+
+    <footer class="pp-doc-footer">
+      <div>
+        <strong>ProtoPeek</strong>
+        <p>Built by <a href="https://shreyam1008.com.np/" rel="noreferrer" target="_blank">Shreyam Adhikari</a>.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/docs/">Guides</a>
+        <a href="/install/">Download</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
+      </nav>
+    </footer>
+
+      </div>
+    </div>
+  </body>
+</html>

@@ -3,6 +3,7 @@
 !Dockerfile
 !LICENSE
 !THIRD_PARTY_NOTICES.md
+!third_party/licenses/**
 !go.mod
 !go.sum
 !package.json

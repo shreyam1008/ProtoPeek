@@ -22,14 +22,17 @@ import (
 )
 
 type CallRequest struct {
-	Address     string          `json:"address"`
-	Transport   string          `json:"transport"`
-	ServerName  string          `json:"serverName,omitempty"`
-	RootCAPEM   string          `json:"rootCaPem,omitempty"`
-	InterfaceID string          `json:"interfaceId"`
-	Ordinal     uint16          `json:"ordinal"`
-	TimeoutMs   int             `json:"timeoutMs"`
-	Params      json.RawMessage `json:"params"`
+	Address      string              `json:"address"`
+	Transport    string              `json:"transport"`
+	ServerName   string              `json:"serverName,omitempty"`
+	RootCAPEM    string              `json:"rootCaPem,omitempty"`
+	InterfaceID  string              `json:"interfaceId"`
+	Ordinal      uint16              `json:"ordinal"`
+	TimeoutMs    int                 `json:"timeoutMs"`
+	Params       json.RawMessage     `json:"params"`
+	TypeBindings map[string][]string `json:"typeBindings,omitempty"`
+	MethodTypes  []string            `json:"methodTypes,omitempty"`
+	Steps        []CallStep          `json:"steps,omitempty"`
 }
 
 type CallResult struct {
@@ -40,6 +43,7 @@ type CallResult struct {
 	DurationMs    int64           `json:"durationMs"`
 	ObservedAt    time.Time       `json:"observedAt"`
 	Result        json.RawMessage `json:"result"`
+	Plan          *PlanResult     `json:"plan,omitempty"`
 }
 
 func (s *Schema) Call(parent context.Context, input CallRequest) (CallResult, error) {
@@ -69,15 +73,11 @@ func (s *Schema) Call(parent context.Context, input CallRequest) (CallResult, er
 			return result, errors.New("custom CA contains no valid PEM certificate")
 		}
 	}
-	method, interfaceID, err := s.method(input.InterfaceID, input.Ordinal)
+	plan, err := s.preparePlan(input)
 	if err != nil {
 		return result, err
 	}
-	argsMsg, args, err := s.EncodeParams(method.ParamStructType(), input.Params)
-	if err != nil {
-		return result, fmt.Errorf("request parameters: %w", err)
-	}
-	defer argsMsg.Release()
+	defer plan.close()
 	ctx, cancel := context.WithTimeout(parent, time.Duration(input.TimeoutMs)*time.Millisecond)
 	defer cancel()
 	addresses, err := resolveTarget(ctx, host)
@@ -122,18 +122,58 @@ func (s *Schema) Call(parent context.Context, input CallRequest) (CallResult, er
 	defer func() { _ = socket.Close(); _ = connection.Close() }()
 	bootstrap := connection.Bootstrap(ctx)
 	defer bootstrap.Release()
-	answer, release := bootstrap.SendCall(ctx, capnp.Send{Method: capnp.Method{InterfaceID: interfaceID, MethodID: input.Ordinal}, ArgsSize: args.Size(), PlaceArgs: func(target capnp.Struct) error { return target.CopyFrom(args) }})
-	defer release()
-	response, err := answer.Struct()
-	if ctx.Err() != nil {
-		return result, ctx.Err()
+	answers := make([]*capnp.Answer, 0, len(plan.calls))
+	releases := make([]capnp.ReleaseFunc, 0, len(plan.calls))
+	defer func() {
+		for index := len(releases) - 1; index >= 0; index-- {
+			releases[index]()
+		}
+	}()
+	for _, call := range plan.calls {
+		client := bootstrap
+		if call.parent >= 0 {
+			future := answers[call.parent].Field(call.offsets[0], nil)
+			for _, offset := range call.offsets[1:] {
+				future = future.Field(offset, nil)
+			}
+			client = future.Client()
+		}
+		args := call.args
+		answer, release := client.SendCall(ctx, capnp.Send{Method: capnp.Method{InterfaceID: call.interfaceID, MethodID: call.input.Ordinal}, ArgsSize: args.Size(), PlaceArgs: func(target capnp.Struct) error { return target.CopyFrom(args) }})
+		answers = append(answers, answer)
+		releases = append(releases, release)
 	}
-	if err != nil {
-		return result, fmt.Errorf("RPC failed: %.4096s", err.Error())
+	if plan.isPlan {
+		result.Plan = &PlanResult{SentSteps: len(answers), Steps: []PlanStepResult{}}
 	}
-	result.Result, err = s.DecodeResults(method.ResultStructType(), response)
-	if err != nil {
-		return result, fmt.Errorf("decode response: %w", err)
+	for index, answer := range answers {
+		call := plan.calls[index]
+		response, callErr := answer.Struct()
+		if ctx.Err() != nil {
+			callErr = ctx.Err()
+		}
+		var decoded json.RawMessage
+		if callErr == nil {
+			decoded, callErr = call.results.DecodeResults(call.method.ResultStructType(), response)
+		}
+		if plan.isPlan {
+			step := PlanStepResult{Step: index, InterfaceID: call.input.InterfaceID, Ordinal: call.input.Ordinal, Result: decoded}
+			if callErr != nil {
+				step.Error = fmt.Sprintf("%.4096s", callErr.Error())
+			}
+			result.Plan.Steps = append(result.Plan.Steps, step)
+		}
+		if callErr != nil {
+			if !plan.isPlan {
+				return result, boundedCallError{cause: callErr}
+			}
+			result.DurationMs, result.ObservedAt = time.Since(started).Milliseconds(), time.Now().UTC()
+			return result, nil
+		}
+		result.Result = decoded
+	}
+	if result.Plan != nil {
+		result.Plan.Completed = true
 	}
 	result.DurationMs, result.ObservedAt = time.Since(started).Milliseconds(), time.Now().UTC()
 	return result, nil

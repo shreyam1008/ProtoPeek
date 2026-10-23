@@ -888,16 +888,29 @@ describe('HTTPWorkbench', () => {
     expect(window.sessionStorage.getItem(appStorageKeys.pendingHandoff)).toBeNull();
   });
 
-  it('discloses when an in-memory handoff could not survive reload', async () => {
+  it('distinguishes an in-memory handoff from the sanitized HTTP draft autosave', async () => {
     const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new DOMException('Storage unavailable', 'QuotaExceededError');
     });
-    stageHTTPHandoff('https://memory-only.test/');
+    stageHTTPHandoff('https://memory-only.test/path?access_token=sentinel&view=detail');
     write.mockRestore();
 
     renderWorkbench();
 
-    expect(await screen.findByText(/could not survive a reload/i)).toBeVisible();
+    expect(
+      await screen.findByText(
+        /Handoff kept in memory.*HTTP drafts autosave with recognized credentials redacted/
+      )
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/session storage.*unavailable|could not survive a reload/i)
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(window.localStorage.getItem('protopeek.httpDraft.v1')).toContain('/path')
+    );
+    const stored = window.localStorage.getItem('protopeek.httpDraft.v1') ?? '';
+    expect(stored).not.toContain('sentinel');
+    expect(new URL(JSON.parse(stored).url).searchParams.get('view')).toBe('detail');
   });
 
   it('reads a valid legacy URL once and removes it without sending', async () => {

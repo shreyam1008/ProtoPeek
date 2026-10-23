@@ -385,13 +385,13 @@ func validateLoopbackAdmittedPOST(writer http.ResponseWriter, request *http.Requ
 	if hasForwardingHeaders(request) {
 		writer.Header().Set("Cache-Control", "no-store")
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
-		http.Error(writer, "Host configuration changes do not support reverse-proxy forwarding", http.StatusForbidden)
+		http.Error(writer, "Local operations do not support reverse-proxy forwarding", http.StatusForbidden)
 		return false
 	}
 	if !isLoopbackPeer(request.RemoteAddr) {
 		writer.Header().Set("Cache-Control", "no-store")
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
-		http.Error(writer, "Host configuration changes require a loopback browser connection", http.StatusForbidden)
+		http.Error(writer, "Local operations require a loopback browser connection", http.StatusForbidden)
 		return false
 	}
 	return true

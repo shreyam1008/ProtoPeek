@@ -4,6 +4,10 @@ ProtoPeek keeps a gRPC request, its schema, and the evidence returned by the sel
 
 ## Connect one target
 
+In matching current source, Home can prepare the target directly: select **gRPC · TLS** or
+**gRPC · plaintext**, enter the address, and choose **Open gRPC**. This does not connect or
+run discovery. The target form keeps the selected transport visible before **Connect**.
+
 Enter a host and port, then choose plaintext or verified TLS deliberately. Successful targets can stay in this browser so moving between local services does not require restarting ProtoPeek.
 
 The bounded target check distinguishes four useful outcomes: reflected gRPC, gRPC without reflection, an HTTP response, or open TCP. It does not silently probe arbitrary public networks.

@@ -581,6 +581,30 @@ func Run() {
 		Protosets:    append([]string(nil), protoset...),
 	}
 
+	var instance *launcherInstance
+	if reusableLauncherLaunch(launcherMode, initialScanTarget) {
+		root, err := os.UserConfigDir()
+		if err != nil {
+			fail(err, "Failed to resolve launcher state")
+			return
+		}
+		var existingURL string
+		instance, existingURL, err = acquireLauncherInstance(context.Background(), filepath.Join(root, "protopeek"))
+		if err != nil {
+			fail(err, "Failed to start the default launcher")
+			return
+		}
+		if existingURL != "" {
+			fmt.Fprintf(os.Stdout, "ProtoPeek is already running at %s\n", existingURL)
+			if *openBrowser {
+				if err := browser.OpenURL(existingURL); err != nil {
+					warn("Failed to open browser: %v", err)
+				}
+			}
+			return
+		}
+		defer instance.close()
+	}
 	processTransferService, err := loadConfiguredTransferService()
 	if err != nil {
 		fail(err, "Failed to load downloader host configuration")
@@ -603,6 +627,15 @@ func Run() {
 	}()
 	processThisPCService := localThisPCService(*unsafeAllowRemote)
 	processTunnelService := localTunnelService(*unsafeAllowRemote)
+	processNetBirdService := localNetBirdService(*unsafeAllowRemote)
+	processPublishService := localPublishSessionService(*unsafeAllowRemote)
+	if processPublishService != nil {
+		defer func() {
+			if err := processPublishService.Close(); err != nil {
+				warn("Publishing cleanup: %v", err)
+			}
+		}()
+	}
 
 	var handler http.Handler
 	if launcherMode {
@@ -653,6 +686,15 @@ func Run() {
 		}
 		if processTunnelService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithTunnelService(processTunnelService))
+		}
+		if processNetBirdService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithNetBirdService(processNetBirdService))
+		}
+		if !*unsafeAllowRemote {
+			handlerOpts = append(handlerOpts, standalone.WithNetworkDiagnostics())
+		}
+		if processPublishService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithPublishSessionService(processPublishService))
 		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
@@ -806,6 +848,15 @@ func Run() {
 		if processTunnelService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithTunnelService(processTunnelService))
 		}
+		if processNetBirdService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithNetBirdService(processNetBirdService))
+		}
+		if !*unsafeAllowRemote {
+			handlerOpts = append(handlerOpts, standalone.WithNetworkDiagnostics())
+		}
+		if processPublishService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithPublishSessionService(processPublishService))
+		}
 		if *maxTime > 0 {
 			handlerOpts = append(handlerOpts, standalone.WithInvokeMaxDuration(floatSecondsToDuration(*maxTime)))
 		}
@@ -819,7 +870,7 @@ func Run() {
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			if verbosity > 1 {
+			if verbosity > 1 && mayDumpHTTP(r) {
 				// TODO: the web form never sends binary request body; but maybe a custom
 				//  JS addition could, so maybe this should be a custom printer of the request
 				//  like we have for the response below?
@@ -850,7 +901,7 @@ func Run() {
 			orig.ServeHTTP(&cs, r)
 
 			millis := time.Since(start).Nanoseconds() / (1000 * 1000)
-			internal.LogInfof("%s %s %s %d %dms %dbytes", r.RemoteAddr, r.Method, r.RequestURI, cs.code, millis, cs.size)
+			internal.LogInfof("%s %s %s %d %dms %dbytes", r.RemoteAddr, r.Method, r.URL.EscapedPath(), cs.code, millis, cs.size)
 		})
 	}
 	if *basePath != "/" {
@@ -861,10 +912,14 @@ func Run() {
 		handler = mux
 	}
 	handler = localAccessHandler(handler, *unsafeAllowRemote)
+	if instance != nil {
+		handler = localAccessHandler(instance.handler(handler), false)
+	}
 
 	listener, err := net.Listen("tcp", net.JoinHostPort(requestHostname(*bind), strconv.Itoa(*port)))
 	if err != nil {
-		fail(err, "Failed to listen on port %d", *port)
+		fail(err, "Failed to listen on port %d. Close its owner or choose -port 0 for an available port; ProtoPeek did not stop another process", *port)
+		return
 	}
 
 	path := *basePath
@@ -876,6 +931,13 @@ func Run() {
 		appRoute = "/grpc"
 	}
 	url := browserURL(*bind, listener.Addr().(*net.TCPAddr).Port, path, appRoute)
+	if instance != nil {
+		if err := instance.publish(url); err != nil {
+			_ = listener.Close()
+			fail(err, "Failed to save launcher endpoint")
+			return
+		}
+	}
 	printLaunchBanner(url, target)
 
 	if *openBrowser {
@@ -1240,6 +1302,20 @@ type teeWriter struct {
 	hdrsWritten bool
 }
 
+func mayDumpHTTP(request *http.Request) bool {
+	// API requests, remote responses and mutation bodies can carry credentials,
+	// private CAs or echoed payloads. Verbosity must not make those persistent.
+	return request.Method == http.MethodGet && request.URL.RawQuery == "" &&
+		(request.URL.Path == "/favicon.ico" || strings.HasPrefix(request.URL.Path, "/assets/"))
+}
+
+func (t *teeWriter) Unwrap() http.ResponseWriter { return t.w[0] }
+func (t *teeWriter) FlushError() error {
+	t.mirrorHeaders()
+	return http.NewResponseController(t.w[0]).Flush()
+}
+func (t *teeWriter) Flush() { _ = t.FlushError() }
+
 func (t *teeWriter) Header() http.Header {
 	// we let callers modify the first set of headers, and then
 	// we'll mirror them out later
@@ -1292,6 +1368,15 @@ type codeSniffer struct {
 	codeSet bool
 	size    int
 }
+
+func (cs *codeSniffer) Unwrap() http.ResponseWriter { return cs.w }
+func (cs *codeSniffer) FlushError() error {
+	if !cs.codeSet {
+		cs.WriteHeader(http.StatusOK)
+	}
+	return http.NewResponseController(cs.w).Flush()
+}
+func (cs *codeSniffer) Flush() { _ = cs.FlushError() }
 
 func (cs *codeSniffer) Header() http.Header {
 	return cs.w.Header()

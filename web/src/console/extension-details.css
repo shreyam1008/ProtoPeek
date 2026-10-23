@@ -1,0 +1,122 @@
+.pp-extension-detail {
+  display: grid;
+  gap: 20px;
+  margin-top: 16px;
+  min-width: 0;
+}
+.pp-extension-detail :is(h1, h2, h3) {
+  color: var(--pp-ink);
+}
+.pp-extension-detail h2 {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.pp-extension-detail h3 {
+  font-size: 13px;
+}
+.pp-extension-detail header,
+.pp-extension-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pp-extension-detail-actions {
+  justify-content: flex-start;
+}
+.pp-extension-detail :is(button, a, select) {
+  min-height: 44px;
+}
+.pp-extension-detail :is(button, a) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.pp-extension-detail button {
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--pp-ink);
+  background: var(--pp-panel);
+  cursor: pointer;
+}
+.pp-extension-detail svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.pp-extension-detail p {
+  margin: 10px 0;
+}
+.pp-extension-detail label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+}
+.pp-workbench-shell .pp-workbench-canvas .pp-extension-detail :is(input, select) {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--pp-panel);
+  color: var(--pp-ink);
+}
+.pp-extension-detail select {
+  max-width: 240px;
+}
+.pp-extension-detail form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pp-extension-detail form label {
+  flex: 1 1 240px;
+}
+.pp-extension-detail .pp-extension-note {
+  border-left: 3px solid var(--pp-border);
+  padding-left: 12px;
+}
+.pp-extension-detail textarea {
+  width: 100%;
+  color: var(--pp-ink);
+  font-family: var(--pp-font-code);
+  overflow: auto;
+  padding: 14px;
+  background: var(--pp-soft);
+  border: 1px solid var(--pp-border);
+  border-radius: 6px;
+  max-height: 240px;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pp-extension-detail code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.pp-extension-recipes > div + div {
+  margin-top: 20px;
+}
+.pp-extension-detail [role="alert"] {
+  color: var(--pp-danger);
+}
+.pp-extension-observation {
+  border-top: 1px solid var(--pp-border);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+@media (max-width: 600px) {
+  .pp-extension-detail form {
+    align-items: stretch;
+  }
+  .pp-extension-detail form button {
+    width: 100%;
+    justify-content: center;
+  }
+}

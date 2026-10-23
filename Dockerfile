@@ -17,7 +17,7 @@ COPY web/vite.html.ts ./web/vite.html.ts
 RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lockfile
 RUN bun run build:app
 
-FROM golang:1.26.8-alpine AS go-builder
+FROM golang:1.26.10-alpine AS go-builder
 WORKDIR /src
 ARG VERSION=docker
 RUN addgroup -S protopeek && adduser -S -D -u 10001 protopeek -G protopeek
@@ -45,6 +45,7 @@ COPY --from=go-builder /out/protopeek /bin/protopeek
 COPY --from=go-builder /out/protopeek /bin/pp
 COPY LICENSE /licenses/protopeek/LICENSE
 COPY THIRD_PARTY_NOTICES.md /licenses/protopeek/THIRD_PARTY_NOTICES.md
+COPY third_party/licenses /licenses/protopeek/third_party/licenses
 USER protopeek
 EXPOSE 8080
 

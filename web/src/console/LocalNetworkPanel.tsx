@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/console/shell/PageHeader';
+import { createReceiptRecorder } from './app/operation-receipts';
 import {
   buildLocalNetworkPlanPreview,
   defaultLocalNetworkInterface,
@@ -12,6 +13,7 @@ import {
   localNetworkDiscoveryToSnapshot,
 } from './local-network';
 import type { NetworkSnapshot } from './network-model';
+import { OperationHistoryControl } from './OperationHistoryControl';
 import { OperationStatus } from './shell/OperationStatus';
 import '@/features/network/local-discovery.css';
 
@@ -34,8 +36,10 @@ type HostDraft = {
 
 export function LocalNetworkPanel({
   onSaveSnapshot,
+  initialSubnet,
 }: {
   onSaveSnapshot: (snapshot: NetworkSnapshot) => unknown;
+  initialSubnet?: string;
 }) {
   const [capabilities, setCapabilities] = useState<LocalNetworkCapabilities | null>(null);
   const [cidr, setCIDR] = useState('');
@@ -48,6 +52,7 @@ export function LocalNetworkPanel({
   const [message, setMessage] = useState('');
   const capabilityAbortRef = useRef<AbortController | null>(null);
   const scanAbortRef = useRef<AbortController | null>(null);
+  const receiptRef = useRef<ReturnType<typeof createReceiptRecorder> | null>(null);
 
   const loadCapabilities = useCallback(
     async (selection?: { networkKey: string; cidr: string; profileID: string }) => {
@@ -102,12 +107,18 @@ export function LocalNetworkPanel({
   );
 
   useEffect(() => {
-    void loadCapabilities();
+    setScanning(false);
+    void loadCapabilities(
+      initialSubnet ? { networkKey: '', cidr: initialSubnet, profileID: '' } : undefined
+    );
     return () => {
       capabilityAbortRef.current?.abort();
       scanAbortRef.current?.abort();
+      scanAbortRef.current = null;
+      receiptRef.current?.('cancelled');
+      receiptRef.current = null;
     };
-  }, [loadCapabilities]);
+  }, [loadCapabilities, initialSubnet]);
 
   const previewState = useMemo<
     { plan: LocalNetworkPlanPreview; error: '' } | { plan: null; error: string }
@@ -136,6 +147,8 @@ export function LocalNetworkPanel({
     if (!previewState.plan || scanning || scanAbortRef.current) return;
     const controller = new AbortController();
     scanAbortRef.current = controller;
+    const finish = createReceiptRecorder({ operation: 'local-scan' });
+    receiptRef.current = finish;
     setScanning(true);
     setMessage('');
     setResult(null);
@@ -150,6 +163,8 @@ export function LocalNetworkPanel({
         },
         controller.signal
       );
+      if (scanAbortRef.current !== controller) return;
+      finish(discovery.complete ? 'success' : 'partial', discovery.hosts.length);
       setResult(discovery);
       setHostDrafts(
         Object.fromEntries(
@@ -157,6 +172,8 @@ export function LocalNetworkPanel({
         )
       );
     } catch (reason) {
+      if (scanAbortRef.current !== controller) return;
+      finish(controller.signal.aborted ? 'cancelled' : 'failed');
       setMessage(
         controller.signal.aborted
           ? 'Scan cancelled. No result was saved.'
@@ -165,9 +182,21 @@ export function LocalNetworkPanel({
             : 'Local network discovery failed.'
       );
     } finally {
-      if (scanAbortRef.current === controller) scanAbortRef.current = null;
-      setScanning(false);
+      if (receiptRef.current === finish) receiptRef.current = null;
+      if (scanAbortRef.current === controller) {
+        scanAbortRef.current = null;
+        setScanning(false);
+      }
     }
+  }
+
+  function cancelScan() {
+    receiptRef.current?.('cancelled');
+    receiptRef.current = null;
+    scanAbortRef.current?.abort();
+    scanAbortRef.current = null;
+    setScanning(false);
+    setMessage('Scan cancelled. No result was saved.');
   }
 
   function updateScope(nextCIDR: string) {
@@ -244,10 +273,16 @@ export function LocalNetworkPanel({
         </div>
         <span className="pp-reflection-chip">ProtoPeek process view</span>
       </PageHeader>
+      <OperationHistoryControl operations={['local-scan']} />
 
       <p className="pp-scan-policy">
         Choose a cached device to inspect it, or scan your selected network for open services.
       </p>
+      {initialSubnet ? (
+        <p className="pp-scan-policy" role="status">
+          Subnet draft from Diagnostics. Review the range; scan only networks you manage.
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="pp-scan-progress" role="status">
@@ -355,7 +390,7 @@ export function LocalNetworkPanel({
                 ? ` Check ${previewState.plan.portCount} selected TCP ports across ${previewState.plan.hostCount} addresses in ${previewState.plan.cidr}.`
                 : ''}
             </p>
-            <details className="pp-local-scan-settings">
+            <details className="pp-local-scan-settings" open={initialSubnet ? true : undefined}>
               <summary>
                 Scan settings · {previewState.plan?.profile.label ?? 'choose a profile'}
               </summary>
@@ -397,7 +432,7 @@ export function LocalNetworkPanel({
               type="button"
               className={scanning ? 'pp-button-secondary' : 'pp-button-primary'}
               disabled={scanning ? false : !previewState.plan}
-              onClick={scanning ? () => scanAbortRef.current?.abort() : () => void startScan()}
+              onClick={scanning ? cancelScan : () => void startScan()}
             >
               {scanning ? 'Cancel scan' : 'Scan network'}
             </button>

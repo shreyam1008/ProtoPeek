@@ -2,10 +2,15 @@
 
 Status: **available under Network in v0.6.1**.
 
-The current-source v0.7 foundation adds native Windows activity/counters and typed listener drafts;
-it is not a completed or shipped v0.7 claim. The versioned handoff, freshness, and no-automatic-I/O
+The v0.7 foundation added native Windows activity/counters and typed listener drafts;
+this remains a source checkpoint, not a completed or shipped v0.7 claim. The versioned handoff, freshness, and no-automatic-I/O
 rules are defined in the
 [Connected Workbench integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/connected-workbench-integration-plan.md).
+
+**Current source · 22 October 2026:** macOS adds native aggregate interface counters and the bounded
+one-shot traffic sample. Socket activity and process ownership remain unavailable there. Native
+macOS CI includes loopback traffic-counter checks; exact-commit CI and real-host acceptance remain
+separate from portable fixtures and cross-compilation. This does not change old v0.6.1 binaries.
 
 **This Device** is ProtoPeek's device-centred Network workspace. Its canonical `/this-pc` route and
 `/api/this-pc/*` endpoints retain their technical names for compatibility. The broader **Network**
@@ -103,8 +108,10 @@ explicit.
 
 `POST /api/this-pc/traffic/sample` accepts exactly a 500, 1,000, or 2,000 ms wait between two local
 interface-counter reads. Linux uses `/proc/net/dev`; Windows reads each enumerated interface through
-native `GetIfEntry2`; macOS reports the operation as unsupported. The result timestamps the midpoint
-of each counter read and reports the measured interval between those representative observations,
+native `GetIfEntry2`. Stable v0.6.1 reports macOS sampling as unsupported; current source reads native
+`NET_RT_IFLIST2` counters for each selected interface through bounded sysctl queries, without shell
+commands or process attribution. The result timestamps the midpoint of each counter read and
+reports the measured interval between those representative observations,
 which can differ from the selected wait. Displayed rates use that measured interval. No monitor is
 left running.
 
@@ -194,27 +201,29 @@ Results are labelled **single-flow HTTPS connection quality to Cloudflare edge**
 the ISP plan maximum. Jitter is the engine's observed variation between latency samples. Packet
 loss, a universal quality score, and destination-independent performance are not reported.
 
-## Platform capability matrix
+## Platform capability matrix · current source, 22 October 2026
 
 | Capability | Linux v1 | macOS v1 | Windows v1 |
 |---|---|---|---|
 | Identity and interface addresses | Available | Available | Available |
 | Public IPv4/IPv6 and BGP-origin lookup | Explicit external action | Explicit external action | Explicit external action |
 | Bounded Cloudflare quality run | Explicit browser action | Explicit browser action | Explicit browser action |
-| Interface counters and one-shot load | `/proc/net/dev` | Unavailable | Native `GetIfEntry2` |
+| Interface counters and one-shot load | `/proc/net/dev` | Native `NET_RT_IFLIST2`; native acceptance gate | Native `GetIfEntry2` |
 | Local listeners and connections | `/proc/net/{tcp,tcp6,udp,udp6}` | Unavailable | Native IP Helper TCP4/TCP6/UDP4/UDP6 owner-PID tables |
 | PID/process attribution | Best effort, same effective user | Unavailable | Best-effort basename with limited query rights |
 | Elevation or shell fallback | Never | Never | Never |
 
-The Windows backend has real-host and synthetic acceptance recorded in the v0.6.1 overhaul guide. macOS activity,
-interface counters, and process ownership remain outside the current contract until durable native
-implementations pass the same capability, permission, truncation, and real-host tests. This matrix
-is separate from Network Path: active-hop probing supports Linux UDP and Windows IPv4/IPv6 ICMP.
+The Windows backend has real-host and synthetic acceptance recorded in the v0.6.1 overhaul guide.
+Current-source macOS counters still require the same capability, permission, truncation and real-host
+acceptance; socket activity and process ownership remain outside the implemented macOS contract.
+This matrix is separate from Network Path: stable active-hop probing supports Linux UDP and Windows
+IPv4/IPv6 ICMP, while current source adds unprivileged macOS ICMP with its own native acceptance gate.
 
 ## Deliberate next slices
 
-1. **Native platform completion:** finish real-host Windows release QA and add reviewed Darwin
-   interface/socket adapters without shelling out before changing macOS capability copy.
+1. **Native platform acceptance:** finish real-host Windows release QA and verify the current
+   macOS counters/ICMP on native hosts and exact-commit CI. macOS socket/process ownership still
+   needs a separate reviewed native implementation; no shell fallback is added.
 2. **Connected-workbench completion:** keep the listener flow as the typed reference, add only
    provenance-backed address/discovery producers with real consumers, and finish bounded recents and
    receipts under the v0.7 contract.

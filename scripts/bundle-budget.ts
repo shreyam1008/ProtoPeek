@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
+import extensionManifest from '../web/src/console/extension-manifest.json';
 
 export type BundleAsset = {
   name: string;
@@ -15,6 +16,7 @@ export type BundleBudget = {
   mode?: 'single' | 'aggregate';
   maxRawBytes: number;
   maxGzipBytes: number;
+  requiredMembers?: RegExp[];
 };
 
 const kibibyte = 1024;
@@ -23,6 +25,128 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  ...extensionManifest.map(({ id, name }) => ({
+    label: `Optional ${name} setup JavaScript`,
+    pattern: new RegExp(`^extension-${id}-.+\\.js$`),
+    maxRawBytes: 1.5 * kibibyte,
+    maxGzipBytes: 0.8 * kibibyte,
+  })),
+  {
+    label: 'Complete optional extension library JavaScript',
+    pattern: new RegExp(
+      `^(?:Extensions|ExtensionDetails|AgentClientSetup|extension-(?:catalog|${extensionManifest.map(({ id }) => id).join('|')}))-.+\\.js$`
+    ),
+    mode: 'aggregate',
+    requiredMembers: [
+      /^Extensions-.+\.js$/,
+      /^ExtensionDetails-.+\.js$/,
+      /^AgentClientSetup-.+\.js$/,
+      /^extension-catalog-.+\.js$/,
+      ...extensionManifest.map(({ id }) => new RegExp(`^extension-${id}-.+\\.js$`)),
+    ],
+    // Measured 20 independently lazy packs, index, detail and client setup. No vendor runtime.
+    maxRawBytes: 46 * kibibyte,
+    maxGzipBytes: 22 * kibibyte,
+  },
+  {
+    label: 'Optional extension detail CSS',
+    pattern: /^ExtensionDetails-.+\.css$/,
+    maxRawBytes: 2.5 * kibibyte,
+    maxGzipBytes: 1 * kibibyte,
+  },
+  // October networking family: independently lazy features. All assets still
+  // count toward suite totals; existing workbench and startup caps stay below.
+  {
+    label: 'Connection diagnostics JavaScript',
+    pattern: /^NetworkDiagnostics-.+\.js$/,
+    maxRawBytes: 24 * kibibyte,
+    maxGzipBytes: 8 * kibibyte,
+  },
+  {
+    label: 'HTTP profile and import JavaScript',
+    pattern: /^(?:HTTPEnvironmentControls|HTTPImportPanel|http-execution)-.+\.js$/,
+    mode: 'aggregate',
+    // Native browser cURL quoting/cookie support, bounded decoding and explicit
+    // compression notices measure 16,484 raw / 6,789 gzip. No shell runtime.
+    maxRawBytes: 17 * kibibyte,
+    maxGzipBytes: 7 * kibibyte,
+  },
+  {
+    label: 'HTTP shared library JavaScript',
+    pattern: /^http-library-.+\.js$/,
+    maxRawBytes: 14 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Incremental gRPC evidence JavaScript',
+    pattern: /^(?:grpc-invoke-stream|GrpcResponseEvidence)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 11 * kibibyte,
+    maxGzipBytes: 4.5 * kibibyte,
+  },
+  {
+    label: 'Network history additions JavaScript',
+    pattern: /^(?:NetworkSnapshotComparison|NmapTopologyPreview|nmap-to-network)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 14 * kibibyte,
+    maxGzipBytes: 5.5 * kibibyte,
+  },
+  {
+    label: 'Packet payload and conversation additions JavaScript',
+    pattern: /^(?:PacketReconstruction|PacketConversations)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 11 * kibibyte,
+    maxGzipBytes: 4.5 * kibibyte,
+  },
+  {
+    label: 'Temporary publishing and canonical config JavaScript',
+    pattern: /^(?:PublishingWorkbench|CloudflareOperations)-.+\.js$/,
+    mode: 'aggregate',
+    // Hash-bound rollback reference recovery survives tab/route remounts without
+    // retaining YAML or credentials: 22,956 raw / 8,284 gzip for both lazy views.
+    maxRawBytes: 23 * kibibyte,
+    maxGzipBytes: 8.5 * kibibyte,
+  },
+  {
+    label: 'Private network additions JavaScript',
+    pattern: /^(?:NetBirdWorkbench|HeadscaleAccount|TailnetOperationReview)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 13 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Cap’n Proto call plans JavaScript',
+    pattern: /^(?:CapnpAdvancedPanel|capnp-plan-api)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 10 * kibibyte,
+    maxGzipBytes: 4 * kibibyte,
+  },
+  {
+    label: 'Session activity JavaScript',
+    pattern: /^(?:OperationHistory|OperationHistoryControl|operation-receipts)-.+\.js$/,
+    mode: 'aggregate',
+    maxRawBytes: 7 * kibibyte,
+    maxGzipBytes: 3.5 * kibibyte,
+  },
+  {
+    label: 'Networking family additions CSS',
+    pattern:
+      /^(?:NetworkDiagnostics|http-tools|snapshot-comparison|PacketReconstruction|PublishingWorkbench|CloudflareOperations|NetBirdWorkbench|CapnpAdvancedPanel|OperationHistory)-.+\.css$/,
+    mode: 'aggregate',
+    requiredMembers: [
+      /^NetworkDiagnostics-.+\.css$/,
+      /^http-tools-.+\.css$/,
+      /^snapshot-comparison-.+\.css$/,
+      /^PacketReconstruction-.+\.css$/,
+      /^PublishingWorkbench-.+\.css$/,
+      /^CloudflareOperations-.+\.css$/,
+      /^NetBirdWorkbench-.+\.css$/,
+      /^CapnpAdvancedPanel-.+\.css$/,
+      /^OperationHistory-.+\.css$/,
+    ],
+    maxRawBytes: 14 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
   {
     label: 'Extensions workspace JavaScript',
     pattern: /^Extensions-.+\.js$/,
@@ -127,7 +251,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
   },
   {
     label: 'initial console JavaScript',
-    pattern: /^(?:index|console-core|rolldown-runtime)-.+\.js$/,
+    pattern:
+      /^(?:index|console-core|console-icons|rolldown-runtime|circle-alert|loader-circle|chevron-right)-.+\.js$/,
     mode: 'aggregate',
     // Bound the actual startup graph as well as each named chunk above.
     maxRawBytes: 340 * kibibyte,
@@ -398,9 +523,19 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // September 27 with pinned Bun 1.3.10: 1,196,780 raw / 398,463 gzip bytes before
     // the logical-map split. These features have individual and complete-journey
     // caps above. All existing startup and base-view ceilings remain unchanged.
-    maxRawBytes: 1176 * kibibyte,
-    // Saved HTTP requests add a lazy 6.3 KiB / 2.4 KiB gzip panel and reuse the draft codec.
-    maxGzipBytes: 394 * kibibyte,
+    // October pinned-Bun baseline: 1,185,617 raw / 396,342 gzip. Final family
+    // build: 1,331,085 raw / 454,213 gzip (+145,468 / 57,871). This measured
+    // allocation includes protocol evidence, strict cURL decoding, rollback
+    // recovery and all named lazy views, with no new frontend runtime dependency.
+    // It exceeds the initial provisional 128/40 KiB estimate; the owner requested
+    // the full family/roadmap. Admission is bounded here, with <18 KiB raw spare,
+    // every asset counted, and original startup/base-workbench ceilings intact.
+    // October 23: the requested20-entry optional library, client-format setup,
+    // and workflow repairs measure 1,371,420 /473,640 (+40,335 /19,427).
+    // Every pack has an individual cap and the complete lazy journey is capped.
+    // Original startup, Home, HTTP/gRPC and shared/base CSS ceilings remain fixed.
+    maxRawBytes: 1355 * kibibyte,
+    maxGzipBytes: 470 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -412,10 +547,12 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // bytes; keep small explicit headroom without hiding route growth.
     // Complete UI normalization: 342,940 raw / 67,296 gzip across every route.
     // No dependency added; startup JS limits remain unchanged.
-    // The new evidence views bring the installed total to 363,834 raw / 72,655
-    // gzip bytes (pinned Bun 1.3.10). Shared and existing base CSS caps stay fixed.
-    maxRawBytes: 358 * kibibyte,
-    maxGzipBytes: 72 * kibibyte,
+    // Pinned-Bun baseline 364,765 raw / 73,711 gzip; family 379,499 / 79,075.
+    // Growth 14,734 / 5,364 covers lazy evidence/forms and accessible mobile
+    // scrolling. Shared and existing base CSS caps stay fixed.
+    // Twenty-entry library/detail and mobile access:384,591 raw (+5,092).
+    maxRawBytes: 380 * kibibyte,
+    maxGzipBytes: 80 * kibibyte,
   },
 ];
 
@@ -431,6 +568,10 @@ export function evaluateBundleBudgets(assets: BundleAsset[], budgets: BundleBudg
     if (matches.length === 0) {
       violations.push(`${budget.label}: no matching asset`);
       continue;
+    }
+    for (const required of budget.requiredMembers ?? []) {
+      if (!matches.some((asset) => new RegExp(required.source, required.flags).test(asset.name)))
+        violations.push(`${budget.label}: missing required member ${required.source}`);
     }
     if (budget.mode !== 'aggregate' && matches.length !== 1) {
       violations.push(`${budget.label}: expected one matching asset, found ${matches.length}`);
@@ -490,7 +631,18 @@ export async function runBundleBudgetCheck(
     output(`${asset.name}: ${asset.rawBytes} raw bytes / ${asset.gzipBytes} gzip bytes`);
   }
 
-  const violations = evaluateBundleBudgets(assets, budgets);
+  // Follow HTML modulepreloads and emitted static ESM imports. Lazy imports are
+  // excluded; a new eager helper cannot evade startup accounting by its name.
+  const startup = budgets.some((budget) => budget.label === 'initial console JavaScript')
+    ? await startupAssetNames(directory)
+    : new Set<string>();
+  const startupPattern = new RegExp(
+    `^(?:${[...startup].map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`
+  );
+  const effectiveBudgets = budgets.map((budget) =>
+    budget.label === 'initial console JavaScript' ? { ...budget, pattern: startupPattern } : budget
+  );
+  const violations = evaluateBundleBudgets(assets, effectiveBudgets);
   if (violations.length > 0) {
     output(`Bundle budget FAILED: ${violations.join('; ')}`);
     return 1;
@@ -498,6 +650,34 @@ export async function runBundleBudgetCheck(
 
   output('Bundle budget OK.');
   return 0;
+}
+
+export function staticJavaScriptImports(source: string): string[] {
+  return [
+    ...source.matchAll(
+      /(?:^|[;\n]|\*\/)\s*(?:import|export)\s*(?!\s*\()(?:[^;]*?\bfrom\s*)?["']\.\/([^"']+\.js)["']/g
+    ),
+  ].map((match) => match[1]);
+}
+
+export async function startupAssetNames(directory: string): Promise<Set<string>> {
+  const html = await readFile(join(directory, '..', 'index.html'), 'utf8');
+  const pending = [...html.matchAll(/(?:src|href)=["']\.?\/assets\/([^"']+\.js)["']/g)].map(
+    (match) => match[1]
+  );
+  if (!pending.some((name) => /^index-.+\.js$/.test(name)))
+    throw new Error('Missing console startup index JavaScript in emitted HTML');
+  const result = new Set<string>();
+  while (pending.length > 0) {
+    const name = pending.pop();
+    if (!name) continue;
+    if (result.has(name)) continue;
+    if (name.includes('/') || name.includes('\\'))
+      throw new Error('Unexpected nested startup asset');
+    result.add(name);
+    pending.push(...staticJavaScriptImports(await readFile(join(directory, name), 'utf8')));
+  }
+  return result;
 }
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));

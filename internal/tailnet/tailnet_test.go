@@ -140,10 +140,60 @@ func TestTaildropUsesExactAvailableStatusAndLocalPaths(t *testing.T) {
 	}
 }
 
+func TestHeadscaleUsesSeparateReviewedLoginAndKeepsPriorAccount(t *testing.T) {
+	service, calls := fakeService()
+	snapshot, _ := service.Inspect(context.Background())
+	if !snapshot.AccountsObserved {
+		t.Fatal("saved accounts were not observed")
+	}
+	request := ActionRequest{Action: "login-server", Target: "https://headscale.example.test", Revision: snapshot.Revision, Consent: true}
+	result, err := service.Execute(context.Background(), request)
+	if err != nil || result.PreviousProfileID != "work" || result.Snapshot == nil || !reflect.DeepEqual(result.Arguments, []string{"login", "--login-server=https://headscale.example.test", "--timeout=30s"}) {
+		t.Fatalf("custom login=%+v %v", result, err)
+	}
+	for _, command := range *calls {
+		if strings.Contains(command, "--reset") || strings.Contains(command, "--auth-key") || strings.Contains(command, "--force-reauth") {
+			t.Fatal(command)
+		}
+	}
+	for _, target := range []string{"http://headscale.test", "https://user:secret@headscale.test", "https://headscale.test?token=secret", "https://headscale.test#fragment", "https://headscale.test:"} {
+		request.Target = target
+		if _, err := actionArguments(request, snapshot); err == nil {
+			t.Fatal("accepted", target)
+		}
+	}
+	request.Target = "https://headscale.test"
+	snapshot.AccountsObserved = false
+	if _, err := actionArguments(request, snapshot); err == nil {
+		t.Fatal("unobserved current profile accepted")
+	}
+}
+
+func TestHeadscaleInterruptedLoginDoesNotReturnNativeSignInLinks(t *testing.T) {
+	service, _ := fakeService()
+	snapshot, _ := service.Inspect(context.Background())
+	original := service.Run
+	service.Run = func(ctx context.Context, path string, args ...string) ([]byte, error) {
+		if args[0] == "login" {
+			return []byte("https://auth.test/sentinel-secret"), errors.New("sentinel-secret")
+		}
+		return original(ctx, path, args...)
+	}
+	result, err := service.Execute(context.Background(), ActionRequest{Action: "login-server", Target: "https://headscale.test", Revision: snapshot.Revision, Consent: true})
+	encoded, _ := json.Marshal(result)
+	if err != nil || result.Outcome != "failed" || result.Snapshot == nil || strings.Contains(string(encoded), "sentinel-secret") || !strings.Contains(result.Output, "native terminal command") {
+		t.Fatalf("failed login=%+v %v", result, err)
+	}
+}
+
 func TestTailnetHelperProcess(t *testing.T) {
 	mode := os.Getenv("PROTOPEEK_TAILNET_HELPER")
 	if mode == "" {
 		return
+	}
+	if mode == "permission" {
+		fmt.Fprintln(os.Stderr, "permission denied https://auth.test/sentinel-key")
+		os.Exit(1)
 	}
 	if mode == "wait" {
 		time.Sleep(time.Minute)
@@ -178,4 +228,77 @@ func TestInstalledTailscaleReadOnly(t *testing.T) {
 		t.Fatalf("inspect = %+v %v", result, err)
 	}
 	t.Logf("Client %s, state %s, %d peers; no mutations", result.Version, result.State, len(result.Peers))
+}
+
+func TestTailnetFailureCategoriesNeverReflectNativeOutput(t *testing.T) {
+	for _, test := range []struct{ native, want string }{{"permission denied https://auth.test/sentinel-key", "permission restriction"}, {"not allowed by policy sentinel-key", "policy restriction"}, {"authentication required sentinel-key", "requires sign-in"}, {"unexpected sentinel-key", "CLI did not complete"}} {
+		result := actionFailureOutput(errors.New(test.native))
+		if !strings.Contains(result, test.want) || strings.Contains(result, "sentinel-key") || strings.Contains(result, "https://") {
+			t.Fatalf("unsafe or missing category: %q", result)
+		}
+	}
+}
+
+func TestTailnetCommandMarginAndTimeoutOutcome(t *testing.T) {
+	for _, action := range []string{"connect", "login-server"} {
+		for _, cancelled := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/cancelled=%v", action, cancelled), func(t *testing.T) {
+				service, _ := fakeService()
+				current, _ := service.Inspect(context.Background())
+				parent, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				original := service.Run
+				invoked := false
+				service.Run = func(ctx context.Context, path string, args ...string) ([]byte, error) {
+					if args[0] != "up" && args[0] != "login" {
+						return original(ctx, path, args...)
+					}
+					invoked = true
+					deadline, ok := ctx.Deadline()
+					if !ok || time.Until(deadline) < 33*time.Second || time.Until(deadline) > 35*time.Second || args[len(args)-1] != "--timeout=30s" {
+						t.Fatalf("native deadline has no exit margin: %v %v %v", deadline, ok, args)
+					}
+					if cancelled {
+						cancel()
+						return nil, ctx.Err()
+					}
+					return nil, context.DeadlineExceeded
+				}
+				input := ActionRequest{Action: action, Revision: current.Revision, Consent: true}
+				if action == "login-server" {
+					input.Target = "https://headscale.test"
+				}
+				result, _ := service.Execute(parent, input)
+				want := "failed"
+				if cancelled {
+					want = "cancelled"
+				}
+				if !invoked || result.Outcome != want || result.Snapshot == nil {
+					t.Fatalf("timeout/cancel observation = %+v, invoked=%v", result, invoked)
+				}
+				if !cancelled && action == "connect" && !strings.Contains(result.Output, "exceeded its time limit") {
+					t.Fatalf("deadline lacks recovery guidance: %+v", result)
+				}
+				if !cancelled && action == "login-server" && !strings.Contains(result.Output, "native terminal command") {
+					t.Fatalf("headless timeout lacks native handoff: %+v", result)
+				}
+			})
+		}
+	}
+}
+
+func TestTailnetNativeStderrReachesSafeFailureCategory(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PROTOPEEK_TAILNET_HELPER", "permission")
+	_, nativeErr := runClient(context.Background(), executable, "-test.run=^TestTailnetHelperProcess$")
+	if nativeErr == nil || !strings.Contains(nativeErr.Error(), "permission denied") {
+		t.Fatalf("native stderr did not reach the internal classifier: %v", nativeErr)
+	}
+	safe := actionFailureOutput(nativeErr)
+	if !strings.Contains(safe, "permission restriction") || strings.Contains(safe, "sentinel-key") || strings.Contains(safe, "https://") {
+		t.Fatalf("unsafe native failure category: %q", safe)
+	}
 }

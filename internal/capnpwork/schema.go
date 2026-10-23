@@ -4,6 +4,7 @@ package capnpwork
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,18 +24,23 @@ const maxFields = 256
 const maxDepth = 16
 
 type Schema struct {
-	message *capnp.Message
-	nodes   map[uint64]schema.Node
+	message  *capnp.Message
+	nodes    map[uint64]schema.Node
+	bindings typeEnvironment
+	implicit []boundType
 }
 
 type Method struct {
-	InterfaceID   string  `json:"interfaceId"`
-	InterfaceName string  `json:"interfaceName"`
-	Ordinal       uint16  `json:"ordinal"`
-	Name          string  `json:"name"`
-	ParamsID      string  `json:"paramsId"`
-	ResultsID     string  `json:"resultsId"`
-	Fields        []Field `json:"fields"`
+	InterfaceID        string           `json:"interfaceId"`
+	InterfaceName      string           `json:"interfaceName"`
+	Ordinal            uint16           `json:"ordinal"`
+	Name               string           `json:"name"`
+	ParamsID           string           `json:"paramsId"`
+	ResultsID          string           `json:"resultsId"`
+	Fields             []Field          `json:"fields"`
+	TypeParameters     []TypeParameter  `json:"typeParameters"`
+	ImplicitParameters []string         `json:"implicitParameters"`
+	ResultCapabilities []CapabilityPath `json:"resultCapabilities"`
 }
 
 type Field struct {
@@ -267,6 +273,7 @@ func (s *Schema) typeName(t schema.Type, depth int) (string, error) {
 
 func (s *Schema) Describe() (Description, error) {
 	result := Description{Methods: []Method{}, NodeCount: len(s.nodes)}
+	descriptionBytes := 0
 	for _, n := range s.nodes {
 		if n.Which() != schema.Node_Which_interface {
 			continue
@@ -283,6 +290,25 @@ func (s *Schema) Describe() (Description, error) {
 			m := methods.At(i)
 			methodName, _ := m.Name()
 			item := Method{InterfaceID: fmt.Sprintf("0x%x", n.Id()), InterfaceName: name, Ordinal: uint16(i), Name: methodName, ParamsID: fmt.Sprintf("0x%x", m.ParamStructType()), ResultsID: fmt.Sprintf("0x%x", m.ResultStructType()), Fields: []Field{}}
+			item.TypeParameters, err = s.typeParameters(n.Id())
+			if err != nil {
+				return result, err
+			}
+			item.ImplicitParameters = []string{}
+			item.ResultCapabilities = s.capabilityPaths(m.ResultStructType(), nil, 0)
+			implicit, err := m.ImplicitParameters()
+			if err != nil || implicit.Len() > 64 {
+				return result, errors.New("method has invalid generic parameters")
+			}
+			implicitNames := map[string]bool{}
+			for index := 0; index < implicit.Len(); index++ {
+				label, err := implicit.At(index).Name()
+				if err != nil || !safeLabel(label, 128) || implicitNames[label] {
+					return result, errors.New("method has an invalid generic parameter name")
+				}
+				implicitNames[label] = true
+				item.ImplicitParameters = append(item.ImplicitParameters, label)
+			}
 			params, err := s.structNode(m.ParamStructType())
 			if err != nil {
 				return result, err
@@ -307,6 +333,14 @@ func (s *Schema) Describe() (Description, error) {
 				}
 				item.Fields = append(item.Fields, Field{Name: label, Type: typ, Union: f.DiscriminantValue() != schema.Field_noDiscriminant})
 			}
+			encoded, err := json.Marshal(item)
+			if err != nil {
+				return result, err
+			}
+			descriptionBytes += len(encoded)
+			if descriptionBytes > 1<<20 {
+				return result, errors.New("schema method description exceeds 1 MiB")
+			}
 			result.Methods = append(result.Methods, item)
 		}
 	}
@@ -323,18 +357,14 @@ func (s *Schema) Describe() (Description, error) {
 func (s *Schema) method(id string, ordinal uint16) (schema.Method, uint64, error) {
 	id64, err := strconv.ParseUint(id, 0, 64)
 	n, ok := s.nodes[id64]
-	if err != nil || !ok || n.Which() != schema.Node_Which_interface || n.IsGeneric() {
-		return schema.Method{}, 0, errors.New("choose a concrete interface from this schema")
+	if err != nil || !ok || n.Which() != schema.Node_Which_interface {
+		return schema.Method{}, 0, errors.New("choose an interface from this schema")
 	}
 	methods, err := n.Interface().Methods()
 	if err != nil || int(ordinal) >= methods.Len() {
 		return schema.Method{}, 0, errors.New("method is not in the selected interface")
 	}
 	method := methods.At(int(ordinal))
-	implicit, err := method.ImplicitParameters()
-	if err != nil || implicit.Len() != 0 {
-		return schema.Method{}, 0, errors.New("generic method parameters are not supported by this workbench")
-	}
 	return method, id64, nil
 }
 

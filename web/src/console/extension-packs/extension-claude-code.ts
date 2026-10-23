@@ -1,0 +1,23 @@
+import type { ExtensionPack } from '../extension-pack';
+
+const extension = {
+  tool: 'Claude Code CLI',
+  download: 'https://code.claude.com/docs/en/setup',
+  guide: 'https://code.claude.com/docs/en/mcp',
+  setup: {
+    windows:
+      'Use the official native Windows setup or supported WSL workflow and authenticate in Claude Code.',
+    darwin: 'Use the official macOS setup and authenticate in the native client.',
+    linux:
+      'Use the official setup for your supported distribution and authenticate in the native client.',
+  },
+  afterSetup:
+    'Pair in AI agent setup and select Claude Code. Merge the generated mcpServers fragment with your existing client configuration.',
+  notes: [
+    'Claude Code supports local stdio servers. ProtoPeek does not sign in or provide a model account.',
+    'Format checked against official docs on 23 October 2026. Preserve unrelated settings and validate the actual native client separately.',
+  ],
+  client: 'claude-code',
+} satisfies ExtensionPack;
+
+export default extension;

@@ -5,11 +5,17 @@ import { classNames } from '@/shared/runtime';
 
 import { type ScanResult, scanAddresses } from './api';
 import type { HandoffWriteResult } from './app/handoff-store';
+import type { HandoffProvenance } from './app/handoff-types';
+import { createReceiptRecorder } from './app/operation-receipts';
 import { prepareDiscoveryTarget } from './discovery-target';
 
 // Some in-workbench consumers apply evidence directly and intentionally return nothing.
-// biome-ignore lint/suspicious/noConfusingVoidType: navigation handoffs return a result; local consumers return void.
-export type OpenScanResult = (result: ScanResult) => HandoffWriteResult | void;
+export type OpenScanResult = (
+  result: ScanResult,
+  provenance?: HandoffProvenance
+  // biome-ignore lint/suspicious/noConfusingVoidType: navigation handoffs return a result; local consumers return void.
+) => HandoffWriteResult | void;
+export type DiscoveryResults = (results: ScanResult[], provenance?: HandoffProvenance) => void;
 
 export const ambientScanAddresses = [
   'localhost:50051',
@@ -63,7 +69,7 @@ export function DiscoveryScanner({
   initialTarget?: string;
   autoStart?: boolean;
   inputRef?: React.RefObject<HTMLInputElement | null>;
-  onResults?: (results: ScanResult[]) => void;
+  onResults?: DiscoveryResults;
   onOpenGRPC?: OpenScanResult;
   onOpenHTTP?: OpenScanResult;
 }) {
@@ -76,6 +82,8 @@ export function DiscoveryScanner({
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const scanIDRef = useRef(0);
+  const receiptRef = useRef<ReturnType<typeof createReceiptRecorder> | null>(null);
+  const [provenance, setProvenance] = useState<HandoffProvenance>();
 
   const runScan = useEffectEvent(async (explicit: boolean) => {
     const prepared = prepareDiscoveryTarget(explicit ? scanInput : '');
@@ -85,11 +93,14 @@ export function DiscoveryScanner({
     }
     const address = prepared.target;
     const addresses = explicit && address ? [address] : ambientScanAddresses;
+    receiptRef.current?.('stale');
     abortRef.current?.abort();
     const controller = new AbortController();
     const scanID = scanIDRef.current + 1;
     scanIDRef.current = scanID;
     abortRef.current = controller;
+    const finish = createReceiptRecorder({ operation: 'discovery' });
+    receiptRef.current = finish;
     setScanning(true);
     setScanCompleted(false);
     setScanMessage('');
@@ -103,12 +114,32 @@ export function DiscoveryScanner({
         controller.signal
       );
       if (!mountedRef.current || scanIDRef.current !== scanID) return;
+      if (controller.signal.aborted) {
+        finish('cancelled');
+        setScanMessage('Scan cancelled.');
+        return;
+      }
       if (!Array.isArray(nextResults)) throw new Error('Scan returned an invalid result list.');
       setResults(nextResults);
       setScanCompleted(true);
-      onResults?.(nextResults);
+      const evidence: HandoffProvenance = {
+        source: 'bounded-discovery',
+        quality: 'observed',
+        observedAt: new Date().toISOString(),
+      };
+      setProvenance(evidence);
+      finish(
+        !explicit || nextResults.every((result) => result.alive)
+          ? 'success'
+          : nextResults.some((result) => result.alive)
+            ? 'partial'
+            : 'failed',
+        nextResults.length
+      );
+      onResults?.(nextResults, evidence);
     } catch (error) {
       if (!mountedRef.current || scanIDRef.current !== scanID) return;
+      finish(controller.signal.aborted ? 'cancelled' : 'failed');
       if (controller.signal.aborted) {
         setScanMessage('Scan cancelled.');
       } else {
@@ -147,6 +178,7 @@ export function DiscoveryScanner({
       }
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
+      if (receiptRef.current === finish) receiptRef.current = null;
       if (mountedRef.current && scanIDRef.current === scanID) setScanning(false);
     }
   });
@@ -155,6 +187,7 @@ export function DiscoveryScanner({
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      receiptRef.current?.('cancelled');
       abortRef.current?.abort();
     };
   }, []);
@@ -178,8 +211,11 @@ export function DiscoveryScanner({
     ? results
     : results.filter((result) => result.alive || result.failure !== 'unreachable');
   const openResult = (result: ScanResult, open: OpenScanResult) => {
-    const handoff = open(result);
-    if (handoff && !handoff.ok) setScanMessage(handoff.error);
+    const handoff = open(result, provenance);
+    if (handoff && !handoff.ok)
+      setScanMessage(
+        `${handoff.error} Use Scan target or Scan common local to refresh the evidence.`
+      );
   };
 
   return (

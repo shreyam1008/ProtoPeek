@@ -8,7 +8,7 @@ import {
   SquareArrowOutUpRight,
   X,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import publicPagesRegistry from './public-pages.json';
 
@@ -24,12 +24,19 @@ const siteNavigation = [
   { href: '#install', label: 'Download' },
 ] as const;
 
+const protocolGuides = [
+  ['HTTP', 'http-workbench'],
+  ['gRPC', 'grpc-workbench'],
+  ['WebSocket / SSE', 'event-streams'],
+  ['Cap’n Proto', 'capnp-workbench'],
+] as const;
+
 const productQuestions = [
   {
     question: 'Can I reach this service?',
     answer: 'Call gRPC or HTTP and see exactly what came back.',
-    action: 'Choose gRPC or HTTP',
-    href: `${publicPagePath('docs')}#protocols`,
+    action: 'Make your first request',
+    href: publicPagePath('http-workbench'),
   },
   {
     question: 'Why is this request slow?',
@@ -57,7 +64,7 @@ const productQuestions = [
   },
   {
     question: 'Which optional tool does this task need?',
-    answer: 'Current source: check this host and follow setup for five supported tools.',
+    answer: 'Current source: native workbenches and guided setup, with checks only when you ask.',
     action: 'Explore Extensions',
     href: publicPagePath('extensions'),
   },
@@ -66,30 +73,24 @@ const productQuestions = [
 const verifiedScreenshots = [
   {
     src: '/assets/protopeek-workspace-edge-mobile.png',
-    alt: 'ProtoPeek edge Home workspace at 390 by 844 with responsive task cards and a navigation menu',
+    alt: 'ProtoPeek legacy Edge Home workspace at 390 by 844 with responsive task cards and a navigation menu',
     width: 390,
     height: 844,
-    label: 'Edge · responsive Home',
+    label: 'Legacy Edge · responsive Home',
   },
   {
     src: '/assets/protopeek-workspace-edge-desktop.png',
-    alt: 'ProtoPeek edge desktop workspace with six persistent destinations, grouped tools and local task shortcuts',
+    alt: 'ProtoPeek legacy Edge desktop workspace with six persistent destinations, grouped tools and local task shortcuts',
     width: 1280,
     height: 720,
-    label: 'Edge · persistent desktop navigation',
+    label: 'Legacy Edge · persistent desktop navigation',
   },
 ] as const;
 
 const installOptions = [
   {
-    id: 'macos',
-    label: 'macOS',
-    command:
-      'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
-  },
-  {
-    id: 'linux',
-    label: 'Linux',
+    id: 'unix',
+    label: 'macOS / Linux',
     command:
       'curl -fsSL https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.sh | sh',
   },
@@ -237,7 +238,7 @@ function Hero() {
             href="#install"
           >
             <Download className="size-4" aria-hidden="true" />
-            Get ProtoPeek
+            Install stable v0.6.1
           </a>
           <a
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none"
@@ -251,13 +252,22 @@ function Hero() {
           <span className="size-1.5 rounded-full bg-[#f4a313]" aria-hidden="true" />
           Local-first. No account.
         </p>
+        <nav aria-label="Protocol guides" className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          {protocolGuides.map(([label, id]) => (
+            <a
+              key={id}
+              href={publicPagePath(id)}
+              className="font-medium text-[#0b5cff] underline-offset-4 hover:underline"
+            >
+              {label}
+            </a>
+          ))}
+        </nav>
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-neutral-700">
-          <strong className="block text-neutral-950">
-            Nightly: the latest workspace, local AI agents and easy updates.
-          </strong>
+          <strong className="block text-neutral-950">Nightly is an opt-in rolling preview.</strong>
           <p className="mt-1">
-            Keep your place across tools, use command search, and connect your own agent through MCP
-            or the JSON CLI. Nightly follows branch builds; stable remains v0.6.1.
+            Nightly follows main/master. Current-source guides can describe work that has not
+            reached a published archive. Stable remains v0.6.1.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
             <a href={publicPagePath('workspace-ui')}>Explore the new workspace</a>
@@ -274,13 +284,13 @@ function Hero() {
           <span className="size-2 rounded-full bg-[#ff6258]" />
           <span className="size-2 rounded-full bg-[#f4a313]" />
           <span className="size-2 rounded-full bg-[#30c775]" />
-          <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-[0.14em] text-neutral-500">
+          <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-[0.14em] text-neutral-400">
             local session
           </span>
         </div>
         <img
           src="/assets/protopeek-workspace-edge-desktop.png"
-          alt="ProtoPeek edge workbench with persistent side navigation and six task destinations"
+          alt="ProtoPeek legacy Edge workbench with persistent side navigation and six task destinations"
           width="1280"
           height="720"
           decoding="async"
@@ -288,7 +298,7 @@ function Hero() {
           className="block w-full rounded-lg border border-white/10"
         />
         <figcaption className="px-2 pb-1 pt-3 text-xs text-neutral-400">
-          Actual edge build · 7 September 2026. Stable installs remain on v0.6.1.
+          Actual legacy Edge build · 7 September 2026. Stable installs remain on v0.6.1.
         </figcaption>
       </figure>
     </section>
@@ -318,7 +328,7 @@ function ProductQuestions() {
               key={item.question}
               className="group grid gap-4 border-b border-black/15 py-6 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(15rem,0.8fr)_auto] sm:items-center sm:gap-6"
             >
-              <span className="font-mono text-xs text-neutral-400" aria-hidden="true">
+              <span className="font-mono text-xs text-neutral-500" aria-hidden="true">
                 {String(index + 1).padStart(2, '0')}
               </span>
               <h3 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
@@ -396,7 +406,7 @@ function Evidence() {
                   className="mx-auto block h-auto max-h-[38rem] w-auto max-w-full"
                 />
               </a>
-              <figcaption className="mt-3 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-neutral-500">
+              <figcaption className="mt-3 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-neutral-400">
                 {screenshot.label}
               </figcaption>
             </figure>
@@ -408,12 +418,19 @@ function Evidence() {
 }
 
 function Install() {
-  const [activeId, setActiveId] = useState<InstallOption['id']>('macos');
+  const [activeId, setActiveId] = useState<InstallOption['id']>('unix');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'manual'>('idle');
+  const manuallySelected = useRef(false);
   const commandRef = useRef<HTMLInputElement | null>(null);
   const activeOption = installOptions.find((option) => option.id === activeId) ?? installOptions[0];
 
+  useEffect(() => {
+    // Keep server-rendered HTML independent of the browser; this is only a suggestion.
+    if (!manuallySelected.current && /^win/i.test(navigator.platform)) setActiveId('windows');
+  }, []);
+
   function selectOption(option: InstallOption) {
+    manuallySelected.current = true;
     setActiveId(option.id);
     setCopyState('idle');
   }
@@ -487,7 +504,7 @@ function Install() {
                   className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors motion-reduce:transition-none ${
                     selected
                       ? 'border-[#7da7ff] text-white'
-                      : 'border-transparent text-neutral-500 hover:text-neutral-200'
+                      : 'border-transparent text-neutral-400 hover:text-neutral-200'
                   }`}
                   onClick={() => selectOption(option)}
                 >
@@ -528,13 +545,26 @@ function Install() {
                 )}
               </button>
             </div>
-            <p className="mt-4 text-xs leading-relaxed text-neutral-500" aria-live="polite">
+            <p className="mt-4 text-xs leading-relaxed text-neutral-400">
+              <span role="status">
+                {copyState === 'manual' ? (
+                  'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
+                ) : copyState === 'copied' ? (
+                  <span className="sr-only">Command copied.</span>
+                ) : null}
+              </span>
               {copyState === 'manual'
-                ? 'Clipboard unavailable. The command is selected; press Ctrl/Cmd+C to copy it.'
+                ? null
                 : activeId === 'windows'
                   ? 'Installs stable ProtoPeek v0.6.1. Windows x64 includes aria2 and a Start-menu shortcut.'
                   : 'Downloads the stable GitHub release. Uses your installed aria2 for downloads.'}
             </p>
+            <noscript>
+              <p className="mt-4 break-all text-xs leading-relaxed text-neutral-300">
+                Windows PowerShell:{' '}
+                <code>{installOptions.find((option) => option.id === 'windows')?.command}</code>
+              </p>
+            </noscript>
           </div>
         </div>
       </div>

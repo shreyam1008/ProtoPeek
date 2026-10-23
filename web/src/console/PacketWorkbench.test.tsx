@@ -1,6 +1,7 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { type PacketReport, packetRequest, parsePacketReport } from './packet-api';
 import { createProtoPeekRouter } from './router';
 
@@ -8,7 +9,11 @@ vi.mock('./packet-api', async (original) => ({
   ...(await original<typeof import('./packet-api')>()),
   packetRequest: vi.fn(),
 }));
-afterEach(() => vi.resetAllMocks());
+afterEach(() => {
+  vi.resetAllMocks();
+  vi.unstubAllGlobals();
+  clearOperationReceipts();
+});
 const report: PacketReport = {
   format: 'PCAP',
   packetCount: 75,
@@ -43,6 +48,7 @@ it('reads an explicit file, pages and filters packets, and clears retained metad
   show();
   await screen.findByRole('heading', { name: 'Packet inspection' });
   expect(vi.mocked(packetRequest).mock.calls.map(([path]) => path)).toEqual(['capabilities']);
+  expect(readOperationReceipts()).toEqual([]);
   const file = new File(['fixture'], 'qa.pcap');
   fireEvent.change(screen.getByLabelText('Packet capture file'), { target: { files: [file] } });
   fireEvent.click(screen.getByRole('button', { name: 'Inspect file' }));
@@ -57,6 +63,12 @@ it('reads an explicit file, pages and filters packets, and clears retained metad
   expect(screen.getByRole('complementary', { name: 'Packet 3 details' })).toBeVisible();
   fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
   fireEvent.click(screen.getByText(/75 endpoint pairs/));
+  await screen.findByRole('button', { name: /192.0.2.10:50000 ↔ 198.51.100.20:443/ });
+  fireEvent.click(screen.getByRole('button', { name: 'Next pairs' }));
+  expect(
+    screen.getByRole('button', { name: /192.0.2.10:50012 ↔ 198.51.100.20:443/ })
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: 'Previous pairs' }));
   fireEvent.click(screen.getByRole('button', { name: /192.0.2.10:50000 ↔ 198.51.100.20:443/ }));
   expect(screen.getByText('1 matching rows')).toBeVisible();
   expect(screen.getByRole('columnheader', { name: 'Time from start' })).toBeVisible();
@@ -68,6 +80,11 @@ it('reads an explicit file, pages and filters packets, and clears retained metad
   expect(vi.mocked(packetRequest).mock.calls.filter(([path]) => path === 'analyze')).toHaveLength(
     1
   );
+  expect(readOperationReceipts()).toMatchObject([
+    { operation: 'packet-file', outcome: 'success', count: 75 },
+  ]);
+  expect(JSON.stringify(readOperationReceipts())).not.toContain('qa.pcap');
+  expect(JSON.stringify(readOperationReceipts())).not.toContain('192.0.2.10');
 });
 
 it('cancels file analysis and ignores a late result', async () => {
@@ -91,6 +108,9 @@ it('cancels file analysis and ignores a late result', async () => {
   finish(report);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Inspect file' })).toBeEnabled());
   expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(readOperationReceipts()).toMatchObject([
+    { operation: 'packet-file', outcome: 'cancelled' },
+  ]);
 });
 
 it('keeps report filters on cancellation and resets them only after a successful new inspection', async () => {
@@ -152,6 +172,7 @@ it('prefills a device handoff, selects the sole interface and waits for Start ca
     'interfaces',
   ]);
   expect(screen.getByRole('button', { name: 'Start capture' })).toBeEnabled();
+  expect(readOperationReceipts()).toEqual([]);
   expect(screen.getByText(/a switched network does not expose all/)).toBeVisible();
   expect(
     screen.queryByRole('checkbox', {
@@ -170,6 +191,11 @@ it('prefills a device handoff, selects the sole interface and waits for Start ca
     packets: 2000,
     consent: true,
   });
+  expect(readOperationReceipts()).toMatchObject([
+    { operation: 'packet-capture', outcome: 'success', count: 75 },
+  ]);
+  expect(JSON.stringify(readOperationReceipts())).not.toContain('192.0.2.10');
+  expect(JSON.stringify(readOperationReceipts())).not.toContain('QA fixture');
 });
 
 it('keeps capture unavailable until support is installed, then retries read-only discovery', async () => {
@@ -236,6 +262,70 @@ it('rejects invalid packet reports before rendering them', () => {
     { ...report, capturedBytes: report.wireBytes + 1 },
     { ...report, packets: [report.packets[0], report.packets[0]] },
     { ...report, packets: [{ ...report.packets[0], timestamp: 42 }] },
+    { ...report, packets: [{ ...report.packets[0], section: 64 }] },
+    { ...report, packets: [{ ...report.packets[0], transport: 'DNS' }] },
   ])
     expect(() => parsePacketReport(invalid)).toThrow();
+});
+
+it('keeps payload off by default, uses explicit opt-in and excludes retained bytes from metadata export', async () => {
+  const reconstruction = {
+    flows: [],
+    retainedBytes: 0,
+    limited: false,
+    skippedFragments: 0,
+    sensitiveSentinel: 'private-retained-payload',
+  };
+  vi.mocked(packetRequest).mockImplementation(async (path) =>
+    path === 'capabilities'
+      ? { available: false }
+      : path.includes('reconstruct=true')
+        ? { ...report, reconstruction }
+        : report
+  );
+  const blobs: Blob[] = [];
+  vi.stubGlobal(
+    'URL',
+    class extends URL {
+      static createObjectURL(blob: Blob) {
+        blobs.push(blob);
+        return 'blob:fixture';
+      }
+      static revokeObjectURL() {}
+    }
+  );
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  show();
+  await screen.findByRole('heading', { name: 'Packet inspection' });
+  const toggle = screen.getByRole('checkbox', { name: 'Reconstruct TCP payload evidence' });
+  expect(toggle).not.toBeChecked();
+  fireEvent.change(screen.getByLabelText('Packet capture file'), {
+    target: { files: [new File(['fixture'], 'consent.pcap')] },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Inspect file' }));
+  await screen.findByRole('button', { name: 'Inspect packet 1' });
+  expect(
+    screen.queryByRole('button', { name: 'View TCP payload evidence' })
+  ).not.toBeInTheDocument();
+  fireEvent.click(toggle);
+  await screen.findByText(/May expose credentials/);
+  fireEvent.click(screen.getByRole('button', { name: 'Inspect file' }));
+  await screen.findByRole('button', { name: 'View TCP payload evidence' });
+  expect(
+    vi.mocked(packetRequest).mock.calls.filter(([path]) => path === 'analyze?reconstruct=true')
+  ).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Save metadata' }));
+  const text = await new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsText(blobs[0]);
+  });
+  expect(text).not.toContain('private-retained-payload');
+  expect(text).not.toContain('reconstruction');
+  fireEvent.click(screen.getByRole('button', { name: 'Forget retained payload' }));
+  expect(
+    screen.queryByRole('button', { name: 'View TCP payload evidence' })
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Inspect packet 1' })).toBeVisible();
+  click.mockRestore();
 });

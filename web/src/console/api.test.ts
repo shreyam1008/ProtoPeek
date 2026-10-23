@@ -5,6 +5,7 @@ import type { WorkspaceTargetConfig } from '@/shared/types';
 import {
   checkHealth,
   connectWorkspaceTarget,
+  fetchJSON,
   normalizeBootstrap,
   normalizeHTTPResponse,
   normalizeInvokeResponse,
@@ -13,6 +14,24 @@ import {
   sendHTTPRequest,
   watchHealth,
 } from './api';
+
+it('keeps diagnostics under the mounted console prefix with hash routing', async () => {
+  const previous = window.location.href;
+  const fetchMock = vi.fn(async (_input: RequestInfo | URL) =>
+    Response.json({ outcome: 'success' })
+  );
+  vi.stubGlobal('fetch', fetchMock);
+  try {
+    window.history.replaceState({}, '', '/tools/console/#/network/diagnostics');
+    await fetchJSON('api/network/diagnostics', { method: 'POST', body: '{}' });
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+      `${window.location.origin}/tools/console/api/network/diagnostics`
+    );
+  } finally {
+    window.history.replaceState({}, '', previous);
+    vi.unstubAllGlobals();
+  }
+});
 
 function workspaceTarget(overrides: Partial<WorkspaceTargetConfig> = {}): WorkspaceTargetConfig {
   return {

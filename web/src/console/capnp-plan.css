@@ -1,0 +1,34 @@
+.pp-capnp-advanced {
+  display: grid;
+  gap: 12px;
+}
+.pp-capnp-bindings,
+.pp-capnp-plan-step {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--pp-border);
+  border-radius: 5px;
+  padding: 12px;
+}
+.pp-capnp-advanced p {
+  color: var(--pp-text-muted);
+  line-height: 1.5;
+}
+.pp-capnp-plan-step {
+  margin-top: 10px;
+}
+.pp-capnp-plan-step textarea {
+  font-family: monospace;
+  resize: vertical;
+}
+.pp-capnp-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pp-capnp-advanced li {
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}

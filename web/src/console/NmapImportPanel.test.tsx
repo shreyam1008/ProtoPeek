@@ -1,10 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-
+import { storePendingHandoff } from './app/handoff-store';
+import { clearOperationReceipts, readOperationReceipts } from './app/operation-receipts';
 import { NmapImportPanel } from './NmapImportPanel';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.useRealTimers();
+  clearOperationReceipts();
 });
 
 function renderPanel() {
@@ -216,5 +219,98 @@ describe('NmapImportPanel', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('verification cancelled');
     expect(fetchMock.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'discovery', outcome: 'cancelled' },
+      { operation: 'nmap-import', outcome: 'success', count: 1 },
+    ]);
+  });
+
+  it('keeps imported hints separate from newly observed verification and never refreshes that evidence on open', async () => {
+    const verified = {
+      address: '127.0.0.1:50051',
+      alive: true,
+      tcp: true,
+      grpc: true,
+      http: false,
+      protocols: ['tcp', 'grpc'],
+      reflection: 'available',
+      transport: 'plaintext',
+      services: ['example.Service'],
+      latencyMs: 1,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) =>
+      Response.json(
+        String(input).endsWith('/api/nmap/import')
+          ? {
+              hosts: [
+                {
+                  id: 1,
+                  status: { state: 'up', reason: 'syn-ack' },
+                  addresses: [{ address: '127.0.0.1', type: 'ipv4', vendor: '' }],
+                  hostnames: [],
+                  ports: [
+                    {
+                      port: 50051,
+                      protocol: 'tcp',
+                      state: 'open',
+                      reason: 'syn-ack',
+                      service: {
+                        name: 'grpc',
+                        product: '',
+                        version: '',
+                        extrainfo: '',
+                        tunnel: '',
+                        method: 'table',
+                        confidence: '3',
+                      },
+                    },
+                  ],
+                },
+              ],
+              hostCount: 1,
+              portCount: 1,
+              complete: true,
+              completion: 'success',
+            }
+          : [verified]
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const onResults = vi.fn();
+    const onOpenGRPC = vi.fn((result, provenance) =>
+      storePendingHandoff({
+        provenance,
+        draft: {
+          kind: 'grpc-target-draft',
+          target: { kind: 'grpc-target', address: result.address, plaintext: true },
+        },
+      })
+    );
+    const { container } = render(
+      <NmapImportPanel onResults={onResults} onOpenGRPC={onOpenGRPC} onOpenHTTP={vi.fn()} />
+    );
+    selectXML(container);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(readOperationReceipts()).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Import evidence' }));
+    const verify = await screen.findByRole('button', {
+      name: 'Verify 127.0.0.1:50051 with ProtoPeek',
+    });
+    expect(onResults).not.toHaveBeenCalled();
+    expect(onOpenGRPC).not.toHaveBeenCalled();
+    fireEvent.click(verify);
+    const open = await screen.findByRole('button', { name: 'gRPC' });
+    const original = onResults.mock.calls[0]?.[1];
+    expect(original).toMatchObject({ source: 'nmap-verified-discovery', quality: 'observed' });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse(original.observedAt) + 3600000);
+    fireEvent.click(open);
+    expect(onOpenGRPC.mock.calls[0]?.[1]).toBe(original);
+    expect(screen.getByRole('alert')).toHaveTextContent(/Choose Verify with ProtoPeek again/i);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(readOperationReceipts()).toMatchObject([
+      { operation: 'discovery', outcome: 'success', count: 1 },
+      { operation: 'nmap-import', outcome: 'success', count: 1 },
+    ]);
   });
 });

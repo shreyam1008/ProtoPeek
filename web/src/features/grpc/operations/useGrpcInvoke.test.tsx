@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { invokeMethod, invokeWorkspaceMethod } from '@/console/api';
 import type { InvokeResponse } from '@/shared/types';
 import { type InvokeState, useGrpcInvoke } from './useGrpcInvoke';
@@ -45,6 +45,152 @@ function options(requestText: string, requestStream = false) {
 beforeEach(() => {
   vi.mocked(invokeMethod).mockReset().mockResolvedValue(response);
   vi.mocked(invokeWorkspaceMethod).mockReset().mockResolvedValue(response);
+});
+
+describe('incremental invocation lifecycle', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('surfaces a local conversion relay error without inventing status or adding successful history', async () => {
+    const shared = options('{}');
+    const failed = {
+      ...response,
+      finalStatusObserved: false,
+      responses: [],
+      requests: { total: 1, sent: 0 },
+      relayError: 'Request message 1 could not be converted to protobuf: expected an integer.',
+    };
+    vi.mocked(invokeMethod).mockResolvedValueOnce(failed);
+    const { result } = renderHook(() => useGrpcInvoke(shared));
+    await act(() => result.current.run());
+    expect(result.current.state).toMatchObject({
+      loading: false,
+      error: failed.relayError,
+      result: failed,
+    });
+    expect(result.current.state.result?.error).toBeNull();
+    expect(shared.setHistory).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'cancel',
+    'truncated',
+    'complete',
+    'workspace',
+  ] as const)('retains bounded partial evidence during %s', async (outcome) => {
+    vi.useFakeTimers();
+    let publish: (value: InvokeResponse) => void = () => {};
+    let resolve: (value: InvokeResponse) => void = () => {};
+    let reject: (error: Error) => void = () => {};
+    const transport = (signal?: AbortSignal, onPartial?: (value: InvokeResponse) => void) =>
+      new Promise<InvokeResponse>((done, fail) => {
+        publish =
+          onPartial ??
+          (() => {
+            throw new Error('Streaming callback missing');
+          });
+        resolve = done;
+        reject = fail;
+        signal?.addEventListener('abort', () => fail(new DOMException('Aborted', 'AbortError')), {
+          once: true,
+        });
+      });
+    vi.mocked(invokeMethod).mockImplementationOnce((_method, _payload, signal, onPartial) =>
+      transport(signal, onPartial)
+    );
+    vi.mocked(invokeWorkspaceMethod).mockImplementationOnce(
+      (_session, _method, _payload, signal, onPartial) => transport(signal, onPartial)
+    );
+    const shared = {
+      ...options('{}'),
+      method: { ...method, serverStreaming: true },
+      workspaceSessionId: outcome === 'workspace' ? 'fixture-session' : '',
+    };
+    const states: InvokeState[] = [];
+    const { result } = renderHook(() => {
+      const value = useGrpcInvoke(shared);
+      states.push(value.state);
+      return value;
+    });
+    let pending = Promise.resolve();
+    act(() => {
+      pending = result.current.run();
+    });
+    const partial = { ...response, trailers: [], finalStatusObserved: false };
+    const retainedMessage = response.responses[0];
+    if (!retainedMessage) throw new Error('Message fixture missing');
+    const rendersBeforeMessages = states.length;
+    act(() => {
+      for (let index = 0; index < 100; index++)
+        publish({
+          ...partial,
+          responses: Array.from({ length: index + 1 }, (_, sequence) => ({
+            ...retainedMessage,
+            sequence: sequence + 1,
+          })),
+        });
+    });
+    expect(states).toHaveLength(rendersBeforeMessages);
+    expect(result.current.state.result).toBeNull();
+    act(() => vi.advanceTimersByTime(50));
+    expect(states).toHaveLength(rendersBeforeMessages + 1);
+    expect(result.current.state.loading).toBe(true);
+    expect(result.current.state.result?.responses).toHaveLength(100);
+    expect(result.current.state.result?.finalStatusObserved).toBe(false);
+    expect(shared.setHistory).not.toHaveBeenCalled();
+    await act(async () => {
+      if (outcome === 'cancel') result.current.cancel();
+      else if (outcome === 'truncated') reject(new Error('Completion was not received'));
+      else resolve({ ...response, finalStatusObserved: true });
+      await pending;
+    });
+    expect(result.current.state.loading).toBe(false);
+    expect(result.current.isActive()).toBe(false);
+    if (outcome === 'cancel' || outcome === 'truncated') {
+      expect(result.current.state.result?.responses).toHaveLength(100);
+      expect(result.current.state.result).toMatchObject({
+        finalStatusObserved: false,
+        error: null,
+        trailers: [],
+      });
+      expect(result.current.state.cancelled).toBe(outcome === 'cancel');
+      expect(shared.setHistory).not.toHaveBeenCalled();
+    } else {
+      expect(result.current.state.result?.finalStatusObserved).toBe(true);
+      expect(shared.setHistory).toHaveBeenCalledOnce();
+    }
+  });
+
+  it('invalidates pending batch updates and late callbacks when silently cancelled', async () => {
+    vi.useFakeTimers();
+    let publish: (value: InvokeResponse) => void = () => {};
+    vi.mocked(invokeMethod).mockImplementationOnce(
+      (_method, _payload, signal, onPartial) =>
+        new Promise((_done, reject) => {
+          publish = onPartial ?? (() => {});
+          signal?.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError'))
+          );
+        })
+    );
+    const { result } = renderHook(() =>
+      useGrpcInvoke({ ...options('{}'), method: { ...method, serverStreaming: true } })
+    );
+    let pending = Promise.resolve();
+    act(() => {
+      pending = result.current.run();
+    });
+    act(() => {
+      publish({ ...response, finalStatusObserved: false });
+      result.current.cancelSilently();
+      result.current.reset();
+    });
+    await act(async () => {
+      publish(response);
+      vi.advanceTimersByTime(100);
+      await pending;
+    });
+    expect(result.current.state).toMatchObject({ loading: false, result: null, error: null });
+  });
 });
 
 describe('local gRPC request validation', () => {

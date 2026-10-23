@@ -10,7 +10,9 @@ import {
   type ScanResult,
   scanAddresses,
 } from './api';
-import { type OpenScanResult, ScanResultCard } from './DiscoveryScanner';
+import type { HandoffProvenance } from './app/handoff-types';
+import { createReceiptRecorder } from './app/operation-receipts';
+import { type DiscoveryResults, type OpenScanResult, ScanResultCard } from './DiscoveryScanner';
 
 const maxNmapUploadBytes = 8 << 20;
 const hostsPerPage = 8;
@@ -23,7 +25,7 @@ export function NmapImportPanel({
   onOpenHTTP,
 }: {
   active?: boolean;
-  onResults: (results: ScanResult[]) => void;
+  onResults: DiscoveryResults;
   onOpenGRPC: OpenScanResult;
   onOpenHTTP: OpenScanResult;
 }) {
@@ -36,16 +38,28 @@ export function NmapImportPanel({
   const [verified, setVerified] = useState<Record<string, ScanResult[]>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const receiptRef = useRef<ReturnType<typeof createReceiptRecorder> | null>(null);
+  const evidenceRef = useRef(new WeakMap<ScanResult, HandoffProvenance>());
 
   useEffect(
     () => () => {
       abortRef.current?.abort();
+      abortRef.current = null;
+      receiptRef.current?.('cancelled');
+      receiptRef.current = null;
     },
     []
   );
 
   useEffect(() => {
-    if (!active) abortRef.current?.abort();
+    if (!active) {
+      receiptRef.current?.('cancelled');
+      receiptRef.current = null;
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setImporting(false);
+      setActiveEndpoint('');
+    }
   }, [active]);
 
   const usableCount = useMemo(() => {
@@ -69,16 +83,28 @@ export function NmapImportPanel({
       return;
     }
     const controller = new AbortController();
+    receiptRef.current?.('stale');
     abortRef.current?.abort();
     abortRef.current = controller;
+    const finish = createReceiptRecorder({ operation: 'nmap-import' });
+    receiptRef.current = finish;
     setImporting(true);
     setMessage('');
     setInventory(null);
     setHostPage(0);
     setVerified({});
     try {
-      setInventory(await importNmapXML(file, controller.signal));
+      const imported = await importNmapXML(file, controller.signal);
+      if (abortRef.current !== controller) return;
+      if (controller.signal.aborted) {
+        finish('cancelled');
+        return;
+      }
+      setInventory(imported);
+      finish(imported.complete ? 'success' : 'partial', imported.hosts.length);
     } catch (reason) {
+      if (abortRef.current !== controller) return;
+      finish(controller.signal.aborted ? 'cancelled' : 'failed');
       setMessage(
         controller.signal.aborted
           ? 'Nmap XML import cancelled.'
@@ -87,13 +113,21 @@ export function NmapImportPanel({
             : 'Nmap XML import failed.'
       );
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setImporting(false);
+      if (receiptRef.current === finish) receiptRef.current = null;
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setImporting(false);
+      }
     }
   }
 
   function clearFile() {
+    receiptRef.current?.('cancelled');
     abortRef.current?.abort();
+    abortRef.current = null;
+    receiptRef.current = null;
+    setImporting(false);
+    setActiveEndpoint('');
     setFile(null);
     setInventory(null);
     setMessage('');
@@ -104,15 +138,39 @@ export function NmapImportPanel({
 
   async function verifyEndpoint(endpoint: string) {
     const controller = new AbortController();
+    receiptRef.current?.('stale');
     abortRef.current?.abort();
     abortRef.current = controller;
+    const finish = createReceiptRecorder({ operation: 'discovery' });
+    receiptRef.current = finish;
     setActiveEndpoint(endpoint);
     setMessage('');
     try {
       const results = await scanAddresses([endpoint], true, true, controller.signal);
+      if (abortRef.current !== controller) return;
+      if (controller.signal.aborted) {
+        finish('cancelled');
+        return;
+      }
+      const provenance: HandoffProvenance = {
+        source: 'nmap-verified-discovery',
+        quality: 'observed',
+        observedAt: new Date().toISOString(),
+      };
+      for (const result of results) evidenceRef.current.set(result, provenance);
       setVerified((current) => ({ ...current, [endpoint]: results }));
-      onResults(results);
+      finish(
+        results.every((result) => result.alive)
+          ? 'success'
+          : results.some((result) => result.alive)
+            ? 'partial'
+            : 'failed',
+        results.length
+      );
+      onResults(results, provenance);
     } catch (reason) {
+      if (abortRef.current !== controller) return;
+      finish(controller.signal.aborted ? 'cancelled' : 'failed');
       setMessage(
         controller.signal.aborted
           ? 'ProtoPeek verification cancelled.'
@@ -121,14 +179,18 @@ export function NmapImportPanel({
             : 'ProtoPeek verification failed.'
       );
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
-      setActiveEndpoint('');
+      if (receiptRef.current === finish) receiptRef.current = null;
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setActiveEndpoint('');
+      }
     }
   }
 
   function openResult(result: ScanResult, open: OpenScanResult) {
-    const handoff = open(result);
-    if (handoff && !handoff.ok) setMessage(handoff.error);
+    const handoff = open(result, evidenceRef.current.get(result));
+    if (handoff && !handoff.ok)
+      setMessage(`${handoff.error} Choose Verify with ProtoPeek again for this endpoint.`);
   }
 
   return (

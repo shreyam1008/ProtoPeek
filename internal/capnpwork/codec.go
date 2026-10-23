@@ -129,6 +129,11 @@ func (s *Schema) encodeField(st capnp.Struct, offset uint32, t schema.Type, d sc
 }
 
 func (s *Schema) encodePointer(seg *capnp.Segment, t schema.Type, value any, depth int, budget *codecBudget) (capnp.Ptr, error) {
+	var err error
+	s, t, err = s.resolveType(t)
+	if err != nil {
+		return capnp.Ptr{}, err
+	}
 	if value == nil {
 		return capnp.Ptr{}, nil
 	}
@@ -152,7 +157,7 @@ func (s *Schema) encodePointer(seg *capnp.Segment, t schema.Type, value any, dep
 		p, err := capnp.NewData(seg, data)
 		return p.ToPtr(), err
 	case schema.Type_Which_structType:
-		n, err := s.structNode(t.StructType().TypeId())
+		child, n, err := s.structContext(t)
 		if err != nil {
 			return capnp.Ptr{}, err
 		}
@@ -160,7 +165,7 @@ func (s *Schema) encodePointer(seg *capnp.Segment, t schema.Type, value any, dep
 		if err != nil {
 			return capnp.Ptr{}, err
 		}
-		if err := s.encodeStruct(n, st, value, depth+1, budget); err != nil {
+		if err := child.encodeStruct(n, st, value, depth+1, budget); err != nil {
 			return capnp.Ptr{}, err
 		}
 		return st.ToPtr(), nil
@@ -256,6 +261,11 @@ func (s *Schema) decodeField(st capnp.Struct, offset uint32, t schema.Type, d sc
 }
 
 func (s *Schema) decodePointer(p capnp.Ptr, t schema.Type, depth int, budget *codecBudget) (any, error) {
+	var err error
+	s, t, err = s.resolveType(t)
+	if err != nil {
+		return nil, err
+	}
 	if !p.IsValid() {
 		switch t.Which() {
 		case schema.Type_Which_text, schema.Type_Which_data:
@@ -289,18 +299,18 @@ func (s *Schema) decodePointer(p capnp.Ptr, t schema.Type, depth int, budget *co
 		if !p.Struct().IsValid() {
 			return nil, errors.New("invalid struct pointer")
 		}
-		n, err := s.structNode(t.StructType().TypeId())
+		child, n, err := s.structContext(t)
 		if err != nil {
 			return nil, err
 		}
-		return s.decodeStruct(n, p.Struct(), depth+1, budget)
+		return child.decodeStruct(n, p.Struct(), depth+1, budget)
 	case schema.Type_Which_list:
 		return s.decodeList(p, t, depth+1, budget)
 	case schema.Type_Which_interface:
 		if !p.Interface().IsValid() {
 			return nil, errors.New("invalid capability pointer")
 		}
-		return map[string]any{"$capability": "returned capability; invocation is not exposed by this workbench"}, nil
+		return map[string]any{"$capability": "returned capability; available to a bounded call plan"}, nil
 	case schema.Type_Which_anyPointer:
 		return map[string]any{"$anyPointer": "opaque value; schema cannot describe its contents"}, nil
 	default:

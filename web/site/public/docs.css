@@ -1287,7 +1287,7 @@ a:hover {
 }
 
 .pp-doc-side-label {
-  color: #7a8291;
+  color: #596273;
   font-size: 0.65rem;
 }
 
@@ -1315,6 +1315,11 @@ a:hover {
 
 .pp-doc-prose {
   gap: 16px;
+}
+
+.pp-doc-prose a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .pp-doc-prose h2 {
@@ -1350,6 +1355,11 @@ a:hover {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.86rem;
+}
+
+.pp-doc-prose table:focus-visible {
+  outline: 2px solid var(--pp-brand);
+  outline-offset: 3px;
 }
 
 .pp-doc-prose th,

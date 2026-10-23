@@ -1,7 +1,7 @@
 .pp-packets {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   gap: 12px;
   height: 100%;
   min-height: 0;
@@ -12,6 +12,9 @@
   display: flex;
   align-items: center;
   gap: 16px;
+}
+.pp-packets > .pp-operation-history {
+  grid-column: 1 / -1;
 }
 .pp-packets h1 {
   margin: 0;
@@ -61,6 +64,28 @@
   overflow: auto;
   padding-right: 12px;
   border-right: 1px solid var(--pp-border);
+}
+.pp-packets .pp-packet-payload-toggle {
+  display: flex;
+  align-items: center;
+}
+.pp-packet-payload-toggle input {
+  flex: 0 0 auto;
+}
+.pp-packet-conversations nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.pp-packet-reconstruction {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+}
+.pp-packet-reconstruction > section {
+  flex-basis: 100%;
 }
 .pp-packet-controls p {
   margin: 0;
@@ -237,9 +262,12 @@
   }
 }
 @media (max-width: 760px) {
+  .pp-workbench-shell .pp-workbench-canvas:has(> .pp-packets) {
+    overflow-y: auto;
+  }
   .pp-packets {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(400px, 1fr);
+    grid-template-rows: auto auto auto minmax(400px, 1fr);
     height: auto;
   }
   .pp-packet-controls {

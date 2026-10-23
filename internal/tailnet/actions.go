@@ -3,7 +3,7 @@ package tailnet
 import (
 	"context"
 	"errors"
-	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,10 +19,13 @@ type ActionRequest struct {
 }
 
 type ActionResult struct {
-	Action     string   `json:"action"`
-	Arguments  []string `json:"arguments"`
-	Output     string   `json:"output"`
-	ObservedAt string   `json:"observedAt"`
+	Action            string    `json:"action"`
+	Arguments         []string  `json:"arguments"`
+	Output            string    `json:"output"`
+	ObservedAt        string    `json:"observedAt"`
+	Outcome           string    `json:"outcome"`
+	Snapshot          *Snapshot `json:"snapshot,omitempty"`
+	PreviousProfileID string    `json:"previousProfileId,omitempty"`
 }
 
 func actionArguments(input ActionRequest, current Snapshot) ([]string, error) {
@@ -32,7 +35,11 @@ func actionArguments(input ActionRequest, current Snapshot) ([]string, error) {
 	if !current.Available || current.Revision == "" || input.Revision != current.Revision {
 		return nil, errors.New("tailscale state changed; refresh and review the operation again")
 	}
-	if len(input.Target) > 128 || len(input.Path) > 4096 {
+	maxTarget := 128
+	if input.Action == "login-server" {
+		maxTarget = 2048
+	}
+	if len(input.Target) > maxTarget || len(input.Path) > 4096 {
 		return nil, errors.New("tailscale target or path is too long")
 	}
 	peerTarget := func(requireExit, requireFile bool) (string, error) {
@@ -54,6 +61,24 @@ func actionArguments(input ActionRequest, current Snapshot) ([]string, error) {
 		return nil, errors.New("this operation does not accept a file path")
 	}
 	switch input.Action {
+	case "login-server":
+		server, err := url.Parse(input.Target)
+		if err != nil || server.Scheme != "https" || server.Hostname() == "" || strings.HasSuffix(server.Host, ":") || server.User != nil || server.RawQuery != "" || server.Fragment != "" {
+			return nil, errors.New("enter an HTTPS control-server URL without credentials, query or fragment")
+		}
+		if !current.AccountsObserved {
+			return nil, errors.New("the saved account list must be observed before adding a separate control-server account")
+		}
+		selected := false
+		for _, profile := range current.Profiles {
+			if profile.Selected {
+				selected = true
+			}
+		}
+		if len(current.Profiles) > 0 && !selected {
+			return nil, errors.New("the current saved account is unknown; inspect again before adding another")
+		}
+		return []string{"login", "--login-server=" + server.String(), "--timeout=30s"}, nil
 	case "connect", "disconnect", "logout", "clear-exit", "advertise-exit", "stop-advertising-exit", "netcheck":
 		if input.Target != "" {
 			return nil, errors.New("this operation does not accept a target")
@@ -125,7 +150,7 @@ func (service *Service) Execute(parent context.Context, input ActionRequest) (Ac
 	if !input.Consent || input.Revision == "" {
 		return result, errors.New("review and confirm the current Tailscale operation before running it")
 	}
-	commandLimit := 30 * time.Second
+	commandLimit := 35 * time.Second
 	if input.Action == "send-file" || input.Action == "receive-files" {
 		commandLimit = 5 * time.Minute
 	}
@@ -140,16 +165,57 @@ func (service *Service) Execute(parent context.Context, input ActionRequest) (Ac
 		return result, err
 	}
 	result.Arguments = args
+	for _, profile := range current.Profiles {
+		if profile.Selected {
+			result.PreviousProfileID = profile.ID
+			break
+		}
+	}
 	commandCtx, stop := context.WithTimeout(ctx, commandLimit)
 	defer stop()
 	output, err := service.Run(commandCtx, current.Path, args...)
+	observe, done := context.WithTimeout(context.WithoutCancel(parent), 10*time.Second)
+	if snapshot, inspectErr := service.Inspect(observe); inspectErr == nil {
+		result.Snapshot = &snapshot
+	}
+	done()
+	result.Outcome = "completed"
+	result.ObservedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	if err != nil {
-		return result, fmt.Errorf("%w. The daemon may already have applied a change; refresh before trying again. Permissions and sign-in are owned by the installed Tailscale client", err)
+		result.Outcome = "failed"
+		result.Output = actionFailureOutput(err)
+		if errors.Is(commandCtx.Err(), context.Canceled) {
+			result.Outcome = "cancelled"
+		} else if errors.Is(commandCtx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) {
+			result.Output = "The native command exceeded its time limit. A daemon change may already have occurred; inspect the resulting state before trying again."
+		}
+		if input.Action == "login-server" {
+			result.Output = "The native login did not complete within its bounded attempt. Open Tailscale on this computer, or use the reviewed native terminal command to receive the private browser or Headscale registration link. Complete sign-in there, then refresh. Accounts may have changed; ProtoPeek never retains sign-in links or keys."
+			return result, nil
+		}
+		return result, errors.New(result.Output)
 	}
 	result.Output = text(string(output), 16<<10)
+	if input.Action == "login-server" {
+		result.Output = "The installed client completed login. Inspect the selected account below. Previous accounts were not reset; switch back when needed."
+	}
 	if result.Output == "" {
 		result.Output = "The installed client completed the operation. Refresh to observe the resulting state."
 	}
 	result.ObservedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	return result, nil
+}
+
+func actionFailureOutput(err error) string {
+	reason := "The CLI did not complete."
+	native := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(native, "permission denied") || strings.Contains(native, "access is denied") || strings.Contains(native, "access denied"):
+		reason = "The native client reported a permission restriction. Complete required authorization in Tailscale."
+	case strings.Contains(native, "not allowed") || strings.Contains(native, "not permitted") || strings.Contains(native, "policy"):
+		reason = "The native client reported a policy restriction. Check the tailnet policy with its administrator."
+	case strings.Contains(native, "not logged in") || strings.Contains(native, "requires login") || strings.Contains(native, "needslogin") || strings.Contains(native, "authentication required"):
+		reason = "The native client requires sign-in. Complete sign-in in Tailscale."
+	}
+	return reason + " A daemon change may already have occurred; inspect the resulting state before trying again."
 }

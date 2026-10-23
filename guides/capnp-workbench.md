@@ -1,7 +1,8 @@
 # Cap’n Proto workbench
 
-Available in current source after v0.5.0 at **Inspect → Cap’n Proto**. This is a native
-Cap’n Proto RPC client for a connection's bootstrap capability, implemented in Go.
+Open **Inspect → Cap’n Proto** for native Cap’n Proto RPC, implemented in Go. Stable v0.6.1
+supports concrete bootstrap calls. The generic bindings and capability plans below are current
+source as of 22 October 2026 and require a matching build; they are not a new stable-release claim.
 
 ## Load a schema, then make a call
 
@@ -41,7 +42,7 @@ one connection and has a configurable 0.1–30 second deadline; calls are never 
 | Text / Data | UTF-8 string / base64 string |
 | List | JSON array, including nested lists and structs |
 | Union | At most one member in the request object |
-| Capability / AnyPointer | Null input only; non-null responses are labeled opaque, not followed |
+| Capability / AnyPointer | Null JSON input; non-null JSON results remain opaque. Typed returned interface capabilities can be used by the separate call-plan editor below |
 
 Schemas, TLS CA input, requests and responses stay in memory for the open page. They are not
 saved as profiles. Reloading clears them. The local server receives schema and request bytes;
@@ -57,8 +58,31 @@ allocation, traversal depth, list size, compiler runtime and simultaneous work a
 Concrete bootstrap methods, defaults, unions, groups, nested structs and lists have fixture
 coverage. Encoding is checked against output from the official C++ compiler. TCP and TLS RPC
 tests use a real Go peer; a C++ RPC peer has not yet been part of this acceptance pass.
-Generic interface/method bindings, returned-capability workflows and pipelining are not supported.
+Those fixtures do not establish C++ runtime interoperability for every generic or capability plan.
 Cap’n Proto is not HTTP or gRPC and does not supply an HTTP-style header editor.
+
+## Generic bindings and capability plans · current source
+
+First expand **Capability call plan & type bindings**, or **Generic type bindings & capability plan**
+when the selected method has generic parameters.
+
+**Generic type bindings** supplies the selected interface/method's type arguments. Use the shown
+schema parameters and supported type expressions; unresolved or incompatible bindings fail
+validation instead of guessing a schema.
+
+Expand **Capability call plan · up to 8 steps**. Add a step, select a method, and target either the
+bootstrap capability or a typed interface field returned by an earlier step. **Returned capability
+field** uses a dot-separated path through named struct fields; list elements and union branches
+cannot be pipelined. Each step has its own JSON input and applicable generic bindings.
+
+Choose **Review plan**, inspect the target and steps, then **Run reviewed plan** to connect. Steps
+are pipelined on one connection under the selected total deadline and a 4 MiB wire budget in each
+direction; each JSON input/result remains capped at 64 KiB. The connection closes on completion,
+cancel or deadline. Plans and capability handles are not persistent sessions.
+
+If a later step fails, earlier results remain visible. Dependent calls may already have been sent;
+cancellation cannot undo effects at the peer. Local truncation or an incomplete plan is not a
+successful complete response. Real supported-peer acceptance remains separate from fixture tests.
 
 The Go RPC runtime is embedded. The C++ source compiler is not bundled. Dependency license texts
 are included in release archives; see `THIRD_PARTY_NOTICES.md` in the repository.

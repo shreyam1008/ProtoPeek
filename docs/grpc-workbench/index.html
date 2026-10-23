@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"gRPC workbench","description":"Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests.","url":"https://protopeek.shreyam1008.com.np/grpc-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/grpc-workbench/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/grpc-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"gRPC workbench","item":"https://protopeek.shreyam1008.com.np/grpc-workbench/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"gRPC workbench","description":"Use ProtoPeek’s local gRPC workbench for reflection, proto files, streaming RPCs, metadata, trailers, Health checks, repeat runs, and saved requests.","url":"https://protopeek.shreyam1008.com.np/grpc-workbench/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/grpc-workbench/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/grpc-workbench.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"gRPC workbench","item":"https://protopeek.shreyam1008.com.np/grpc-workbench/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -69,8 +69,8 @@
               <h1 id="page-title">gRPC workbench</h1>
               <p>What happened inside this gRPC call?</p>
 
-    <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.1
+    <span class="pp-page-status is-current is-full">
+      <i aria-hidden="true"></i>Stable core + current source
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -142,6 +142,7 @@
               <div class="pp-doc-prose">
                 <p>ProtoPeek keeps a gRPC request, its schema, and the evidence returned by the selected service in one local workspace. The workbench ships in stable v0.5.0.</p>
 <h2 id="connect-one-target">Connect one target</h2>
+<p>In matching current source, Home can prepare the target directly: select <strong>gRPC · TLS</strong> or <strong>gRPC · plaintext</strong>, enter the address, and choose <strong>Open gRPC</strong>. This does not connect or run discovery. The target form keeps the selected transport visible before <strong>Connect</strong>.</p>
 <p>Enter a host and port, then choose plaintext or verified TLS deliberately. Successful targets can stay in this browser so moving between local services does not require restarting ProtoPeek.</p>
 <p>The bounded target check distinguishes four useful outcomes: reflected gRPC, gRPC without reflection, an HTTP response, or open TCP. It does not silently probe arbitrary public networks.</p>
 <h2 id="choose-the-schema-source">Choose the schema source</h2>
@@ -185,20 +186,20 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements.</p>
+                <p>Stable v0.6.1 includes native RPC inspection. Incremental relay evidence and the direct Home entry below require matching current source.</p>
               </section>
             </aside>
           </div>
 
 
     <nav class="pp-related-navigation" aria-label="Related ProtoPeek guides">
-      <a href="/capnp-workbench/">
-        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
-        <strong>Cap’n Proto workbench</strong>
-      </a>
       <a href="/http-workbench/">
-        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <span><svg class="pp-inline-icon is-back" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg> Previous guide</span>
         <strong>HTTP workbench</strong>
+      </a>
+      <a href="/event-streams/">
+        <span>Next guide <svg class="pp-inline-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg></span>
+        <strong>WebSocket and SSE workbench</strong>
       </a>
     </nav>
 

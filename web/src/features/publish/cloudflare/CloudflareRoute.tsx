@@ -48,7 +48,7 @@ import {
   type TunnelServiceActionResult,
   type TunnelSnapshot,
 } from '@/console/tunnels-api';
-import { DiagnosticsEvidence, EmptyHostSummary, HostSummary, RuntimeEvidence } from './HostSummary';
+import { EmptyHostSummary, HostSummary, RuntimeEvidence } from './HostSummary';
 import { IngressEvidence, IngressHandoffs } from './IngressEvidence';
 import { ServiceActionDialog, ServiceActionFeedback, ServiceControls } from './ServiceActions';
 import { useCloudflareObservation } from './useCloudflareObservation';
@@ -61,6 +61,10 @@ import {
   routeCountLabel,
   statusLabel,
 } from './view-helpers';
+
+const CloudflareOperations = lazy(() =>
+  import('./CloudflareOperations').then((module) => ({ default: module.CloudflareOperations }))
+);
 
 type TunnelTab = 'overview' | 'routes' | 'runtime' | 'diagnostics';
 type DeploymentFilter = 'all' | 'running' | 'stopped';
@@ -447,6 +451,7 @@ export function CloudflareRoute() {
             <label className="pp-tunnel-deployment-select pp-tunnel-mobile-deployment-select">
               <span>Deployment</span>
               <select
+                aria-label="Tunnel deployment"
                 value={selectedID}
                 disabled={!deployments.length}
                 onChange={(event) => selectDeployment(event.currentTarget.value)}
@@ -665,11 +670,14 @@ export function CloudflareRoute() {
                       />
                     ) : null}
                     {activeTab === 'diagnostics' ? (
-                      <DiagnosticsEvidence
-                        deployment={selected}
-                        snapshot={snapshot}
-                        onNotice={setNotice}
-                      />
+                      <Suspense fallback={<p role="status">Loading canonical operations…</p>}>
+                        <CloudflareOperations
+                          key={`${selected.id}:${selected.configPath}`}
+                          deployment={selected}
+                          writable={Boolean(capabilities?.configMutation.supported)}
+                          onRefresh={() => void load()}
+                        />
+                      </Suspense>
                     ) : null}
                   </div>
                   <IngressHandoffs

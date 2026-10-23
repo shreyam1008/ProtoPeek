@@ -4,10 +4,13 @@ import type { AppearancePreference, ResolvedAppearance } from '@/shared/theme';
 
 import type { ScanResult } from './api';
 import type { HandoffWriteResult } from './app/handoff-store';
-import type { PendingHandoffInput } from './app/handoff-types';
+import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
 import type { InterfacePreferences } from './interface-preferences';
 
-export type RecentDiscovery = ScanResult & { discoveredAt: string };
+export type RecentDiscovery = ScanResult & {
+  discoveredAt: string;
+  handoffProvenance?: HandoffProvenance;
+};
 
 export type ScanDialogRequest = {
   initialTarget?: string;
@@ -37,9 +40,12 @@ export type ProtocolShellValue = {
   discoveries: RecentDiscovery[];
   openScan: (request?: ScanDialogRequest) => void;
   claimInitialScan?: (target: unknown) => boolean;
-  openHandoff: (handoff: PendingHandoffInput) => HandoffWriteResult;
-  openGRPCDiscovery: (result: ScanResult) => HandoffWriteResult;
-  openHTTPDiscovery: (result: ScanResult) => HandoffWriteResult;
+  openHandoff: (
+    handoff: PendingHandoffInput,
+    options?: { memoryOnly?: boolean }
+  ) => HandoffWriteResult;
+  openGRPCDiscovery: (result: ScanResult, provenance?: HandoffProvenance) => HandoffWriteResult;
+  openHTTPDiscovery: (result: ScanResult, provenance?: HandoffProvenance) => HandoffWriteResult;
 };
 
 export const ProtocolShellContext = createContext<ProtocolShellValue | null>(null);

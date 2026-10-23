@@ -1,28 +1,74 @@
+import {
+  type ConsumedHandoffFor,
+  consumePendingHandoff,
+  createHandoffEnvelope,
+  storePendingHandoff,
+} from './app/handoff-store';
+import type { HandoffProvenance } from './app/handoff-types';
+
 const key = 'protopeek.network.path-target.v1';
-let pendingTarget = '';
+let legacyRead = false;
 
 // A one-use target draft never grants permission to send a trace.
-export function preparePathTarget(input: string) {
+export function preparePathTarget(input: string, provenance?: HandoffProvenance) {
   const target = normalizePathDestination(input);
-  pendingTarget = target;
-  try {
-    sessionStorage.setItem(key, target);
-    return true;
-  } catch {
-    // Same-tab navigation still carries the draft when storage is unavailable.
-    return true;
-  }
+  const result = storePendingHandoff({
+    provenance: provenance ?? {
+      source: 'path-target',
+      quality: 'manual',
+      observedAt: new Date().toISOString(),
+    },
+    draft: { kind: 'path-target-draft', target: { kind: 'next-hop-target', target } },
+  });
+  if (result.ok) retireLegacyPath();
+  return result.ok;
 }
 
 export function takePathTarget(): string {
-  const fallback = pendingTarget;
-  pendingTarget = '';
+  return takePathHandoff()?.draft.target.target ?? '';
+}
+
+export function takePathHandoff(): ConsumedHandoffFor<'path-target-draft'> | null {
+  const pending = consumePendingHandoff('path-target-draft');
+  if (pending) {
+    retireLegacyPath();
+    return pending;
+  }
+  if (legacyRead) return null;
+  legacyRead = true;
   try {
     const target = sessionStorage.getItem(key);
     sessionStorage.removeItem(key);
-    return fallback || (target ? normalizePathDestination(target) : '');
+    if (!target || target.length > 253) return null;
+    const created = createHandoffEnvelope({
+      provenance: {
+        source: 'legacy-path-handoff',
+        quality: 'manual',
+        observedAt: new Date().toISOString(),
+      },
+      draft: {
+        kind: 'path-target-draft',
+        target: { kind: 'next-hop-target', target: normalizePathDestination(target) },
+      },
+    });
+    return created.ok
+      ? {
+          ...created.value,
+          draft: created.value.draft as ConsumedHandoffFor<'path-target-draft'>['draft'],
+          storage: 'session',
+        }
+      : null;
   } catch {
-    return fallback;
+    return null;
+  }
+}
+
+function retireLegacyPath() {
+  legacyRead = true;
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* A superseded legacy key never regains authority. */
   }
 }
 

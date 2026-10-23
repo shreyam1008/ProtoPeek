@@ -45,18 +45,19 @@ type Profile struct {
 	Selected bool   `json:"selected"`
 }
 type Snapshot struct {
-	Available  bool      `json:"available"`
-	Path       string    `json:"path"`
-	ObservedAt string    `json:"observedAt"`
-	Revision   string    `json:"revision"`
-	Version    string    `json:"version"`
-	State      string    `json:"state"`
-	Tailnet    string    `json:"tailnet"`
-	MagicDNS   string    `json:"magicDNS"`
-	Self       *Peer     `json:"self"`
-	Peers      []Peer    `json:"peers"`
-	Profiles   []Profile `json:"profiles"`
-	Warnings   []string  `json:"warnings"`
+	Available        bool      `json:"available"`
+	Path             string    `json:"path"`
+	ObservedAt       string    `json:"observedAt"`
+	Revision         string    `json:"revision"`
+	Version          string    `json:"version"`
+	State            string    `json:"state"`
+	Tailnet          string    `json:"tailnet"`
+	MagicDNS         string    `json:"magicDNS"`
+	Self             *Peer     `json:"self"`
+	Peers            []Peer    `json:"peers"`
+	Profiles         []Profile `json:"profiles"`
+	Warnings         []string  `json:"warnings"`
+	AccountsObserved bool      `json:"accountsObserved"`
 }
 
 // Ignore provider extensions and secrets, including keys, AuthURL, CapMap and user photos.
@@ -238,6 +239,8 @@ func (service *Service) Inspect(parent context.Context) (Snapshot, error) {
 	} else if err := json.Unmarshal(profiles, &result.Profiles); err != nil {
 		result.Profiles = []Profile{}
 		result.Warnings = append(result.Warnings, "The installed client returned an unsupported account list.")
+	} else {
+		result.AccountsObserved = strings.TrimSpace(string(profiles)) != "null"
 	}
 	if len(result.Profiles) > 64 {
 		result.Profiles = result.Profiles[:64]

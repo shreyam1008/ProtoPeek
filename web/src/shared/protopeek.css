@@ -1148,7 +1148,7 @@
   }
 
   .pp-cancel-button:hover {
-    background: #cf4d56;
+    background: var(--pp-danger-signal);
   }
 
   .pp-response-filter {
@@ -4747,7 +4747,7 @@
   }
 
   .pp-message-time small {
-    color: var(--pp-text-faint);
+    color: var(--pp-text-muted);
     font-size: 0.56rem;
   }
 

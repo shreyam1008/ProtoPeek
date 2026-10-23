@@ -5,10 +5,33 @@ import {
   createRouter,
   lazyRouteComponent,
   redirect,
+  useLocation,
 } from '@tanstack/react-router';
-
+import { type AgentClient, agentClient } from './agent-client-kind';
+import type { DiagnosticMode } from './network-diagnostics';
 import { ProtocolFrame } from './ProtocolFrame';
 import { RouteError, RouteNotFound, RoutePending } from './shell/RouteState';
+
+declare module '@tanstack/history' {
+  interface HistoryState {
+    diagnosticInvocation?: number;
+  }
+}
+
+const LazyDiagnostics = lazyRouteComponent(
+  () => import('./NetworkDiagnostics'),
+  'NetworkDiagnostics'
+);
+
+function DiagnosticsRoute() {
+  const invocation = useLocation({
+    select: ({ state }) =>
+      Number.isSafeInteger(state.diagnosticInvocation) && (state.diagnosticInvocation ?? -1) >= 0
+        ? state.diagnosticInvocation
+        : 0,
+  });
+  return <LazyDiagnostics key={invocation} />;
+}
 
 const rootRoute = createRootRoute({ component: ProtocolFrame, notFoundComponent: RouteNotFound });
 const dashboardRoute = createRoute({
@@ -60,6 +83,31 @@ const nmapScannerRoute = createRoute({
   path: '/network/nmap',
   component: lazyRouteComponent(() => import('./NmapScanner'), 'NmapScanner'),
 });
+const diagnosticsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/network/diagnostics',
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { mode?: DiagnosticMode; target?: string } => ({
+    mode:
+      typeof search.mode === 'string' &&
+      /^(diagnose|dns|dns-compare|tls|ip-compare|availability|tcp-exchange|udp-exchange|http-proxy|socks5-proxy|http2|http3|subnet)$/.test(
+        search.mode
+      )
+        ? (search.mode as DiagnosticMode)
+        : undefined,
+    target:
+      typeof search.target === 'string' &&
+      search.target.length <= 1024 &&
+      !Array.from(search.target).some(
+        (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+      )
+        ? search.target
+        : undefined,
+  }),
+  remountDeps: ({ search }) => [search.mode, search.target],
+  component: DiagnosticsRoute,
+});
 const tailnetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/tailnet',
@@ -97,6 +145,12 @@ const tunnelsRoute = createRoute({
 const extensionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/extensions',
+  validateSearch: (search: Record<string, unknown>): { extension?: string } => ({
+    extension:
+      typeof search.extension === 'string' && /^[a-z][a-z0-9-]{0,31}$/.test(search.extension)
+        ? search.extension
+        : undefined,
+  }),
   component: lazyRouteComponent(() => import('./Extensions'), 'Extensions'),
 });
 const routesRoute = createRoute({
@@ -109,6 +163,16 @@ const securityRoute = createRoute({
   path: '/security',
   component: lazyRouteComponent(() => import('./Security'), 'Security'),
 });
+const netBirdRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/extensions/netbird',
+  component: lazyRouteComponent(() => import('./NetBirdWorkbench'), 'NetBirdWorkbench'),
+});
+const publishingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/extensions/publish',
+  component: lazyRouteComponent(() => import('./PublishingWorkbench'), 'PublishingWorkbench'),
+});
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -117,7 +181,11 @@ const settingsRoute = createRoute({
 const agentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/agents',
-  component: lazyRouteComponent(() => import('./AgentWorkbench'), 'AgentWorkbench'),
+  validateSearch: (search: Record<string, unknown>): { client?: AgentClient } => ({
+    client: agentClient(search.client),
+  }),
+  remountDeps: ({ search }) => search.client,
+  component: lazyRouteComponent(() => import('./AgentWorkbench'), 'AgentWorkbenchRoute'),
 });
 const updatesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -144,6 +212,14 @@ const networkIndexRoute = createRoute({
 const networkLocalRoute = createRoute({
   getParentRoute: () => networkRoute,
   path: '/local',
+  validateSearch: (search: Record<string, unknown>): { draftSubnet?: string } => ({
+    draftSubnet:
+      typeof search.draftSubnet === 'string' &&
+      search.draftSubnet.length <= 64 &&
+      /^[0-9a-fA-F.:/]+$/.test(search.draftSubnet)
+        ? search.draftSubnet
+        : undefined,
+  }),
 });
 const networkMapRoute = createRoute({
   getParentRoute: () => networkRoute,
@@ -206,10 +282,13 @@ const routeTree = rootRoute.addChildren([
   packetsRoute,
   portScannerRoute,
   nmapScannerRoute,
+  diagnosticsRoute,
   tailnetRoute,
   thisPCRoute,
   tunnelsRoute,
   extensionsRoute,
+  netBirdRoute,
+  publishingRoute,
   downloaderRoute,
   routesRoute,
   securityRoute,

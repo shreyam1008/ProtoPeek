@@ -7,7 +7,18 @@ import type { BootstrapResponse } from '@/shared/types';
 import { getCompatibilityRouteTargets } from './app/feature-registry';
 import { emptyHTTPDraft } from './http-draft-store';
 import { saveHTTPRecipe } from './http-library';
+import { diagnosticModes, diagnosticsSearch } from './network-diagnostics';
 import { createProtoPeekRouter } from './router';
+
+it('keeps every diagnostic mode and target in the actual router search contract', () => {
+  const router = createProtoPeekRouter(createMemoryHistory());
+  for (const [mode] of diagnosticModes) {
+    const search = { mode, target: 'http://[::1]:8080' };
+    expect(router.buildLocation({ to: '/network/diagnostics', search }).search).toEqual(
+      diagnosticsSearch(search)
+    );
+  }
+});
 
 const bootstrap: BootstrapResponse = {
   appName: 'ProtoPeek',
@@ -106,7 +117,7 @@ describe('protocol routes', () => {
       await screen.findByRole('heading', { name: 'What do you need to check?' })
     ).toBeInTheDocument();
     const recent = screen.getByRole('region', { name: 'Recent services' });
-    expect(within(recent).getByText('Keep useful addresses close')).toBeVisible();
+    expect(within(recent).getByText('Services you discover appear here.')).toBeVisible();
     expect(recent.querySelectorAll('article')).toHaveLength(0);
   });
 
@@ -316,7 +327,8 @@ describe('protocol routes', () => {
     expect(screen.getByRole('heading', { name: 'GoBarryGo bridge', level: 3 })).toBeInTheDocument();
     expect(screen.getByText('WinGet package')).toBeInTheDocument();
     expect(screen.getByText('Bundled Nmap execution')).toBeInTheDocument();
-    expect(screen.getByText('Network Path · Linux + Windows')).toBeInTheDocument();
+    expect(screen.getByText('Network Path · native platforms')).toBeInTheDocument();
+    expect(screen.getByText('Native installed-tool acceptance')).toBeInTheDocument();
     expect(screen.getByText('Broader/public range discovery')).toBeInTheDocument();
   });
 

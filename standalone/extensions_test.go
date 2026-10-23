@@ -32,7 +32,7 @@ func TestExtensionsHandlesTypedNilTransferService(t *testing.T) {
 	if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &snapshot) != nil {
 		t.Fatalf("typed nil response = %d %s", response.Code, response.Body.String())
 	}
-	if len(snapshot.Extensions) != 5 || snapshot.Extensions[4].Status != "unavailable" || snapshot.Extensions[4].Path != "" {
+	if len(snapshot.Extensions) != 6 || extensionWithID(t, snapshot, "aria2").Status != "unavailable" || extensionWithID(t, snapshot, "aria2").Path != "" {
 		t.Fatalf("typed nil aria2 = %#v", snapshot.Extensions)
 	}
 }
@@ -53,11 +53,11 @@ func TestExtensionsEndpointIsRegisteredAndRejectsMutations(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.Platform != runtime.GOOS || snapshot.Architecture != runtime.GOARCH || snapshot.SchemaVersion != 1 || len(snapshot.Extensions) != 5 {
+	if snapshot.Platform != runtime.GOOS || snapshot.Architecture != runtime.GOARCH || snapshot.SchemaVersion != 1 || len(snapshot.Extensions) != 6 {
 		t.Fatalf("snapshot = %#v", snapshot)
 	}
-	if snapshot.Extensions[4].Status != "unavailable" {
-		t.Fatalf("missing downloader service = %#v", snapshot.Extensions[4])
+	if extensionWithID(t, snapshot, "aria2").Status != "unavailable" {
+		t.Fatalf("missing downloader service = %#v", extensionWithID(t, snapshot, "aria2"))
 	}
 	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
 		mux := http.NewServeMux()
@@ -95,7 +95,7 @@ func TestExtensionsReadsOnlyOptionalHostConfigContract(t *testing.T) {
 		if err := json.Unmarshal(response.Body.Bytes(), &snapshot); err != nil {
 			t.Fatal(err)
 		}
-		aria2 := snapshot.Extensions[4]
+		aria2 := extensionWithID(t, snapshot, "aria2")
 		if configErr == nil && (aria2.Status != "detected" || aria2.Source != "configured" || aria2.Path != path) {
 			t.Fatalf("configured aria2 = %#v", aria2)
 		}
@@ -106,4 +106,15 @@ func TestExtensionsReadsOnlyOptionalHostConfigContract(t *testing.T) {
 	if service.reads != 2 {
 		t.Fatalf("configuration reads = %d", service.reads)
 	}
+}
+
+func extensionWithID(t *testing.T, snapshot extensions.Snapshot, id string) extensions.Extension {
+	t.Helper()
+	for _, item := range snapshot.Extensions {
+		if item.ID == id {
+			return item
+		}
+	}
+	t.Fatalf("extension %q missing from catalog: %#v", id, snapshot.Extensions)
+	return extensions.Extension{}
 }

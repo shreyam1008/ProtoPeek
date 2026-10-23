@@ -8,6 +8,9 @@ export type CapnpMethod = {
   paramsId: string;
   resultsId: string;
   fields: { name: string; type: string; union: boolean }[];
+  typeParameters?: { scopeId: string; index: number; name: string }[];
+  implicitParameters?: string[];
+  resultCapabilities?: { path: string[]; interfaceId: string }[];
 };
 export type CapnpSchema = { schemaBase64: string; methods: CapnpMethod[]; nodeCount: number };
 export type CapnpResult = {
@@ -18,10 +21,21 @@ export type CapnpResult = {
   durationMs: number;
   observedAt: string;
   result: unknown;
+  plan?: {
+    sentSteps: number;
+    completed: boolean;
+    steps: {
+      step: number;
+      interfaceId: string;
+      ordinal: number;
+      result: unknown;
+      error?: string;
+    }[];
+  };
 };
 export type CapnpSource = { path: string; source: string };
 
-async function request(
+export async function requestCapnp(
   path: string,
   input: unknown,
   signal: AbortSignal,
@@ -46,7 +60,7 @@ async function request(
 }
 
 export async function capnpCapabilities(signal: AbortSignal) {
-  const data = await request('capabilities', undefined, signal, 16 * 1024);
+  const data = await requestCapnp('capabilities', undefined, signal, 16 * 1024);
   if (typeof data?.available !== 'boolean')
     throw new Error('Invalid compiler capability response.');
   return {
@@ -59,7 +73,7 @@ export async function loadCapnpSchema(
   input: { schemaBase64?: string; files?: CapnpSource[]; root?: string },
   signal: AbortSignal
 ): Promise<CapnpSchema> {
-  const data = await request('schema', input, signal, 4 * 1024 * 1024);
+  const data = await requestCapnp('schema', input, signal, 4 * 1024 * 1024);
   if (
     typeof data?.schemaBase64 !== 'string' ||
     data.schemaBase64.length > 2796204 ||
@@ -89,6 +103,48 @@ export async function loadCapnpSchema(
     const key = `${method.interfaceId}/${method.ordinal}`;
     if (keys.has(key)) throw new Error('Duplicate schema method.');
     keys.add(key);
+    if (
+      method.typeParameters !== undefined &&
+      (!Array.isArray(method.typeParameters) ||
+        method.typeParameters.length > 64 ||
+        method.typeParameters.some(
+          (item: { scopeId?: unknown; index?: unknown; name?: unknown }) =>
+            !item ||
+            typeof item.scopeId !== 'string' ||
+            !/^0x[\da-f]{1,16}$/i.test(item.scopeId) ||
+            !Number.isInteger(item.index) ||
+            (item.index as number) < 0 ||
+            (item.index as number) > 63 ||
+            typeof item.name !== 'string' ||
+            item.name.length > 128
+        ))
+    )
+      throw new Error('Invalid generic parameter description.');
+    if (
+      method.implicitParameters !== undefined &&
+      (!Array.isArray(method.implicitParameters) ||
+        method.implicitParameters.length > 64 ||
+        method.implicitParameters.some(
+          (name: unknown) => typeof name !== 'string' || name.length > 128
+        ))
+    )
+      throw new Error('Invalid generic method description.');
+    if (
+      method.resultCapabilities !== undefined &&
+      (!Array.isArray(method.resultCapabilities) ||
+        method.resultCapabilities.length > 32 ||
+        method.resultCapabilities.some(
+          (value: { path?: unknown; interfaceId?: unknown }) =>
+            !value ||
+            !Array.isArray(value.path) ||
+            value.path.length < 1 ||
+            value.path.length > 8 ||
+            value.path.some((name: unknown) => typeof name !== 'string' || name.length > 128) ||
+            typeof value.interfaceId !== 'string' ||
+            !/^0x[\da-f]{1,16}$/i.test(value.interfaceId)
+        ))
+    )
+      throw new Error('Invalid capability field description.');
     for (const field of method.fields) {
       if (
         !field ||
@@ -115,6 +171,8 @@ export async function callCapnp(
     ordinal: number;
     timeoutMs: number;
     params: string;
+    typeBindings?: Record<string, string[]>;
+    methodTypes?: string[];
   },
   signal: AbortSignal
 ): Promise<CapnpResult> {
@@ -123,7 +181,7 @@ export async function callCapnp(
   JSON.parse(input.params);
   const { params, ...metadata } = input;
   const body = `${JSON.stringify(metadata).slice(0, -1)},"params":${params}}`;
-  const data = await request('call', input, signal, 128 * 1024, body);
+  const data = await requestCapnp('call', input, signal, 128 * 1024, body);
   if (
     !data ||
     data.address !== input.address ||

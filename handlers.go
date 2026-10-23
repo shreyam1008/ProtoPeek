@@ -98,7 +98,10 @@ func RPCInvokeHandlerWithOptions(ch grpc.ClientConnInterface, descs []*desc.Meth
 }
 
 type invokeSafetyLimits struct {
-	maxDuration time.Duration
+	maxDuration        time.Duration
+	streamWriteTimeout time.Duration
+	onEvent            func(rpcStreamEvent) error
+	now                func() time.Time
 }
 
 func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.MethodDescriptor, options InvokeOptions, limits invokeSafetyLimits) http.Handler {
@@ -117,7 +120,7 @@ func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.Metho
 		r.Body = http.MaxBytesReader(w, r.Body, maxInvokeRequestBodyBytes)
 
 		method := r.URL.Path
-		if method[0] == '/' {
+		if strings.HasPrefix(method, "/") {
 			method = method[1:]
 		}
 
@@ -128,7 +131,45 @@ func rpcInvokeHandlerWithLimits(ch grpc.ClientConnInterface, descs []*desc.Metho
 					http.Error(w, "Failed to create descriptor source: "+err.Error(), http.StatusInternalServerError)
 					return
 				}
-				results, err := invokeRPCWithLimits(r.Context(), method, ch, descSource, r.Header, r.Body, &options, limits)
+				requestLimits := limits
+				var stream *rpcStreamWriter
+				if RPCInvokeStreamRequested(r) {
+					stream, err = newRPCStreamWriter(w, limits.streamWriteTimeout)
+					if err != nil {
+						http.Error(w, "Streaming response deadlines are unsupported", http.StatusInternalServerError)
+						return
+					}
+					defer stream.close()
+					requestLimits.onEvent = stream.write
+				}
+				results, err := invokeRPCWithLimits(r.Context(), method, ch, descSource, r.Header, r.Body, &options, requestLimits)
+				if stream != nil && stream.started {
+					if stream.err == nil && results != nil {
+						terminal := *results
+						terminal.Responses = nil // Messages have already been delivered once.
+						terminal.Headers = nil   // The headers event already delivered this evidence.
+						finalObserved := results.finalStatusSeen && results.contextErr == nil && results.LocalLimit == nil && err == nil
+						terminal.FinalStatusObserved = &finalObserved
+						if !finalObserved {
+							terminal.Error, terminal.Trailers, terminal.Timings.TrailersMs = nil, []rpcMetadata{}, nil
+						}
+						failure := ""
+						if err != nil {
+							if requestError, ok := err.(errBadInput); ok {
+								failure = requestError.Error()
+							} else {
+								failure = "RPC relay ended before a final server status was observed."
+							}
+						} else if results.contextErr != nil && results.LocalLimit == nil {
+							failure = "The local request ended before a final server status was observed."
+							if errors.Is(results.contextErr, context.DeadlineExceeded) {
+								failure = "The local request deadline expired before a final server status was observed."
+							}
+						}
+						_ = stream.write(rpcStreamEvent{Type: "complete", Result: &terminal, RelayError: failure})
+					}
+					return
+				}
 				if err != nil {
 					var maxBytesErr *http.MaxBytesError
 					if errors.As(err, &maxBytesErr) {
@@ -476,16 +517,29 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 	reqStats := rpcRequestStats{
 		Total: len(input.Data),
 	}
+	var requestError error
 	requestFunc := func(m proto.Message) error {
 		if len(input.Data) == 0 {
 			return io.EOF
 		}
-		reqStats.Sent++
 		req := input.Data[0]
 		input.Data = input.Data[1:]
 		if err := jsonpb.Unmarshal(bytes.NewReader(req), m); err != nil {
-			return status.Error(codes.InvalidArgument, err.Error())
+			detail := err.Error()
+			if len(detail) > 768 {
+				detail = detail[:768]
+			}
+			if reqStats.Sent > 0 {
+				noun := "messages"
+				if reqStats.Sent == 1 {
+					noun = "message"
+				}
+				detail += fmt.Sprintf("; %d earlier %s may already have been processed", reqStats.Sent, noun)
+			}
+			requestError = errBadInput{err: fmt.Errorf("Request message %d could not be converted to protobuf: %s", reqStats.Sent+1, strings.ToValidUTF8(detail, "?"))}
+			return status.Error(codes.InvalidArgument, requestError.Error())
 		}
+		reqStats.Sent++
 		return nil
 	}
 
@@ -521,11 +575,26 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 
 	ctx, cancelLocalLimit := context.WithCancelCause(ctx)
 	defer cancelLocalLimit(nil)
-	result := newRPCResult(descSource, options.EmitDefaults, &reqStats)
+	now := limits.now
+	if now == nil {
+		now = time.Now
+	}
+	result := newRPCResultWithClock(descSource, options.EmitDefaults, &reqStats, now)
 	result.maxDuration = limits.maxDuration
 	result.cancelLocalLimit = cancelLocalLimit
 	result.contextCause = func() error { return context.Cause(ctx) }
+	result.contextError = func() error { return invokeContextError(ctx, result.now()) }
+	result.onEvent = limits.onEvent
+	if result.onEvent != nil {
+		result.emit(rpcStreamEvent{Type: "started", TotalRequests: reqStats.Total})
+		if result.streamErr != nil {
+			return &result, result.streamErr
+		}
+	}
 	invokeErr := grpcurl.InvokeRPC(ctx, descSource, ch, methodName, invokeHdrs, &result, requestFunc)
+	if !result.finalStatusSeen && result.contextErr == nil {
+		result.contextErr = result.contextError()
+	}
 	// Disarm the local wall as soon as transport work returns. If a transport
 	// error wins just before the wall, the timer must not relabel it while the
 	// result is being finalized. A wall that actually fired has already won the
@@ -533,14 +602,40 @@ func invokeRPCWithLimits(ctx context.Context, methodName string, ch grpc.ClientC
 	cancelDeadline()
 	result.finish()
 	result.applyDurationLimit(limits.maxDuration)
+	if result.streamErr != nil {
+		return &result, result.streamErr
+	}
 	if result.LocalLimit != nil {
 		return &result, nil
 	}
+	if requestError != nil {
+		if result.onEvent != nil {
+			return &result, requestError
+		}
+		return nil, requestError
+	}
 	if invokeErr != nil {
+		if result.onEvent != nil {
+			return &result, invokeErr
+		}
 		return nil, invokeErr
 	}
 
 	return &result, nil
+}
+
+// A transport can observe a reached deadline before the context timer publishes
+// Err. Compare the same monotonic deadline when deciding whether final status
+// was observed; an asynchronously delayed timer must not turn a local RST into
+// evidence of the server's final gRPC status.
+func invokeContextError(ctx context.Context, now time.Time) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if deadline, ok := ctx.Deadline(); ok && !now.Before(deadline) {
+		return context.DeadlineExceeded
+	}
+	return nil
 }
 
 func (opts *InvokeOptions) overrideHeaders(reqHdrs http.Header) metadata.MD {
@@ -634,22 +729,27 @@ type rpcLocalLimit struct {
 }
 
 type rpcResult struct {
-	descSource       grpcurl.DescriptorSource
-	emitDefaults     bool
-	startedAt        time.Time
-	now              func() time.Time
-	cancelLocalLimit context.CancelCauseFunc
-	contextCause     func() error
-	retainedBytes    int
-	maxDuration      time.Duration
-	finalStatusSeen  bool
-	Headers          []rpcMetadata        `json:"headers"`
-	Error            *rpcError            `json:"error"`
-	Responses        []rpcResponseElement `json:"responses"`
-	Requests         *rpcRequestStats     `json:"requests"`
-	Trailers         []rpcMetadata        `json:"trailers"`
-	Timings          rpcTimings           `json:"timings"`
-	LocalLimit       *rpcLocalLimit       `json:"localLimit"`
+	descSource          grpcurl.DescriptorSource
+	emitDefaults        bool
+	startedAt           time.Time
+	now                 func() time.Time
+	cancelLocalLimit    context.CancelCauseFunc
+	contextCause        func() error
+	contextError        func() error
+	retainedBytes       int
+	maxDuration         time.Duration
+	finalStatusSeen     bool
+	onEvent             func(rpcStreamEvent) error
+	streamErr           error
+	contextErr          error
+	FinalStatusObserved *bool                `json:"finalStatusObserved,omitempty"`
+	Headers             []rpcMetadata        `json:"headers"`
+	Error               *rpcError            `json:"error"`
+	Responses           []rpcResponseElement `json:"responses"`
+	Requests            *rpcRequestStats     `json:"requests"`
+	Trailers            []rpcMetadata        `json:"trailers"`
+	Timings             rpcTimings           `json:"timings"`
+	LocalLimit          *rpcLocalLimit       `json:"localLimit"`
 }
 
 func newRPCResult(descSource grpcurl.DescriptorSource, emitDefaults bool, requests *rpcRequestStats) rpcResult {
@@ -680,6 +780,7 @@ func (r *rpcResult) OnReceiveHeaders(md metadata.MD) {
 		r.Timings.HeadersMs = &elapsedMs
 	}
 	r.Headers = responseMetadata(md)
+	r.emit(rpcStreamEvent{Type: "headers", Headers: r.Headers, ElapsedMs: &elapsedMs})
 }
 
 func (r *rpcResult) OnReceiveResponse(m proto.Message) {
@@ -704,6 +805,19 @@ func (r *rpcResult) OnReceiveResponse(m proto.Message) {
 	}
 	r.Responses = append(r.Responses, response)
 	r.retainedBytes += len(response.Data)
+	r.emit(rpcStreamEvent{Type: "message", Response: &response})
+}
+
+func (r *rpcResult) emit(event rpcStreamEvent) {
+	if r.onEvent == nil || r.streamErr != nil {
+		return
+	}
+	if err := r.onEvent(event); err != nil {
+		r.streamErr = err
+		if r.cancelLocalLimit != nil {
+			r.cancelLocalLimit(err)
+		}
+	}
 }
 
 func (r *rpcResult) stopAtLocalLimit(reason string, cause error) {
@@ -756,6 +870,12 @@ func (r *rpcResult) applyDurationLimit(duration time.Duration) {
 func (r *rpcResult) OnReceiveTrailers(stat *status.Status, md metadata.MD) {
 	if r.LocalLimit != nil {
 		return
+	}
+	if r.onEvent != nil && r.contextError != nil {
+		if err := r.contextError(); err != nil {
+			r.contextErr = err
+			return
+		}
 	}
 	if r.contextCause != nil && errors.Is(r.contextCause(), errInvokeDurationLimit) {
 		return

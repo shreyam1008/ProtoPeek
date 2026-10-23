@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { invokeMethod, invokeWorkspaceMethod } from '@/console/api';
+import { type ReceiptOutcome, recordOperationReceipt } from '@/console/app/operation-receipts';
 import type { WorkbenchView } from '@/console/ServiceNavigator';
 import type {
   AssertionResult,
@@ -69,6 +70,13 @@ export function useGrpcInvoke({
   const [assertionResults, setAssertionResults] = useState<AssertionResult[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const previousRequestText = useRef(requestText);
+  const partialRef = useRef<InvokeResponse | null>(null);
+  const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopBatch = useCallback(() => {
+    if (batchTimer.current !== null) clearTimeout(batchTimer.current);
+    batchTimer.current = null;
+  }, []);
 
   useEffect(() => {
     if (requestText === previousRequestText.current) return;
@@ -82,14 +90,16 @@ export function useGrpcInvoke({
     () => () => {
       const active = abortRef.current;
       abortRef.current = null;
+      stopBatch();
       active?.abort();
     },
-    []
+    [stopBatch]
   );
 
   function cancelSilently() {
     const active = abortRef.current;
     abortRef.current = null;
+    stopBatch();
     active?.abort();
   }
 
@@ -98,11 +108,15 @@ export function useGrpcInvoke({
   }
 
   function reset() {
+    stopBatch();
+    partialRef.current = null;
     setState(idleInvokeState);
     setAssertionResults([]);
   }
 
   function clearResult() {
+    stopBatch();
+    partialRef.current = null;
     setState(idleInvokeState);
   }
 
@@ -139,22 +153,61 @@ export function useGrpcInvoke({
 
     const controller = new AbortController();
     abortRef.current = controller;
+    partialRef.current = null;
+    setAssertionResults([]);
     setState({ loading: true, error: null, result: null, latencyMs: 0 });
     setActiveView('compose');
     const startedAt = performance.now();
+    let receiptCount = 0;
+    const onPartial = method.serverStreaming
+      ? (result: InvokeResponse) => {
+          receiptCount = result.responses.length;
+          if (abortRef.current !== controller || controller.signal.aborted) return;
+          partialRef.current = result;
+          if (batchTimer.current !== null) return;
+          batchTimer.current = setTimeout(() => {
+            batchTimer.current = null;
+            if (abortRef.current !== controller || controller.signal.aborted) return;
+            setState({
+              loading: true,
+              error: null,
+              result: partialRef.current,
+              latencyMs: performance.now() - startedAt,
+            });
+          }, 50);
+        }
+      : undefined;
+    let receiptOutcome: ReceiptOutcome = 'failed';
+    let receiptGRPCCode: number | undefined;
     try {
       const result = workspaceSessionId
         ? await invokeWorkspaceMethod(
             workspaceSessionId,
             method.fullName,
             payload,
-            controller.signal
+            controller.signal,
+            onPartial
           )
-        : await invokeMethod(method.fullName, payload, controller.signal);
-      if (abortRef.current !== controller) return;
+        : await invokeMethod(method.fullName, payload, controller.signal, onPartial);
+      receiptCount = result.responses.length;
+      receiptOutcome = controller.signal.aborted
+        ? 'cancelled'
+        : result.finalStatusObserved === false || result.localLimit
+          ? 'partial'
+          : result.error
+            ? 'failed'
+            : 'success';
+      receiptGRPCCode =
+        result.finalStatusObserved === false ? undefined : (result.error?.code ?? 0);
+      if (abortRef.current !== controller) {
+        if (!controller.signal.aborted) receiptOutcome = 'stale';
+        return;
+      }
       if (controller.signal.aborted) throw new DOMException('Invocation cancelled.', 'AbortError');
       const latencyMs = performance.now() - startedAt;
-      setState({ loading: false, error: null, result, latencyMs });
+      stopBatch();
+      setState({ loading: false, error: result.relayError ?? null, result, latencyMs });
+      if (result.finalStatusObserved === false) return;
       setAssertionResults(evaluateAssertions({ rules: assertionRules, result, latencyMs }));
       setHistory((current) =>
         [
@@ -174,8 +227,11 @@ export function useGrpcInvoke({
         ].slice(0, 50)
       );
     } catch (error) {
+      receiptOutcome = controller.signal.aborted ? 'cancelled' : 'failed';
       if (abortRef.current !== controller) return;
       setAssertionResults([]);
+      stopBatch();
+      const partial = partialRef.current as InvokeResponse | null;
       setState({
         loading: false,
         cancelled: controller.signal.aborted,
@@ -185,11 +241,29 @@ export function useGrpcInvoke({
             : error instanceof Error
               ? error.message
               : 'Invocation failed.',
-        result: null,
-        latencyMs: 0,
+        result: partial
+          ? {
+              ...partial,
+              finalStatusObserved: false,
+              trailers: [],
+              error: null,
+              timings: partial.timings ? { ...partial.timings, trailersMs: null } : null,
+            }
+          : null,
+        latencyMs: partial ? performance.now() - startedAt : 0,
       });
     } finally {
-      if (abortRef.current === controller) abortRef.current = null;
+      recordOperationReceipt({
+        operation: 'grpc',
+        outcome: receiptOutcome,
+        durationMs: performance.now() - startedAt,
+        grpcCode: receiptGRPCCode,
+        count: receiptCount,
+      });
+      if (abortRef.current === controller) {
+        stopBatch();
+        abortRef.current = null;
+      }
     }
   }
 
