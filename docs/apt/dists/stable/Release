@@ -5,18 +5,18 @@ Codename: stable
 Architectures: amd64 arm64 i386
 Components: main
 Description: APT repository for protopeek
-Date: Sat, 12 Sep 2026 08:36:35 +0000
+Date: Fri, 23 Oct 2026 11:10:38 +0000
 MD5Sum:
- d96197752f2da70d34e0df143d80854b              566 main/binary-amd64/Packages
- ec4026e8e257771abd6773c3f9cafd90              413 main/binary-amd64/Packages.gz
- 0f022cf2a1f15f89b53f040aa2886e76              536 main/binary-arm64/Packages
- e3802cce60c2dc4e69f22c5a37e72272              398 main/binary-arm64/Packages.gz
- 2ffce592dcd7aafd07c49fe81dfb7c5a              534 main/binary-i386/Packages
- 1f130aeb1abc67f1f7c5d8a111df9a62              395 main/binary-i386/Packages.gz
+ 766f7b52a291a95c7b4030bab26b7102              566 main/binary-amd64/Packages
+ 279c700a7ae563b15fb652e8dfc26889              412 main/binary-amd64/Packages.gz
+ afa2f6ad1fb579c22a5d1ee5b10b7ed1              536 main/binary-arm64/Packages
+ 81d33669a371302f4cfb02303d8913b9              397 main/binary-arm64/Packages.gz
+ e722d44e23b76633bd1dbb3b60417b6d              534 main/binary-i386/Packages
+ b4a5b2bc3ba2e4655ffbb04845c17ecb              397 main/binary-i386/Packages.gz
 SHA256:
- 65c95ffb1750a8d231f36eac8cb1fca559c8b744d73e94577d9f22cc0f4b1a37              566 main/binary-amd64/Packages
- bae0824eb00ec8ecfa188b08231a4585a3d776f7fc7a7b351e9e7042bd994b14              413 main/binary-amd64/Packages.gz
- 8908e4205e93bbf20137bde71f6f90661cae895592911c02c24cb91eb66cd835              536 main/binary-arm64/Packages
- b24cba40a76232a2ce8c9cb4dfb413d7d0e49407286a254c517a2907e6bd1596              398 main/binary-arm64/Packages.gz
- 981fa04c336e00e9e5e73ec7b338011def82d41d4f7afb808e039fa8930b6db2              534 main/binary-i386/Packages
- d7e76598161934fbb5e497c492577dbcfa35c093a849a3df1e651a5ad626d0fe              395 main/binary-i386/Packages.gz
+ c67af1fdb697066de9938a34e8c397bdd8a0f7ca3c33609b54331789942b1d93              566 main/binary-amd64/Packages
+ 6a176c8c6355918ac8e6b2a3bf2ee1167e95e6b1a9f4a3d1c42481f202295926              412 main/binary-amd64/Packages.gz
+ c525f9cfd63b66b5aeafdb6400b2acaa4f4dc2fa7dd21801703404fc9b05326b              536 main/binary-arm64/Packages
+ bc10f8c5d8c699f18b6c0ea3589abd10ff41c0ff66047e1b226943b37497917d              397 main/binary-arm64/Packages.gz
+ 3ef61f273ae11333bf97b708faaca0bcdb34e9a36c3252d8b4d6a050bca7cf46              534 main/binary-i386/Packages
+ 82b9e733782da1c54f08f4a87062d19d31b8d7c00a3f466dccd25ecb7ca76beb              397 main/binary-i386/Packages.gz

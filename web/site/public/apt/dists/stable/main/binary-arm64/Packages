@@ -1,13 +1,13 @@
 Package: protopeek
-Version: 0.6.1
+Version: 0.7.0
 Architecture: arm64
 Maintainer: Shreyam Adhikari <shreyam1008@gmail.com>
-Installed-Size: 65561
-Filename: pool/main/d/protopeek/protopeek_0.6.1_arm64.deb
-Size: 21385714
-MD5sum: c527b6451b6f158364860b9dd9078c05
-SHA1: 8bae4c56b1d2552cc94bf084473dce11b1599be9
-SHA256: 31500e1f09864c978457a89457a0cf9621dbecbf25e8a8bf9c011ee0c4531b3d
+Installed-Size: 80414
+Filename: pool/main/d/protopeek/protopeek_0.7.0_arm64.deb
+Size: 26601756
+MD5sum: d60d19fab0c5c85f6664898598756a22
+SHA1: a66660a80a86968b04664bf311359549697d171d
+SHA256: d0d180b0348e37406fc38a59de5b72c3c38e08ac28e4286e1b74fbbf408b8f0e
 Section: net
 Priority: optional
 Homepage: https://protopeek.shreyam1008.com.np/

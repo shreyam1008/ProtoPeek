@@ -1,13 +1,13 @@
 Package: protopeek
-Version: 0.6.1
+Version: 0.7.0
 Architecture: i386
 Maintainer: Shreyam Adhikari <shreyam1008@gmail.com>
-Installed-Size: 65745
-Filename: pool/main/d/protopeek/protopeek_0.6.1_i386.deb
-Size: 22069376
-MD5sum: dd2224b5f0515e22a1ecc39616b87cfc
-SHA1: d296627a6f2dd82371f0513f43e7a1cb05b0982e
-SHA256: b4c85089136ba0d36d2b0977a6e451d75758d2f6e575d636ee1276b197e9967c
+Installed-Size: 80742
+Filename: pool/main/d/protopeek/protopeek_0.7.0_i386.deb
+Size: 27504986
+MD5sum: 1cf4bf8605c7de3f16f752feb0962dd3
+SHA1: b1dde35804088af97abc6716602ab9b766a58ad4
+SHA256: 401774ac6107cabcde08e32efcdd5bd479f9a0a996cbf8cbd306ca4e92976219
 Section: net
 Priority: optional
 Homepage: https://protopeek.shreyam1008.com.np/
