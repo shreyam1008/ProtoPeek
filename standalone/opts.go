@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"reflect"
 	"time"
 )
 
@@ -266,6 +267,16 @@ func WithTransferService(service TransferService) HandlerOption {
 	})
 }
 
+// WithLocalShareService enables an explicitly owned local transfer service.
+// Embedders and unsafe remote mode omit it by default. The host must stop it
+// during shutdown; construction never starts a listener or discovery.
+func WithLocalShareService(service LocalShareService) HandlerOption {
+	if value := reflect.ValueOf(service); value.IsValid() && value.Kind() == reflect.Pointer && value.IsNil() {
+		service = nil
+	}
+	return optFunc(func(opts *handlerOptions) { opts.localShareService = service })
+}
+
 // WithThisPCService injects explicit local-runtime observations. Constructing
 // the service and handler performs no host, procfs, DNS, or HTTP I/O.
 func WithThisPCService(service ThisPCService) HandlerOption {
@@ -340,6 +351,7 @@ type handlerOptions struct {
 	pathCapabilitiesHandler http.Handler
 	pathTraceHandler        http.Handler
 	transferService         TransferService
+	localShareService       LocalShareService
 	thisPCService           ThisPCService
 	tunnelService           TunnelService
 	netbirdService          NetBirdService

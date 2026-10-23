@@ -161,6 +161,10 @@ jobs:
           PY
           exit "$status"
 
+      - name: Local transfer concurrency checks
+        if: runner.os == 'Linux'
+        run: go test -race ./internal/localshare -count=1
+
       - name: Compile both commands
         run: go build ./cmd/protopeek ./cmd/pp
 

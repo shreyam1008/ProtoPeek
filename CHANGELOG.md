@@ -5,6 +5,9 @@ version source of truth.
 
 ## v0.7.0 — 2026-10-23
 
+- Adds Files → Local transfer for direct TLS 1.3 ProtoPeek-to-ProtoPeek file exchange,
+  receiver approval, cancellation and SHA-256 receipts over LAN or existing VPN routes.
+  Both devices enable a temporary session; no VPN provisioning, relay or partial resume.
 - Brings the service and network family together: five protocol clients, 13 diagnostic modes,
   Nearby devices, single-host TCP scanning, routes, paths, maps and immutable history. Port ranges
   up to 65,535 run in bounded batches; port numbers remain hints until explicitly inspected.

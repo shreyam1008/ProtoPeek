@@ -69,6 +69,11 @@ const downloaderRoute = createRoute({
   path: '/downloader',
   component: lazyRouteComponent(() => import('./Downloader'), 'Downloader'),
 });
+const localTransferRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/files/local',
+  component: lazyRouteComponent(() => import('./LocalTransfer'), 'LocalTransfer'),
+});
 const portScannerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/network/ports',
@@ -290,6 +295,7 @@ const routeTree = rootRoute.addChildren([
   netBirdRoute,
   publishingRoute,
   downloaderRoute,
+  localTransferRoute,
   routesRoute,
   securityRoute,
   settingsRoute,

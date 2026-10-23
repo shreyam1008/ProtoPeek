@@ -9,6 +9,7 @@ import (
 func TestHandlerRedirectsSPARoutesIntoHashShell(t *testing.T) {
 	handler := Handler(nil, "", nil, nil)
 	routes := []string{
+		"/files/local",
 		"/protocols",
 		"/protocols/grpc",
 		"/protocols/http",

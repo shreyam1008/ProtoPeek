@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/shreyam1008/ProtoPeek/internal/localshare"
 	"github.com/shreyam1008/ProtoPeek/internal/netbird"
 	"github.com/shreyam1008/ProtoPeek/internal/publishsession"
 	"github.com/shreyam1008/ProtoPeek/internal/thispc"
@@ -61,6 +62,13 @@ func localNetBirdService(unsafeAllowRemote bool) standalone.NetBirdService {
 		return nil
 	}
 	return netbird.New()
+}
+
+func localShareService(unsafeAllowRemote bool) *localshare.Service {
+	if unsafeAllowRemote {
+		return nil
+	}
+	return localshare.New()
 }
 
 func localPublishSessionService(unsafeAllowRemote bool) *publishsession.Supervisor {

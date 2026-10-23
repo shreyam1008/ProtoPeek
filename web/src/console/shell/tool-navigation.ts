@@ -34,7 +34,7 @@ export const toolGroups: Record<
     { label: 'Connect & publish', ids: ['tailnet', 'netbird', 'tunnels', 'publishing'] },
     { label: 'Scanning', ids: ['network-nmap'] },
   ],
-  files: [{ label: 'Transfers', ids: ['downloader'] }],
+  files: [{ label: 'Transfers', ids: ['downloader', 'local-transfer'] }],
   settings: [
     { label: 'Preferences', ids: ['settings', 'updates'] },
     { label: 'Integrations & help', ids: ['agents', 'roadmap'] },

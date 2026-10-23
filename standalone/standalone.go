@@ -52,7 +52,7 @@ const (
 
 func isSPADeepLink(requestPath string) bool {
 	switch requestPath {
-	case "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/protocols/capnp", "/network/packets", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/extensions", "/agents", "/network/route", "/security", "/settings",
+	case "/files/local", "/protocols", "/protocols/grpc", "/protocols/http", "/protocols/events", "/protocols/capnp", "/network/packets", "/network/ports", "/network/nmap", "/network/tailnet", "/downloader", "/this-pc", "/tunnels", "/extensions", "/agents", "/network/route", "/security", "/settings",
 		"/grpc", "/http", "/downloads", "/routes", "/network", "/network/path", "/network/local", "/network/map", "/network/history", "/network/diagnostics", "/extensions/netbird", "/extensions/publish", "/roadmap", "/updates":
 		return true
 	default:
@@ -161,6 +161,7 @@ func Handler(ch grpcdynamic.Channel, target string, methods []*desc.MethodDescri
 	}
 	registerTransferHandlers(&mux, uiOpts.transferService)
 	registerExtensions(&mux, uiOpts.transferService)
+	registerLocalShareHandlers(&mux, uiOpts.localShareService)
 	registerThisPCHandlers(&mux, uiOpts.thisPCService)
 	registerTunnelHandlers(&mux, uiOpts.tunnelService)
 	if uiOpts.networkDiagnostics {

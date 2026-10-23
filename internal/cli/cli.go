@@ -628,6 +628,11 @@ func Run() {
 	processThisPCService := localThisPCService(*unsafeAllowRemote)
 	processTunnelService := localTunnelService(*unsafeAllowRemote)
 	processNetBirdService := localNetBirdService(*unsafeAllowRemote)
+	processLocalShareService := localShareService(*unsafeAllowRemote)
+	if processLocalShareService != nil {
+		defer processLocalShareService.Stop()
+		exit = withExitCleanup(exit, processLocalShareService.Stop)
+	}
 	processPublishService := localPublishSessionService(*unsafeAllowRemote)
 	if processPublishService != nil {
 		defer func() {
@@ -681,6 +686,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithWorkspaceManager(manager))
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		if processLocalShareService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithLocalShareService(processLocalShareService))
+		}
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
 		}
@@ -842,6 +850,9 @@ func Run() {
 		handlerOpts = append(handlerOpts, standalone.WithVersion(Version))
 		handlerOpts = append(handlerOpts, standalone.WithBasePath(*basePath))
 		handlerOpts = append(handlerOpts, standalone.WithTransferService(processTransferService))
+		if processLocalShareService != nil {
+			handlerOpts = append(handlerOpts, standalone.WithLocalShareService(processLocalShareService))
+		}
 		if processThisPCService != nil {
 			handlerOpts = append(handlerOpts, standalone.WithThisPCService(processThisPCService))
 		}

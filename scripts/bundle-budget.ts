@@ -25,6 +25,19 @@ const kibibyte = 1024;
 // 363,160 JS / 61,743 CSS gzip bytes; raw and initial-transfer ceilings are unchanged.
 
 export const consoleBundleBudgets: BundleBudget[] = [
+  // Local transfer is an independently lazy native workflow; startup caps stay fixed.
+  {
+    label: 'Local transfer JavaScript',
+    pattern: /^LocalTransfer-.+\.js$/,
+    maxRawBytes: 12 * kibibyte,
+    maxGzipBytes: 5 * kibibyte,
+  },
+  {
+    label: 'Local transfer CSS',
+    pattern: /^LocalTransfer-.+\.css$/,
+    maxRawBytes: 5 * kibibyte,
+    maxGzipBytes: 2 * kibibyte,
+  },
   ...extensionManifest.map(({ id, name }) => ({
     label: `Optional ${name} setup JavaScript`,
     pattern: new RegExp(`^extension-${id}-.+\\.js$`),
@@ -534,8 +547,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // and workflow repairs measure 1,371,420 /473,640 (+40,335 /19,427).
     // Every pack has an individual cap and the complete lazy journey is capped.
     // Original startup, Home, HTTP/gRPC and shared/base CSS ceilings remain fixed.
-    maxRawBytes: 1355 * kibibyte,
-    maxGzipBytes: 470 * kibibyte,
+    // The separately capped local-transfer route adds at most 12/5 KiB raw/gzip.
+    maxRawBytes: 1367 * kibibyte,
+    maxGzipBytes: 475 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -551,8 +565,9 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Growth 14,734 / 5,364 covers lazy evidence/forms and accessible mobile
     // scrolling. Shared and existing base CSS caps stay fixed.
     // Twenty-entry library/detail and mobile access:384,591 raw (+5,092).
-    maxRawBytes: 380 * kibibyte,
-    maxGzipBytes: 80 * kibibyte,
+    // Local transfer adds at most 5/2 KiB CSS independently capped above.
+    maxRawBytes: 385 * kibibyte,
+    maxGzipBytes: 82 * kibibyte,
   },
 ];
 

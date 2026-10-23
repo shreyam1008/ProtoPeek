@@ -56,6 +56,7 @@ with reflection or your schema. **Find a service instead** is available when you
 | Find a connection problem | [Network diagnostics](guides/network-diagnostics.md) | v0.7.0: 13 bounded diagnostics for DNS, TCP/TLS, proxies, protocol checks and offline subnet planning; explicit Run/Cancel |
 | Understand the host or path | [This Device](guides/this-pc.md), [Network](guides/network-workbench.md) | Local listeners, selected routes, measured hops, packet evidence and saved maps |
 | Set up an optional tool | [Extensions](guides/extensions.md) | v0.7.0: 20 optional entries with install guidance and clearly labelled integration levels; no automatic checks or installs |
+| Send a local file | [Local transfer](guides/local-transfer.md) | v0.7.0: encrypted direct ProtoPeek-to-ProtoPeek transfer over LAN or existing VPN routes; receiver approval and SHA-256 receipts |
 | Download an artifact | [Downloader](https://protopeek.shreyam1008.com.np/downloader/) | Resumable local queue and SHA-256 evidence |
 
 Windows x64 includes an aria2 fallback for Downloader; other platforms use installed aria2.

@@ -40,6 +40,21 @@ func TestValidateWebBind(t *testing.T) {
 	}
 }
 
+func TestLocalShareServiceIsQuietAndDisabledForUnsafeRemote(t *testing.T) {
+	if service := localShareService(true); service != nil {
+		t.Fatal("unsafe remote mode must not own a local transfer service")
+	}
+	service := localShareService(false)
+	if service == nil {
+		t.Fatal("safe local mode must provide the explicitly enabled workbench")
+	}
+	defer service.Stop()
+	snapshot := service.Snapshot()
+	if snapshot.Running || len(snapshot.Addresses) != 0 || len(snapshot.Peers) != 0 || len(snapshot.Jobs) != 0 {
+		t.Fatalf("service construction started sharing or discovery: %+v", snapshot)
+	}
+}
+
 func TestSafeContainerBindKeepsLoopbackRequestPolicy(t *testing.T) {
 	t.Parallel()
 

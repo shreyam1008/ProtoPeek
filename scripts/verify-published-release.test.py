@@ -135,6 +135,50 @@ class PublishedReleaseVerification(unittest.TestCase):
             verify.ephemeral_default(Path("unused"), {}, Path(directory), True, False)
         install.assert_not_called()
 
+    def test_public_default_exercises_latest_resolver_while_draft_and_private_are_pinned(self):
+        for windows in (False, True):
+            for draft in (False, True):
+                for default in (False, True):
+                    with self.subTest(windows=windows, draft=draft, default=default), tempfile.TemporaryDirectory() as directory:
+                        root = Path(directory)
+                        prefix = root / "install"
+                        prefix.mkdir()
+                        names = ("protopeek.exe", "pp.exe") if windows else ("protopeek", "pp")
+                        hashes = {}
+                        for name in names:
+                            data = name.encode()
+                            (prefix / name).write_bytes(data)
+                            hashes[name] = hashlib.sha256(data).hexdigest()
+                        (prefix / ".protopeek-install").write_text("ProtoPeek " + hashes[names[1]])
+                        if not windows:
+                            (prefix / "man").mkdir()
+                            for name in ("protopeek.1", "pp.1"):
+                                data = name.encode()
+                                (prefix / "man" / name).write_bytes(data)
+                                hashes["man/" + name] = hashlib.sha256(data).hexdigest()
+                        value = {"tag": "v1.2.3", "hashes": hashes, "archivePath": str(root / "archive.zip"), "checksumPath": str(root / "checksums.txt")}
+                        calls = []
+
+                        def command(args, env, log):
+                            calls.append((args, env.copy()))
+                            return "protopeek v1.2.3\n"
+
+                        inherited = {"PROTOPEEK_VERSION": "v9.9.9", "PROTOPEEK_CHANNEL": "nightly", "PROTOPEEK_DOWNLOAD_URL": "file:///untrusted"}
+                        with patch.dict(os.environ, inherited), patch.object(verify, "user_path", return_value="original"), patch.object(verify, "command", side_effect=command):
+                            result = verify.install(root / ("install.ps1" if windows else "install.sh"), value, prefix, root / "profile", "matrix", root, windows, draft, default)
+                        args, env = calls[0]
+                        explicit = draft or not default
+                        if windows:
+                            self.assertEqual("-Version" in args, explicit)
+                            if explicit:
+                                self.assertEqual(args[args.index("-Version") + 1], "v1.2.3")
+                            self.assertEqual("-DownloadUrl" in args, draft)
+                        else:
+                            self.assertEqual(env.get("PROTOPEEK_VERSION"), "v1.2.3" if explicit else None)
+                            self.assertEqual("PROTOPEEK_DOWNLOAD_URL" in env, draft)
+                        self.assertNotIn("PROTOPEEK_CHANNEL", env)
+                        self.assertEqual(result["versionSelection"], "explicit-tag" if explicit else "latest-stable-resolver")
+
 
 if __name__ == "__main__":
     unittest.main()

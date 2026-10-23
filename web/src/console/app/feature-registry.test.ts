@@ -27,6 +27,7 @@ const publicDocsSlugs = new Set([
   'feature-roadmap',
   'grpc-workbench',
   'http-workbench',
+  'local-transfer',
   'network-diagnostics',
   'network-workbench',
   'route-and-nmap-evidence',
@@ -99,8 +100,8 @@ describe('feature registry', () => {
     expect(new Set(orders).size).toBe(orders.length);
     expect(new Set(aliases).size).toBe(aliases.length);
     expect(commandDestinationFeatures.map((feature) => feature.order)).toEqual([
-      10, 20, 30, 40, 45, 47, 54, 55, 60, 65, 66, 67, 70, 80, 90, 110, 115, 120, 125, 128, 130, 140,
-      150, 155, 156, 160,
+      10, 20, 30, 40, 45, 47, 54, 55, 60, 65, 66, 67, 70, 80, 90, 110, 115, 120, 122, 125, 128, 130,
+      140, 150, 155, 156, 160,
     ]);
     expect(aliases.every((alias) => !routeSet.has(alias))).toBe(true);
   });
@@ -156,6 +157,7 @@ describe('feature registry', () => {
       'Open This Device',
       'Open Tailscale workbench',
       'Open Downloader',
+      'Send files to a nearby device',
       'Open Extensions',
       'Share a local service',
       'Open Cloudflare tunnel operations',
@@ -172,6 +174,7 @@ describe('feature registry', () => {
       'Check this device',
       'Add optional tools',
       'Download a file',
+      'Send a local file',
       'Check a public website',
     ]);
     expect(inspectEntryFeatures.map((feature) => feature.label)).toEqual([

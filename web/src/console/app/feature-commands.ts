@@ -109,6 +109,11 @@ const commands = [
     keywords: 'download transfer queue artifact aria2',
   },
   {
+    id: 'local-transfer',
+    label: 'Send files to a nearby device',
+    keywords: 'local transfer lan send receive peer wireguard files',
+  },
+  {
     id: 'security',
     label: 'Open Security evidence',
     keywords: 'domain certificate tls dns authorized checks',

@@ -47,6 +47,7 @@ const moreIcons = {
   'network-path': Network,
   'this-pc': Monitor,
   extensions: Puzzle,
+  'local-transfer': Download,
   security: ShieldCheck,
 } as const;
 const moreTools = homeEntryFeatures.filter((feature) => feature.id in moreIcons);

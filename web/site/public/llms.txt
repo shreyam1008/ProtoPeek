@@ -18,7 +18,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 - Stable Cloudflare Tunnel provides host/config inspection and guarded canonical service operations. Current-source config writes and publishing below have separate prerequisites; account administration remains user-owned.
 - Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
 - The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
-- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves transfers running while the server stays open; server restart restores recoverable jobs for explicit resume.
+- Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves Downloader jobs running while the server stays open; server restart restores recoverable jobs for explicit resume.
 - Nmap, dumpcap, Tailscale and cloudflared require their respective installed tools. Cap’n Proto source compilation uses the optional capnp compiler; compiled schemas work without it.
 - Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
 - GoBarryGo files and history remain independent; its public redirect and retirement are not complete.
@@ -27,6 +27,7 @@ Repository: https://github.com/shreyam1008/ProtoPeek
 
 Current source uses Home, Inspect, Network, Extensions, Files and Settings. Home prepares unsent HTTP or explicit TLS/plaintext gRPC drafts; discovery is a separate action. Source implementation does not establish publication, native-client, provider-account or package acceptance.
 
+- Local transfer: Current source adds direct TLS 1.3 transfers between ProtoPeek devices with receiver approval, cancellation and SHA-256 receipts. Existing LAN/VPN routes carry traffic; VPN provisioning and relays are not included. Guide: https://protopeek.shreyam1008.com.np/local-transfer/
 - HTTP recipes: Current source adds environment templates, session-only secrets, request-library import and reviewed cURL import. Loading prepares an unsent editor. Guide: https://protopeek.shreyam1008.com.np/http-workbench/
 - gRPC stream evidence: Current source renders incremental native messages, headers and completion evidence. Local cancellation retains messages without inventing final server status. Guide: https://protopeek.shreyam1008.com.np/grpc-workbench/
 - Cap’n Proto plans: Current source implements generic bindings and bounded typed returned-capability call plans. Review and Run are separate actions. Guide: https://protopeek.shreyam1008.com.np/capnp-workbench/
@@ -57,6 +58,7 @@ Native macOS socket/process ownership and foreground publishing remain unavailab
 - Extensions and setup: https://protopeek.shreyam1008.com.np/extensions/ — Current source
 - Manage Cloudflare Tunnel locally: https://protopeek.shreyam1008.com.np/cloudflare-tunnels/ — Stable core + current source
 - Downloader: https://protopeek.shreyam1008.com.np/downloader/ — Stable · v0.6.1
+- Local transfer: https://protopeek.shreyam1008.com.np/local-transfer/ — Current source
 - Local AI agents: https://protopeek.shreyam1008.com.np/ai-agents/ — Current source · after v0.6.1
 - Settings: https://protopeek.shreyam1008.com.np/settings/ — Stable · v0.6.1
 - Feature roadmap: https://protopeek.shreyam1008.com.np/feature-roadmap/ — Current source + stable checkpoint

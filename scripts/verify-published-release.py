@@ -270,15 +270,19 @@ def install(installer, value, prefix, profile, label, output, windows, draft=Fal
     env = child_environment(profile)
     installer_env = clean_environment() if default else env.copy()
     man_dir = man_dir or prefix / "man"
+    explicit_version = draft or not default
     if windows:
         before = user_path()
-        args = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(installer), "-Version", value["tag"]]
+        args = ["powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(installer)]
+        if explicit_version:
+            args += ["-Version", value["tag"]]
         if not default:
             args += ["-InstallDir", str(prefix), "-NoPathUpdate", "-NoShortcuts"]
         if draft:
             args += ["-DownloadUrl", Path(value["archivePath"]).as_uri(), "-ChecksumUrl", Path(value["checksumPath"]).as_uri()]
     else:
-        installer_env["PROTOPEEK_VERSION"] = value["tag"]
+        if explicit_version:
+            installer_env["PROTOPEEK_VERSION"] = value["tag"]
         if default:
             installer_env.pop("XDG_BIN_HOME", None)
             installer_env.pop("XDG_DATA_HOME", None)
@@ -303,7 +307,7 @@ def install(installer, value, prefix, profile, label, output, windows, draft=Fal
     if not windows:
         for name in ("protopeek.1", "pp.1"):
             require(digest((man_dir / name).read_bytes()) == value["hashes"]["man/" + name], "Installed manpage differs from archive")
-    return {"tag": value["tag"], "versions": versions, "verifiedInstalledHashes": {name: value["hashes"][name] for name in names}, "installerSource": "verified-file-URLs (draft only)" if draft else "anonymous-official-release-URLs"}
+    return {"tag": value["tag"], "versions": versions, "verifiedInstalledHashes": {name: value["hashes"][name] for name in names}, "installerSource": "verified-file-URLs (draft only)" if draft else "anonymous-official-release-URLs", "versionSelection": "explicit-tag" if explicit_version else "latest-stable-resolver"}
 
 
 def ephemeral_default(installer, value, output, windows, draft):

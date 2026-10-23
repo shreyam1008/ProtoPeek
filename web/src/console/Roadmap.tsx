@@ -103,6 +103,10 @@ const roadmap = [
         'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
       ],
       [
+        'Local transfer',
+        'Direct ProtoPeek-to-ProtoPeek files with TLS 1.3, receiver approval, progress, cancellation and SHA-256 receipts. Nearby discovery or manual pinned connections use existing routes; no VPN setup or relay.',
+      ],
+      [
         'Downloader',
         'HTTP(S) queues through configured, system or bundled Windows amd64 aria2c, bounded options, live progress, pause/resume, restart recovery, completed history, checksum evidence and one-shot CLI transfer.',
       ],

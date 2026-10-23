@@ -676,6 +676,36 @@
       "lastModified": "2026-09-07"
     },
     {
+      "id": "local-transfer",
+      "path": "/local-transfer/",
+      "slug": "local-transfer",
+      "kind": "guide",
+      "generator": "markdown",
+      "group": "files",
+      "title": "Local transfer",
+      "documentTitle": "ProtoPeek Local Transfer | Direct LAN and VPN File Sharing",
+      "description": "Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality.",
+      "question": "How can I send files to a nearby device or an existing VPN peer?",
+      "section": "Files",
+      "sourcePath": "guides/local-transfer.md",
+      "lastModified": "2026-10-23",
+      "status": {
+        "label": "Current source",
+        "tone": "guide",
+        "detail": "Implemented in this checkout; stable publication and real cross-device acceptance are separate gates."
+      },
+      "highlights": [
+        "Nearby device discovery",
+        "Encrypted direct transfers",
+        "Existing VPN routes"
+      ],
+      "visual": "downloader",
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.8"
+      }
+    },
+    {
       "id": "ai-agents",
       "path": "/ai-agents/",
       "slug": "ai-agents",
@@ -904,6 +934,12 @@
     }
   ],
   "currentCapabilities": [
+    {
+      "id": "local-transfer",
+      "label": "Local transfer",
+      "guide": "local-transfer",
+      "summary": "Current source adds direct TLS 1.3 transfers between ProtoPeek devices with receiver approval, cancellation and SHA-256 receipts. Existing LAN/VPN routes carry traffic; VPN provisioning and relays are not included."
+    },
     {
       "id": "http-recipes",
       "label": "HTTP recipes",

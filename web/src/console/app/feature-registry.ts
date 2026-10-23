@@ -25,7 +25,7 @@ export type FeatureDefinition = {
   order: number;
   compatibilityRoutes?: readonly string[];
   homeEntry?: { label: string };
-  inspectEntry?: { detail: string };
+  inspectEntry?: true;
 };
 
 export const featureRegistry = [
@@ -53,10 +53,7 @@ export const featureRegistry = [
     route: '/protocols/grpc',
     order: 30,
     compatibilityRoutes: ['/grpc'],
-    inspectEntry: {
-      detail:
-        'Reflection, proto folders and protosets, unary and streaming calls, metadata, trailers.',
-    },
+    inspectEntry: true,
   },
   {
     id: 'http',
@@ -65,10 +62,7 @@ export const featureRegistry = [
     route: '/protocols/http',
     order: 40,
     compatibilityRoutes: ['/http'],
-    inspectEntry: {
-      detail:
-        'Methods, URLs, auth, request bodies, redirects, TLS, timing, headers, and response data.',
-    },
+    inspectEntry: true,
   },
   {
     id: 'events',
@@ -76,9 +70,7 @@ export const featureRegistry = [
     label: 'Event streams',
     route: '/protocols/events',
     order: 45,
-    inspectEntry: {
-      detail: 'Connect to WebSocket or server-sent events, send messages, and inspect live events.',
-    },
+    inspectEntry: true,
   },
   {
     id: 'capnp',
@@ -86,10 +78,7 @@ export const featureRegistry = [
     label: 'Cap’n Proto',
     route: '/protocols/capnp',
     order: 47,
-    inspectEntry: {
-      detail:
-        'Load source or compiled schemas, call bootstrap methods over TCP or verified TLS, and inspect typed JSON.',
-    },
+    inspectEntry: true,
   },
   {
     id: 'network',
@@ -228,6 +217,16 @@ export const featureRegistry = [
     },
   },
   {
+    id: 'local-transfer',
+    destination: 'files',
+    label: 'Local transfer',
+    route: '/files/local',
+    order: 122,
+    homeEntry: {
+      label: 'Send a local file',
+    },
+  },
+  {
     id: 'security',
     destination: 'inspect',
     label: 'Security',
@@ -236,9 +235,7 @@ export const featureRegistry = [
     homeEntry: {
       label: 'Check a public website',
     },
-    inspectEntry: {
-      detail: 'DNS, HTTP, TLS, and certificate evidence for one public website.',
-    },
+    inspectEntry: true,
   },
   {
     id: 'settings',

@@ -85,6 +85,7 @@ export const releaseCapabilities = [
     accepts: ['path-target-draft'],
   },
   { featureId: 'downloader', releaseStatus: 'stable', docsSlug: 'downloader' },
+  { featureId: 'local-transfer', releaseStatus: 'source', docsSlug: 'local-transfer' },
   { featureId: 'network-ports', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-nmap', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-packets', releaseStatus: 'stable', docsSlug: 'network-workbench' },
