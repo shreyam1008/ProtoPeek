@@ -61,7 +61,9 @@ it('is quiet until asked and requires reviewed public consent before starting', 
   fireEvent.click(screen.getByRole('button', { name: 'Review session' }));
   await screen.findByLabelText('Publishing preview');
   expect(calls.map((call) => call.operation)).toEqual(['preview']);
-  expect(screen.getByRole('heading', { name: 'Review · public internet' })).toHaveFocus();
+  await waitFor(() =>
+    expect(screen.getByRole('heading', { name: 'Review · public internet' })).toHaveFocus()
+  );
   expect(screen.getByRole('button', { name: 'Start reviewed session' })).toBeDisabled();
   fireEvent.click(
     screen.getByLabelText('I understand this service will be reachable from the public internet.')
