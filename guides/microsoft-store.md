@@ -10,11 +10,11 @@ The public page does not identify its installed package version; old screenshot 
 not establish that version. The v0.7.0.0 MSIX update was submitted on 23 October; the initial
 checkpoint showed Update in certification, Submission complete and Preprocessing, with automatic
 publication after approval. Later that day certification passed and Partner Center showed
-Publishing. The public Store/WinGet listing has updated text, but its delivered package version
-has not been independently verified. No Store-signed installation or upgrade was performed;
-those native checks remain separate from certification approval. Use the official listing to
-install or update. The September submission and local-development evidence below are retained
-as history.
+Publishing. At that checkpoint the public Store/WinGet listing had updated text, but the
+delivered package version and Store-signed runtime had not yet been verified. Later that day,
+the official WinGet Microsoft Store source delivered 0.7.0.0 and the current-host checks below
+passed. Use the official listing to install or update. The September submission and
+local-development evidence below are retained as history.
 
 The [v0.7.0 package build](https://github.com/shreyam1008/ProtoPeek/actions/runs/39944225831)
 passed. The downloaded 0.7.0.0 x64 MSIX SHA-256 is
@@ -24,6 +24,29 @@ the retained release payload matches the public Windows archive byte for byte.
 Submission 2 (`1152921505702212958`) saved this validated package, updated English copy,
 nine features and two additional current screenshots, retaining the older pair.
 Pricing, availability, properties and submission options stayed unchanged.
+
+## Store-signed runtime checkpoint · 23 October 2026
+
+A fresh installation through the official WinGet Microsoft Store source delivered
+`shreyam1008.ProtoPeek_0.7.0.0_x64__ax0kgekbzfne6` on the current Windows host, with
+`SignatureKind: Store` and `Status: Ok`.
+
+- Both registered execution aliases, `protopeek` and `pp`, reported v0.7.0. The installed
+  executables matched the public v0.7.0 Windows ZIP byte for byte.
+- Launching through each alias served the expected HTTP bootstrap and embedded JavaScript/CSS,
+  returned all 20 extension entries, and rejected invalid Host and Origin requests with 403.
+- The managed updater identified Microsoft Store, reported direct binary replacement as unavailable, and
+  directed updates through Microsoft Store Library.
+- With ambient aria2 excluded from PATH, the bundled fallback extracted to a private cache
+  and completed an owned 512 KiB loopback download. The output matched SHA-256
+  `33bc8aab40703678c3ebe94d2dd8f2afff285dd901f9234e841e4679f8204fd5`.
+  The engine child ended and its temporary RPC-secret file was removed.
+- After all owned package processes ended, removal targeted only this fresh current-user
+  package. The package and both registered execution aliases were confirmed absent afterward.
+
+This is current-host installation/runtime/removal evidence, not clean-machine acceptance.
+A real Store v0.6.1→v0.7.0 upgrade and Start-menu/default-browser opening remain unverified.
+Installed-provider accounts and physical LAN/VPN acceptance remain separate.
 
 ## Identity and package
 
@@ -60,6 +83,9 @@ The script rejects prerelease tags, wrong filenames, absent/duplicate checksums,
 - `go test ./internal/selfupdate` passed for the source change directing WindowsApps installations to Microsoft Store updates.
 
 Development registration is not a Store-signed installation test. Still test Start-menu launch/browser opening, clean machine Store installation, upgrade/uninstall, optional tool discovery, download paths and bundled aria2 under the installed WindowsApps location. Do not mark those passed from an unpackaged launch or a development registration.
+
+Those were the September follow-up gates. The October Store-signed runtime checkpoint above
+records the later current-host checks; it does not establish clean-machine or prior-version upgrade acceptance.
 
 ## Submission progress
 

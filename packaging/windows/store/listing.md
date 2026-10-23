@@ -1,6 +1,6 @@
 # ProtoPeek Microsoft Store listing copy
 
-Submitted 23 October 2026 for v0.7.0.0 x64, Submission 2. Certification approved later that day; Partner Center showed Publishing. The delivered public package version and Store-signed installation/upgrade remain unverified.
+Submitted 23 October 2026 for v0.7.0.0 x64, Submission 2. Certification approved later that day; Partner Center showed Publishing. Official WinGet Store installation then delivered signed 0.7.0.0, with current-host installation/runtime/removal verified. Prior Store-version upgrade and Start-menu/default-browser opening remain unverified.
 
 ## Current description
 

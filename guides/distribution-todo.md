@@ -29,6 +29,8 @@ real desktop smoke test and review. Flathub is not a lane for the terminal-first
 product; do not submit a thin browser launcher as a desktop app.
 The existing Microsoft Store listing is public. Its validated v0.7.0.0 update
 was submitted on 23 October, passed certification later that day and entered
-Publishing. The delivered Store package version remains unverified; no Store-signed
-installation/upgrade acceptance is claimed. Snap publication
+Publishing. An official WinGet Store installation then delivered signed 0.7.0.0;
+fresh installation, packaged runtime, bundled aria2 transfer and removal passed on
+the current Windows host. Prior Store-version upgrade and Start-menu/default-browser
+opening remain unverified. Snap publication
 credentials are not configured in this repository as of this checkpoint.

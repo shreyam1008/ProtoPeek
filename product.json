@@ -66,6 +66,7 @@
       "channel": "Microsoft Store",
       "status": "live",
       "url": "https://apps.microsoft.com/detail/9MXQ75XW900Q",
+      "version": "0.7.0",
       "verifiedAt": "2026-10-23",
       "update": {
         "version": "0.7.0",
