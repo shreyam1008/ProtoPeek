@@ -1,4 +1,6 @@
 const MARKDOWN_ACCEPT = /(?:^|,)\s*text\/markdown(?:\s*;|\s*,|\s*$)/i;
+const APT_PACKAGE =
+  /^\/apt\/pool\/main\/d\/protopeek\/protopeek_((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))_(amd64|arm64|i386)\.deb$/;
 
 function acceptsMarkdown(request) {
   return MARKDOWN_ACCEPT.test(request.headers.get('Accept') ?? '');
@@ -31,6 +33,17 @@ export default {
     const url = new URL(request.url);
     const isRoot = url.pathname === '/' || url.pathname === '/index.html';
     const isHeadOrGet = request.method === 'GET' || request.method === 'HEAD';
+
+    // Signed APT indexes retain their canonical paths and hashes. Package bytes
+    // live in the official release because Pages caps each static file at 25 MiB.
+    const aptPackage = isHeadOrGet && APT_PACKAGE.exec(url.pathname);
+    if (aptPackage) {
+      const [, version, architecture] = aptPackage;
+      return Response.redirect(
+        `https://github.com/shreyam1008/ProtoPeek/releases/download/v${version}/protopeek_${version}_${architecture}.deb`,
+        302
+      );
+    }
 
     if (isRoot && isHeadOrGet && acceptsMarkdown(request)) {
       const markdownURL = new URL('/llms.txt', request.url);

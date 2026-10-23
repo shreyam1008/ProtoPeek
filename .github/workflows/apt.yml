@@ -67,6 +67,7 @@ jobs:
           set -euo pipefail
           mkdir -p docs/apt
           cp -a web/site/public/apt/. docs/apt/
+          node scripts/prepare-pages-assets.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add web/site/public/apt docs/apt

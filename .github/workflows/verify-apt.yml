@@ -1,0 +1,47 @@
+name: Verify published APT lifecycle
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable vMAJOR.MINOR.PATCH
+        required: true
+      expected_sha:
+        description: Exact tagged source commit
+        required: true
+      previous_tag:
+        description: Published stable baseline for the real package upgrade
+        required: true
+        default: v0.6.1
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Verify hosted-only and trust guards
+        run: python3 -B scripts/verify-apt.test.py
+      - name: Anonymous signed HTTPS install, runtime, upgrade and removal
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ inputs.expected_sha }}
+          PREVIOUS_TAG: ${{ inputs.previous_tag }}
+        run: |
+          python3 -B scripts/verify-apt.py --tag "$RELEASE_TAG" --sha "$RELEASE_SHA" --previous-tag "$PREVIOUS_TAG" --output "$RUNNER_TEMP/protopeek-apt-acceptance"
+      - name: Preserve actual native evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: protopeek-apt-lifecycle
+          path: ${{ runner.temp }}/protopeek-apt-acceptance
+          if-no-files-found: error

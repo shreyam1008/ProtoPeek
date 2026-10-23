@@ -75,6 +75,21 @@ def public_json(url):
     return json.loads(get(url, 1 << 20))
 
 
+def http_failure_context(error):
+    try:
+        parts = urllib.parse.urlsplit(error.url)
+        host = parts.hostname or "redacted"
+        authority = "[" + host + "]" if ":" in host else host
+        if parts.port:
+            authority += ":" + str(parts.port)
+        url = urllib.parse.urlunsplit((parts.scheme, authority, parts.path, "", ""))[:2048]
+    except ValueError:
+        url = "redacted-invalid-url"
+    allowed = ("Date", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-RateLimit-Resource", "Retry-After")
+    headers = {name: " ".join(error.headers.get(name).split())[:256] for name in allowed if error.headers and error.headers.get(name)}
+    return {"url": url, "status": error.code, "headers": headers}
+
+
 def resolve_tag(tag):
     value = public_json(API + "/git/ref/tags/" + tag)["object"]
     for _ in range(4):
@@ -575,11 +590,15 @@ def main():
         report["state"] = "pass"
         return 0
     except Exception as error:
-        report["error"] = type(error).__name__ + ": " + str(error)
+        if isinstance(error, urllib.error.HTTPError):
+            report["httpFailure"] = http_failure_context(error)
+            report["error"] = "HTTPError: HTTP " + str(error.code)
+        else:
+            report["error"] = type(error).__name__ + ": " + str(error)
         return 1
     finally:
         (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-        print(json.dumps({"state": report["state"], "tag": args.tag, "platform": report.get("platform"), "report": str(output / "report.json"), "error": report.get("error")}))
+        print(json.dumps({"state": report["state"], "tag": args.tag, "platform": report.get("platform"), "report": str(output / "report.json"), "error": report.get("error"), "httpFailure": report.get("httpFailure")}))
 
 
 if __name__ == "__main__":

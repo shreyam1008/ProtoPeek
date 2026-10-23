@@ -3,6 +3,7 @@
 import hashlib
 import copy
 from contextlib import redirect_stdout
+from email.message import Message
 import importlib.util
 import io
 import json
@@ -25,6 +26,27 @@ SHA = "a" * 40
 
 
 class PublishedReleaseVerification(unittest.TestCase):
+    def test_http_quota_failure_retains_safe_diagnostics_without_url_or_header_secrets(self):
+        headers = Message()
+        for name, value in {"Date": "Fri, 23 Oct 2026 11:12:43 GMT", "X-RateLimit-Limit": "60", "X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1792754514", "X-RateLimit-Resource": "core", "Retry-After": "60", "Set-Cookie": "cookie-secret", "X-Trace-Token": "trace-secret"}.items():
+            headers[name] = value
+        url = "https://user-secret:password-secret@release-assets.githubusercontent.com/repo/archive.zip?signature=query-secret#fragment-secret"
+        error = verify.urllib.error.HTTPError(url, 403, "untrusted-reason-secret", headers, None)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "evidence"
+            stdout = io.StringIO()
+            arguments = [str(SCRIPT), "--tag", "v1.2.3", "--sha", SHA, "--mode", "public", "--output", str(output)]
+            with patch.object(sys, "argv", arguments), patch.object(verify.urllib.request, "urlopen", side_effect=error) as request, redirect_stdout(stdout):
+                self.assertEqual(verify.main(), 1)
+            report = json.loads((output / "report.json").read_text())
+            self.assertEqual(report["state"], "failed")
+            self.assertEqual(report["error"], "HTTPError: HTTP 403")
+            self.assertEqual(report["httpFailure"], {"url": "https://release-assets.githubusercontent.com/repo/archive.zip", "status": 403, "headers": {name: headers[name] for name in ("Date", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset", "X-RateLimit-Resource", "Retry-After")}})
+            evidence = json.dumps(report) + stdout.getvalue()
+            for secret in ("user-secret", "password-secret", "query-secret", "fragment-secret", "cookie-secret", "trace-secret", "untrusted-reason-secret"):
+                self.assertNotIn(secret, evidence)
+            self.assertNotIn("Authorization", request.call_args.args[0].headers)
+
     def test_only_windows_powershell_children_normalize_inherited_module_path(self):
         inherited = {"pSmOdUlEpAtH": "incompatible-core-modules", "KEEP": "original"}
         for executable in ("powershell.exe", "C:/Windows/System32/WindowsPowerShell/v1.0/PowerShell.EXE", "pwsh.exe", "protopeek.exe"):
