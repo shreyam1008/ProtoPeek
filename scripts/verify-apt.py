@@ -26,6 +26,7 @@ release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 SITE = "https://protopeek.shreyam1008.com.np/apt"
 DOWNLOAD = "https://github.com/shreyam1008/ProtoPeek/releases/download/"
+USER_AGENT = "ProtoPeek-APT-verifier"
 KEY = Path("/usr/share/keyrings/protopeek-release-verify.gpg")
 SOURCE = Path("/etc/apt/sources.list.d/protopeek-release-verify.list")
 
@@ -49,17 +50,19 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 def check_redirect(url, expected):
     try:
-        with urllib.request.build_opener(NoRedirect).open(urllib.request.Request(url, method="HEAD"), timeout=30):
+        with urllib.request.build_opener(NoRedirect).open(urllib.request.Request(url, method="HEAD", headers={"User-Agent": USER_AGENT}), timeout=30):
             pass
     except urllib.error.HTTPError as response:
         require(response.code == 302 and response.headers.get("Location") == expected,
-                "APT package did not redirect to its exact canonical GitHub release asset")
+                "APT package did not redirect to its exact canonical GitHub release asset "
+                f"(status={response.code}, server={response.headers.get('Server', '')[:128]}, "
+                f"cf-ray={response.headers.get('CF-Ray', '')[:128]})")
         return {"url": url, "status": response.code, "location": response.headers["Location"]}
     raise ValueError("APT package must return the reviewed 302 redirect")
 
 
 def public_bytes(url, maximum):
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "ProtoPeek-APT-verifier"}), timeout=30) as response:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=30) as response:
         require(response.status == 200 and response.url == url, "Unexpected public-key redirect/status")
         data = response.read(maximum + 1)
         require(len(data) <= maximum, "Public key exceeds its bound")

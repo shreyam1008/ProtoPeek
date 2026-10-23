@@ -120,7 +120,7 @@ class AptVerificationTests(unittest.TestCase):
     def test_redirect_requires_exact_fixed_release_destination(self):
         url = apt.SITE + "/pool/main/d/protopeek/protopeek_0.7.0_amd64.deb"
         expected = apt.DOWNLOAD + "v0.7.0/protopeek_0.7.0_amd64.deb"
-        for destination, status, succeeds in [(expected, 302, True), (expected, 301, False),
+        for destination, status, succeeds in [(expected, 302, True), (expected, 301, False), (None, 403, False),
                                                ("https://attacker.example/file.deb", 302, False),
                                                (expected + "?override=1", 302, False)]:
             opener = Mock()
@@ -132,6 +132,19 @@ class AptVerificationTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         apt.check_redirect(url, expected)
             self.assertEqual(opener.open.call_args.args[0].method, "HEAD")
+            self.assertEqual(opener.open.call_args.args[0].get_header("User-agent"), "ProtoPeek-APT-verifier")
+
+    def test_redirect_failure_records_only_bounded_public_diagnostics(self):
+        opener = Mock()
+        opener.open.side_effect = urllib.error.HTTPError("https://example.test", 403, "forbidden", {
+            "Server": "cloudflare", "CF-Ray": "a" * 300, "Set-Cookie": "private-cookie", "Authorization": "private-token"}, None)
+        with patch.object(apt.urllib.request, "build_opener", return_value=opener):
+            with self.assertRaises(ValueError) as error:
+                apt.check_redirect("https://example.test", "https://example.test/canonical")
+        text = str(error.exception)
+        self.assertIn("status=403, server=cloudflare, cf-ray=" + "a" * 128, text)
+        self.assertNotIn("a" * 129, text)
+        self.assertNotIn("private", text)
 
     def test_cleanup_refuses_a_changed_file_without_sudo(self):
         scratch = ROOT / ".local"
