@@ -8,7 +8,7 @@ A Go app runs on your machine; your browser provides the interface.
 
 > **v0.7.0 brings a connected local workbench.** The installers below select the
 > [latest published stable release](https://github.com/shreyam1008/ProtoPeek/releases/latest)
-> and verify its SHA-256 archive. Tagged source does not by itself publish a release.
+> and verify its SHA-256 archive. The v0.7.0 stable release is published; package channels retain their independent receipts.
 > [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is a separate,
 > rolling preview. Package channels promote their own pinned manifests independently.
 
@@ -80,11 +80,24 @@ links remain valid. **This Device** under Network retains `/this-pc`; optional t
 Extensions. The [roadmap](guides/feature-roadmap.md) separates shipped features, current source
 and external acceptance. The [workspace guide](guides/ui-overhaul-2026-09.md) explains navigation.
 
+![ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry](web/site/public/assets/protopeek-v0.7.0-home-20261023.png)
+
+![ProtoPeek v0.7.0 Extensions library with 20 optional entries](web/site/public/assets/protopeek-v0.7.0-extensions-20261023.png)
+
+Actual v0.7.0 Windows package captures, taken on 23 October 2026 before publication. The public
+package bytes were later verified unchanged. They show a clean browser with no fixture data or
+host checks; they do not establish provider or Store-signed installation acceptance.
+
+<details>
+<summary>Historical legacy Edge capture · 7 September 2026</summary>
+
 ![ProtoPeek legacy Edge desktop workspace](web/site/public/assets/protopeek-workspace-edge-desktop.png)
 
 Real **legacy Edge** capture from 7 September 2026. It documents the earlier navigation, not
 the v0.7.0 quickstart. [Dated browser acceptance](guides/ui-overhaul-2026-09.md) and
 the [screenshot manifest](guides/screenshots.json) retain the original evidence.
+
+</details>
 
 <details>
 <summary>Home and Extensions · captured from unreleased source on 23 October 2026</summary>
@@ -168,17 +181,21 @@ go install github.com/shreyam1008/ProtoPeek/cmd/pp@latest
 
 ## Distribution status
 
-The following is a **dated publication record**, not a claim of new store approval.
-Distribution checked 12 September 2026: GitHub, signed APT, Homebrew and Scoop are
-live. Microsoft Store is in certification and will publish automatically after
-approval. The corrected Snap artifact is on GitHub; the exact `protopeek` name
-is reserved outside this account. Name resolution and classic review remain.
-Snap Store and Flatpak are not published.
+Distribution checked 23 October 2026: GitHub, signed APT, Homebrew and Scoop provide
+v0.7.0. Public installers passed fresh installation and real v0.6.1 upgrades on
+Windows, Linux and macOS. The Microsoft Store listing is public; its v0.7.0 update
+is in certification. The checksummed Snap candidate is on GitHub; desktop acceptance,
+maintainer credentials and Store approval remain separate. Snap Store and Flatpak
+publication are not claimed. See the [dated verification record](guides/distribution-log.md).
 See the [shared publication status](https://shreyam1008.com.np/projects/#distribution-protopeek).
 
 Official downloads and package links: [ProtoPeek distribution tracker](https://shreyam1008.com.np/projects/#distribution-protopeek). Stable release, Homebrew and Scoop links are kept separate from planned distribution channels.
 
-Microsoft Store: [MSIX preparation and release automation](guides/microsoft-store.md) are in progress. The name is reserved; there is no published Store download yet.
+Microsoft Store: the [public ProtoPeek listing](https://apps.microsoft.com/detail/9MXQ75XW900Q)
+was verified on 23 October 2026. The v0.7.0.0 MSIX update was submitted the same day and
+is in certification with automatic publication after approval. The live package version is not
+shown publicly; Store0.7 delivery and Store-signed installation/upgrade acceptance remain separate. See the
+[MSIX and publication record](guides/microsoft-store.md).
 
 Stable GitHub releases also include `protopeek_<version>_amd64.snap`. The
 candidate uses classic confinement so ProtoPeek can inspect local sockets and
@@ -203,9 +220,9 @@ ProtoPeek does not host your model or sign into provider accounts for you.
 ## Product contract
 
 
-**v0.7.0 build:** these additions extend v0.6.1 and earlier legacy Edge archives.
+**Published v0.7.0:** these additions extend v0.6.1 and earlier legacy Edge archives.
 The [roadmap](guides/feature-roadmap.md) distinguishes implementation from native/provider/package
-acceptance; the build description does not announce public release or channel promotion.
+acceptance. This release does not automatically promote package channels or a new Store package.
 
 - [Network diagnostics](guides/network-diagnostics.md) joins 13 checks for DNS/resolver, TCP/TLS, IPv4/IPv6,
   finite sampling, TCP/UDP exchange, proxies, h2c, HTTP/3 and offline subnet planning in one
@@ -605,7 +622,7 @@ one portable cURL command cannot reproduce ProtoPeek's bounded redirect, method/
 downgrade policy. Export inspects at most 64 effective headers and refuses commands over 512 KiB.
 Request bodies are deliberate user-authored content and are copied verbatim, so review the command
 before sharing or running it. The command runs in your shell rather than ProtoPeek's relay, so DNS,
-network namespace, proxies, trust roots, and implicit cURL headers can differ. Current source also
+network namespace, proxies, trust roots, and implicit cURL headers can differ. v0.7.0 also
 imports a reviewed single-request cURL subset: preview, then load an unsent editor. Shell expressions,
 file arguments, proxy switches and insecure TLS are rejected; imported credentials remain in memory.
 

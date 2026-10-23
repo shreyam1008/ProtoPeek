@@ -10,15 +10,11 @@
   "canonicalUrl": "https://protopeek.shreyam1008.com.np/",
   "creatorUrl": "https://shreyam1008.com.np/",
   "latestRelease": {
-    "version": "0.6.1",
+    "version": "0.7.0",
     "status": "published",
-    "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
+    "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0"
   },
   "versionSource": "Git tag consumed by .goreleaser.yml",
-  "releaseCandidate": {
-    "version": "0.7.0",
-    "status": "prepared"
-  },
   "verifyCommand": "make ci",
   "changelog": "CHANGELOG.md",
   "securityPolicy": "SECURITY.md",
@@ -30,34 +26,52 @@
       "channel": "Product website",
       "status": "live",
       "url": "https://protopeek.shreyam1008.com.np/",
-      "verifiedAt": "2026-09-07"
+      "verifiedAt": "2026-10-23"
     },
     {
       "channel": "GitHub Releases",
       "status": "live",
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1",
-      "version": "0.6.1",
-      "verifiedAt": "2026-09-07"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0",
+      "version": "0.7.0",
+      "verifiedAt": "2026-10-23"
     },
     {
       "channel": "Homebrew Tap",
       "status": "live",
       "url": "https://github.com/shreyam1008/homebrew-tap/blob/main/Formula/protopeek.rb",
-      "version": "0.6.1",
-      "verifiedAt": "2026-09-07"
+      "version": "0.7.0",
+      "verifiedAt": "2026-10-23"
     },
     {
       "channel": "Scoop Bucket",
       "status": "live",
       "url": "https://github.com/shreyam1008/scoop-bucket/blob/main/bucket/protopeek.json",
-      "version": "0.6.1",
-      "verifiedAt": "2026-09-07"
+      "version": "0.7.0",
+      "verifiedAt": "2026-10-23"
     },
     {
       "channel": "Snap candidate",
       "status": "prepared",
-      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1",
-      "version": "0.6.1"
+      "url": "https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0",
+      "version": "0.7.0"
+    },
+    {
+      "channel": "Signed APT",
+      "status": "live",
+      "url": "https://github.com/shreyam1008/ProtoPeek/blob/master/guides/apt.md",
+      "version": "0.7.0",
+      "verifiedAt": "2026-10-23"
+    },
+    {
+      "channel": "Microsoft Store",
+      "status": "live",
+      "url": "https://apps.microsoft.com/detail/9MXQ75XW900Q",
+      "version": "0.6.1",
+      "verifiedAt": "2026-10-23",
+      "update": {
+        "version": "0.7.0",
+        "status": "in-certification"
+      }
     }
   ]
 }

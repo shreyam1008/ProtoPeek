@@ -69,8 +69,8 @@
               <h1 id="page-title">gRPC workbench</h1>
               <p>What happened inside this gRPC call?</p>
 
-    <span class="pp-page-status is-current is-full">
-      <i aria-hidden="true"></i>Stable core + current source
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -142,15 +142,15 @@
               <div class="pp-doc-prose">
                 <p>ProtoPeek keeps a gRPC request, its schema, and the evidence returned by the selected service in one local workspace. The workbench ships in stable v0.5.0.</p>
 <h2 id="connect-one-target">Connect one target</h2>
-<p>In matching current source, Home can prepare the target directly: select <strong>gRPC · TLS</strong> or <strong>gRPC · plaintext</strong>, enter the address, and choose <strong>Open gRPC</strong>. This does not connect or run discovery. The target form keeps the selected transport visible before <strong>Connect</strong>.</p>
+<p>In v0.7.0, Home can prepare the target directly: select <strong>gRPC · TLS</strong> or <strong>gRPC · plaintext</strong>, enter the address, and choose <strong>Open gRPC</strong>. This does not connect or run discovery. The target form keeps the selected transport visible before <strong>Connect</strong>.</p>
 <p>Enter a host and port, then choose plaintext or verified TLS deliberately. Successful targets can stay in this browser so moving between local services does not require restarting ProtoPeek.</p>
 <p>The bounded target check distinguishes four useful outcomes: reflected gRPC, gRPC without reflection, an HTTP response, or open TCP. It does not silently probe arbitrary public networks.</p>
 <h2 id="choose-the-schema-source">Choose the schema source</h2>
 <p>ProtoPeek can learn a service through:</p>
 <ul><li>server reflection;</li><li>one temporary browser-selected <code>.proto</code> folder;</li><li>host <code>.proto</code> files and import roots available to the ProtoPeek process; or</li><li>a compiled protoset produced by a build pipeline.</li></ul>
 <p>A browser folder is a bounded in-memory snapshot. ProtoPeek saves no browser handle, file bytes, folder name, or host path, so the folder must be selected again after reload.</p>
-<p>Current source shows required host proto/protoset fields beside the schema selector. Enter in the address field submits Connect; multiline path fields retain normal newline editing. Discovery starts from an explicit action or a target supplied on the command line.</p>
-<p>For host schemas in current source, an entry such as <code>test.proto</code> resolves against the import roots in order. Preflight file-size checks use the same resolution as the compiler, including absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are files on the machine running ProtoPeek; a custom CA preserves certificate verification.</p>
+<p>v0.7.0 shows required host proto/protoset fields beside the schema selector. Enter in the address field submits Connect; multiline path fields retain normal newline editing. Discovery starts from an explicit action or a target supplied on the command line.</p>
+<p>For host schemas in v0.7.0, an entry such as <code>test.proto</code> resolves against the import roots in order. Preflight file-size checks use the same resolution as the compiler, including absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are files on the machine running ProtoPeek; a custom CA preserves certificate verification.</p>
 <h2 id="send-the-native-rpc-shape">Send the native RPC shape</h2>
 <p>Search the service and method rail, then edit the schema-generated JSON request. Unary, server-streaming, client-streaming, and bidirectional methods stay visibly different.</p>
 <p>The request keeps metadata, Bearer auth, deadlines, TLS choices, and cancellation beside the payload. Binary metadata and credential-like values are excluded from automatic history and default exports.</p>
@@ -158,7 +158,7 @@
 <p>ProtoPeek separates:</p>
 <ol><li><div class="pp-doc-list-title">response headers;</div></li><li><div class="pp-doc-list-title">ordered response messages;</div></li><li><div class="pp-doc-list-title">response trailers;</div></li><li><div class="pp-doc-list-title">the final gRPC status; and</div></li><li><div class="pp-doc-list-title">lifecycle timing observed by the local ProtoPeek handler and browser relay.</div></li></ol>
 <p>Those timings are not packet arrival, server processing time, or universal TTFB. If a local response limit ends the call, retained messages remain visible and the unobserved server status is not invented.</p>
-<p>Current source puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down navigates those lists. Copy actions report success or failure, and changing the displayed response invalidates pending clipboard feedback.</p>
+<p>v0.7.0 puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down navigates those lists. Copy actions report success or failure, and changing the displayed response invalidates pending clipboard feedback.</p>
 <p>On narrow screens, invoking reveals Response immediately with cancellation still available. Later messages do not move focus. A failed method-schema load keeps the method navigator and target controls available, with Retry and a way to reconnect. Startup failures have a separate retry. Leaving this tool cancels its active call.</p>
 <h2 id="reuse-a-request-carefully">Reuse a request carefully</h2>
 <p>Saved requests, environments, assertions, recent calls, and workspace import/export stay in local browser storage. Default exports redact sensitive metadata, but saved request bodies are deliberate workspace data and must be reviewed before sharing.</p>
@@ -166,7 +166,7 @@
 <h2 id="ask-health-directly">Ask Health directly</h2>
 <p>When the selected service exposes canonical <code>grpc.health.v1.Health</code>, ProtoPeek can run one Check or a bounded Watch. Watch is one user-started server stream, never background polling or fleet-wide health proof.</p>
 <h2 id="go-deeper">Go deeper</h2>
-<ul><li><a href="/learn-grpc/">Learn the protocol concepts behind the workbench</a>.</li><li><a href="/transport-boundaries/">See the shared transport and safety boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.6.1</a>.</li></ul>
+<ul><li><a href="/learn-grpc/">Learn the protocol concepts behind the workbench</a>.</li><li><a href="/transport-boundaries/">See the shared transport and safety boundary</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.7.0</a>.</li></ul>
               </div>
             </article>
 
@@ -186,7 +186,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Stable v0.6.1 includes native RPC inspection. Incremental relay evidence and the direct Home entry below require matching current source.</p>
+                <p>Published v0.7.0 includes direct Home entry and incremental native RPC evidence. Local cancellation never invents final server status.</p>
               </section>
             </aside>
           </div>
@@ -213,7 +213,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -1,6 +1,6 @@
 # Media, gallery and webpage downloads
 
-Open **Files → Downloader → Media, galleries & webpages** in the v0.7.0 build.
+Open **Files → Downloader → Media, galleries & webpages** in published v0.7.0.
 Ordinary file downloads retain their existing aria2 queue and CLI. Direct exchange
 between ProtoPeek devices has its own [Local transfer](local-transfer.md) workspace.
 

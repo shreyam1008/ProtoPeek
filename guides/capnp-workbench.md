@@ -1,8 +1,8 @@
 # Cap’n Proto workbench
 
 Open **Inspect → Cap’n Proto** for native Cap’n Proto RPC, implemented in Go. Stable v0.6.1
-supports concrete bootstrap calls. The generic bindings and capability plans below are current
-source as of 22 October 2026 and require a matching build; they are not a new stable-release claim.
+supports concrete bootstrap calls. Published v0.7.0 also includes the generic bindings and bounded
+capability plans below. Compiler, endpoint and native-platform acceptance remain separate.
 
 ## Load a schema, then make a call
 

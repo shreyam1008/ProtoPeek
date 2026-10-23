@@ -69,8 +69,8 @@
               <h1 id="page-title">Local AI agents</h1>
               <p>How can my agent use ProtoPeek and show its work?</p>
 
-    <span class="pp-page-status is-guide is-full">
-      <i aria-hidden="true"></i>Current source · after v0.6.1
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -118,11 +118,11 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>The original adapter is published in the <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge" rel="noreferrer" target="_blank">legacy Edge prerelease</a>, outside v0.6.1 stable. <strong>The expanded protocol, packet and extension catalog below describes current source, 23 October 2026.</strong> <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly</a> is the separate rolling preview. Read <code>protopeek agent tools</code> from the running build for its actual capabilities; an older archive can expose fewer tools. ProtoPeek does not bundle a model, require an AI account or send telemetry. Your agent and browser share the running workbench&#39;s Go services.</p>
+                <p>The original adapter is published in the <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge" rel="noreferrer" target="_blank">legacy Edge prerelease</a>, outside v0.6.1 stable. <strong>The expanded protocol, packet and extension catalog below ships in published v0.7.0.</strong> <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly</a> is the separate rolling preview. Read <code>protopeek agent tools</code> from the running build for its actual capabilities; an older archive can expose fewer tools. ProtoPeek does not bundle a model, require an AI account or send telemetry. Your agent and browser share the running workbench&#39;s Go services.</p>
 <h2 id="connect-and-watch">Connect and watch</h2>
 <ol><li><div class="pp-doc-list-title">Start ProtoPeek, open its browser URL through <strong><code>127.0.0.1</code></strong>, then choose</div><p><strong>Settings → AI agents → Enable agent connection</strong>. Pairing deliberately requires literal loopback; if you opened <code>localhost</code>, use the offered <code>127.0.0.1</code> link first. Leave <strong>Allow write actions</strong> off for inspection. Enable it for HTTP POST/PUT/PATCH/DELETE download controls, gRPC connections/calls/disconnection, Cap’n Proto calls and packet capture. RPC methods can have side effects regardless of their names. Disable the connection to change that choice.</p></li><li><div class="pp-doc-list-title">Copy the MCP configuration from <strong>AI agents in the running workbench</strong> into your agent. It includes the running binary&#39;s</div><p>absolute path and its pairing-file location, so it also works with a custom install or profile. The generic configuration below works when <code>protopeek</code> is on PATH and uses the default profile.</p></li><li><div class="pp-doc-list-title">Keep ProtoPeek running. Ask your agent to inspect a service and watch its calls in <strong>Activity</strong>.</div><p><strong>Follow latest</strong> selects the newest call; selecting a previous call holds your place.</p></li></ol>
 <p>For clients that accept an <code>mcpServers</code> JSON object:</p>
-<pre class="pp-doc-code"><code data-lang="json">{
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="connect-and-watch"><code data-lang="json">{
   &quot;mcpServers&quot;: {
     &quot;protopeek&quot;: {
       &quot;command&quot;: &quot;protopeek&quot;,
@@ -130,10 +130,10 @@
     }
   }
 }</code></pre>
-<p>Current source also offers client-specific <strong>configuration fragments</strong> for Codex CLI, Claude Code, Gemini CLI and OpenCode from their Extensions entries and AI agent setup. AI agent setup also offers LM Studio, whose Extensions Endpoint guide links to that profile through <strong>Configure LM Studio</strong>, plus a generic profile. Merge the fragment under the named key in your existing client file rather than replacing unrelated settings. The generated profile shows the executable origin; choose the PATH variant only when your MCP client can resolve <code>protopeek</code>. A missing pairing-file location blocks copying, rather than creating an incomplete profile. Formats were checked against official client docs on 23 October 2026; this does not establish real installed-client/account acceptance.</p>
+<p>v0.7.0 also offers client-specific <strong>configuration fragments</strong> for Codex CLI, Claude Code, Gemini CLI and OpenCode from their Extensions entries and AI agent setup. AI agent setup also offers LM Studio, whose Extensions Endpoint guide links to that profile through <strong>Configure LM Studio</strong>, plus a generic profile. Merge the fragment under the named key in your existing client file rather than replacing unrelated settings. The generated profile shows the executable origin; choose the PATH variant only when your MCP client can resolve <code>protopeek</code>. A missing pairing-file location blocks copying, rather than creating an incomplete profile. Formats were checked against official client docs on 23 October 2026; this does not establish real installed-client/account acceptance.</p>
 <p>The surrounding configuration format and reload step belong to your MCP client. This is a standard stdio server: stdout contains protocol messages only. The <a href="https://github.com/modelcontextprotocol/go-sdk" rel="noreferrer" target="_blank">official Go SDK</a> handles negotiation, tools, resources and cancellation. There is no separate Node.js service or MCP proxy to install.</p>
 <h2 id="showcase-a-real-workflow">Showcase a real workflow</h2>
-<pre class="pp-doc-code"><code data-lang="text">Use ProtoPeek to inspect my local listeners. Ask which service to check if several match.
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="showcase-a-real-workflow"><code data-lang="text">Use ProtoPeek to inspect my local listeners. Ask which service to check if several match.
 Inspect that HTTP service, explain its status and timing, and show the evidence in ProtoPeek.
 Do not change services or download files.</code></pre>
 <p>This produces actual <code>device_snapshot</code>, <code>device_listeners</code>, optional <code>scan_ports</code>, and <code>http_request</code> calls. A port is evidence, not proof of a protocol. Each admitted call returns a receipt ID that also appears in the UI. HTTP results use the existing body, headers, timing, redirects and status panels. <strong>Open HTTP</strong> opens its workbench without automatically sending another request.</p>
@@ -143,13 +143,13 @@ Do not change services or download files.</code></pre>
 <p>The public documentation publishes an <a href="https://protopeek.shreyam1008.com.np/.well-known/api-catalog" rel="noreferrer" target="_blank">API catalog</a>, <a href="https://protopeek.shreyam1008.com.np/openapi.json" rel="noreferrer" target="_blank">OpenAPI document</a>, <a href="https://protopeek.shreyam1008.com.np/.well-known/ai-catalog.json" rel="noreferrer" target="_blank">ARD manifest</a>, <a href="https://protopeek.shreyam1008.com.np/.well-known/mcp/server-card.json" rel="noreferrer" target="_blank">MCP Server Card</a>, <a href="https://protopeek.shreyam1008.com.np/auth.md" rel="noreferrer" target="_blank">authentication metadata</a> and <a href="https://protopeek.shreyam1008.com.np/.well-known/agent-skills/index.json" rel="noreferrer" target="_blank">Agent Skill index</a>. These describe the project; they do not enable or pair a running workbench. Use that build&#39;s live tool catalog and generated configuration for local execution.</p>
 <h3 id="run-an-explicit-cli-call">Run an explicit CLI call</h3>
 <p>Shell-based agents can use the same connection without MCP:</p>
-<pre class="pp-doc-code"><code data-lang="text">protopeek agent tools
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="run-an-explicit-cli-call"><code data-lang="text">protopeek agent tools
 protopeek agent guide
 protopeek agent --help</code></pre>
 <p>Pass one JSON arguments object on stdin. PowerShell example:</p>
-<pre class="pp-doc-code"><code data-lang="powershell">&#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="run-an-explicit-cli-call"><code data-lang="powershell">&#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
 <p>POSIX shell example:</p>
-<pre class="pp-doc-code"><code data-lang="sh">printf &#39;%s&#39; &#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="run-an-explicit-cli-call"><code data-lang="sh">printf &#39;%s&#39; &#39;{&quot;method&quot;:&quot;GET&quot;,&quot;url&quot;:&quot;http://127.0.0.1:3000/health&quot;}&#39; | protopeek agent call http_request</code></pre>
 <p>These commands attach to the paired workbench, including its existing download queue. Failed tools return a nonzero CLI exit code. An observed HTTP 404 remains an HTTP result rather than a relay failure. MCP clients can read <code>protopeek://agent-guide</code>; instructions are also supplied during initialization and by <code>workbench_info</code>. Ctrl+C or MCP cancellation stops the current call.</p>
 <h2 id="exposed-tools">Exposed tools</h2>
 <table tabindex="0" aria-labelledby="exposed-tools"><thead><tr><th>Tool</th><th>Action</th><th>Permission</th></tr></thead><tbody><tr><td><code>workbench_info</code></td><td>Version, scope, limits and instructions</td><td>Inspection</td></tr><tr><td><code>device_snapshot</code></td><td>Local identity and interfaces</td><td>Inspection</td></tr><tr><td><code>device_listeners</code></td><td>Listeners, connections and process evidence</td><td>Explicit local-inspection acknowledgement</td></tr><tr><td><code>http_request</code></td><td>HTTP(S), body, headers, TLS and timings</td><td>GET/HEAD/OPTIONS; other methods need writes</td></tr><tr><td><code>scan_ports</code></td><td>One host, at most 1,024 selected TCP ports</td><td>Inspection with active probes</td></tr><tr><td><code>route_lookup</code></td><td>Selected local next-hop route; may resolve DNS</td><td>Inspection</td></tr><tr><td><code>tailnet_inspect</code></td><td>Installed Tailscale status and peers</td><td>Inspection</td></tr><tr><td><code>extensions_list</code></td><td>The 20 IDs and integration levels; no host lookup</td><td>Inspection</td></tr><tr><td><code>extension_inspect</code></td><td>One selected entry’s CLI-location evidence; ChatGPT web remains external</td><td>Inspection, explicit host lookup for detectable entries</td></tr><tr><td><code>download_queue</code></td><td>Shared engine, configuration and queue</td><td>Inspection</td></tr><tr><td><code>download_start_engine</code></td><td>Start configured/bundled aria2</td><td>Writes</td></tr><tr><td><code>download_add</code></td><td>Queue one URL in the configured directory</td><td>Writes</td></tr><tr><td><code>download_action</code></td><td>Pause, resume or cancel a known job</td><td>Writes</td></tr><tr><td><code>grpc_connect</code></td><td>Reflection-backed session; explicit host:port, plaintext or verified TLS</td><td>Writes</td></tr><tr><td><code>grpc_schema</code></td><td>Request schema for one discovered method and known session</td><td>Inspection</td></tr><tr><td><code>grpc_call</code></td><td>Unary/streaming JSON invocation, metadata and native gRPC evidence</td><td>Writes</td></tr><tr><td><code>grpc_disconnect</code></td><td>Close the known session and its connection</td><td>Writes</td></tr><tr><td><code>capnp_schema</code></td><td>Inspect caller-shared compiled schema, up to 64 KiB decoded</td><td>Inspection</td></tr><tr><td><code>capnp_call</code></td><td>Typed single call or plan of at most eight steps</td><td>Writes</td></tr><tr><td><code>events_read</code></td><td>Finite receive-only SSE/WebSocket connection; at most 10 seconds</td><td>Inspection with an active connection</td></tr><tr><td><code>packets_analyze</code></td><td>Caller-shared PCAP/PCAPNG, up to 64 KiB decoded; metadata only</td><td>Explicit sharing acknowledgement</td></tr><tr><td><code>packets_interfaces</code></td><td>Installed capture-tool interface listing; no capture</td><td>Explicit sharing acknowledgement</td></tr><tr><td><code>packets_capture</code></td><td>One known interface and IP/port filter; at most 10 seconds/2,000 packets</td><td>Writes, capture consent and sharing acknowledgement</td></tr></tbody></table>
@@ -184,7 +184,7 @@ protopeek agent --help</code></pre>
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>The expanded protocol/packet catalog is current source. The original adapter is in legacy Edge; v0.6.1 stable does not include it. Inspect the running catalog.</p>
+                <p>Published v0.7.0 includes 23 paired local tools. Setup fragments are not native-client acceptance; inspect the running catalog and explicit write controls.</p>
               </section>
             </aside>
           </div>
@@ -211,7 +211,7 @@ protopeek agent --help</code></pre>
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

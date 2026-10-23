@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Learn the gRPC concepts ProtoPeek keeps visible: proto contracts, reflection, HTTP/2, RPC stream shapes, metadata, trailers, status, timing, and Health." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Learn gRPC","description":"Learn the gRPC concepts ProtoPeek keeps visible: proto contracts, reflection, HTTP/2, RPC stream shapes, metadata, trailers, status, timing, and Health.","url":"https://protopeek.shreyam1008.com.np/learn-grpc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/learn-grpc/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Learn gRPC","item":"https://protopeek.shreyam1008.com.np/learn-grpc/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Learn gRPC","description":"Learn the gRPC concepts ProtoPeek keeps visible: proto contracts, reflection, HTTP/2, RPC stream shapes, metadata, trailers, status, timing, and Health.","url":"https://protopeek.shreyam1008.com.np/learn-grpc/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/learn-grpc/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/learn-grpc.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Learn gRPC","item":"https://protopeek.shreyam1008.com.np/learn-grpc/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -70,7 +70,7 @@
               <p>Why does gRPC need a protocol-native console?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.1
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -121,7 +121,7 @@
                 <p>This page is the long-form technical companion to the ProtoPeek console. It explains the transport concepts that actually matter when you are debugging a gRPC service under pressure.</p>
 <h2 id="1-the-contract-comes-first">1. The contract comes first</h2>
 <p>gRPC starts with a <code>.proto</code> schema. Everything else — code generation, reflection, request tooling — flows from it.</p>
-<pre class="pp-doc-code"><code data-lang="protobuf">syntax = &quot;proto3&quot;;
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="1-the-contract-comes-first"><code data-lang="protobuf">syntax = &quot;proto3&quot;;
 
 package bookstore.v1;
 
@@ -174,7 +174,7 @@ enum BookStatus {
 <p>That is one of the core reasons ProtoPeek exists: it translates binary descriptors back into a navigable, human-readable contract surface.</p>
 <h2 id="3-http-2-is-not-a-side-detail">3. HTTP/2 is not a side detail</h2>
 <p>gRPC uses HTTP/2 as the transport foundation. A single gRPC call translates into HTTP/2 frames like this:</p>
-<pre class="pp-doc-code"><code data-lang="">┌─────────────────────────────────────────────────────┐
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="3-http-2-is-not-a-side-detail"><code data-lang="">┌─────────────────────────────────────────────────────┐
 │ Client                              Server          │
 │                                                     │
 │  HEADERS frame ──────────────────►                  │
@@ -207,19 +207,19 @@ enum BookStatus {
 <h2 id="4-the-four-rpc-shapes">4. The four RPC shapes</h2>
 <p>Every gRPC method is one of four streaming shapes. Here is what each looks like on the wire:</p>
 <h3 id="unary-1-request-1-response">Unary (1 request → 1 response)</h3>
-<pre class="pp-doc-code"><code data-lang="">Client ──── Request ────► Server
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="unary-1-request-1-response"><code data-lang="">Client ──── Request ────► Server
 Client ◄─── Response ──── Server
 Client ◄─── Trailers ──── Server</code></pre>
 <p>The most familiar shape. One request message, one response message, then trailers with the gRPC status. Still backed by HTTP/2 metadata, deadlines, and trailers.</p>
 <h3 id="server-streaming-1-request-n-responses">Server streaming (1 request → N responses)</h3>
-<pre class="pp-doc-code"><code data-lang="">Client ──── Request ────────────► Server
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="server-streaming-1-request-n-responses"><code data-lang="">Client ──── Request ────────────► Server
 Client ◄─── Response 1 ────────── Server
 Client ◄─── Response 2 ────────── Server
 Client ◄─── Response 3 ────────── Server
 Client ◄─── Trailers ──────────── Server</code></pre>
 <p>The client sends one message, the server replies with a stream. Great for feeds, event replay, progressive reads, and paginated result sets where the server keeps sending frames until done.</p>
 <h3 id="client-streaming-n-requests-1-response">Client streaming (N requests → 1 response)</h3>
-<pre class="pp-doc-code"><code data-lang="">Client ──── Request 1 ──────────► Server
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="client-streaming-n-requests-1-response"><code data-lang="">Client ──── Request 1 ──────────► Server
 Client ──── Request 2 ──────────► Server
 Client ──── Request 3 ──────────► Server
 Client ──── END_STREAM ─────────► Server
@@ -227,7 +227,7 @@ Client ◄─── Response ──────────── Server
 Client ◄─── Trailers ──────────── Server</code></pre>
 <p>The client sends a batch or live stream of messages before the server answers once. Common for file uploads, batch ingestion, and aggregation workflows.</p>
 <h3 id="bidirectional-streaming-n-requests-n-responses">Bidirectional streaming (N requests ↔ N responses)</h3>
-<pre class="pp-doc-code"><code data-lang="">Client ──── Request 1 ──────────► Server
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="bidirectional-streaming-n-requests-n-responses"><code data-lang="">Client ──── Request 1 ──────────► Server
 Client ◄─── Response 1 ────────── Server
 Client ──── Request 2 ──────────► Server
 Client ◄─── Response 2 ────────── Server
@@ -249,7 +249,7 @@ Client ◄─── Trailers ──────────── Server</code><
 <div class="pp-doc-callout pp-doc-callout-warning"><div class="pp-doc-callout-label">Warning</div><div>Many generic API tools flatten or hide trailer metadata. ProtoPeek keeps it visible because real debugging often lives in the trailers, not the response body.</div></div>
 <h2 id="6-reflection-is-what-makes-a-console-feel-intelligent">6. Reflection is what makes a console feel intelligent</h2>
 <p>Reflection allows a client to ask the server for its own schema at runtime:</p>
-<pre class="pp-doc-code"><code data-lang="bash"># Discover all services
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="6-reflection-is-what-makes-a-console-feel-intelligent"><code data-lang="bash"># Discover all services
 grpcurl -plaintext localhost:50051 list
 
 # Result:
@@ -276,7 +276,7 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 <div class="pp-doc-callout pp-doc-callout-note"><div class="pp-doc-callout-label">Note</div><div><code>UNAUTHENTICATED</code> (16) means &quot;who are you?&quot; — provide credentials. <code>PERMISSION_DENIED</code> (7) means &quot;I know who you are, but you cannot do this.&quot; Confusing the two is a common source of debugging frustration.</div></div>
 <h2 id="8-why-grpc-web-exists">8. Why gRPC-Web exists</h2>
 <p>Native gRPC assumes capabilities that browsers do not expose: raw HTTP/2 framing, response trailers, and bidirectional streaming. Browser environments need a bridge, which is why gRPC-Web exists.</p>
-<pre class="pp-doc-code"><code data-lang="">┌─────────────────────────────────────────────────────────┐
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="8-why-grpc-web-exists"><code data-lang="">┌─────────────────────────────────────────────────────────┐
 │                                                         │
 │  Browser (gRPC-Web)                                     │
 │    │                                                    │
@@ -341,7 +341,7 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements.</p>
+                <p>Available in published v0.7.0. Read the guide for platform capabilities and local-tool requirements.</p>
               </section>
             </aside>
           </div>
@@ -368,7 +368,7 @@ grpcurl -plaintext localhost:50051 describe bookstore.v1.BookService
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

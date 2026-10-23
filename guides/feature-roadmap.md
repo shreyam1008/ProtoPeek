@@ -12,7 +12,7 @@ the [acceptance record](workbench-overhaul-2026-09.md) records tests, observatio
 
 ## Current-source checkpoint · 23 October 2026
 
-The following capabilities are implemented in this source tree, separately from the v0.6.1 stable
+The following capabilities are included in published v0.7.0, beyond the older v0.6.1
 binaries and earlier edge archives. Check the running build and its live agent catalog. Source,
 fixture tests, native acceptance, exact-commit CI and public distribution are separate evidence.
 
@@ -33,7 +33,7 @@ fixture tests, native acceptance, exact-commit CI and public distribution are se
 
 The original local agent adapter is published on the explicit
 [edge channel](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge). The expanded
-catalog above requires a matching current build; it is not claimed as a new public release.
+catalog above is included in v0.7.0; native clients and provider accounts retain separate acceptance gates.
 
 The [workspace overhaul](ui-overhaul-2026-09.md) is also on edge: persistent grouped navigation,
 last-tool resume, shared headers and recoverable route states, redesigned connection/queue/evidence

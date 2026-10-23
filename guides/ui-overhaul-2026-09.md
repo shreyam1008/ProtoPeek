@@ -1,6 +1,6 @@
 # Workspace UI overhaul
 
-The historical UI overhaul was published in the [legacy Edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge) on 7 September 2026. Stable installers remain on v0.6.1. [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is the separate rolling preview; current source can contain later changes.
+The historical UI overhaul was published in the [legacy Edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge) on 7 September 2026. Stable installers now select v0.7.0. [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is the separate rolling preview; current source can contain later changes.
 
 ## Design contract
 
@@ -10,7 +10,7 @@ Choose **HTTP request**, **gRPC · TLS**, or **gRPC · plaintext** on Home, ente
 **Open HTTP** or **Open gRPC**. HTTP keeps the full URL path and query. gRPC keeps the deliberate transport
 choice and accepts a service authority rather than an HTTP path. Opening prepares an unsent
 draft; **Send** or **Connect** remains a separate action. Use **Find a service instead** when you need
-bounded protocol discovery instead. A matching current-source build is required.
+bounded protocol discovery instead. This direct entry is included in published v0.7.0.
 
 ### Earlier refinement record — 18 October 2026
 

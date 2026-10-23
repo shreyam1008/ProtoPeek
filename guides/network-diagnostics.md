@@ -1,6 +1,6 @@
 # Network diagnostics
 
-Current source adds **Network → Diagnostics** at `/network/diagnostics`. Choose a question,
+Published v0.7.0 includes **Network → Diagnostics** at `/network/diagnostics`. Choose a question,
 enter one target and run it explicitly. The page makes no network requests on opening or
 changing modes. Results and private inputs live in this tab's memory.
 

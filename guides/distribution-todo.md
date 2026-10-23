@@ -1,15 +1,16 @@
 # Linux publication gates
 
-Updated: 2026-09-12.
+Updated: 2026-10-23.
 
 - [x] Prepare GoReleaser Debian packaging for the next stable release, including
   `protopeek`, `pp`, license notices and man pages.
 - [x] Configuration validated in `Check Linux package configuration`, run 34028750448.
-- [x] Build checksummed v0.6.1 `.deb` packages for amd64, arm64 and i386.
-- [ ] Test native `.deb` package lifecycle: install, CLI/browser startup,
-  upgrade, and removal on Debian/Ubuntu. A configuration check is not a package
-  or runtime test.
-- [x] Publish checksummed packages with v0.6.1 and GitHub provenance. Existing
+- [x] Build checksummed v0.7.0 `.deb` packages for amd64, arm64 and i386.
+- [x] Test actual Ubuntu amd64 installation, both CLI aliases, HTTP/embedded assets,
+  real v0.6.1 upgrade and removal. The hosted verification recipe records lifecycle
+  and cleanup separately; its evidence upload must also pass.
+- [ ] Verify Linux desktop default-browser launch and native arm64/i386 installation.
+- [x] Publish checksummed packages with v0.7.0 and GitHub provenance. Existing
   stable assets and tags were not rewritten.
 - [x] Establish a persistent APT signing key and signed repository, preserving
   it across website deployments; test anonymous HTTPS installation.
@@ -19,10 +20,13 @@ Updated: 2026-09-12.
 - [ ] Test the Snap candidate on a supported Linux desktop and publish it to
   the Snap Store candidate channel with maintainer credentials.
 
-GitHub Releases, Homebrew and Scoop remain the current stable distribution
-paths. The Snap manifest is a classic-confinement candidate because ProtoPeek
+GitHub Releases, signed APT, Homebrew and Scoop provide stable v0.7.0.
+The v0.7.0 Snap also passed hosted Linux install/runtime/removal checks, but a
+desktop check and Store publication remain separate. The Snap manifest is a classic-confinement candidate because ProtoPeek
 invokes local network tools and host files; Store publication remains gated on a
 real desktop smoke test and review. Flathub is not a lane for the terminal-first
 product; do not submit a thin browser launcher as a desktop app.
-Microsoft Store remains conditional on a maintained Windows package and a
-useful Store installation experience.
+The existing Microsoft Store listing is public. Its validated v0.7.0.0 update
+was submitted on 23 October and is in certification; Store distribution and
+Store-signed installation/upgrade acceptance remain pending. Snap publication
+credentials are not configured in this repository as of this checkpoint.

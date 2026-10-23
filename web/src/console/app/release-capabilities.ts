@@ -70,14 +70,14 @@ export const releaseCapabilities = [
     produces: ['grpc-target-draft', 'http-url-draft'],
   },
   { featureId: 'tailnet', releaseStatus: 'stable', docsSlug: 'network-workbench' },
-  { featureId: 'netbird', releaseStatus: 'source', docsSlug: 'extensions' },
+  { featureId: 'netbird', releaseStatus: 'stable', docsSlug: 'extensions' },
   {
     featureId: 'network-diagnostics',
-    releaseStatus: 'source',
+    releaseStatus: 'stable',
     docsSlug: 'network-diagnostics',
     produces: ['grpc-target-draft', 'http-url-draft'],
   },
-  { featureId: 'publishing', releaseStatus: 'source', docsSlug: 'feature-roadmap' },
+  { featureId: 'publishing', releaseStatus: 'stable', docsSlug: 'feature-roadmap' },
   {
     featureId: 'network-path',
     releaseStatus: 'stable',
@@ -85,7 +85,7 @@ export const releaseCapabilities = [
     accepts: ['path-target-draft'],
   },
   { featureId: 'downloader', releaseStatus: 'stable', docsSlug: 'downloader' },
-  { featureId: 'local-transfer', releaseStatus: 'source', docsSlug: 'local-transfer' },
+  { featureId: 'local-transfer', releaseStatus: 'stable', docsSlug: 'local-transfer' },
   { featureId: 'network-ports', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-nmap', releaseStatus: 'stable', docsSlug: 'network-workbench' },
   { featureId: 'network-packets', releaseStatus: 'stable', docsSlug: 'network-workbench' },
@@ -96,8 +96,8 @@ export const releaseCapabilities = [
     produces: ['path-target-draft'],
   },
   { featureId: 'settings', releaseStatus: 'stable', docsSlug: 'settings' },
-  { featureId: 'agents', releaseStatus: 'source', docsSlug: 'ai-agents' },
-  { featureId: 'extensions', releaseStatus: 'source', docsSlug: 'extensions' },
+  { featureId: 'agents', releaseStatus: 'stable', docsSlug: 'ai-agents' },
+  { featureId: 'extensions', releaseStatus: 'stable', docsSlug: 'extensions' },
   { featureId: 'roadmap', releaseStatus: 'stable', docsSlug: 'feature-roadmap' },
 ] as const satisfies readonly ReleaseCapability[];
 

@@ -97,6 +97,38 @@
       "height": 900,
       "sha256": "7bc3f3d5d7b11222f56a85e68f8d7d752ac671fddf608c7dbfacf1664a883796",
       "workflow": "Real local installed Chrome 155 capture on Windows, 1365 by 900 CSS pixels, against the Go-served unreleased source preview. The library shows 20 entries with no host checks requested. This is UI evidence, not vendor installation, account acceptance or a released extension marketplace."
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-v0.7.0-home-20261023.png",
+      "alt": "ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry",
+      "platform": "desktop-windows",
+      "capturedVersion": "v0.7.0 Windows x64 release-package draft",
+      "releaseStatus": "release-package-capture",
+      "captureStage": "pre-publication",
+      "capturedAt": "2026-10-23",
+      "width": 1366,
+      "height": 900,
+      "sha256": "3038aee2cab00bf09a418fd844a2544e4725fcba0f0f0cb2bdf3623b42064e05",
+      "sourceCommit": "16044643efb349f8586f4278a83988b35a0932d9",
+      "artifactSha256": "0ba38641b5e7d87ff714384a7ae845dd208100a3406f79ff027380966ea19b31",
+      "workflow": "Real installed Chrome 155 capture on Windows at 1366 by 900 CSS pixels, against the actual v0.7.0 Windows x64 release-package draft before publication. A clean isolated profile shows no recent services or fixtures. Pixels are unchanged. Public release identity must be independently compared before using this as current-release website evidence. The public v0.7.0 archive/executable bytes were subsequently verified unchanged on 23 October 2026; this does not change the pre-publication capture stage.",
+      "publicArtifactVerifiedAt": "2026-10-23"
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-v0.7.0-extensions-20261023.png",
+      "alt": "ProtoPeek v0.7.0 Extensions library with 20 optional entries and explicit integration levels",
+      "platform": "desktop-windows",
+      "capturedVersion": "v0.7.0 Windows x64 release-package draft",
+      "releaseStatus": "release-package-capture",
+      "captureStage": "pre-publication",
+      "capturedAt": "2026-10-23",
+      "width": 1366,
+      "height": 900,
+      "sha256": "d800184172a66d1b082fc59c0e24b4bbb551c2a85f5af1e9e49f6293f66236d1",
+      "sourceCommit": "16044643efb349f8586f4278a83988b35a0932d9",
+      "artifactSha256": "0ba38641b5e7d87ff714384a7ae845dd208100a3406f79ff027380966ea19b31",
+      "workflow": "Real installed Chrome 155 capture on Windows at 1366 by 900 CSS pixels, against the same actual v0.7.0 Windows x64 release-package draft before publication. The clean library has 20 entries and no host checks requested. No tool installation, account or native-client acceptance is implied. Pixels are unchanged. Public release identity must be independently compared before using this as current-release website evidence. The public v0.7.0 archive/executable bytes were subsequently verified unchanged on 23 October 2026; this does not change the pre-publication capture stage.",
+      "publicArtifactVerifiedAt": "2026-10-23"
     }
   ]
 }

@@ -69,8 +69,8 @@
               <h1 id="page-title">Cap’n Proto workbench</h1>
               <p>How do I inspect a Cap’n Proto service?</p>
 
-    <span class="pp-page-status is-current is-full">
-      <i aria-hidden="true"></i>Stable core + current source
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -140,10 +140,10 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>Open <strong>Inspect → Cap’n Proto</strong> for native Cap’n Proto RPC, implemented in Go. Stable v0.6.1 supports concrete bootstrap calls. The generic bindings and capability plans below are current source as of 22 October 2026 and require a matching build; they are not a new stable-release claim.</p>
+                <p>Open <strong>Inspect → Cap’n Proto</strong> for native Cap’n Proto RPC, implemented in Go. Stable v0.6.1 supports concrete bootstrap calls. Published v0.7.0 also includes the generic bindings and bounded capability plans below. Compiler, endpoint and native-platform acceptance remain separate.</p>
 <h2 id="load-a-schema-then-make-a-call">Load a schema, then make a call</h2>
 <ol><li><div class="pp-doc-list-title">Choose your <code>.capnp</code> files together and select the root file, or paste a single source schema.</div><p>Source loading uses <code>capnp</code> from the ProtoPeek host&#39;s PATH. The compiler is optional and is installed separately using the <a href="https://capnproto.org/install.html" rel="noreferrer" target="_blank">official setup guide</a>.</p></li><li><div class="pp-doc-list-title">Without a compiler on the ProtoPeek host, load an unpacked binary CodeGeneratorRequest (<code>.bin</code>)</div><p>generated on another machine. For example, in a shell with binary-safe redirection:</p></li></ol>
-<pre class="pp-doc-code"><code data-lang="sh">   capnp compile -o- service.capnp &gt; service.bin</code></pre>
+<pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="load-a-schema-then-make-a-call"><code data-lang="sh">   capnp compile -o- service.capnp &gt; service.bin</code></pre>
 <p>Windows PowerShell 5 redirection converts native stdout to text: use <code>cmd.exe</code> or PowerShell 7.4+ for this binary output, as described in <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_redirection" rel="noreferrer" target="_blank">Microsoft&#39;s redirection guide</a>. Compiling before upload also handles nested imports conveniently.</p>
 <ol><li><div class="pp-doc-list-title">Select a method in the left list. Loading a schema does not connect to a peer.</div></li><li><div class="pp-doc-list-title">Enter <code>host:port</code> (or <code>[IPv6]:port</code>), choose TCP or verified TLS, and enter request JSON.</div><p>Omitted fields use schema defaults. Expand <strong>Parameter fields</strong> to see names and types.</p></li><li><div class="pp-doc-list-title">Click <strong>Call method</strong>. Inspect JSON, elapsed time, the connected address and TLS version.</div><p>Copy the response or save a JSON report. Cancel stops waiting and closes the connection; a request already delivered to the service may still have taken effect.</p></li></ol>
 <p>TLS verifies both the certificate chain and server identity. Advanced controls accept a server name override and additional CA certificates. Verification cannot be disabled. Each call opens one connection and has a configurable 0.1–30 second deadline; calls are never automatically retried.</p>
@@ -179,7 +179,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Stable v0.6.1 supports concrete bootstrap RPC. Generic bindings and returned-capability plans are implemented in current source, with separate acceptance gates.</p>
+                <p>Published v0.7.0 includes bootstrap calls, generic bindings and bounded returned-capability plans. Source compilation and native endpoint acceptance remain separate.</p>
               </section>
             </aside>
           </div>
@@ -206,7 +206,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

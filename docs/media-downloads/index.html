@@ -69,8 +69,8 @@
               <h1 id="page-title">Media and webpages</h1>
               <p>How can I save media, a gallery, or an original webpage?</p>
 
-    <span class="pp-page-status is-guide is-full">
-      <i aria-hidden="true"></i>Current source
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -118,7 +118,7 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>Open <strong>Files → Downloader → Media, galleries &amp; webpages</strong> in the v0.7.0 build. Ordinary file downloads retain their existing aria2 queue and CLI. Direct exchange between ProtoPeek devices has its own <a href="/local-transfer/">Local transfer</a> workspace.</p>
+                <p>Open <strong>Files → Downloader → Media, galleries &amp; webpages</strong> in published v0.7.0. Ordinary file downloads retain their existing aria2 queue and CLI. Direct exchange between ProtoPeek devices has its own <a href="/local-transfer/">Local transfer</a> workspace.</p>
 <h2 id="what-each-option-saves">What each option saves</h2>
 <table tabindex="0" aria-labelledby="what-each-option-saves"><thead><tr><th>Option</th><th>Implementation</th><th>Capability</th></tr></thead><tbody><tr><td>Direct &amp; page media</td><td>Native Go, no installation</td><td>Direct HTTP(S) files; image, video, audio and Open Graph links in HTML; original HTML snapshots</td></tr><tr><td>Video &amp; audio</td><td>Optional yt-dlp</td><td>Supported video sites, YouTube URLs and bounded playlist ranges; original audio or video</td></tr><tr><td>Images &amp; galleries</td><td>Optional gallery-dl</td><td>Supported image sites, galleries and albums</td></tr><tr><td>Webpage archive</td><td>Separately installed ArchiveBox</td><td>A dedicated local collection with title, HTML, screenshot and PDF extractors, subject to installed dependencies</td></tr></tbody></table>
 <p>Go inspection reads at most 4 MiB of HTML and returns the first 100 unique media links. It does not execute JavaScript, unlock protected content, render a page or discover every image a browser could load. Original HTML snapshots leave linked assets external. They are not self-contained offline archives. Use ArchiveBox when a rendered webpage capture is needed.</p>
@@ -155,7 +155,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Implemented in this checkout; stable publication and installed-engine acceptance are separate gates.</p>
+                <p>Published v0.7.0 includes native media/page downloads and optional installed engines. Supported-site, provider and native-platform acceptance remain separate.</p>
               </section>
             </aside>
           </div>
@@ -182,7 +182,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

@@ -69,8 +69,8 @@
               <h1 id="page-title">Extensions and setup</h1>
               <p>Which optional tool does this task need?</p>
 
-    <span class="pp-page-status is-current is-full">
-      <i aria-hidden="true"></i>Current source
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -140,7 +140,7 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p><strong>Current source · 23 October 2026:</strong> Extensions contains <strong>20 optional entries</strong>: six native workbenches and fourteen guides or links with explicit integration levels. It replaces the Publish destination in the six-part layout: Home, Inspect, Network, Extensions, Files and Settings. Stable v0.6.1 retains its earlier layout; this guide describes source changes, not a new stable release or package publication.</p>
+                <p><strong>Published v0.7.0:</strong> Extensions contains <strong>20 optional entries</strong>: six native workbenches and fourteen guides or links with explicit integration levels. It replaces the Publish destination in the six-part layout: Home, Inspect, Network, Extensions, Files and Settings. Older v0.6.1 binaries retain their earlier layout. Native-client, account and independently promoted package acceptance remain separate from release availability.</p>
 <h2 id="start-with-what-you-need">Start with what you need</h2>
 <p>Open <strong>Extensions</strong> at <code>/extensions</code>, search for a task or tool, and select one entry. Pin the entries you use to keep them close in this library. Pins and manual setup-platform choices store only catalog and platform IDs in this browser, without addresses, credentials, pairing data or results.</p>
 <p>Opening the catalog does not inspect tools or load every detail pack. The selected entry’s details load when you open it. Choose <strong>Check this host</strong> for one local availability observation. It checks this process’s PATH and reviewed fixed locations without executing the selected tool. aria2 may also read and verify an existing cached bundle checksum. Detection does not start a process, scan, capture, sign-in flow, model download or service. Cancelling a slow check detaches the browser; an OS filesystem lookup already waiting may still finish.</p>
@@ -162,8 +162,8 @@
 <p>Slow filesystem lookups share two slots, including the legacy six-tool API. A busy host check returns HTTP <code>429</code> with retry guidance. Cancel stops waiting (<code>499</code>); a lookup already inside the OS retains its slot until it returns. Static catalog metadata and ChatGPT’s external guidance remain available without filesystem slots. On macOS, native workbenches retain their own supported executable locations; keeping Homebrew’s <code>bin</code> directory on ProtoPeek’s PATH lets the native tool and its availability check use the same command.</p>
 <h2 id="tailscale-and-cloudflare-tunnel">Tailscale and Cloudflare Tunnel</h2>
 <p>Install Tailscale using its <a href="https://tailscale.com/download" rel="noreferrer" target="_blank">official download page</a> and the <a href="https://tailscale.com/docs/install/windows" rel="noreferrer" target="_blank">Windows</a>, <a href="https://tailscale.com/docs/install/mac" rel="noreferrer" target="_blank">macOS</a>, or <a href="https://tailscale.com/docs/install/linux" rel="noreferrer" target="_blank">Linux</a> instructions. Complete sign-in through the installed Tailscale client, then open its ProtoPeek workbench and choose <strong>Inspect Tailscale</strong>. ProtoPeek uses the installed client; it does not provide the private-network service itself.</p>
-<p>Use Cloudflare&#39;s <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/" rel="noreferrer" target="_blank">cloudflared downloads</a> for the tunnel connector. Its ProtoPeek workbench inspects the local host and canonical service. It does not create an account, sign in or install the connector. Current-source configuration writes require the supported user-owned canonical file, a fresh revision and explicit review. See the <a href="/cloudflare-tunnels/">Cloudflare Tunnel guide</a> for supported controls and configuration authority. Wrangler and Docker availability are diagnostic details, not additional working adapters.</p>
-<p>The Tailscale workbench retains its separate Headscale HTTPS login-server flow; this library does not administer a Headscale server. Use <a href="https://docs.netbird.io/get-started/install" rel="noreferrer" target="_blank">NetBird’s official installation guide</a> for its native client and daemon, complete sign-in there, then inspect it through the NetBird workbench. Temporary Serve/Funnel/Quick Tunnel sessions have their own reviewed audience and lifecycle controls. Current-source foreground publishing uses its guarded Windows/Linux path; macOS foreground publishing remains unavailable.</p>
+<p>Use Cloudflare&#39;s <a href="https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/" rel="noreferrer" target="_blank">cloudflared downloads</a> for the tunnel connector. Its ProtoPeek workbench inspects the local host and canonical service. It does not create an account, sign in or install the connector. v0.7.0 configuration writes require the supported user-owned canonical file, a fresh revision and explicit review. See the <a href="/cloudflare-tunnels/">Cloudflare Tunnel guide</a> for supported controls and configuration authority. Wrangler and Docker availability are diagnostic details, not additional working adapters.</p>
+<p>The Tailscale workbench retains its separate Headscale HTTPS login-server flow; this library does not administer a Headscale server. Use <a href="https://docs.netbird.io/get-started/install" rel="noreferrer" target="_blank">NetBird’s official installation guide</a> for its native client and daemon, complete sign-in there, then inspect it through the NetBird workbench. Temporary Serve/Funnel/Quick Tunnel sessions have their own reviewed audience and lifecycle controls. v0.7.0 foreground publishing uses its guarded Windows/Linux path; macOS foreground publishing remains unavailable.</p>
 <h2 id="capture-setup">Capture setup</h2>
 <p>Install <a href="https://www.wireshark.org/download.html" rel="noreferrer" target="_blank">Wireshark</a>, which supplies the <a href="https://www.wireshark.org/docs/man-pages/dumpcap.html" rel="noreferrer" target="_blank">dumpcap capture utility</a>. ProtoPeek uses dumpcap for bounded local captures; Wireshark remains useful for deeper analysis of original files.</p>
 <ul><li><strong>Windows:</strong> live capture needs <a href="https://npcap.com/#download" rel="noreferrer" target="_blank">Npcap</a>. The <a href="https://www.wireshark.org/docs/wsug_html_chunked/ChBuildInstallWinInstall.html" rel="noreferrer" target="_blank">Wireshark installer includes Npcap setup</a>. Capture access can still depend on the driver&#39;s permission settings.</li><li><strong>macOS:</strong> follow Wireshark&#39;s <a href="https://www.wireshark.org/docs/wsug_html_chunked/ChBuildInstallOSXInstall.html" rel="noreferrer" target="_blank">ChmodBPF installation instructions</a> for capture access, and make dumpcap accessible to the ProtoPeek host.</li><li><strong>Linux:</strong> use the distribution&#39;s Wireshark packages and the official <a href="https://wiki.wireshark.org/CaptureSetup/CapturePrivileges" rel="noreferrer" target="_blank">capture permission guidance</a>.</li></ul>
@@ -194,7 +194,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Current source separates six native workbenches from fourteen guided or external entries. Stable v0.6.1 retains the earlier navigation; client/account acceptance remains separate.</p>
+                <p>Published v0.7.0 separates six native workbenches from fourteen guided or external entries. Native-client/account acceptance remains separate.</p>
               </section>
             </aside>
           </div>
@@ -221,7 +221,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

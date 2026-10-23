@@ -1,7 +1,7 @@
 # Website analysis and security boundary
 
 Status: one passive historical-name lookup and one direct website observation ship in v0.5.0.
-Current source also provides copy/save reports, rejected-certificate metadata, a five-path HEAD
+v0.7.0 also provides copy/save reports, rejected-certificate metadata, a five-path HEAD
 plan, filtered historical names with unsent Inspect handoffs, and browser-local origin/domain
 memory. Active vulnerability testing and authenticated audits remain outside this implementation.
 
@@ -186,7 +186,7 @@ Current tests must continue to prove explicit disclosure/consent, IDNA and publi
 normalization, special-range and mixed-answer rejection, resolve-once pinned dialing, proxy bypass,
 no redirect follow, no body read, verified TLS behavior, fixed request method, provider/target
 timeouts, body/name/header limits, cancellation, admission saturation, malformed provider results,
-cache bounds, and that candidate names are never contacted. Current-source UI tests additionally
+cache bounds, and that candidate names are never contacted. v0.7.0 UI tests additionally
 prove deterministic case-insensitive header analysis, duplicate-value handling, invalid certificate
 dates, HTTP without TLS, missing headers, absolute and relative redirect interpretation, fixed
 status vocabulary, clipboard failure handling, and that copying the JSON report causes no second

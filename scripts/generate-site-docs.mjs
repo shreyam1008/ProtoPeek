@@ -152,12 +152,12 @@ Repository: ${repoRootURL}
 
 - Downloader product page: ${siteRoot}/downloader/
 
-- v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings.
+- v0.7.0 is the current stable release with Home, Inspect, Network, Extensions, Files and Settings.
 - Nightly is the opt-in rolling preview built from main/master, not a stable promotion. Read its release page for the source in the current archive: ${repoRootURL}/releases/tag/v0.0.0-nightly. Source guides can describe changes that have not reached a published archive.
-- Nightly includes pp update and protopeek update for verified direct installs on Windows, macOS and Linux. Settings > Updates provides manual checks, confirmation, cancellation and restart guidance. Managed installs show their package-manager commands. Older binaries need one installer upgrade with PROTOPEEK_CHANNEL=nightly first. Stable and package-manager promotion remain separate.
+- v0.7.0 and compatible Nightly builds include pp update and protopeek update for verified direct installs on Windows, macOS and Linux. Settings > Updates provides manual checks, confirmation, cancellation and restart guidance. Managed installs show their package-manager commands. Older binaries, including v0.6.1, need one installer upgrade first. Stable and package-manager promotion remain separate.
 - Legacy Edge (v0.0.0-edge) is an older manual prerelease retained with dated browser evidence. It is not the rolling preview channel; stable installers do not select it. Historical acceptance: ${siteRoot}/workspace-ui/.
-- Stable Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and explicit website/TLS/header/path evidence. Stable Network includes Linux/Windows paths, port scans, private discovery, Nmap input, packet metadata and device evidence. See each guide for platform and local-tool requirements.
-- Stable Cloudflare Tunnel provides host/config inspection and guarded canonical service operations. Current-source config writes and publishing below have separate prerequisites; account administration remains user-owned.
+- Stable Inspect provides gRPC, HTTP saved requests, WebSocket/SSE, Cap’n Proto bootstrap RPC and bounded capability plans and explicit website/TLS/header/path evidence. Stable Network includes bounded diagnostics, Linux/Windows/macOS paths, TCP port scans, private discovery, Nmap input, packet metadata with opt-in TCP payload evidence, snapshots and device evidence. See each guide for platform and local-tool requirements.
+- Stable Cloudflare Tunnel provides host/config inspection and guarded canonical service operations. Reviewed config writes and Windows/Linux publishing have separate native/provider prerequisites; account administration remains user-owned.
 - Windows x64 includes pinned aria2 1.37.0, extracted on demand after configured and PATH engines. Other platforms require installed aria2. Release archives include notices and a separate source companion.
 - The verified resolvers install latest stable from checksum-pinned archives. Homebrew and Scoop manifests identify their package versions and supply aria2 as a dependency.
 - Drafts, saved HTTP recipes, appearance and path snapshots use browser-origin storage. Host download settings, queue and bounded history use local files. Closing the browser leaves Downloader jobs running while the server stays open; server restart restores recoverable jobs for explicit resume.
@@ -165,9 +165,9 @@ Repository: ${repoRootURL}
 - Hop country/ASN attribution is optional provider evidence, not proof of a datacenter or return path. Port hints are not verified protocols. Website checks never produce a security score.
 - GoBarryGo files and history remain independent; its public redirect and retirement are not complete.
 
-## Current source — separate from stable and archive acceptance
+## Published v0.7.0 capabilities
 
-Current source uses Home, Inspect, Network, Extensions, Files and Settings. Home prepares unsent HTTP or explicit TLS/plaintext gRPC drafts; discovery is a separate action. Source implementation does not establish publication, native-client, provider-account or package acceptance.
+v0.7.0 uses Home, Inspect, Network, Extensions, Files and Settings. Home prepares unsent HTTP or explicit TLS/plaintext gRPC drafts; discovery is a separate action. Published software does not establish native-client, provider-account or independently promoted package acceptance.
 
 ${currentCapabilities}
 
@@ -214,7 +214,7 @@ async function writeDownloaderPage() {
     operatingSystem: ['Linux', 'macOS', 'Windows'],
     isAccessibleForFree: true,
     softwareRequirements:
-      'ProtoPeek v0.6.1 with bundled aria2 on Windows x64; installed aria2 on other platforms.',
+      'ProtoPeek v0.7.0 with bundled aria2 on Windows x64; installed aria2 on other platforms.',
     screenshot: [
       `${siteRoot}/assets/protopeek-downloader-development.jpg`,
       `${siteRoot}/assets/protopeek-downloader-development-mobile.jpg`,
@@ -313,7 +313,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-hero-copy">
               <h1 id="downloader-title">Download locally. Keep every decision visible.</h1>
               <p>
-                ProtoPeek v0.6.1 gives users one explicit local queue for
+                ProtoPeek v0.7.0 gives users one explicit local queue for
                 HTTP(S) transfers: queue one or up to 32 independent jobs, see partial success,
                 pause or resume one job or the whole queue, retry, cancel, choose the destination,
                 and enforce a single-job expected SHA-256 without sending transfer details to a hosted service.
@@ -321,13 +321,13 @@ async function writeDownloaderPage() {
               ${renderStatus(downloaderPage.status)}
               <p class="pp-download-boundary">${escapeHtml(downloaderPage.status.detail)}</p>
               <div class="pp-download-actions">
-                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Open v0.6.1 release</a>
+                <a class="pp-download-action-primary" href="${repoRootURL}/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Open v0.7.0 release</a>
                 <a class="pp-download-action-secondary" href="${siteBase}/install/">Read installation boundaries</a>
               </div>
               <dl class="pp-download-truth">
                 <div>
                   <dt>Available now</dt>
-                  <dd>Stable ProtoPeek v0.6.1</dd>
+                  <dd>Stable ProtoPeek v0.7.0</dd>
                 </div>
                 <div>
                   <dt>Package channels</dt>
@@ -357,8 +357,8 @@ async function writeDownloaderPage() {
 
           <section class="pp-download-section" aria-labelledby="media-source-title">
             <div class="pp-download-section-heading">
-              <h2 id="media-source-title">Current source: media, galleries and webpages.</h2>
-              <p>Native Go saves direct files, discovers media links in HTML and saves original HTML snapshots. Optional yt-dlp and gallery-dl engines install with one click and verified checksums for supported social sites. Media jobs have bounded item ranges, cancellation and progress. ArchiveBox remains a separate optional application; native Windows is unsupported. This source work is not included in the v0.6.1 download above.</p>
+              <h2 id="media-source-title">Media, galleries and webpages in v0.7.0.</h2>
+              <p>Native Go saves direct files, discovers media links in HTML and saves original HTML snapshots. Optional yt-dlp and gallery-dl engines install with one click and verified checksums for supported social sites. Media jobs have bounded item ranges, cancellation and progress. ArchiveBox remains a separate optional application; native Windows is unsupported. These capabilities are included in the v0.7.0 release above; optional engine and supported-site acceptance remain separate.</p>
             </div>
           </section>
 
@@ -375,12 +375,12 @@ async function writeDownloaderPage() {
           </section>
 
           <section aria-labelledby="local-transfer-title">
-            <h2 id="local-transfer-title">Current source: direct device-to-device transfer.</h2>
+            <h2 id="local-transfer-title">Direct device-to-device transfer in v0.7.0.</h2>
             <p>Files → Local transfer discovers nearby ProtoPeek devices and streams accepted files
             over encrypted LAN or existing VPN connections, with progress, cancellation, and SHA-256
             verification. Both devices enable a temporary session. This is independent of Downloader
             and Taildrop; VPN setup and internet relays remain outside this feature.</p>
-            <p>This capability is in current source, not an existing public release.
+            <p>This capability is included in published v0.7.0.
             <a href="/local-transfer/">Read the local transfer guide</a>.</p>
           </section>
 
@@ -404,7 +404,7 @@ async function writeDownloaderPage() {
                 owns its local engine session, writes progress to stderr, prints the completed path
                 to stdout, and preserves partial data plus the aria2 session if interrupted.
               </p>
-              <pre><code>pp download [--output NAME] [--sha256 64_HEX] URL</code></pre>
+              <pre tabindex="0" role="group" aria-labelledby="cli-title"><code>pp download [--output NAME] [--sha256 64_HEX] URL</code></pre>
               <p class="pp-download-note">
                 It does not attach to an already-running ProtoPeek browser process. URL support is
                 limited to HTTP and HTTPS.
@@ -432,7 +432,7 @@ async function writeDownloaderPage() {
             <div class="pp-download-requirement-links">
               <a href="${siteBase}/docs/">Published documentation</a>
               <a href="${repoRootURL}/blob/master/README.md" rel="noreferrer" target="_blank">Release setup</a>
-              <a href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Stable v0.6.1 release</a>
+              <a href="${repoRootURL}/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Stable v0.7.0 release</a>
             </div>
           </section>
 
@@ -604,8 +604,12 @@ function renderMarkdownPage(markdown, page) {
       if (index < lines.length) {
         index += 1;
       }
+      const headingId = toc.at(-1)?.id;
+      const accessibleName = headingId
+        ? `aria-labelledby="${escapeAttr(headingId)}"`
+        : `aria-label="${escapeAttr(`${title} code example`)}"`;
       html.push(
-        `<pre class="pp-doc-code"><code data-lang="${escapeAttr(language)}">${escapeHtml(
+        `<pre class="pp-doc-code" tabindex="0" role="group" ${accessibleName}><code data-lang="${escapeAttr(language)}">${escapeHtml(
           code.join('\n')
         )}</code></pre>`
       );
@@ -1081,7 +1085,7 @@ function renderFooter() {
       <nav aria-label="Footer">
         <a href="${siteBase}/docs/">Guides</a>
         <a href="${siteBase}/install/">Download</a>
-        <a href="${repoRootURL}/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="${repoRootURL}/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="${repoRootURL}" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

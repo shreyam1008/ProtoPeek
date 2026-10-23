@@ -7,12 +7,12 @@ locations—and keeps the evidence beside ProtoPeek’s existing HTTP, gRPC, net
 tools: the [HTTP workbench](/http-workbench/), [gRPC workbench](/grpc-workbench/),
 [network workbench](/network-workbench/), and [This Device](/this-pc/).
 
-The foundation below records stable v0.6.1 behavior. The dated current-source section describes
-additional operations that require a matching build; source tests are not installed-service or
-provider-account acceptance. ProtoPeek is not affiliated with or endorsed by Cloudflare, Inc.,
+The foundation below records historical v0.6.1 behavior. Published v0.7.0 includes the additional
+operations documented below; software availability is not installed-service or provider-account
+acceptance. ProtoPeek is not affiliated with or endorsed by Cloudflare, Inc.,
 and this guide does not make pricing or plan-limit claims.
 
-**Current source:** open this workbench from [Extensions](extensions.md). The `/tunnels` route
+**Published v0.7.0:** open this workbench from [Extensions](extensions.md). The `/tunnels` route
 remains valid. Stable v0.6.1 uses the Publish destination described below.
 
 ## Stable v0.6.1 local-operations foundation
@@ -90,7 +90,7 @@ write its remote ingress configuration.
 
 Cloudflare `path` values are regular expressions, not shell-style globs. For example, use a shape
 such as `^/api/.*`, not `/api/*`. The stable **Draft ingress route** drawer performs structural
-browser checks only. Current source adds separate native validation and matching in **Canonical
+browser checks only. v0.7.0 adds separate native validation and matching in **Canonical
 operations**, described below. A config source’s **parsed routes** count includes the required
 final catch-all. Any separate hostname-route summary excludes that catch-all and reports its
 presence beside the count.
@@ -199,7 +199,7 @@ The stable v0.6.1 local-control boundary is:
   or update, ambient release check, or ambient log/metrics stream; and
 - the local API stays unavailable when ProtoPeek is started in unsafe remote-listen mode.
 
-Current source extends this foundation only through the reviewed canonical-file and owned-session
+v0.7.0 extends this foundation only through the reviewed canonical-file and owned-session
 operations below. Account/cloud writes and administrator-owned config writes remain unavailable.
 
 ## Does Wrangler come into play?

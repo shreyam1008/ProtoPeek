@@ -1,8 +1,8 @@
 # ProtoPeek network workbench
 
-The current-source workbench connects service requests, connection checks, port observations and
-recorded traffic without treating them as the same evidence. Published stable builds can have earlier
-limits; check the running build and the release boundary shown on this guide.
+The v0.7.0 workbench connects service requests, connection checks, port observations and
+recorded traffic without treating them as the same evidence. These capabilities ship in v0.7.0;
+older binaries can have earlier limits. Check the running build and the boundaries below.
 
 ## Choose the evidence you need
 
@@ -45,6 +45,9 @@ export it. Map lines describe evidence relationships, not physical cables.
 
 ## Current-source packet inspection
 
+This originally source-labelled checkpoint is included in published v0.7.0. Its heading is
+retained for existing guide links; optional capture/native prerequisites still apply.
+
 **Network → Packets** reads `.pcap`, `.pcapng` and `.cap` files without installing Wireshark.
 These are capture files produced by tools such as Wireshark, not a claim of equivalent dissector
 coverage or a complete Wireshark replacement. ProtoPeek exports metadata JSON, not a new capture file.
@@ -52,7 +55,7 @@ Select a file and click **Inspect file**. The file is sent to the local ProtoPee
 analysis; captured endpoints are never contacted. The table shows endpoints, ports, packet sizes,
 DNS questions, HTTP method/status, TCP flags or TLS record signatures where decoding is possible.
 Filter by protocol, IP, port or decoded text; select a packet for its recorded UTC timestamp and
-details. Current source as of 22 October 2026 groups conversations by capture section/interface,
+details. v0.7.0 groups conversations by capture section/interface,
 underlying transport and endpoint pair, keeping TCP and UDP distinct even when both have a DNS
 label. Summaries show direction counts, observed bytes and timestamps. **Save metadata** exports
 this report without retained payload; **Clear results** leaves the original file intact.
@@ -66,7 +69,7 @@ two VLAN tags, raw IPv4/IPv6, loopback, Linux cooked v1/v2, ARP, TCP, UDP and IC
 
 Default analysis remains metadata-only, with no checksum validation, decryption, process
 attribution or raw payload export. Non-initial IP fragments are labeled without invented ports.
-HTTP request targets and headers are omitted; DNS question names remain visible. Current source
+HTTP request targets and headers are omitted; DNS question names remain visible. v0.7.0
 also decodes bounded DHCP and QUIC-like version-header metadata; a QUIC/TLS signature does not establish
 the application inside encryption. Files, decoded rows and capture settings are session-only.
 
@@ -79,8 +82,8 @@ shows directional segments, gaps and conflicting overlap; choose UTF-8 or hex di
 separate reuse of an endpoint tuple. Missing bytes are not invented and conflicting bytes are not
 silently chosen. This is captured sequence evidence, not a complete or decrypted application stream.
 **Forget retained payload** drops these bytes; metadata export omits them. Use the original capture
-in Wireshark for deeper analysis. Stable v0.6.1's metadata reader and earlier acceptance do not
-establish this newer reconstruction feature's release or native capture acceptance.
+in Wireshark for deeper analysis. This reconstruction feature ships in v0.7.0. The older v0.6.1 metadata reader and parser tests
+do not establish native live-capture acceptance.
 
 ### Explicit capture through installed dumpcap
 
@@ -107,6 +110,8 @@ packet fixture; native live capture with installed OS capture support remains a 
 gap. It is not a claim that this machine's real traffic has been captured successfully.
 
 ## Current-source host port scanner
+
+Included in published v0.7.0; the heading remains compatible with existing deep links.
 
 Network → Port scanner checks one hostname or IP on explicitly chosen TCP ports. Common-service
 and development presets are editable, and ranges such as `8000-8010` are supported. **All ports
@@ -136,7 +141,7 @@ Windows and UDP on Linux. No traceroute executable, packet-capture driver, or el
 The same per-hop, probe-count, rate, and wall-time limits apply. Cancellation stops after the current
 native call returns (within its chosen per-probe timeout, at most two seconds). Scoped link-local
 IPv6 destinations remain unavailable. Native IPv4 and IPv6 loopback tests run on Windows. Stable
-v0.6.1 reports macOS active probes as unsupported; current source adds the backend described below.
+v0.6.1 reports macOS active probes as unsupported; v0.7.0 adds the backend described below.
 
 Windows reply status and millisecond RTT are retained as native evidence. A timeout has no invented
 responder or latency. Hop RTT includes the path from this PC to that responder and back; it cannot
@@ -240,7 +245,7 @@ ICMP-only and TCP path methods are not implemented in this slice.
 
 ### macOS native evidence · current source, 22 October 2026
 
-Current source adds unprivileged native ICMP echo probing for IPv4/IPv6 on Darwin. Auto chooses
+v0.7.0 adds unprivileged native ICMP echo probing for IPv4/IPv6 on Darwin. Auto chooses
 this backend on macOS; no traceroute executable, capture driver or elevation is requested. Reply
 matching checks probe identity and the pinned destination, preserving timeouts and per-responder
 source RTT. The fixed rate/wall limits apply, and cancellation closes the owned socket.
@@ -458,7 +463,7 @@ disclose those losses before a user treats GraphML as a backup.
 
 ProtoPeek accepts bounded XML previously produced by `nmap -oX`. Existing XML import works
 without Nmap installed and never executes an imported command. The stable v0.5.0 workflow is
-offline import. Current source also includes the explicit installed-tool workflow below.
+offline import. v0.7.0 also includes the explicit installed-tool workflow below.
 
 Imported Nmap service and device labels are untrusted hints. A literal open TCP endpoint must be
 verified through ProtoPeek's bounded scanner before opening gRPC or HTTP.
@@ -475,6 +480,8 @@ links. It does not overwrite another map, run Nmap, verify services or contact c
 The existing Scan-dialog XML inventory import remains available separately.
 
 ### Installed Nmap in current source
+
+Included in published v0.7.0; the heading remains compatible with existing deep links.
 
 Open **Network → Nmap** (or search for Nmap). ProtoPeek checks PATH and, on Windows, the standard
 Program Files Nmap directories. It does not install Nmap or Npcap. Missing-engine guidance links to
@@ -514,7 +521,7 @@ OS fingerprinting, vulnerability scripts or hidden follow-up scans are included 
 
 ### Soon — deepen evidence without pretending certainty
 
-- Exact-commit native macOS and real intermediate-hop acceptance for the current-source backend.
+- Exact-commit native macOS and real intermediate-hop acceptance for the v0.7.0 backend.
 - More source-labelled enrichment beyond the current neighbor cache and mDNS records; aliases remain suggestions, not automatic datacenter claims.
 - Further source-labelled comparison/enrichment beyond the current immutable A/B snapshot diff.
 - Better topology grouping and manual subnet/VLAN documentation without scan-derived VLAN claims.

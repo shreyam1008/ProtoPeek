@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Settings","description":"Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings.","url":"https://protopeek.shreyam1008.com.np/settings/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/settings/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/settings.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Settings","item":"https://protopeek.shreyam1008.com.np/settings/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Settings","description":"Configure ProtoPeek’s local appearance and preferences, review the reversible GoBarryGo bridge, and manage Downloader host settings.","url":"https://protopeek.shreyam1008.com.np/settings/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/settings/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/settings.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Settings","item":"https://protopeek.shreyam1008.com.np/settings/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -70,7 +70,7 @@
               <p>Which settings stay in this browser or host?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.1
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -131,7 +131,7 @@
             <article>
               <span>03 · Control</span>
               <h2>Change supported host values</h2>
-              <p>Current source keeps Downloader engine settings in a private host file, not localStorage.</p>
+              <p>ProtoPeek keeps Downloader engine settings in a private host file, not localStorage.</p>
             </article>
 
     </section>
@@ -140,26 +140,26 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>ProtoPeek separates browser-only preferences from private host configuration. Stable v0.5.0 includes appearance, local interface preferences, and the reversible GoBarryGo bridge; Downloader host controls are current source after v0.5.0.</p>
+                <p>ProtoPeek separates browser-only preferences from private host configuration. Stable v0.5.0 includes appearance, local interface preferences, and the reversible GoBarryGo bridge; Downloader host controls are included in v0.6.1 and v0.7.0.</p>
 <h2 id="shape-this-browser">Shape this browser</h2>
-<p>Current source uses compact vertical sections: Appearance, Preferences, Downloads, and Migration. Switching sections preserves an unsaved host-settings draft. The selected section scrolls independently; download Save/Reload actions stay visible. Arrow Up/Down, Home and End navigate the section list.</p>
+<p>v0.7.0 uses compact vertical sections: Appearance, Preferences, Downloads, and Migration. Switching sections preserves an unsaved host-settings draft. The selected section scrolls independently; download Save/Reload actions stay visible. Arrow Up/Down, Home and End navigate the section list.</p>
 <p>Theme, density, and keyboard-hint preferences stay in this browser profile. Changing them does not write a server account, external database, or ProtoPeek cloud workspace.</p>
-<p>Current-source HTTP saved requests also belong to this browser origin. Manage them in <strong>Inspect → HTTP → Saved requests</strong>: 50 recipes / 512 KiB total, with body storage explicitly enabled per saved request. Auth values are excluded. Delete and Reset affect the library; Export creates a portable JSON record. Global Ctrl+K can load a recipe without sending it.</p>
+<p>HTTP saved requests also belong to this browser origin. Manage them in <strong>Inspect → HTTP → Saved requests</strong>: 50 recipes / 512 KiB total, with body storage explicitly enabled per saved request. Auth values are excluded. Delete and Reset affect the library; Export creates a portable JSON record. Global Ctrl+K can load a recipe without sending it.</p>
 <p>Missing or malformed interface preferences fall back to defaults. If a preference write fails, the live choice still applies and Settings shows that it is session-only. Retrying the affected choice can save it after storage becomes available; saving a different preference does not hide the earlier failure.</p>
 <h2 id="preview-the-gobarrygo-bridge">Preview the GoBarryGo bridge</h2>
 <p>The stable bridge is read-first:</p>
 <ol><li><div class="pp-doc-list-title">preview the one known local GoBarryGo profile;</div></li><li><div class="pp-doc-list-title">review bounded preferences and session state;</div></li><li><div class="pp-doc-list-title">import only after an explicit action; and</div></li><li><div class="pp-doc-list-title">keep a private receipt for guarded rollback.</div></li></ol>
 <p>Import copies allowlisted state into ProtoPeek, leaves GoBarryGo files unchanged, and pauses imported jobs. Rollback is allowed only while current ProtoPeek transfer state still matches the receipt. GoBarryGo releases, repository history, and public origin remain independent.</p>
 <h2 id="configure-downloader-on-the-host">Configure Downloader on the host</h2>
-<p>This section is available in current source after v0.5.0, not in the published stable packages.</p>
+<p>These host controls are available in published v0.7.0 and the earlier v0.6.1 packages.</p>
 <p>Supported controls cover the aria2 executable, download directory, active jobs, per-host connections, bandwidth cap, disk reserve, resume behavior, file allocation, overwrite policy, and TLS verification.</p>
 <p>Host settings live in the private transfer configuration, not browser localStorage. A strict revisioned patch preserves hidden fields and refuses writes unless the engine is stopped and the cooperative process lock is held.</p>
 <p>The folder picker lists local directories only, on request, and is shared by Downloader and Taildrop. Queued and paused downloads reserve their output names before creating files. The auto-rename policy chooses a free name; overwrite cannot assign another active job&#39;s destination. Explicit retry retains the chosen output name and partial-download behavior.</p>
 <h2 id="know-where-each-value-lives">Know where each value lives</h2>
-<table tabindex="0" aria-labelledby="know-where-each-value-lives"><thead><tr><th>Setting</th><th>Storage boundary</th><th>Release state</th></tr></thead><tbody><tr><td>Theme, density, keyboard hints</td><td>This browser profile</td><td>Stable v0.5.0</td></tr><tr><td>GoBarryGo preview, import, rollback receipt</td><td>Local process and private state</td><td>Stable v0.5.0</td></tr><tr><td>Downloader engine and resource controls</td><td>Private host configuration</td><td>Current source after v0.5.0</td></tr></tbody></table>
+<table tabindex="0" aria-labelledby="know-where-each-value-lives"><thead><tr><th>Setting</th><th>Storage boundary</th><th>Release state</th></tr></thead><tbody><tr><td>Theme, density, keyboard hints</td><td>This browser profile</td><td>Stable v0.5.0</td></tr><tr><td>GoBarryGo preview, import, rollback receipt</td><td>Local process and private state</td><td>Stable v0.5.0</td></tr><tr><td>Downloader engine and resource controls</td><td>Private host configuration</td><td>Stable v0.6.1 onward</td></tr></tbody></table>
 <h2 id="go-deeper">Go deeper</h2>
-<p>Current source after v0.6.1 also includes <strong>AI agents</strong>, a secondary workspace for pairing a local MCP/CLI agent and watching its actual calls. Access starts off; write actions are a separate choice. The private pairing file belongs to the host and activity results stay in memory. See the <a href="/ai-agents/">local AI agent guide</a>. This is not included in v0.6.1 stable binaries.</p>
-<ul><li><a href="/downloader/">Use Downloader and inspect its external aria2 boundary</a>.</li><li><a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the GoBarryGo consolidation record</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.6.1</a>.</li></ul>
+<p>Published v0.7.0 also includes <strong>AI agents</strong>, a secondary workspace for pairing a local MCP/CLI agent and watching its actual calls. Access starts off; write actions are a separate choice. The private pairing file belongs to the host and activity results stay in memory. See the <a href="/ai-agents/">local AI agent guide</a>. Older v0.6.1 binaries do not include this workspace.</p>
+<ul><li><a href="/downloader/">Use Downloader and inspect its external aria2 boundary</a>.</li><li><a href="https://github.com/shreyam1008/ProtoPeek/blob/master/guides/gobarrygo-consolidation.md" rel="noreferrer" target="_blank">Read the GoBarryGo consolidation record</a>.</li><li><a href="/install/">Install stable ProtoPeek v0.7.0</a>.</li></ul>
 <h2 id="updates-new-on-nightly">Updates (new on Nightly)</h2>
 <p>Choose <strong>Settings → Updates</strong> to inspect the installed version, platform and installation method. <strong>Check for updates</strong> contacts GitHub on demand and shows the selected stable/nightly/legacy-edge release, download size and release notes. Nothing checks or installs automatically. Direct installations offer a separate confirmation and <strong>Install update</strong>, with progress, cancellation and an explicit server-restart notice. Managed installations show the correct manager command. <code>pp update</code> and <code>protopeek update</code> use the same backend on Windows, macOS and Linux. See the <a href="../install/">installation guide</a> for first-time bootstrap and recovery.</p>
               </div>
@@ -181,7 +181,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements.</p>
+                <p>Published v0.7.0 includes local preferences, host controls and the manual updater. Older binaries need an initial installer upgrade; managed installs retain their manager.</p>
               </section>
             </aside>
           </div>
@@ -208,7 +208,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

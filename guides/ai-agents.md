@@ -1,7 +1,7 @@
 # Local AI agents
 
 The original adapter is published in the [legacy Edge prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge), outside v0.6.1 stable.
-**The expanded protocol, packet and extension catalog below describes current source, 23 October 2026.**
+**The expanded protocol, packet and extension catalog below ships in published v0.7.0.**
 [Nightly](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) is the separate rolling
 preview. Read `protopeek agent tools` from the running build for its actual capabilities; an older archive
 can expose fewer tools. ProtoPeek does not bundle a model, require an AI
@@ -34,7 +34,7 @@ For clients that accept an `mcpServers` JSON object:
 }
 ```
 
-Current source also offers client-specific **configuration fragments** for Codex CLI, Claude
+v0.7.0 also offers client-specific **configuration fragments** for Codex CLI, Claude
 Code, Gemini CLI and OpenCode from their Extensions entries and AI agent setup. AI agent setup
 also offers LM Studio, whose Extensions Endpoint guide links to that profile through
 **Configure LM Studio**, plus a generic profile. Merge the fragment

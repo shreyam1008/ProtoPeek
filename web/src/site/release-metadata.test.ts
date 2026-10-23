@@ -29,6 +29,23 @@ const stableVersion = product.latestRelease.version;
 const packagedVersion = product.releaseCandidate?.version ?? stableVersion;
 
 describe('release metadata', () => {
+  it('aligns public discovery resource versions without inventing a hosted service', () => {
+    const status = JSON.parse(readRepositoryFile('web/site/public/.well-known/status.json'));
+    const card = JSON.parse(readRepositoryFile('web/site/public/.well-known/mcp/server-card.json'));
+    const openapi = JSON.parse(readRepositoryFile('web/site/public/openapi.json'));
+    const webmcp = readRepositoryFile('web/src/site/main.tsx');
+    expect(status.version).toBe(stableVersion);
+    expect(status.scope).toContain('run locally');
+    expect(card.serverInfo.version).toBe(stableVersion);
+    expect(card.transports).toEqual([]);
+    expect(card.capabilities.tools).toEqual([]);
+    expect(card.capabilities.localOnly).toBe(true);
+    expect(openapi.info.version).toBe(stableVersion);
+    expect(openapi.openapi).toBe('3.1.0');
+    expect(webmcp).toContain(`version: '${stableVersion}'`);
+    expect(webmcp).toContain(`/releases/tag/v${stableVersion}`);
+  });
+
   it('keeps the stable release and independently promoted package versions explicit', () => {
     const packageVersions = Object.fromEntries(
       product.distributions.map((channel) => [channel.channel, channel.version])
@@ -128,7 +145,9 @@ describe('release metadata', () => {
     expect(document.title).toContain('gRPC, HTTP');
     expect(siteIndex).toContain(`"softwareVersion": "${stableVersion}"`);
     expect(siteIndex).toContain(`/releases/tag/v${stableVersion}`);
-    expect(siteIndex).toContain('six areas: Home, Inspect, Network, Publish, Files, and Settings');
+    expect(siteIndex).toContain(
+      'six areas: Home, Inspect, Network, Extensions, Files, and Settings'
+    );
     expect(siteIndex).toContain(
       '<meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />'
     );
@@ -233,7 +252,9 @@ describe('release metadata', () => {
     const security = readRepositoryFile('guides/website-analysis-security.md');
 
     expect(consolidation).toContain('No public redirect or repository\narchive has happened');
-    expect(consolidation).toContain('Homebrew and Scoop channels install v0.6.1');
+    expect(consolidation).toContain(
+      'Homebrew and Scoop manifests identify their independently verified package versions'
+    );
     expect(consolidation).toContain('GoBarryGo PR `#3` merged as `144c725c`');
     expect(consolidation).toContain('The permanent redirect remains disabled');
     expect(consolidation).toContain('pp download [--output NAME] [--sha256 64_HEX] URL');
@@ -258,13 +279,17 @@ describe('release metadata', () => {
     expect(security).toMatch(/does\s+not emit a security score/);
   });
 
-  it('keeps historical release captures separate from verified unreleased source PNGs', () => {
+  it('keeps historical, source-preview and actual package captures independently identified', () => {
     const manifest = JSON.parse(readRepositoryFile('guides/screenshots.json')) as {
       screenshots: Array<{
         file: string;
         alt: string;
         capturedVersion: string;
         releaseStatus?: string;
+        captureStage?: string;
+        sourceCommit?: string;
+        artifactSha256?: string;
+        publicArtifactVerifiedAt?: string;
         width?: number;
         height?: number;
         sha256?: string;
@@ -272,7 +297,7 @@ describe('release metadata', () => {
       }>;
     };
 
-    expect(manifest.screenshots).toHaveLength(9);
+    expect(manifest.screenshots).toHaveLength(11);
     const releaseCaptures = manifest.screenshots.filter(
       (screenshot) => screenshot.releaseStatus === 'released-v0.5.0'
     );
@@ -288,6 +313,33 @@ describe('release metadata', () => {
           /promoted into v0\.5\.0/.test(screenshot.workflow)
       )
     ).toBe(true);
+
+    const packageCaptures = manifest.screenshots.filter(
+      (screenshot) => screenshot.releaseStatus === 'release-package-capture'
+    );
+    expect(packageCaptures.map((screenshot) => screenshot.file)).toEqual([
+      '../web/site/public/assets/protopeek-v0.7.0-home-20261023.png',
+      '../web/site/public/assets/protopeek-v0.7.0-extensions-20261023.png',
+    ]);
+    for (const capture of packageCaptures) {
+      expect(capture.capturedVersion).toBe('v0.7.0 Windows x64 release-package draft');
+      expect(capture.captureStage).toBe('pre-publication');
+      expect(capture.publicArtifactVerifiedAt).toBe('2026-10-23');
+      expect(capture.sourceCommit).toBe('16044643efb349f8586f4278a83988b35a0932d9');
+      expect(capture.artifactSha256).toBe(
+        '0ba38641b5e7d87ff714384a7ae845dd208100a3406f79ff027380966ea19b31'
+      );
+      expect(capture.workflow).toContain('Pixels are unchanged');
+      expect(capture.alt).toMatch(/^ProtoPeek v0\.7\.0 (Home|Extensions)\b/);
+      const png = readRepositoryBytes(`guides/${capture.file}`);
+      expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      expect(png.subarray(12, 16).toString()).toBe('IHDR');
+      expect(png.readUInt32BE(16)).toBe(1366);
+      expect(png.readUInt32BE(20)).toBe(900);
+      expect(capture.width).toBe(1366);
+      expect(capture.height).toBe(900);
+      expect(createHash('sha256').update(png).digest('hex')).toBe(capture.sha256);
+    }
 
     const sourceCaptures = manifest.screenshots.filter(
       (screenshot) => screenshot.releaseStatus === 'unreleased-source'

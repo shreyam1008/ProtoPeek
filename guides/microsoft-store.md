@@ -1,6 +1,26 @@
 # Microsoft Store preparation
 
-Checkpoint: 11 September 2026. **Submitted: Partner Center shows In certification, preprocessing in progress; not yet published.**
+Historical checkpoint: 11 September 2026. **Submitted: Partner Center shows In certification, preprocessing in progress; not yet published.**
+
+## Public listing checkpoint · 23 October 2026
+
+The anonymous [Microsoft Store listing](https://apps.microsoft.com/detail/9MXQ75XW900Q) is now
+public, with ProtoPeek, publisher shreyam1008 and an Install/View in Store action observed.
+The public page does not identify its installed package version; old screenshot captions do
+not establish that version. The v0.7.0.0 MSIX update was submitted on 23 October: Partner Center
+shows Update in certification, Submission complete and Preprocessing, with automatic publication
+after approval. Certification completion, public0.7 delivery and actual Store installation/upgrade
+acceptance remain separate gates. The September submission
+and local-development evidence below are retained as history.
+
+The [v0.7.0 package build](https://github.com/shreyam1008/ProtoPeek/actions/runs/39944225831)
+passed. The downloaded 0.7.0.0 x64 MSIX SHA-256 is
+`4118fa5bff206e897c765eefb295967fdb39d7feb642aa598c0401ce8ff4e563`.
+Its 25 package members, identity, aliases, runFullTrust capability and images were checked;
+the retained release payload matches the public Windows archive byte for byte.
+Submission 2 (`1152921505702212958`) saved this validated package, updated English copy,
+nine features and two additional current screenshots, retaining the older pair.
+Pricing, availability, properties and submission options stayed unchanged.
 
 ## Identity and package
 
@@ -14,7 +34,7 @@ Checkpoint: 11 September 2026. **Submitted: Partner Center shows In certificatio
 
 Use MSIX, Windows desktop x64, minimum Windows 10 build 19041. A browser UI does not require a PWA rewrite: the package contains the existing console application and opens the locally served UI. `protopeek.exe` and `pp.exe` are execution aliases. The console owns process lifetime. `runFullTrust` is required for the existing local server, files, OS network evidence and optional child tools.
 
-The reserved future Store address must not be shown as an available download before anonymous verification of publication. The dashboard warns that names must be submitted within three months of reservation (11 December 2026 for this reservation).
+The public Store address above has now been anonymously verified. Do not describe a new package version as available until its separate submission and installed-package evidence are verified. The dashboard warns that names must be submitted within three months of reservation (11 December 2026 for this reservation).
 
 ## Build
 
@@ -48,7 +68,7 @@ Development registration is not a Store-signed installation test. Still test Sta
 - Owner completed age ratings; Partner Center shows Complete. The questionnaire preview returned ESRB Everyone and PEGI/Store 3+.
 - Store description, features, keywords, captions, release notes and full-trust certification explanation are in [listing copy](../packaging/windows/store/listing.md).
 - Privacy text saved in [privacy-policy.txt](../packaging/windows/store/privacy-policy.txt).
-- All five required sections showed Complete before submission. Submit for certification succeeded; the overview now shows In certification, Submission complete and Pre-processing in progress. Automatic publishing after certification is selected. Await Microsoft's result and verify the public listing before adding a Store download link.
+- All five required sections showed Complete before submission. Submit for certification succeeded; the overview now shows In certification, Submission complete and Pre-processing in progress. Automatic publishing after certification is selected. At that September checkpoint, Microsoft's result and anonymous publication verification were still pending; the October listing checkpoint above supersedes that publication status.
 
 ## Release automation
 
@@ -58,6 +78,6 @@ The checked-out packaging recipe comes from master and wraps unchanged release b
 
 First hosted run [34576442795](https://github.com/shreyam1008/ProtoPeek/actions/runs/34576442795) passed at workflow commit `763af48`. Its retained v0.6.1 MSIX SHA-256 is `a1bda2d48a4b27806ba784d75116d97e06dd3673e8e6b485ba6648db9ef103de`. The CI artifact was downloaded with its receipt. Local and CI package hashes differ because package generation is not claimed reproducible; both wrap the same verified release archive. Local source validation passed all 783 UI tests and `go test ./...`; lint reported existing warnings without errors.
 
-For automatic Store updates, finish the first submission, associate a Microsoft Entra tenant with Partner Center, configure app-scoped API access, and store tenant/client credentials as GitHub environment secrets. Then add an environment-gated `msstore` upload/submission job and poll certification. Never put a client secret or an interactive Microsoft-account password into a workflow or documentation. Account verification alone does not provide this API setup.
+For automated future Store submissions, verify the existing submission state, associate a Microsoft Entra tenant with Partner Center, configure app-scoped API access, and store tenant/client credentials as GitHub environment secrets. Then add an environment-gated `msstore` upload/submission job and poll certification. Never put a client secret or an interactive Microsoft-account password into a workflow or documentation. Account verification alone does not provide this API setup.
 
 References: [MSIX package requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-package-requirements), [console execution aliases](https://learn.microsoft.com/en-us/uwp/schemas/appxpackage/uapmanifestschema/element-uap5-appexecutionalias), [Microsoft Store Developer CLI](https://learn.microsoft.com/en-us/windows/apps/publish/msstore-dev-cli/overview).

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ProtoPeek public documentation resources",
-    "version": "0.6.1",
+    "version": "0.7.0",
     "description": "Read-only documentation and discovery resources for ProtoPeek. The workbench runs locally; this website does not expose a hosted service proxy or remote MCP transport."
   },
   "servers": [{ "url": "https://protopeek.shreyam1008.com.np" }],

@@ -15,17 +15,17 @@ planned claims explicitly separate.
 
 ## Product architecture
 
-- Current source has six destinations: Home, Inspect, Network, Extensions, Files, and Settings.
-  Stable v0.6.1 uses the earlier Publish destination; keep those release claims separate.
+- Stable v0.7.0 has six destinations: Home, Inspect, Network, Extensions, Files, and Settings.
+  Historical v0.6.1 uses the earlier Publish destination; keep those release claims separate.
 - Security belongs under Inspect, This Device under Network, Tailscale and Cloudflare Tunnel
   together under Extensions, and Downloader under Files. Packet-file reading remains a core
   Network tool; live capture and Nmap use optional external tools. Roadmap and Help remain secondary.
 - Preserve existing routes and deep links as compatibility paths while the information architecture
   changes.
-- The installed Tailscale foundation ships in v0.6.1. Current source adds a separate Headscale
+- The installed Tailscale foundation ships in v0.6.1. Stable v0.7.0 adds a separate Headscale
   HTTPS login-server account flow, native NetBird evidence/actions and reviewed temporary publishing.
-  Integrated sign-in/elevation and provider administration remain user-owned or gated. Keep those
-  source implementations distinct from published-release and real-account acceptance evidence.
+  Integrated sign-in/elevation and provider administration remain user-owned or gated. Keep
+  published software availability distinct from real-account acceptance evidence.
 
 ## Feature admission
 

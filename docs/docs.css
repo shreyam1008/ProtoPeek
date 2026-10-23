@@ -1317,7 +1317,8 @@ a:hover {
   gap: 16px;
 }
 
-.pp-doc-prose a {
+.pp-doc-prose a,
+.pp-download-main p a {
   text-decoration: underline;
   text-underline-offset: 0.18em;
 }
@@ -1357,6 +1358,8 @@ a:hover {
   font-size: 0.86rem;
 }
 
+.pp-doc-code:focus-visible,
+.pp-download-cli pre:focus-visible,
 .pp-doc-prose table:focus-visible {
   outline: 2px solid var(--pp-brand);
   outline-offset: 3px;

@@ -44,10 +44,10 @@ describe('This Device release guide', () => {
       /stable active-hop probing supports Linux UDP and Windows\s+IPv4\/IPv6 ICMP/
     );
     expect(guide).toContain(
-      'current source adds unprivileged macOS ICMP with its own native acceptance gate'
+      'v0.7.0 adds unprivileged macOS ICMP with its own native acceptance gate'
     );
     expect(guide).toContain('Stable v0.6.1 reports macOS sampling as unsupported');
-    expect(guide).toMatch(/current source reads native\s+`NET_RT_IFLIST2` counters/);
+    expect(guide).toMatch(/v0\.7\.0 reads native\s+`NET_RT_IFLIST2` counters/);
     expect(guide).toContain(
       'socket activity and process ownership remain outside the implemented macOS contract'
     );
@@ -55,7 +55,7 @@ describe('This Device release guide', () => {
     expect(guide).not.toContain('for the planned native Windows backend');
     expect(guide).toContain('single-flow HTTPS connection quality to Cloudflare edge');
     expect(generator).toContain(
-      'v0.6.1 is the current stable release with Home, Inspect, Network, Publish, Files and Settings'
+      `v${product.latestRelease.version} is the current stable release with Home, Inspect, Network, Extensions, Files and Settings`
     );
     expect(generator).not.toContain('Current source adds a seventh route-lazy area, This PC');
     expect(generator).not.toContain('Current source also adds an eighth route-lazy area');

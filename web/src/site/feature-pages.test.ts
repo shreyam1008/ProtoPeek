@@ -111,6 +111,42 @@ describe('connected public feature guides', () => {
     expect(tables[0]?.getAttribute('aria-labelledby')).toBe('six-native-workbenches');
   });
 
+  it('keeps complete guide commands in named keyboard-focusable scroll regions', () => {
+    let codeBlocks = 0;
+    for (const page of generatedPages) {
+      const guide = parseHtml(`docs/${page.slug}/index.html`);
+      for (const block of guide.querySelectorAll('pre')) {
+        codeBlocks += 1;
+        expect(block.getAttribute('tabindex')).toBe('0');
+        expect(block.getAttribute('role')).toBe('group');
+        const headingId = block.getAttribute('aria-labelledby');
+        const accessibleName = headingId
+          ? guide.getElementById(headingId)?.textContent
+          : block.getAttribute('aria-label');
+        expect(accessibleName?.trim()).toBeTruthy();
+        expect(block.querySelector('code')?.textContent?.trim()).toBeTruthy();
+      }
+    }
+    expect(codeBlocks).toBeGreaterThan(0);
+    const install = parseHtml('docs/install/index.html');
+    expect(install.querySelector('pre code[data-lang="sh"]')?.textContent).toBe(
+      'brew install shreyam1008/tap/protopeek'
+    );
+    const installCommands = Array.from(install.querySelectorAll('pre code')).map(
+      (code) => code.textContent ?? ''
+    );
+    expect(installCommands).toContain(
+      'irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 -OutFile install.ps1\nGet-Content .\\install.ps1\n.\\install.ps1'
+    );
+    const css = readRepositoryFile('web/site/public/docs.css');
+    expect(css).toMatch(
+      /\.pp-doc-code:focus-visible,[\s\S]*?\.pp-doc-prose table:focus-visible\s*\{[^}]*outline: 2px solid var\(--pp-brand\)/
+    );
+    expect(css).toMatch(
+      /\.pp-doc-prose a,\s*\.pp-download-main p a\s*\{[^}]*text-decoration: underline/
+    );
+  });
+
   it('groups the protocol family and existing domains without inventing provider pages', () => {
     const groupByPage = Object.fromEntries(registry.pages.map((page) => [page.id, page.group]));
 
@@ -134,8 +170,9 @@ describe('connected public feature guides', () => {
 
   it('documents the 20-entry library without treating every entry as a native adapter', () => {
     const page = registry.pages.find((candidate) => candidate.id === 'extensions');
-    expect(page?.status?.label).toBe('Current source');
-    expect(page?.status?.detail).toContain('Stable v0.6.1 retains the earlier navigation');
+    expect(page?.status?.label).toBe('Stable · v0.7.0');
+    expect(page?.status?.detail).toContain('six native workbenches');
+    expect(page?.status?.detail).toContain('Native-client/account acceptance remains separate');
     const guide = parseHtml('docs/extensions/index.html');
     const text = guide.body.textContent?.replace(/\s+/g, ' ') ?? '';
     const catalog = JSON.parse(

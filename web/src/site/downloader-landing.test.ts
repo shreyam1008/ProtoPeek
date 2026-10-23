@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import product from '../../../product.json';
 
 function readRepositoryFile(path: string) {
   return readFileSync(`${process.cwd()}/${path}`, 'utf8');
@@ -24,7 +25,7 @@ describe('Downloader public landing page', () => {
       'https://protopeek.shreyam1008.com.np/downloader/'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(
-      'ProtoPeek v0.6.1 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.'
+      'ProtoPeek v0.7.0 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.'
     );
     expect(downloader.querySelector('meta[name="description"]')?.getAttribute('content')).not.toBe(
       homepage.querySelector('meta[name="description"]')?.getAttribute('content')
@@ -94,7 +95,7 @@ describe('Downloader public landing page', () => {
       .map((entry) => entry.file.replace('../web/site/public', ''));
 
     expect(screenshots.map((image) => image.getAttribute('src'))).toEqual(releaseScreenshotFiles);
-    expect(renderedText).toMatch(/Stable ProtoPeek v0\.6\.1/i);
+    expect(renderedText).toContain(`Stable ProtoPeek v${product.latestRelease.version}`);
     expect(renderedText).toMatch(/Homebrew and Scoop/i);
     expect(renderedText).toMatch(/Bundled on Windows x64; installed aria2 elsewhere/i);
     expect(renderedText).toMatch(/up to 32 independent jobs/i);

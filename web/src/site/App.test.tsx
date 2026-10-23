@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import product from '../../../product.json';
 import { App } from './App';
+
+const publishedVersion = product.latestRelease.version;
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -63,7 +66,7 @@ describe('public site', () => {
       'href',
       '/extensions/'
     );
-    expect(within(product).getByText(/Current source: native workbenches/)).toBeVisible();
+    expect(within(product).getByText(/Native workbenches/)).toBeVisible();
     expect(within(product).getByRole('link', { name: /make your first request/i })).toHaveAttribute(
       'href',
       '/http-workbench/'
@@ -74,10 +77,9 @@ describe('public site', () => {
         .getAllByRole('link')
         .map((link) => link.getAttribute('href'))
     ).toEqual(['/http-workbench/', '/grpc-workbench/', '/event-streams/', '/capnp-workbench/']);
-    expect(screen.getByRole('link', { name: 'Install stable v0.6.1' })).toHaveAttribute(
-      'href',
-      '#install'
-    );
+    expect(
+      screen.getByRole('link', { name: `Install stable v${publishedVersion}` })
+    ).toHaveAttribute('href', '#install');
     expect(within(product).getByRole('link', { name: /trace the path/i })).toHaveAttribute(
       'href',
       '/network-workbench/#network-path'
@@ -92,7 +94,7 @@ describe('public site', () => {
     );
   });
 
-  it('keeps dated legacy Edge screenshots separate from stable install commands', () => {
+  it('shows actual v0.7.0 package captures with honest stage and intrinsic dimensions', () => {
     render(<App />);
 
     const evidence = screen.getByRole('region', { name: 'One workbench. Real evidence.' });
@@ -101,11 +103,24 @@ describe('public site', () => {
         .getAllByRole('img')
         .map((image) => image.getAttribute('src'))
     ).toEqual([
-      '/assets/protopeek-workspace-edge-mobile.png',
-      '/assets/protopeek-workspace-edge-desktop.png',
+      '/assets/protopeek-v0.7.0-extensions-20261023.png',
+      '/assets/protopeek-v0.7.0-home-20261023.png',
     ]);
-    expect(within(evidence).getByText('Legacy Edge · persistent desktop navigation')).toBeVisible();
-    expect(within(evidence).getByText('Legacy Edge · responsive Home')).toBeVisible();
+    expect(within(evidence).getByText('v0.7.0 Windows package · Extensions')).toBeVisible();
+    expect(within(evidence).getByText('v0.7.0 Windows package · Home')).toBeVisible();
+    expect(evidence).toHaveTextContent('taken before publication');
+    expect(evidence).toHaveTextContent('public bytes were later verified unchanged');
+    for (const image of within(evidence).getAllByRole('img')) {
+      expect(image).toHaveAttribute('width', '1366');
+      expect(image).toHaveAttribute('height', '900');
+      expect(image.closest('a')).toHaveAttribute('href', image.getAttribute('src'));
+    }
+    const homeImages = screen.getAllByRole('img', {
+      name: 'ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry',
+    });
+    expect(homeImages).toHaveLength(2);
+    expect(homeImages[0]).toHaveAttribute('fetchpriority', 'high');
+    expect(screen.getByText(/captured 23 October 2026 before publication/)).toBeVisible();
   });
 
   it('connects the network family with direct guides and explicit optional capture boundaries', () => {
@@ -134,7 +149,8 @@ describe('public site', () => {
     for (const [name, href] of Object.entries(destinations)) {
       expect(within(family).getByRole('link', { name })).toHaveAttribute('href', href);
     }
-    expect(family).toHaveTextContent('matching current-source build');
+    expect(family).toHaveTextContent('included in v0.7.0');
+    expect(family).toHaveTextContent('installed-tool and native acceptance remain separate');
     expect(family).toHaveTextContent('full 1–65,535 range');
     expect(family).toHaveTextContent('Core reader: no Wireshark install');
     expect(family).toHaveTextContent('OS permissions required; only host-visible traffic');

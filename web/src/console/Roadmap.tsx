@@ -128,7 +128,7 @@ const roadmap = [
       ],
       [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned v0.6.1 archives, declare aria2 as an external dependency, and provide both protopeek and pp.',
+        'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned stable archives, declare aria2 as an external dependency, and provide both protopeek and pp. Each manifest records its independently promoted version.',
       ],
     ],
   },
@@ -139,7 +139,7 @@ const roadmap = [
     items: [
       [
         'Native installed-tool acceptance',
-        'Run actual macOS loopback/counter CI and native capture, account and service scenarios. Fixtures and cross-compilation do not prove installed-client or real-router behavior.',
+        'macOS loopback and counter checks run in native CI. Extend real capture, installed-client, account and service acceptance; fixtures and cross-compilation do not prove provider or real-router behavior.',
       ],
       [
         'Broader aria2 packaging',

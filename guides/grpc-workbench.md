@@ -4,7 +4,7 @@ ProtoPeek keeps a gRPC request, its schema, and the evidence returned by the sel
 
 ## Connect one target
 
-In matching current source, Home can prepare the target directly: select **gRPC · TLS** or
+In v0.7.0, Home can prepare the target directly: select **gRPC · TLS** or
 **gRPC · plaintext**, enter the address, and choose **Open gRPC**. This does not connect or
 run discovery. The target form keeps the selected transport visible before **Connect**.
 
@@ -23,11 +23,11 @@ ProtoPeek can learn a service through:
 
 A browser folder is a bounded in-memory snapshot. ProtoPeek saves no browser handle, file bytes, folder name, or host path, so the folder must be selected again after reload.
 
-Current source shows required host proto/protoset fields beside the schema selector. Enter in
+v0.7.0 shows required host proto/protoset fields beside the schema selector. Enter in
 the address field submits Connect; multiline path fields retain normal newline editing. Discovery
 starts from an explicit action or a target supplied on the command line.
 
-For host schemas in current source, an entry such as `test.proto` resolves against the import
+For host schemas in v0.7.0, an entry such as `test.proto` resolves against the import
 roots in order. Preflight file-size checks use the same resolution as the compiler, including
 absolute entries and duplicate filenames across roots. CA, client-certificate and key paths are
 files on the machine running ProtoPeek; a custom CA preserves certificate verification.
@@ -50,7 +50,7 @@ ProtoPeek separates:
 
 Those timings are not packet arrival, server processing time, or universal TTFB. If a local response limit ends the call, retained messages remain visible and the unobserved server status is not invented.
 
-Current source puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down
+v0.7.0 puts request/metadata and response-evidence tabs beside the editors. Arrow Up/Down
 navigates those lists. Copy actions report success or failure, and changing the displayed response
 invalidates pending clipboard feedback.
 
@@ -73,5 +73,5 @@ When the selected service exposes canonical `grpc.health.v1.Health`, ProtoPeek c
 
 - [Learn the protocol concepts behind the workbench](/learn-grpc/).
 - [See the shared transport and safety boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.6.1](/install/).
+- [Install stable ProtoPeek v0.7.0](/install/).
 

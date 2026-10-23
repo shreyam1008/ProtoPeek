@@ -1,6 +1,6 @@
 # HTTP workbench
 
-Current source places request settings and response evidence in vertical tabs beside the editors.
+v0.7.0 places request settings and response evidence in vertical tabs beside the editors.
 Request and response remain visible together at desktop widths; narrow screens expose a pane
 switch. Arrow Up/Down navigates each side list.
 
@@ -11,7 +11,7 @@ ProtoPeek sends one bounded HTTP or REST request through the local Go process an
 Open **Inspect → HTTP**, paste the full URL, and choose **Send**. Status, body, headers and timing
 appear beside the request. No account, collection or discovery scan is needed first.
 
-In matching current source, choose **HTTP request** on Home, paste the URL, and select **Open HTTP**.
+In v0.7.0, choose **HTTP request** on Home, paste the URL, and select **Open HTTP**.
 The full path and query prepare an unsent draft; Send remains explicit. **Find a service instead** is a
 separate discovery action. Existing unsent work follows the workbench’s draft-recovery rules.
 
@@ -23,7 +23,7 @@ The live editor can hold credentials for the request you intend to send. Automat
 
 ## Start from an API definition
 
-Current source can import an explicit OpenAPI 3.x or Swagger 2.0 JSON definition from a local file or URL. A Swagger UI or Scalar page URL also works when the page exposes a linked JSON definition. Import adds a searchable operation rail and leaves the current request intact. Choose an operation to replace the method, URL, parameters, headers, and example body. Replacing a request cancels its active operation and clears its previous response.
+v0.7.0 can import an explicit OpenAPI 3.x or Swagger 2.0 JSON definition from a local file or URL. A Swagger UI or Scalar page URL also works when the page exposes a linked JSON definition. Import adds a searchable operation rail and leaves the current request intact. Choose an operation to replace the method, URL, parameters, headers, and example body. Replacing a request cancels its active operation and clears its previous response.
 
 URL imports travel through the same bounded local HTTP relay as other requests. The imported document is capped at 2 MiB and 1,000 operations. YAML, automatic endpoint discovery, code generation, and persisted API collections are deliberately outside this focused slice.
 
@@ -33,13 +33,13 @@ TLS verification is on by default. Redirect following is off by default. If redi
 
 The local relay applies explicit limits to URLs, headers, bodies, timeouts, redirects, response size, and concurrent HTTP work. Cancellation ends the local operation instead of leaving a hidden request running in the browser.
 
-Current-source run shortcuts apply only inside the request controls. Repeated key events,
+Request run shortcuts apply only inside the request controls. Repeated key events,
 input composition, and shortcuts in import panels or dialogs do not send or cancel requests.
 Leaving the HTTP tool cancels an active request.
 
 ## Read the response as HTTP
 
-Current source labels each result with the method and sanitized URL that actually ran. Editing
+v0.7.0 labels each result with the method and sanitized URL that actually ran. Editing
 the draft keeps that label attached to the result and shows an editor-changed notice. Credentials
 remain in memory for execution; the result label uses the same redaction as automatic history.
 
@@ -78,8 +78,8 @@ the library on the same origin; it is not an account or a host-wide database.
 
 ### Current-source additions · 22 October 2026
 
-These additions require a matching current build; the stable v0.6.1 behavior and earlier acceptance
-records do not establish their release or native acceptance.
+These additions are included in published v0.7.0. Earlier v0.6.1 acceptance records remain
+historical; native/runtime acceptance is a separate check.
 
 Choose **Manage environments** to create a profile, add variables, and save it, then select it in
 **Environment**. Use `{{name}}` in the URL, query fields, headers or body. Missing variables fail
@@ -127,4 +127,4 @@ ProtoPeek does not currently provide automatic OpenAPI endpoint discovery, OpenA
 
 - [See how network path evidence stays separate](/network-workbench/).
 - [Read the transport and workspace boundary](/transport-boundaries/).
-- [Install stable ProtoPeek v0.6.1](/install/).
+- [Install stable ProtoPeek v0.7.0](/install/).

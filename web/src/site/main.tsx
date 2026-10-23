@@ -31,8 +31,8 @@ function registerWebMCP() {
       description: 'Return the current stable ProtoPeek release and its GitHub release URL.',
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       execute: () => ({
-        version: '0.6.1',
-        url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1',
+        version: '0.7.0',
+        url: 'https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0',
       }),
     },
     {

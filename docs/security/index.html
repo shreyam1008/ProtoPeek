@@ -32,7 +32,7 @@
     <meta name="twitter:description" content="Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Website security evidence","description":"Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.","url":"https://protopeek.shreyam1008.com.np/security/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/security/","dateModified":"2026-09-07","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/website-analysis-security.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Website security evidence","item":"https://protopeek.shreyam1008.com.np/security/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Website security evidence","description":"Inspect historical certificate names and one consented public website response with bounded DNS, TLS, HTTP, header, redirect, and timing evidence.","url":"https://protopeek.shreyam1008.com.np/security/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/security/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/website-analysis-security.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Website security evidence","item":"https://protopeek.shreyam1008.com.np/security/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -70,7 +70,7 @@
               <p>What can I verify about this public website?</p>
 
     <span class="pp-page-status is-stable is-full">
-      <i aria-hidden="true"></i>Stable · v0.6.1
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -140,7 +140,7 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>Status: one passive historical-name lookup and one direct website observation ship in v0.5.0. Current source also provides copy/save reports, rejected-certificate metadata, a five-path HEAD plan, filtered historical names with unsent Inspect handoffs, and browser-local origin/domain memory. Active vulnerability testing and authenticated audits remain outside this implementation.</p>
+                <p>Status: one passive historical-name lookup and one direct website observation ship in v0.5.0. v0.7.0 also provides copy/save reports, rejected-certificate metadata, a five-path HEAD plan, filtered historical names with unsent Inspect handoffs, and browser-local origin/domain memory. Active vulnerability testing and authenticated audits remain outside this implementation.</p>
 <p>ProtoPeek helps a user understand a website from the perspective of the local ProtoPeek process. It must not become an ambient Internet scanner, a security-score generator, or an automated exploitation tool. This document separates the current build from later safety requirements.</p>
 <h2 id="current-build">Current build</h2>
 <h3 id="follow-one-website-through-the-workbench">Follow one website through the workbench</h3>
@@ -181,7 +181,7 @@
 <p>ProtoPeek core does not perform password guessing, spraying, credential stuffing, authentication bypass, injection payloads, account creation, state-changing requests, directory brute force, <code>.git</code>/<code>.env</code>/admin/backup probing, login testing, CORS payload matrices, exploit verification, denial-of-service, or authenticated crawling.</p>
 <p>An open TCP port would prove only a listener, not a named application protocol. A hostname, route, or source-to-responder RTT would not prove a country, datacenter, provider, owner, physical cable path, or adjacent-link latency.</p>
 <h2 id="evidence-and-test-contract">Evidence and test contract</h2>
-<p>Current tests must continue to prove explicit disclosure/consent, IDNA and public-suffix normalization, special-range and mixed-answer rejection, resolve-once pinned dialing, proxy bypass, no redirect follow, no body read, verified TLS behavior, fixed request method, provider/target timeouts, body/name/header limits, cancellation, admission saturation, malformed provider results, cache bounds, and that candidate names are never contacted. Current-source UI tests additionally prove deterministic case-insensitive header analysis, duplicate-value handling, invalid certificate dates, HTTP without TLS, missing headers, absolute and relative redirect interpretation, fixed status vocabulary, clipboard failure handling, and that copying the JSON report causes no second target-observation request.</p>
+<p>Current tests must continue to prove explicit disclosure/consent, IDNA and public-suffix normalization, special-range and mixed-answer rejection, resolve-once pinned dialing, proxy bypass, no redirect follow, no body read, verified TLS behavior, fixed request method, provider/target timeouts, body/name/header limits, cancellation, admission saturation, malformed provider results, cache bounds, and that candidate names are never contacted. v0.7.0 UI tests additionally prove deterministic case-insensitive header analysis, duplicate-value handling, invalid certificate dates, HTTP without TLS, missing headers, absolute and relative redirect interpretation, fixed status vocabulary, clipboard failure handling, and that copying the JSON report causes no second target-observation request.</p>
 <p>Future features require their own tests for plan invalidation and for every additional request, redirect, body, port, credential, persistence, and export boundary before they can move out of the planned section.</p>
               </div>
             </article>
@@ -202,7 +202,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup.</p>
+                <p>Published v0.7.0 provides explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup; no security score.</p>
               </section>
             </aside>
           </div>
@@ -229,7 +229,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

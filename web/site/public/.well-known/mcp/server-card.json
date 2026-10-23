@@ -3,7 +3,7 @@
   "serverInfo": {
     "name": "protopeek-local-agents",
     "title": "ProtoPeek local agent integrations",
-    "version": "0.6.1",
+    "version": "0.7.0",
     "description": "ProtoPeek's agent and CLI integrations run against a local workbench. The public website does not provide a hosted MCP transport."
   },
   "publisher": { "name": "Shreyam Adhikari", "url": "https://shreyam1008.com.np/" },

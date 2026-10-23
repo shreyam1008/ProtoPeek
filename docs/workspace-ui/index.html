@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ProtoPeek Workspace UI | Navigation, Tools &amp; Local State</title>
-    <meta name="description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand current-source request recovery and its limits." />
+    <meta name="description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand browser-local request recovery and its limits." />
     <meta name="author" content="Shreyam Adhikari" />
     <meta name="creator" content="Shreyam Adhikari" />
     <meta name="application-name" content="ProtoPeek" />
@@ -18,7 +18,7 @@
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="ProtoPeek" />
     <meta property="og:title" content="ProtoPeek Workspace UI | Navigation, Tools &amp; Local State" />
-    <meta property="og:description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand current-source request recovery and its limits." />
+    <meta property="og:description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand browser-local request recovery and its limits." />
     <meta property="og:url" content="https://protopeek.shreyam1008.com.np/workspace-ui/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
@@ -29,10 +29,10 @@
     <meta property="og:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ProtoPeek Workspace UI | Navigation, Tools &amp; Local State" />
-    <meta name="twitter:description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand current-source request recovery and its limits." />
+    <meta name="twitter:description" content="Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand browser-local request recovery and its limits." />
     <meta name="twitter:image" content="https://protopeek.shreyam1008.com.np/protopeek-social-v3.png" />
     <meta name="twitter:image:alt" content="ProtoPeek local systems workbench with protocol, network, machine, security, and download evidence" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Workspace navigation and design","description":"Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand current-source request recovery and its limits.","url":"https://protopeek.shreyam1008.com.np/workspace-ui/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/workspace-ui/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ui-overhaul-2026-09.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Workspace navigation and design","item":"https://protopeek.shreyam1008.com.np/workspace-ui/"}]}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Workspace navigation and design","description":"Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand browser-local request recovery and its limits.","url":"https://protopeek.shreyam1008.com.np/workspace-ui/","mainEntityOfPage":"https://protopeek.shreyam1008.com.np/workspace-ui/","dateModified":"2026-10-23","isBasedOn":"https://github.com/shreyam1008/ProtoPeek/blob/master/guides/ui-overhaul-2026-09.md","author":{"@type":"Person","name":"Shreyam Adhikari","url":"https://shreyam1008.com.np/"},"isPartOf":{"@type":"WebSite","name":"ProtoPeek","url":"https://protopeek.shreyam1008.com.np/"},"about":{"@type":"SoftwareApplication","@id":"https://protopeek.shreyam1008.com.np/#software","name":"ProtoPeek","operatingSystem":["Linux","macOS","Windows"],"applicationCategory":"DeveloperApplication"},"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://protopeek.shreyam1008.com.np/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://protopeek.shreyam1008.com.np/docs/"},{"@type":"ListItem","position":3,"name":"Workspace navigation and design","item":"https://protopeek.shreyam1008.com.np/workspace-ui/"}]}}</script>
   </head>
   <body>
     <a class="pp-skip-link" href="#main-content">Skip to content</a>
@@ -69,8 +69,8 @@
               <h1 id="page-title">Workspace navigation and design</h1>
               <p>Where does each tool belong?</p>
 
-    <span class="pp-page-status is-current is-full">
-      <i aria-hidden="true"></i>Current source
+    <span class="pp-page-status is-stable is-full">
+      <i aria-hidden="true"></i>Stable · v0.7.0
     </span>
 
               <ul class="pp-doc-highlights" aria-label="Page highlights">
@@ -146,10 +146,10 @@
           <div class="pp-doc-main">
             <article class="pp-doc-article">
               <div class="pp-doc-prose">
-                <p>The historical UI overhaul was published in the <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge" rel="noreferrer" target="_blank">legacy Edge prerelease</a> on 7 September 2026. Stable installers remain on v0.6.1. <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly</a> is the separate rolling preview; current source can contain later changes.</p>
+                <p>The historical UI overhaul was published in the <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-edge" rel="noreferrer" target="_blank">legacy Edge prerelease</a> on 7 September 2026. Stable installers now select v0.7.0. <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly</a> is the separate rolling preview; current source can contain later changes.</p>
 <h2 id="design-contract">Design contract</h2>
 <h3 id="current-source-direct-entry-23-october-2026">Current-source direct entry — 23 October 2026</h3>
-<p>Choose <strong>HTTP request</strong>, <strong>gRPC · TLS</strong>, or <strong>gRPC · plaintext</strong> on Home, enter an address, and select <strong>Open HTTP</strong> or <strong>Open gRPC</strong>. HTTP keeps the full URL path and query. gRPC keeps the deliberate transport choice and accepts a service authority rather than an HTTP path. Opening prepares an unsent draft; <strong>Send</strong> or <strong>Connect</strong> remains a separate action. Use <strong>Find a service instead</strong> when you need bounded protocol discovery instead. A matching current-source build is required.</p>
+<p>Choose <strong>HTTP request</strong>, <strong>gRPC · TLS</strong>, or <strong>gRPC · plaintext</strong> on Home, enter an address, and select <strong>Open HTTP</strong> or <strong>Open gRPC</strong>. HTTP keeps the full URL path and query. gRPC keeps the deliberate transport choice and accepts a service authority rather than an HTTP path. Opening prepares an unsent draft; <strong>Send</strong> or <strong>Connect</strong> remains a separate action. Use <strong>Find a service instead</strong> when you need bounded protocol discovery instead. This direct entry is included in published v0.7.0.</p>
 <h3 id="earlier-refinement-record-18-october-2026">Earlier refinement record — 18 October 2026</h3>
 <p>Home accepts a service address and offers direct HTTP/gRPC starts. Pasting a URL uses its host and port for discovery; credentials are rejected before probing. The tool sidebar collapses to the destination rail, with its preference stored in this browser. The narrow-screen drawer has its own state and continues to show the same tools.</p>
 <p><strong>Recent tools</strong> contains navigation links. It does not retain mounted editors or live calls: leaving a tool cancels its operation. Use each workbench&#39;s explicit saved-request and history features for supported recovery. Request run shortcuts belong to the focused request controls, and ignore repeats, input composition, and dialogs. HTTP results identify the request that ran; OpenAPI imports require an operation choice; gRPC failures retain navigation and offer retry. Recent services survive reloads with the server&#39;s sparse scan records. An explicit CLI scan is consumed once by the shell, including when switching between Home and gRPC.</p>
@@ -187,7 +187,7 @@
 
               <section class="pp-doc-side-card pp-doc-boundary-card">
                 <div class="pp-doc-side-label">Product boundary</div>
-                <p>Current-source refinements are separate from the historical legacy Edge build and stable v0.6.1.</p>
+                <p>Published v0.7.0 uses six destinations including Extensions. The dated legacy Edge and unreleased preview captures remain historical evidence.</p>
               </section>
             </aside>
           </div>
@@ -214,7 +214,7 @@
       <nav aria-label="Footer">
         <a href="/docs/">Guides</a>
         <a href="/install/">Download</a>
-        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1" rel="noreferrer" target="_blank">Release notes</a>
+        <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0" rel="noreferrer" target="_blank">Release notes</a>
         <a href="https://github.com/shreyam1008/ProtoPeek" rel="noreferrer" target="_blank">GitHub</a>
       </nav>
     </footer>

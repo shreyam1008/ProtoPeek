@@ -1,10 +1,10 @@
 # Optional tools with Extensions
 
-**Current source · 23 October 2026:** Extensions contains **20 optional entries**: six native
+**Published v0.7.0:** Extensions contains **20 optional entries**: six native
 workbenches and fourteen guides or links with explicit integration levels. It replaces
 the Publish destination in the six-part layout: Home, Inspect, Network, Extensions, Files and
-Settings. Stable v0.6.1 retains its earlier layout; this guide describes source changes, not a new
-stable release or package publication.
+Settings. Older v0.6.1 binaries retain their earlier layout. Native-client, account and
+independently promoted package acceptance remain separate from release availability.
 
 ## Start with what you need
 
@@ -118,7 +118,7 @@ ProtoPeek uses the installed client; it does not provide the private-network ser
 
 Use Cloudflare's [cloudflared downloads](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/)
 for the tunnel connector. Its ProtoPeek workbench inspects the local host and canonical service.
-It does not create an account, sign in or install the connector. Current-source configuration
+It does not create an account, sign in or install the connector. v0.7.0 configuration
 writes require the supported user-owned canonical file, a fresh revision and explicit review.
 See the [Cloudflare Tunnel guide](cloudflare-tunnels.md) for supported controls and configuration
 authority. Wrangler and Docker availability are diagnostic details, not additional working adapters.
@@ -127,7 +127,7 @@ The Tailscale workbench retains its separate Headscale HTTPS login-server flow; 
 does not administer a Headscale server. Use [NetBird’s official installation guide](https://docs.netbird.io/get-started/install)
 for its native client and daemon, complete sign-in there, then inspect it through the NetBird
 workbench. Temporary Serve/Funnel/Quick Tunnel sessions have their own reviewed audience and
-lifecycle controls. Current-source foreground publishing uses its guarded Windows/Linux path;
+lifecycle controls. v0.7.0 foreground publishing uses its guarded Windows/Linux path;
 macOS foreground publishing remains unavailable.
 
 ## Capture setup

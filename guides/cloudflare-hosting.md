@@ -12,6 +12,14 @@ forwards ordinary requests to the static asset binding and serves the existing
 `Accept: text/markdown`; `Vary: Accept` keeps the HTML and Markdown responses
 separate in caches.
 
+APT indexes and public keys remain static assets. The worker redirects exact stable
+`/apt/pool/main/d/protopeek/protopeek_<version>_<architecture>.deb` paths to their
+matching immutable GitHub release assets for GET and HEAD. This keeps signed index
+paths and SHA-256 values intact while avoiding Pages' 25 MiB per-file limit.
+`scripts/prepare-pages-assets.mjs` omits only generated Debian package copies and
+rejects linked or oversized output; authoritative packages remain under
+`web/site/public/apt`. Both the site build and APT publication run this check.
+
 Rollback now requires re-enabling and successfully deploying GitHub Pages before
 restoring its DNS target; changing DNS alone is not sufficient. Retiring GitHub
 Pages also retires the old github.io-hosted URLs and redirects.

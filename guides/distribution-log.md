@@ -1,5 +1,33 @@
 # ProtoPeek distribution log
 
+## v0.7.0 release checkpoint — 23 October 2026
+
+All requested PRs are merged. Stable [v0.7.0](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0)
+is public at source `16044643efb349f8586f4278a83988b35a0932d9`.
+All 25 anonymous downloads match their verified artifact bytes, with 22 indexed
+payload hashes, a separate Snap receipt and 23 strict provenance attestations.
+
+| Channel/check | Observed result |
+| --- | --- |
+| Release build | [39940905720](https://github.com/shreyam1008/ProtoPeek/actions/runs/39940905720): archives and Snap passed; stable assets and tag remain unchanged. |
+| Public installers | [39946942897](https://github.com/shreyam1008/ProtoPeek/actions/runs/39946942897): Windows, Linux and macOS fresh install, real v0.6.1 upgrade and unpinned Latest install passed, including exact binaries, HTTP assets and cleanup. |
+| Homebrew | [39944413066](https://github.com/shreyam1008/homebrew-tap/actions/runs/39944413066) passed macOS/Linux native installation, tests, manuals and linkage at `cf84af9ce257888c10e6472ffe1b3307d12923bf`. |
+| Scoop | [39944425334](https://github.com/shreyam1008/scoop-bucket/actions/runs/39944425334) passed Windows validation, install/update/removal and three-architecture autoupdate at `a6ad6b9c5235758252268c8bb086d30b33862ae8`. |
+| Signed APT | Anonymous HTTPS indexes, both GPG signatures and all three redirected package hashes verified. Native install/runtime/real upgrade/removal step passed in [39947844401](https://github.com/shreyam1008/ProtoPeek/actions/runs/39947844401); that run's evidence upload failed on APT's private cache. The verify-only workflow now selects JSON receipts and logs; its full replacement run must pass independently. |
+| Microsoft Store | [Package build 39944225831](https://github.com/shreyam1008/ProtoPeek/actions/runs/39944225831) passed; validated 0.7.0.0 x64 package and updated English listing submitted as Submission 2. In certification, automatic publication after approval; public 0.7 and Store-signed runtime checks remain pending. |
+| Snap Store | Public checksummed v0.7.0 candidate and hosted Linux runtime proof exist. Desktop acceptance, maintainer credentials and Store approval remain separate; no Store publication is claimed. |
+
+Actual packaged Windows browser/API checks covered HTTP, gRPC and streaming,
+WebSocket/SSE, Cap'n Proto, all 20 extension entries, paired agent tools, bounded
+TCP/packet evidence, resumable downloads, media/page jobs and approved local file
+transfer with output hashes. These owned loopback checks do not establish every
+provider account, live capture environment or physical LAN/VPN route.
+
+The website promotion uses actual v0.7.0 package screenshots, retains historical
+captures and distinguishes six native extension workbenches from fourteen guides
+or links. Final source CI and deployment acceptance are separate from the immutable
+tagged release and recorded against the actual deployed source.
+
 ## Personal Ubuntu publication checkpoint — 12 September 2026
 
 PR #22 merged after all CI checks passed (including Windows/macOS/Linux, installers and release contract). The metadata-only corrected `protopeek_0.6.1_amd64-store1.snap` and SHA-256/provenance receipts are attached to v0.6.1. Registration returned `reserved_name` for exact name `protopeek`; no alternative was registered. Name resolution, classic review and runtime acceptance remain. Microsoft submission 1 was rechecked: In certification, automatic publication after approval.

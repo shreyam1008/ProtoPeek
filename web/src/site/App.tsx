@@ -64,7 +64,7 @@ const productQuestions = [
   },
   {
     question: 'Which optional tool does this task need?',
-    answer: 'Current source: native workbenches and guided setup, with checks only when you ask.',
+    answer: 'Native workbenches and guided setup, with checks only when you ask.',
     action: 'Explore Extensions',
     href: publicPagePath('extensions'),
   },
@@ -107,18 +107,18 @@ const networkJourneys = [
 
 const verifiedScreenshots = [
   {
-    src: '/assets/protopeek-workspace-edge-mobile.png',
-    alt: 'ProtoPeek legacy Edge Home workspace at 390 by 844 with responsive task cards and a navigation menu',
-    width: 390,
-    height: 844,
-    label: 'Legacy Edge · responsive Home',
+    src: '/assets/protopeek-v0.7.0-extensions-20261023.png',
+    alt: 'ProtoPeek v0.7.0 Extensions library with 20 optional entries and explicit integration levels',
+    width: 1366,
+    height: 900,
+    label: 'v0.7.0 Windows package · Extensions',
   },
   {
-    src: '/assets/protopeek-workspace-edge-desktop.png',
-    alt: 'ProtoPeek legacy Edge desktop workspace with six persistent destinations, grouped tools and local task shortcuts',
-    width: 1280,
-    height: 720,
-    label: 'Legacy Edge · persistent desktop navigation',
+    src: '/assets/protopeek-v0.7.0-home-20261023.png',
+    alt: 'ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry',
+    width: 1366,
+    height: 900,
+    label: 'v0.7.0 Windows package · Home',
   },
 ] as const;
 
@@ -274,7 +274,7 @@ function Hero() {
             href="#install"
           >
             <Download className="size-4" aria-hidden="true" />
-            Install stable v0.6.1
+            Install stable v0.7.0
           </a>
           <a
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none"
@@ -302,8 +302,8 @@ function Hero() {
         <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-neutral-700">
           <strong className="block text-neutral-950">Nightly is an opt-in rolling preview.</strong>
           <p className="mt-1">
-            Nightly follows main/master. Current-source guides can describe work that has not
-            reached a published archive. Stable remains v0.6.1.
+            Nightly follows main/master and can contain later work. Stable v0.7.0 includes the
+            published workbenches described here; native and provider prerequisites remain explicit.
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
             <a href={publicPagePath('workspace-ui')}>Explore the new workspace</a>
@@ -325,16 +325,17 @@ function Hero() {
           </span>
         </div>
         <img
-          src="/assets/protopeek-workspace-edge-desktop.png"
-          alt="ProtoPeek legacy Edge workbench with persistent side navigation and six task destinations"
-          width="1280"
-          height="720"
+          src="/assets/protopeek-v0.7.0-home-20261023.png"
+          alt="ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry"
+          width="1366"
+          height="900"
           decoding="async"
           fetchPriority="high"
           className="block w-full rounded-lg border border-white/10"
         />
         <figcaption className="px-2 pb-1 pt-3 text-xs text-neutral-400">
-          Actual legacy Edge build · 7 September 2026. Stable installs remain on v0.6.1.
+          v0.7.0 Windows package · captured 23 October 2026 before publication. Published package
+          bytes verified unchanged.
         </figcaption>
       </figure>
     </section>
@@ -410,7 +411,7 @@ function NetworkFamily() {
       aria-labelledby="network-tools-title"
     >
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
-        <p className="text-sm font-semibold text-[#0b5cff]">Current-source network family</p>
+        <p className="text-sm font-semibold text-[#0b5cff]">Network family · v0.7.0</p>
         <h2
           id="network-tools-title"
           className="mt-3 text-3xl font-semibold tracking-[-0.045em] sm:text-5xl"
@@ -420,7 +421,7 @@ function NetworkFamily() {
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-neutral-600 sm:text-lg">
           Use protocol clients for requests, network checks for connection evidence, and capture
           files for recorded traffic. Expanded diagnostics, full-range batches and TCP payload
-          evidence require a matching current-source build.
+          evidence are included in v0.7.0; installed-tool and native acceptance remain separate.
         </p>
         <div className="mt-10 grid gap-5 md:grid-cols-2">
           {networkJourneys.map((journey) => (
@@ -485,11 +486,13 @@ function Evidence() {
             One workbench. Real evidence.
           </h2>
           <p className="max-w-xl text-base leading-relaxed text-neutral-400 lg:justify-self-end">
-            Requests, routes, listeners, certificates, downloads, and timing stay together.
+            Requests, routes, listeners, certificates, downloads, and timing stay together. These
+            actual v0.7.0 package captures were taken before publication; the public bytes were
+            later verified unchanged. Historical captures remain in the screenshot record.
           </p>
         </div>
 
-        <div className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,0.55fr)_minmax(0,1.45fr)]">
+        <div className="mt-12 grid items-start gap-8 lg:grid-cols-2">
           {verifiedScreenshots.map((screenshot) => (
             <figure key={screenshot.src} className="min-w-0">
               <a
@@ -587,7 +590,7 @@ function Install() {
           </a>
           <a
             className="mt-3 flex min-h-11 items-center gap-2 text-sm font-semibold text-[#0b5cff]"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0"
           >
             Download a release archive
             <Download className="size-4" aria-hidden="true" />
@@ -659,7 +662,7 @@ function Install() {
               {copyState === 'manual'
                 ? null
                 : activeId === 'windows'
-                  ? 'Installs stable ProtoPeek v0.6.1. Windows x64 includes aria2 and a Start-menu shortcut.'
+                  ? 'Installs stable ProtoPeek v0.7.0. Windows x64 includes aria2 and a Start-menu shortcut.'
                   : 'Downloads the stable GitHub release. Uses your installed aria2 for downloads.'}
             </p>
             <noscript>
@@ -677,13 +680,13 @@ function Install() {
         </summary>
         <p className="mt-4 text-neutral-600">
           The GitHub installer above is the default. Signed APT, Homebrew and Scoop are also
-          available. The corrected Snap artifact is attached to the release; the exact protopeek
-          name needs Canonical resolution and classic review. Snap Store and Flatpak are not
-          published.
+          available. A checksummed Snap candidate is attached to v0.7.0. Snap Store publication
+          requires maintainer credentials, desktop acceptance and classic review. No Snap Store or
+          Flatpak publication is claimed.
         </p>
         <p className="mt-3 text-neutral-600">
-          Microsoft Store certification is in progress. The listing will publish automatically after
-          approval.
+          The Microsoft Store listing is public. Its v0.7.0 update is in certification and will
+          publish automatically after approval.
         </p>
         <a
           className="mt-3 block text-[#0b5cff] underline"
@@ -775,7 +778,7 @@ function Footer() {
           </a>
           <a
             className="hover:text-black"
-            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.6.1"
+            href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.7.0"
             target="_blank"
             rel="noreferrer"
           >

@@ -1,8 +1,8 @@
 # Install, upgrade, uninstall, and rollback
 
-> The default resolver installs the [latest published stable release](https://github.com/shreyam1008/ProtoPeek/releases/latest)
-> from immutable, checksum-verified GitHub assets. It never falls back to a draft or prerelease.
-> A source tag or candidate build does not make an archive available.
+The default resolver installs the [latest published stable release](https://github.com/shreyam1008/ProtoPeek/releases/latest)
+from immutable, checksum-verified GitHub assets. It never falls back to a draft or prerelease.
+A source tag or candidate build does not make an archive available.
 
 ## Install through an owned package channel
 
@@ -25,6 +25,10 @@ GitHub releases, Homebrew, Scoop and APT promote versions independently. A new s
 does not update an installed package or prove that its channel has promoted the same version.
 Update with `brew upgrade protopeek` or `scoop update protopeek`; uninstall with
 `brew uninstall protopeek` or `scoop uninstall protopeek`.
+
+For Debian or Ubuntu, follow the [signed APT setup](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/apt.md),
+then install or upgrade through your package manager. Its indexes and package checksums
+are verified independently from the direct installer.
 
 ## Install through the release resolver
 
@@ -120,7 +124,7 @@ Stable resolution never falls back to either preview channel.
 
 ## Upgrade from the CLI or UI
 
-These commands are included in the v0.7.0 build and in compatible Nightly builds. The v0.6.1
+These commands are included in published v0.7.0 and in compatible Nightly builds. The v0.6.1
 binary lacks them and needs one installer upgrade to a published build containing the updater.
 Then either name works:
 

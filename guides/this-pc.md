@@ -3,11 +3,11 @@
 Status: **available under Network in v0.6.1**.
 
 The v0.7 foundation added native Windows activity/counters and typed listener drafts;
-this remains a source checkpoint, not a completed or shipped v0.7 claim. The versioned handoff, freshness, and no-automatic-I/O
+these capabilities are included in published v0.7.0, with platform acceptance stated below. The versioned handoff, freshness, and no-automatic-I/O
 rules are defined in the
 [Connected Workbench integration plan](https://github.com/shreyam1008/ProtoPeek/blob/master/guides/connected-workbench-integration-plan.md).
 
-**Current source · 22 October 2026:** macOS adds native aggregate interface counters and the bounded
+**Published v0.7.0:** macOS adds native aggregate interface counters and the bounded
 one-shot traffic sample. Socket activity and process ownership remain unavailable there. Native
 macOS CI includes loopback traffic-counter checks; exact-commit CI and real-host acceptance remain
 separate from portable fixtures and cross-compilation. This does not change old v0.6.1 binaries.
@@ -108,7 +108,7 @@ explicit.
 
 `POST /api/this-pc/traffic/sample` accepts exactly a 500, 1,000, or 2,000 ms wait between two local
 interface-counter reads. Linux uses `/proc/net/dev`; Windows reads each enumerated interface through
-native `GetIfEntry2`. Stable v0.6.1 reports macOS sampling as unsupported; current source reads native
+native `GetIfEntry2`. Stable v0.6.1 reports macOS sampling as unsupported; v0.7.0 reads native
 `NET_RT_IFLIST2` counters for each selected interface through bounded sysctl queries, without shell
 commands or process attribution. The result timestamps the midpoint of each counter read and
 reports the measured interval between those representative observations,
@@ -217,7 +217,7 @@ The Windows backend has real-host and synthetic acceptance recorded in the v0.6.
 Current-source macOS counters still require the same capability, permission, truncation and real-host
 acceptance; socket activity and process ownership remain outside the implemented macOS contract.
 This matrix is separate from Network Path: stable active-hop probing supports Linux UDP and Windows
-IPv4/IPv6 ICMP, while current source adds unprivileged macOS ICMP with its own native acceptance gate.
+IPv4/IPv6 ICMP, while v0.7.0 adds unprivileged macOS ICMP with its own native acceptance gate.
 
 ## Deliberate next slices
 

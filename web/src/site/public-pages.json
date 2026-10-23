@@ -20,7 +20,7 @@
     {
       "id": "publish",
       "title": "Optional services and tools",
-      "description": "Current source groups these tools under Extensions; stable v0.6.1 uses Publish. Set up supported tools, inspect host state, and open their workbench."
+      "description": "Extensions groups optional native workbenches and guided setup. Inspect one tool on request, then open the appropriate workflow."
     },
     {
       "id": "files",
@@ -86,9 +86,9 @@
       "section": "Install guide",
       "sourcePath": "guides/INSTALLING.md",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "Verified resolvers select stable releases; package manifests identify their packaged version."
+        "detail": "Published v0.7.0; verified resolvers select stable releases. Package manifests independently identify their packaged version."
       },
       "highlights": ["macOS, Linux, Windows", "Checksum verification", "Rollback path"],
       "visual": "install",
@@ -113,7 +113,7 @@
         "changefreq": "monthly",
         "priority": "0.9"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "http-workbench",
@@ -129,9 +129,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/http-workbench.md",
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 includes the HTTP foundation. Environment templates, library import and reviewed cURL import below require matching current source."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes environment templates, request libraries and reviewed cURL import. Import prepares an unsent editor; credentials remain session-only."
       },
       "highlights": ["Explicit request", "TLS and redirects", "Timing and response evidence"],
       "visual": "http",
@@ -172,9 +172,9 @@
       "section": "Stable feature",
       "sourcePath": "guides/grpc-workbench.md",
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 includes native RPC inspection. Incremental relay evidence and the direct Home entry below require matching current source."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes direct Home entry and incremental native RPC evidence. Local cancellation never invents final server status."
       },
       "highlights": [
         "Reflection or proto files",
@@ -219,9 +219,9 @@
       "section": "Stable protocol foundation",
       "sourcePath": "guides/event-streams.md",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "The WebSocket/SSE foundation is available in v0.6.1. Sessions start only with Connect and stop on Disconnect, navigation or their limits."
+        "detail": "Published v0.7.0 includes WebSocket/SSE. Sessions start only with Connect and stop on Disconnect, navigation or their limits."
       },
       "highlights": [
         "WebSocket text and binary",
@@ -263,13 +263,13 @@
       "documentTitle": "Cap’n Proto RPC Client: Schemas, TLS & JSON | ProtoPeek",
       "description": "Load Cap’n Proto schemas and call concrete bootstrap methods with exact 64-bit values, verified TLS, deadlines, cancellation and JSON export.",
       "question": "How do I inspect a Cap’n Proto service?",
-      "section": "Current source",
+      "section": "Released workbench",
       "sourcePath": "guides/capnp-workbench.md",
       "visual": "capnp",
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 supports concrete bootstrap RPC. Generic bindings and returned-capability plans are implemented in current source, with separate acceptance gates."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes bootstrap calls, generic bindings and bounded returned-capability plans. Source compilation and native endpoint acceptance remain separate."
       },
       "highlights": [
         "Source or compiled schema",
@@ -313,9 +313,9 @@
       "section": "Stable core and report",
       "sourcePath": "guides/website-analysis-security.md",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "Explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup."
+        "detail": "Published v0.7.0 provides explicit website/TLS/header evidence, fixed HEAD path checks and separate historical-name lookup; no security score."
       },
       "highlights": ["Historical certificate names", "One consented HEAD", "No security score"],
       "visual": "security",
@@ -340,7 +340,7 @@
         "changefreq": "weekly",
         "priority": "0.9"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "learn-grpc",
@@ -356,9 +356,9 @@
       "section": "Technical guide",
       "sourcePath": "guides/learn-grpc.md",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Available in published v0.7.0. Read the guide for platform capabilities and local-tool requirements."
       },
       "highlights": ["Proto contract", "Four RPC shapes", "HTTP/2 and trailers"],
       "visual": "learn-grpc",
@@ -366,7 +366,7 @@
         "changefreq": "monthly",
         "priority": "0.8"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "network-workbench",
@@ -379,12 +379,12 @@
       "documentTitle": "Network Ports, Packets & Paths | ProtoPeek",
       "description": "Inspect TCP ports, PCAP/PCAPNG files, nearby devices and measured paths. Use optional dumpcap/Nmap with explicit scope and source-labelled evidence.",
       "question": "What can I learn about this service’s network?",
-      "section": "Current source",
+      "section": "Released workbench",
       "sourcePath": "guides/network-workbench.md",
       "status": {
-        "label": "Current source",
-        "tone": "current",
-        "detail": "Current-source packet, snapshot and map refinements are separate from stable v0.6.1. Check the rolling Nightly release for the source included in its current archive."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes packet evidence, snapshot comparison and reviewed Nmap-to-map conversion. Optional capture/tool and native acceptance gates remain explicit."
       },
       "highlights": [
         "TCP ports and capture files",
@@ -426,12 +426,12 @@
       "documentTitle": "ProtoPeek Network Diagnostics | DNS, TLS & Proxies",
       "description": "Run bounded DNS, TLS, TCP/UDP, proxy and HTTP/2 or HTTP/3 checks, plus offline subnet planning, with explicit evidence and private-input boundaries.",
       "question": "Which connection stage or protocol failed?",
-      "section": "Current source",
+      "section": "Released workbench",
       "sourcePath": "guides/network-diagnostics.md",
       "status": {
-        "label": "Current source · after v0.6.1",
-        "tone": "current",
-        "detail": "Implemented in current source. Native runtime and release/package acceptance are separate gates; this page does not announce publication."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes 13 bounded diagnostic modes. Connection and protocol observations do not establish application health."
       },
       "highlights": [
         "13 bounded diagnostic modes",
@@ -459,9 +459,9 @@
       "section": "Evidence guide",
       "sourcePath": "guides/route-and-nmap-evidence.md",
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 supplies the earlier route/import foundation. Current-source macOS, Nmap-to-map and snapshot additions below are separately labelled."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes macOS probing, Nmap-to-map previews and snapshot comparison. Installed-tool and real intermediate-hop acceptance remain separate."
       },
       "highlights": ["Source RTT", "Authorized discovery", "No hidden Nmap execution"],
       "visual": "network-boundary",
@@ -482,7 +482,7 @@
       "documentTitle": "This Device: Ports, Public IP & Speed Evidence | ProtoPeek",
       "description": "Inspect bounded Linux and Windows sockets, process owners and interface traffic, plus explicit public-IP/BGP and Cloudflare quality checks in ProtoPeek.",
       "question": "What is happening on this device?",
-      "section": "Current-source feature",
+      "section": "Released workbench",
       "sourcePath": "guides/this-pc.md",
       "lastModified": "2026-10-23",
       "keywords": [
@@ -493,9 +493,9 @@
         "public IP BGP origin"
       ],
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 supplies the earlier host workbench. Current-source macOS counters and ICMP have separate native acceptance; process ownership remains unavailable there."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes native macOS aggregate counters and ICMP. Native acceptance remains separate; socket/process ownership is unavailable there."
       },
       "highlights": [
         "Linux and Windows sockets",
@@ -536,13 +536,13 @@
       "documentTitle": "Extensions: Optional Tools & Setup | ProtoPeek",
       "description": "Choose from 20 optional native workbenches, command and MCP setup guides, local endpoint drafts and companion links. Check only the tool you select.",
       "question": "Which optional tool does this task need?",
-      "section": "Current source",
+      "section": "Released workbench",
       "sourcePath": "guides/extensions.md",
       "lastModified": "2026-10-23",
       "status": {
-        "label": "Current source",
-        "tone": "current",
-        "detail": "Current source separates six native workbenches from fourteen guided or external entries. Stable v0.6.1 retains the earlier navigation; client/account acceptance remains separate."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 separates six native workbenches from fourteen guided or external entries. Native-client/account acceptance remains separate."
       },
       "highlights": [
         "20 optional entries",
@@ -581,9 +581,9 @@
       "group": "publish",
       "title": "Manage Cloudflare Tunnel locally",
       "documentTitle": "Manage Cloudflare Tunnel Locally | ProtoPeek",
-      "description": "ProtoPeek v0.6.1 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
+      "description": "ProtoPeek v0.7.0 can inspect cloudflared on the real host, compare versions, use guarded canonical-service controls, and trace config authority.",
       "question": "Is cloudflared installed, current, and running on this host?",
-      "section": "Current-source feature",
+      "section": "Released workbench",
       "sourcePath": "guides/cloudflare-tunnels.md",
       "lastModified": "2026-10-23",
       "keywords": [
@@ -596,9 +596,9 @@
         "Windows cloudflared service"
       ],
       "status": {
-        "label": "Stable core + current source",
-        "tone": "current",
-        "detail": "Stable v0.6.1 includes host and guarded service evidence. Reviewed config writes and temporary Windows/Linux publishing below require matching current source and provider acceptance."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes reviewed config writes and guarded temporary Windows/Linux publishing. Installed tools, supported native lifetimes and real provider accounts remain prerequisites."
       },
       "highlights": [
         "Real host and version evidence",
@@ -642,13 +642,13 @@
       "group": "files",
       "title": "Downloader",
       "documentTitle": "ProtoPeek Downloader | Local aria2c Transfer Workbench",
-      "description": "ProtoPeek v0.6.1 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.",
+      "description": "ProtoPeek v0.7.0 Downloader offers a saved local queue, resume and SHA-256 checks, with bundled Windows x64 aria2 and installed engines on other platforms.",
       "question": "Can I manage this download locally?",
       "section": "Stable feature",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "Local queue and history with bundled Windows x64 aria2; other platforms use installed aria2."
+        "detail": "Published v0.7.0 provides local file and media queues. Windows x64 includes aria2; other platforms use installed aria2. Optional site engines are explicit."
       },
       "highlights": ["One to 32 HTTP(S) jobs", "Pause, resume, retry, cancel", "SHA-256 evidence"],
       "visual": "downloader",
@@ -673,7 +673,7 @@
         "changefreq": "weekly",
         "priority": "0.9"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "media-downloads",
@@ -690,13 +690,16 @@
       "sourcePath": "guides/media-downloads.md",
       "lastModified": "2026-10-23",
       "status": {
-        "label": "Current source",
-        "tone": "guide",
-        "detail": "Implemented in this checkout; stable publication and installed-engine acceptance are separate gates."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes native media/page downloads and optional installed engines. Supported-site, provider and native-platform acceptance remain separate."
       },
       "highlights": ["Native direct media", "Optional site engines", "Bounded local queue"],
       "visual": "downloader",
-      "sitemap": { "changefreq": "weekly", "priority": "0.8" }
+      "sitemap": {
+        "changefreq": "weekly",
+        "priority": "0.8"
+      }
     },
     {
       "id": "local-transfer",
@@ -707,15 +710,15 @@
       "group": "files",
       "title": "Local transfer",
       "documentTitle": "ProtoPeek Local Transfer | Direct LAN and VPN File Sharing",
-      "description": "Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Current-source functionality.",
+      "description": "Send files directly between ProtoPeek devices with LAN discovery, TLS encryption, receiver approval and SHA-256 receipts. Available in v0.7.0.",
       "question": "How can I send files to a nearby device or an existing VPN peer?",
       "section": "Files",
       "sourcePath": "guides/local-transfer.md",
       "lastModified": "2026-10-23",
       "status": {
-        "label": "Current source",
-        "tone": "guide",
-        "detail": "Implemented in this checkout; stable publication and real cross-device acceptance are separate gates."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes approved direct encrypted transfers. Real cross-device LAN/VPN, firewall and throughput acceptance remain deployment-specific."
       },
       "highlights": [
         "Nearby device discovery",
@@ -742,9 +745,9 @@
       "section": "Agent connection",
       "sourcePath": "guides/ai-agents.md",
       "status": {
-        "label": "Current source · after v0.6.1",
-        "tone": "guide",
-        "detail": "The expanded protocol/packet catalog is current source. The original adapter is in legacy Edge; v0.6.1 stable does not include it. Inspect the running catalog."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 includes 23 paired local tools. Setup fragments are not native-client acceptance; inspect the running catalog and explicit write controls."
       },
       "highlights": [
         "Local MCP and JSON CLI",
@@ -772,9 +775,9 @@
       "section": "Stable core and controls",
       "sourcePath": "guides/settings.md",
       "status": {
-        "label": "Stable · v0.6.1",
+        "label": "Stable · v0.7.0",
         "tone": "stable",
-        "detail": "Available in v0.6.1. Read the guide for platform capabilities and local-tool requirements."
+        "detail": "Published v0.7.0 includes local preferences, host controls and the manual updater. Older binaries need an initial installer upgrade; managed installs retain their manager."
       },
       "highlights": [
         "Browser-only preferences",
@@ -796,14 +799,14 @@
         {
           "verb": "Control",
           "title": "Change supported host values",
-          "detail": "Current source keeps Downloader engine settings in a private host file, not localStorage."
+          "detail": "ProtoPeek keeps Downloader engine settings in a private host file, not localStorage."
         }
       ],
       "sitemap": {
         "changefreq": "weekly",
         "priority": "0.8"
       },
-      "lastModified": "2026-09-07"
+      "lastModified": "2026-10-23"
     },
     {
       "id": "feature-roadmap",
@@ -814,15 +817,15 @@
       "group": "direction",
       "title": "Feature roadmap",
       "documentTitle": "ProtoPeek Feature Roadmap: Shipped, Next & Gated",
-      "description": "See stable and current-source ProtoPeek workflows, diagnostics and protocol evidence, with native, provider, package and publication gates kept explicit.",
+      "description": "See published v0.7.0 ProtoPeek workflows, diagnostics and protocol evidence, with native, provider, package and publication gates kept explicit.",
       "question": "What is shipped, next, exploring, or gated?",
       "section": "Roadmap",
       "sourcePath": "guides/feature-roadmap.md",
-      "lastModified": "2026-10-22",
+      "lastModified": "2026-10-23",
       "status": {
-        "label": "Current source + stable checkpoint",
-        "tone": "current",
-        "detail": "The guide preserves v0.6.1 history and distinguishes current implementation from native/provider/package acceptance."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "The v0.7.0 release checkpoint preserves v0.6.1 history and distinguishes published software from native/provider/package acceptance."
       },
       "highlights": ["gRPC and HTTP", "Safety boundaries", "Gated plans"],
       "visual": "roadmap",
@@ -917,14 +920,14 @@
       "group": "getting-started",
       "title": "Workspace navigation and design",
       "documentTitle": "ProtoPeek Workspace UI | Navigation, Tools & Local State",
-      "description": "Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand current-source request recovery and its limits.",
+      "description": "Find ProtoPeek tools in six destinations, return to recent tools, collapse the sidebar, and understand browser-local request recovery and its limits.",
       "question": "Where does each tool belong?",
       "section": "Workspace guide",
       "sourcePath": "guides/ui-overhaul-2026-09.md",
       "status": {
-        "label": "Current source",
-        "tone": "current",
-        "detail": "Current-source refinements are separate from the historical legacy Edge build and stable v0.6.1."
+        "label": "Stable · v0.7.0",
+        "tone": "stable",
+        "detail": "Published v0.7.0 uses six destinations including Extensions. The dated legacy Edge and unreleased preview captures remain historical evidence."
       },
       "highlights": [
         "Persistent tool navigation",
@@ -961,67 +964,67 @@
       "id": "media-downloads",
       "label": "Media and webpages",
       "guide": "media-downloads",
-      "summary": "Current source adds native direct files, HTML media discovery and original HTML snapshots, plus explicit optional site engines with verified installation. Media remains inside the lazy Files workflow."
+      "summary": "v0.7.0 adds native direct files, HTML media discovery and original HTML snapshots, plus explicit optional site engines with verified installation. Media remains inside the lazy Files workflow."
     },
     {
       "id": "local-transfer",
       "label": "Local transfer",
       "guide": "local-transfer",
-      "summary": "Current source adds direct TLS 1.3 transfers between ProtoPeek devices with receiver approval, cancellation and SHA-256 receipts. Existing LAN/VPN routes carry traffic; VPN provisioning and relays are not included."
+      "summary": "v0.7.0 adds direct TLS 1.3 transfers between ProtoPeek devices with receiver approval, cancellation and SHA-256 receipts. Existing LAN/VPN routes carry traffic; VPN provisioning and relays are not included."
     },
     {
       "id": "http-recipes",
       "label": "HTTP recipes",
       "guide": "http-workbench",
-      "summary": "Current source adds environment templates, session-only secrets, request-library import and reviewed cURL import. Loading prepares an unsent editor."
+      "summary": "v0.7.0 adds environment templates, session-only secrets, request-library import and reviewed cURL import. Loading prepares an unsent editor."
     },
     {
       "id": "grpc-streams",
       "label": "gRPC stream evidence",
       "guide": "grpc-workbench",
-      "summary": "Current source renders incremental native messages, headers and completion evidence. Local cancellation retains messages without inventing final server status."
+      "summary": "v0.7.0 renders incremental native messages, headers and completion evidence. Local cancellation retains messages without inventing final server status."
     },
     {
       "id": "capnp-plans",
       "label": "Cap’n Proto plans",
       "guide": "capnp-workbench",
-      "summary": "Current source implements generic bindings and bounded typed returned-capability call plans. Review and Run are separate actions."
+      "summary": "v0.7.0 implements generic bindings and bounded typed returned-capability call plans. Review and Run are separate actions."
     },
     {
       "id": "network-diagnostics",
       "label": "Network diagnostics",
       "guide": "network-diagnostics",
-      "summary": "Current source implements finite DNS/resolver, TCP/TLS, proxy, protocol and offline subnet checks with explicit Run/Cancel controls."
+      "summary": "v0.7.0 implements finite DNS/resolver, TCP/TLS, proxy, protocol and offline subnet checks with explicit Run/Cancel controls."
     },
     {
       "id": "packet-evidence",
       "label": "Packet payload evidence",
       "guide": "network-workbench",
-      "summary": "Current source adds default-off bounded TCP payload reconstruction with directional segments, gaps and conflicting overlaps, plus conservative snapshot comparison and Nmap-to-map previews."
+      "summary": "v0.7.0 adds default-off bounded TCP payload reconstruction with directional segments, gaps and conflicting overlaps, plus conservative snapshot comparison and Nmap-to-map previews."
     },
     {
       "id": "darwin-evidence",
       "label": "macOS native evidence",
       "guide": "this-pc",
-      "summary": "Current source implements native unprivileged ICMP and aggregate interface counters with native CI fixtures. Real runtime/intermediate-hop acceptance is separate; socket/process ownership remains unavailable."
+      "summary": "v0.7.0 implements native unprivileged ICMP and aggregate interface counters with native CI fixtures. Real runtime/intermediate-hop acceptance is separate; socket/process ownership remains unavailable."
     },
     {
       "id": "private-access",
       "label": "Private access",
       "guide": "extensions",
-      "summary": "Current source adds a separate Headscale HTTPS login-server flow and native NetBird evidence/actions. Installed tools, accounts, permissions and real-provider acceptance remain explicit prerequisites."
+      "summary": "v0.7.0 adds a separate Headscale HTTPS login-server flow and native NetBird evidence/actions. Installed tools, accounts, permissions and real-provider acceptance remain explicit prerequisites."
     },
     {
       "id": "publishing",
       "label": "Reviewed publishing",
       "guide": "cloudflare-tunnels",
-      "summary": "Current source implements guarded canonical-user-config writes and owned temporary publishing on Windows/Linux. Linux requires a direct native vendor Go command. Foreground publishing remains unavailable on macOS; provider/account and cleanup acceptance stay separate."
+      "summary": "v0.7.0 implements guarded canonical-user-config writes and owned temporary publishing on Windows/Linux. Linux requires a direct native vendor Go command. Foreground publishing remains unavailable on macOS; provider/account and cleanup acceptance stay separate."
     },
     {
       "id": "extension-library",
       "label": "Optional extension library",
       "guide": "extensions",
-      "summary": "Current source provides 20 lazy optional entries with explicit integration levels and per-entry host checks. Six are native workbenches; fourteen are setup guides or links. Opening the library installs, downloads and executes nothing."
+      "summary": "v0.7.0 provides 20 lazy optional entries with explicit integration levels and per-entry host checks. Six are native workbenches; fourteen are setup guides or links. Opening the library installs, downloads and executes nothing."
     }
   ]
 }

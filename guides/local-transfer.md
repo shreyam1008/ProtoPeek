@@ -1,4 +1,4 @@
-# Local transfer (current source)
+# Local transfer · v0.7.0
 
 Open **Files → Local transfer** on both devices. Give each device a recognizable
 name, choose its receive folder, and select **Enable local transfer**. The session
@@ -53,7 +53,7 @@ transfers restart from the beginning; resuming partial files is not implemented.
 Closing the sending view cancels its sends. A receiving session remains enabled
 until stopped or expired; keep its view open to answer incoming offers.
 
-This is current-source functionality, not a claim about an existing public release.
+This functionality is included in published v0.7.0.
 Real two-device LAN discovery and VPN throughput still depend on the actual
 interfaces, firewalls, and route and should be tested on each deployment.
 
