@@ -75,6 +75,18 @@ export function AgentClientSetup({
         Merge into <code>{profile.file}</code> at <code>{profile.key}</code>. Keep your other
         settings.
       </p>
+      {client === 'claude-code' ? (
+        <p className="pp-agent-caption">
+          In your project, run <code>claude</code>, trust it if known and approve{' '}
+          <code>protopeek</code>. Pending approval requires that review. Check status with{' '}
+          <code>claude mcp get protopeek</code>.
+        </p>
+      ) : null}
+      {client === 'gemini-cli' ? (
+        <p className="pp-agent-caption">
+          If Gemini folder trust is enabled, trust your project to connect MCP servers.
+        </p>
+      ) : null}
       {setup ? (
         <figure aria-label="MCP configuration">
           <pre>{setup}</pre>

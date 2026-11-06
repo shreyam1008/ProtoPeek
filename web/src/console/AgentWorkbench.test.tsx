@@ -239,6 +239,16 @@ describe('AI agent workbench', () => {
     });
     expect(screen.getByLabelText('MCP configuration')).toHaveTextContent('[mcp_servers.protopeek]');
     expect(screen.getByText(/Merge into/)).toHaveTextContent('~/.codex/config.toml');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Agent client' }), {
+      target: { value: 'claude-code' },
+    });
+    expect(screen.getByText(/Pending approval/)).toHaveTextContent('claude mcp get protopeek');
+    expect(screen.getByText(/Pending approval/)).toHaveTextContent('approve protopeek');
+    fireEvent.change(screen.getByRole('combobox', { name: 'Agent client' }), {
+      target: { value: 'gemini-cli' },
+    });
+    expect(screen.queryByText(/Pending approval/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Gemini folder trust/)).toHaveTextContent('trust your project');
   });
 
   it('blocks copying when the pairing file is missing even with an explicitly chosen PATH command', async () => {

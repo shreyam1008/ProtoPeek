@@ -79,8 +79,8 @@ them, install packages, start services or authenticate with vendors.
 | [kubectl](https://kubernetes.io/docs/tasks/tools/) | Command guide | Review an authorized loopback port-forward; cluster/context/namespace stay user-owned |
 | [OpenSSL](https://docs.openssl.org/master/man1/openssl/) | Command guide | Compare native certificate/TLS observations; built-in TLS diagnostics remain available |
 | [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) | MCP setup | Merge a generated local MCP fragment from AI agent setup |
-| [Claude Code](https://code.claude.com/docs/en/mcp) | MCP setup | Merge the generated stdio client fragment without replacing other settings |
-| [Gemini CLI](https://geminicli.com/docs/tools/mcp-server/) | MCP setup | Merge the generated `mcpServers` settings fragment |
+| [Claude Code](https://code.claude.com/docs/en/mcp) | MCP setup | Merge the fragment, then review and approve `protopeek` in your trusted project |
+| [Gemini CLI](https://geminicli.com/docs/tools/mcp-server/) | MCP setup | Merge the `mcpServers` fragment; if folder trust is enabled, trust your project before connecting |
 | [OpenCode](https://opencode.ai/docs/mcp-servers/) | MCP setup | Merge the local command-array and `environment` fragment |
 | [Ollama](https://docs.ollama.com/api/introduction) | Endpoint guide | Prepare an unsent loopback `/api/tags` request for your running local server |
 | [LM Studio](https://lmstudio.ai/docs/developer/openai-compat) | Endpoint guide | Prepare an unsent loopback `/v1/models` request for your running local server |

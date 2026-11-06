@@ -44,6 +44,11 @@ client can resolve `protopeek`. A missing pairing-file location blocks copying, 
 creating an incomplete profile. Formats were checked against official client docs on 23 October
 2026; this does not establish real installed-client/account acceptance.
 
+For Claude Code, run `claude` in the project, trust the folder if you recognize it, and approve
+the `protopeek` server when prompted. If `claude mcp get protopeek` reports **Pending approval**,
+complete that review before reconnecting. If Gemini CLI folder trust is enabled, trust the project
+before connecting local MCP servers; untrusted folders do not connect them.
+
 The surrounding configuration format and reload step belong to your MCP client. This is a
 standard stdio server: stdout contains protocol messages only. The
 [official Go SDK](https://github.com/modelcontextprotocol/go-sdk) handles negotiation, tools,

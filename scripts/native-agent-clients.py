@@ -124,11 +124,17 @@ def main():
                 config_path.parent.mkdir(parents=True, exist_ok=True)
                 config_path.write_text(config, encoding='utf-8')
                 if client == 'claude-code':
-                    # Approval applies only to this disposable project and its single generated server.
-                    settings = project / '.claude' / 'settings.local.json'
-                    settings.parent.mkdir()
-                    settings.write_text(json.dumps({'enableAllProjectMcpServers': True}), encoding='utf-8')
                     env['CLAUDE_CONFIG_DIR'] = str(user_dir / '.claude')
+                    # Untrusted projects cannot approve themselves. Verify the default
+                    # pending state, then explicitly approve only this test server in
+                    # the disposable user's settings (not in the project).
+                    pending = run([*executable, 'mcp', 'list'], cwd=project, env=env)
+                    if not re.search(r'protopeek[^\n]*pending approval', pending, re.IGNORECASE):
+                        raise RuntimeError('claude-code: expected project server to require approval')
+                    settings = user_dir / '.claude' / 'settings.json'
+                    settings.parent.mkdir(parents=True, exist_ok=True)
+                    settings.write_text(json.dumps({'enabledMcpjsonServers': ['protopeek']}), encoding='utf-8')
+                    print('PASS claude-code: project server required explicit isolated approval', flush=True)
                 reported_version = run([*executable, '--version'], cwd=project, env=env)
                 if not re.search(rf'(?<!\d){re.escape(version)}(?!\d)', reported_version):
                     raise RuntimeError(f'{client}: binary did not report the pinned version {version}')
