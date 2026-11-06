@@ -94,6 +94,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/verify-rolling-assets.sh v0.0.0-nightly
 
+      - name: Install public nightly release in an isolated Linux home
+        run: bash scripts/verify-rolling-linux-install.sh v0.0.0-nightly
+
       - name: Attest nightly archives
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
