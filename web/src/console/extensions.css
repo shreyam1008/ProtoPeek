@@ -114,7 +114,13 @@
   margin-top: 16px;
 }
 .pp-extension-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
+}
+.pp-extension-card > .pp-extension-actions {
+  margin-block-start: auto;
 }
 .pp-extension-card-heading {
   display: flex;
@@ -125,16 +131,14 @@
   flex: 1;
   min-width: 0;
 }
-.pp-extension-card :is(h2, h3) {
+.pp-extension-card h2 {
   font-size: 15px;
   font-weight: 650;
 }
-.pp-extension-card-heading span {
+.pp-extension-card-heading span,
+.pp-extension-level {
   color: var(--pp-muted);
   font-size: 11px;
-}
-.pp-extension-card > p {
-  margin-block: 12px;
 }
 .pp-extension-pin {
   display: flex;
@@ -145,12 +149,6 @@
   border-radius: 6px;
   color: var(--pp-ink);
   background: var(--pp-panel);
-}
-.pp-extension-level {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--pp-muted);
-  font-size: 11px;
 }
 .pp-extension-actions a {
   display: inline-flex;

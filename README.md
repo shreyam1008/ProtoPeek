@@ -65,12 +65,14 @@ TCP port scans and bounded private-network discovery are built in. Nmap, live ca
 dumpcap, and provider access/publishing integrations use separately installed tools.
 They remain optional: opening the workbench does not download them or start their work.
 
-Current source adds interactive tours in Help and a library of 24 optional tools. Six have managed installation on supported hosts: cloudflared, aria2, yt-dlp, gallery-dl, Deno and FFmpeg.
+Choose **Guide** for an interactive tour of the active workbench. In current source, **Extensions → Managed** shows six installable companions among 24 optional tools: cloudflared, aria2, yt-dlp, gallery-dl, Deno and FFmpeg.
 Run `pp extensions status --json` to inspect versions or `pp agent search subnet` to discover an agent workflow.
 See the [extension guide](guides/extensions.md) for supported hosts. The current release recipes
 build Windows x64 without the Downloader engine. Install aria2 when needed from Extensions, or
 bring the [verified offline ZIP](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
 Published v0.7.0 includes the engine.
+
+![Windows source preview showing the six managed tools in Extensions](web/site/public/assets/protopeek-managed-tools-20261106.png)
 
 ## Stable, Nightly and source
 

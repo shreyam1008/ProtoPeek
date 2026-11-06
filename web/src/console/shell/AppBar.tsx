@@ -293,9 +293,9 @@ function MobileNavigationDrawer(props: AppBarProps) {
                     <button
                       type="button"
                       className="pp-navigation-link pp-mobile-browse"
-                      aria-label={'Browse ' + item.label + ' tools'}
+                      aria-label={`Browse ${item.label} tools`}
                       aria-expanded={expanded === item.id}
-                      aria-controls={'mobile-tools-' + item.id}
+                      aria-controls={`mobile-tools-${item.id}`}
                       onClick={() => setExpanded(expanded === item.id ? undefined : item.id)}
                     >
                       <ChevronDown aria-hidden="true" />
@@ -303,7 +303,7 @@ function MobileNavigationDrawer(props: AppBarProps) {
                   ) : null}
                 </div>
                 {item.id !== 'home' ? (
-                  <div id={'mobile-tools-' + item.id} hidden={expanded !== item.id}>
+                  <div id={`mobile-tools-${item.id}`} hidden={expanded !== item.id}>
                     {expanded === item.id ? (
                       <ToolNavigation destination={item.id} onNavigate={props.onCloseNavigation} />
                     ) : null}

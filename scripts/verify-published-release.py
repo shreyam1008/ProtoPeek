@@ -35,6 +35,7 @@ MAX_ASSET = 256 << 20
 MAX_MEMBERS = 512
 MAX_UNPACKED = 512 << 20
 TAG = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
+WINDOWS_COMPANION = re.compile(r"protopeek-aria2-[0-9A-Za-z._-]+-win-64bit-build[0-9]+\.zip\Z")
 NO_INPUT = object()
 
 
@@ -232,7 +233,40 @@ def inspect_archive(data, filename, value, output, goos, goarch, strict_clean):
     value.update(archive=filename, archiveMembers=len(names), hashes=hashes, buildinfo=buildinfo)
 
 
-def prepare(value, output, goos, goarch, archive_arch, strict_clean):
+def windows_companion(value):
+    names = [name for name in value["assets"] if WINDOWS_COMPANION.fullmatch(name)]
+    require(len(names) <= 1, "Ambiguous Windows aria2 sidecar assets")
+    if names:
+        item = asset_identity(value, names[0])
+        require(re.fullmatch(r"sha256:[a-f0-9]{64}", item.get("digest") or ""), "Windows aria2 sidecar requires a GitHub SHA-256 digest")
+        return names[0]
+
+
+def verify_windows_companion(value, output, run_native):
+    # Build info belongs to both binaries in the checksum-verified native archive.
+    lite_aliases = []
+    for alias in ("protopeek.exe", "pp.exe"):
+        settings = re.findall(r"(?m)^[ \t]*build[ \t]+-tags=([^\r\n]+)", value["buildinfo"][alias])
+        lite_aliases.append("protopeek_lite" in re.split(r'[\s,"]+', " ".join(settings)))
+    require(lite_aliases[0] == lite_aliases[1], "Windows aliases disagree on the lightweight build tag")
+    name = windows_companion(value)
+    if not lite_aliases[0]:
+        require(not name, "Unexpected separate aria2 sidecar for a Windows build without the lightweight tag")
+        return
+    require(name, "Lightweight Windows release is missing its offline aria2 sidecar")
+    reference = output / (value["tag"] + "-reference")
+    require(name in value["checksums"], "Offline aria2 sidecar missing from checksums.txt")
+    data = asset(value, name, reference)
+    value["offlineCompanion"] = {"name": name, "bytes": len(data), "sha256": value["checksums"][name], "nativeAccepted": False}
+    if run_native:
+        env = child_environment(output / "companion-profile", isolate_home=True)
+        status = json.loads(command([str(reference / "pp.exe"), "extensions", "status", "aria2"], env, output / "offline-companion.log"))
+        require(status.get("id") == "aria2" and status.get("status") == "available" and status.get("canInstall") is True
+                and status.get("installBytes") == 0 and "sourceUrl" not in status, "The packaged executable rejected the adjacent offline sidecar")
+        value["offlineCompanion"]["nativeAccepted"] = True
+
+
+def prepare(value, output, goos, goarch, archive_arch, strict_clean, run_native):
     suffix = ".zip" if goos == "windows" else ".tar.gz"
     release_os = "osx" if goos == "darwin" else goos
     name = "protopeek_" + value["tag"][1:] + "_" + release_os + "_" + archive_arch + suffix
@@ -245,6 +279,8 @@ def prepare(value, output, goos, goarch, archive_arch, strict_clean):
     sbom = asset(value, sbom_name, output)
     require(expected.get(sbom_name) == digest(sbom) and isinstance(json.loads(sbom), dict), "SBOM checksum/JSON validation failed")
     inspect_archive(data, name, value, output, goos, goarch, strict_clean)
+    if (goos, goarch) == ("windows", "amd64"):
+        verify_windows_companion(value, output, run_native)
     value["archivePath"] = str(output / name)
     value["checksumPath"] = str(output / "checksums.txt")
 
@@ -538,6 +574,10 @@ def main():
         release_os = "osx" if goos == "darwin" else goos
         archive = "protopeek_" + args.tag[1:] + "_" + release_os + "_" + archive_arch + (".zip" if goos == "windows" else ".tar.gz")
         names = [archive, archive + ".sbom.json", "checksums.txt", "install.sh", "install.ps1", "aria2-1.37.0-companion-sources.tar.gz"]
+        if (goos, goarch) == ("windows", "amd64"):
+            sidecar = windows_companion(value)
+            if sidecar:
+                names.append(sidecar)
         total = 0
         for name in names:
             item = asset_identity(value, name)
@@ -559,7 +599,7 @@ def main():
         current = release(args.tag, args.sha, output, args.metadata)
         if args.mode == "draft":
             current["assetDirectory"] = str(args.asset_dir.resolve())
-        prepare(current, current_dir, goos, goarch, archive_arch, True)
+        prepare(current, current_dir, goos, goarch, archive_arch, True, args.install)
         report.update(platform=goos, architecture=goarch, current=current)
         installer_name = "install.ps1" if goos == "windows" else "install.sh"
         for script in ("install.sh", "install.ps1"):
@@ -572,7 +612,7 @@ def main():
             prior_dir = output / "previous"
             prior_dir.mkdir()
             previous = release(args.previous_tag, None, output)
-            prepare(previous, prior_dir, goos, goarch, archive_arch, False)
+            prepare(previous, prior_dir, goos, goarch, archive_arch, False, args.install)
             report["previous"] = previous
             manifest = public_json("https://raw.githubusercontent.com/" + REPO + "/" + current["sha"] + "/web/src/console/extension-manifest.json")
             expected_catalog = [{"id": item["id"], "capability": item["capability"]} for item in manifest]

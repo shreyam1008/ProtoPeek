@@ -23,6 +23,7 @@ SPEC = importlib.util.spec_from_file_location("verify_published_release", SCRIPT
 verify = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(verify)
 SHA = "a" * 40
+SIDECAR = "protopeek-aria2-1.37.0-win-64bit-build1.zip"
 
 
 class PublishedReleaseVerification(unittest.TestCase):
@@ -188,7 +189,7 @@ class PublishedReleaseVerification(unittest.TestCase):
                 resolve.assert_not_called()
 
     def test_draft_download_plan_emits_only_bounded_asset_api_identities(self):
-        names = ["protopeek_1.2.3_windows_x86_64.zip", "protopeek_1.2.3_windows_x86_64.zip.sbom.json", "checksums.txt", "install.sh", "install.ps1", "aria2-1.37.0-companion-sources.tar.gz"]
+        names = ["protopeek_1.2.3_windows_x86_64.zip", "protopeek_1.2.3_windows_x86_64.zip.sbom.json", "checksums.txt", "install.sh", "install.ps1", "aria2-1.37.0-companion-sources.tar.gz", SIDECAR]
         assets = [{"id": 456 + index, "name": name, "url": verify.API + "/releases/assets/" + str(456 + index), "browser_download_url": verify.BASE + "untagged-123/" + name, "size": 8, "digest": "sha256:" + "a" * 64} for index, name in enumerate(names)]
         with tempfile.TemporaryDirectory() as directory:
             metadata = Path(directory) / "metadata.json"
@@ -199,9 +200,53 @@ class PublishedReleaseVerification(unittest.TestCase):
             plan = json.loads(stdout.getvalue())
             self.assertEqual(plan["releaseId"], 123)
             self.assertEqual([item["name"] for item in plan["assets"]], names)
-            self.assertEqual([item["id"] for item in plan["assets"]], list(range(456, 462)))
+            self.assertEqual([item["id"] for item in plan["assets"]], list(range(456, 456 + len(names))))
             self.assertTrue(all(item["url"].startswith(verify.API + "/releases/assets/") for item in plan["assets"]))
             self.assertNotIn("browser_download_url", stdout.getvalue())
+
+    def test_legacy_windows_needs_no_sidecar_but_lite_aliases_require_it(self):
+        value = {"assets": {}, "buildinfo": {alias: "build -ldflags=protopeek_lite\nbuild -tags=protopeek_lite_extra" for alias in ("pp.exe", "protopeek.exe")}}
+        with patch.object(verify, "asset") as download, patch.object(verify, "command") as execute:
+            verify.verify_windows_companion(value, Path("unused"), True)
+            value["buildinfo"]["pp.exe"] = 'build\t-tags="netgo,protopeek_lite"'
+            with self.assertRaisesRegex(ValueError, "aliases disagree"):
+                verify.verify_windows_companion(value, Path("unused"), True)
+            value["buildinfo"]["protopeek.exe"] = "build\t-tags=protopeek_lite"
+            with self.assertRaisesRegex(ValueError, "missing its offline"):
+                verify.verify_windows_companion(value, Path("unused"), True)
+            download.assert_not_called()
+            execute.assert_not_called()
+
+    def test_windows_sidecar_requires_release_bytes_manifest_and_native_acceptance(self):
+        data = b"companion fixture"
+        sha = verify.digest(data)
+        metadata = {"id": 42, "name": SIDECAR, "url": verify.API + "/releases/assets/42", "size": len(data), "digest": "sha256:" + sha}
+        available = {"id": "aria2", "status": "available", "canInstall": True, "installBytes": 0}
+        cases = (("valid", None), ("changed", "digest mismatch"), ("unchecked", "missing from checksums"), ("wrong checksum", "Release checksum mismatch"), ("wrong pin", "executable rejected"))
+        for case, error in cases:
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                reference = root / "v1.2.3-reference"
+                reference.mkdir()
+                (root / SIDECAR).write_bytes(data.upper() if case == "changed" else data)
+                expected = {} if case == "unchecked" else {SIDECAR: "a" * 64 if case == "wrong checksum" else sha}
+                value = {"tag": "v1.2.3", "draft": True, "releaseId": 1, "assets": {SIDECAR: metadata}, "assetDirectory": str(root), "checksums": expected, "downloaded": [],
+                         "buildinfo": {alias: "build\t-tags=protopeek_lite\n" for alias in ("pp.exe", "protopeek.exe")}}
+                status = dict(available, sourceUrl="https://example.invalid/remote") if case == "wrong pin" else available
+                with patch.object(verify, "command", return_value=json.dumps(status)) as execute:
+                    if error:
+                        with self.assertRaisesRegex(ValueError, error):
+                            verify.verify_windows_companion(value, root, True)
+                    else:
+                        verify.verify_windows_companion(value, root, True)
+                        self.assertEqual(value["offlineCompanion"], {"name": SIDECAR, "bytes": len(data), "sha256": sha, "nativeAccepted": True})
+                    if case in ("valid", "wrong pin"):
+                        self.assertEqual((reference / SIDECAR).read_bytes(), data)
+                        args, env, _ = execute.call_args.args
+                        self.assertEqual(args, [str(reference / "pp.exe"), "extensions", "status", "aria2"])
+                        self.assertTrue(Path(env["LOCALAPPDATA"]).is_relative_to(root))
+                    else:
+                        execute.assert_not_called()
 
     def test_archive_traversal_and_symlink_refused_without_binary_execution(self):
         for symlink in (False, True):

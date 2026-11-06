@@ -1,3 +1,27 @@
+.pp-http-header > div:first-child {
+  position: relative;
+}
+.pp-http-header h1:has(+ .pp-http-skip:focus) {
+  opacity: 0;
+}
+.pp-http-workbench .pp-http-skip {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 6px 12px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: var(--pp-radius-control);
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+  font: inherit;
+  white-space: nowrap;
+}
+.pp-http-skip:not(:focus) {
+  clip-path: inset(50%);
+  pointer-events: none;
+}
 .pp-http-workbench .pp-http-restore-draft {
   flex-shrink: 0;
   border: 1px solid var(--pp-color-stroke-strong);

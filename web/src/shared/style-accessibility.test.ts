@@ -203,7 +203,7 @@ describe('published color and motion contracts', () => {
           0.12
         );
         expect
-          .soft(contrastRatio(colors['--pp-color-accent-strong'], background), palette + ' ' + mode)
+          .soft(contrastRatio(colors['--pp-color-accent-strong'], background), `${palette} ${mode}`)
           .toBeGreaterThanOrEqual(4.5);
       }
     }

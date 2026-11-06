@@ -82,38 +82,29 @@ export function MediaPacks({
   pinned: readonly string[];
   onPin: (id: MediaPack['id']) => void;
 }) {
-  if (!packs.length) return null;
-  return (
-    <section aria-label="Media download companions">
-      <h2>Media download companions</h2>
-      <p>Install or remove individual companions in Files.</p>
-      <div className="pp-extension-grid">
-        {packs.map((pack) => (
-          <article className="pp-panel pp-extension-card" key={pack.id}>
-            <div className="pp-extension-card-heading">
-              <Download aria-hidden="true" />
-              <div>
-                <h3>{pack.name}</h3>
-                <span>Media</span>
-              </div>
-              <PinExtension
-                name={pack.name}
-                pinned={pinned.includes(pack.id)}
-                onPin={() => onPin(pack.id)}
-              />
-            </div>
-            <p>{pack.description}</p>
-            <p>
-              <strong>Managed setup:</strong> {pack.platforms}. Other hosts use PATH.
-            </p>
-            <div className="pp-extension-actions">
-              <Link to="/downloader" search={{ mediaTool: pack.id }} preload={false}>
-                Open setup in Files <ArrowRight aria-hidden="true" />
-              </Link>
-            </div>
-          </article>
-        ))}
+  return packs.map((pack) => (
+    <article className="pp-panel pp-extension-card" key={pack.id}>
+      <div className="pp-extension-card-heading">
+        <Download aria-hidden="true" />
+        <div>
+          <h2>{pack.name}</h2>
+          <span>Media</span>
+        </div>
+        <PinExtension
+          name={pack.name}
+          pinned={pinned.includes(pack.id)}
+          onPin={() => onPin(pack.id)}
+        />
       </div>
-    </section>
-  );
+      <p>{pack.description}</p>
+      <p>
+        <strong>Managed setup:</strong> {pack.platforms}. Other hosts use PATH.
+      </p>
+      <div className="pp-extension-actions">
+        <Link to="/downloader" search={{ mediaTool: pack.id }} preload={false}>
+          Open setup in Files <ArrowRight aria-hidden="true" />
+        </Link>
+      </div>
+    </article>
+  ));
 }

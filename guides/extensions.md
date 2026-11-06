@@ -30,6 +30,8 @@ operating system and points to official installation instructions.
 
 ## Manage a local companion (current source)
 
+![The Windows source preview showing the six managed tools in Extensions](../web/site/public/assets/protopeek-managed-tools-20261106.png)
+
 The current library has 24 entries. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Each entry lists the hosts with pinned builds. In Files you can install the selected tool, use it, and remove its verified managed copy. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
 
 Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop active use before choosing **Remove companion**. If a cached aria2 archive changes, **Repair companion** preserves it in quarantine and downloads a verified replacement. Files offers **Repair setup** for a partial media installation when its remaining files can be verified.

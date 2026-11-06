@@ -834,6 +834,16 @@ export function HTTPWorkbench() {
           </i>
           <span>HTTP / REST</span>
           <h1>Request workbench</h1>
+          <button
+            type="button"
+            className="pp-http-skip"
+            onClick={() => {
+              setToolsOpen(false);
+              requestAnimationFrame(() => urlInputRef.current?.focus());
+            }}
+          >
+            Skip to request URL
+          </button>
         </div>
         <span className="pp-connection-fact">
           <LockKeyhole aria-hidden="true" /> Local relay

@@ -298,7 +298,7 @@ describe('release metadata', () => {
       }>;
     };
 
-    expect(manifest.screenshots).toHaveLength(11);
+    expect(manifest.screenshots).toHaveLength(12);
     const releaseCaptures = manifest.screenshots.filter(
       (screenshot) => screenshot.releaseStatus === 'released-v0.5.0'
     );
@@ -348,11 +348,17 @@ describe('release metadata', () => {
     expect(sourceCaptures.map((screenshot) => screenshot.file)).toEqual([
       '../web/site/public/assets/protopeek-source-home-20261023.png',
       '../web/site/public/assets/protopeek-source-extensions-20261023.png',
+      '../web/site/public/assets/protopeek-managed-tools-20261106.png',
     ]);
     for (const capture of sourceCaptures) {
       expect(capture.capturedVersion).toContain('unreleased current-source preview');
       expect(capture.alt).toMatch(/^Current-source ProtoPeek (Home|Extensions)\b/);
-      expect(capture.workflow).toContain('This is UI evidence, not');
+      if (capture.captureStage === 'local-build') {
+        expect(capture.artifactSha256).toMatch(/^[a-f0-9]{64}$/);
+        expect(capture.workflow).toContain('fresh profile and selected Managed');
+      } else {
+        expect(capture.workflow).toContain('This is UI evidence, not');
+      }
       expect(capture.sha256).toMatch(/^[a-f0-9]{64}$/);
       const png = readRepositoryBytes(`guides/${capture.file}`);
       expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');

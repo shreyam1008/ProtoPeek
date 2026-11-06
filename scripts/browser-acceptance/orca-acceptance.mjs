@@ -102,19 +102,22 @@ try {
   const url = page.getByRole('textbox', { name: 'Request URL' });
   const send = page.getByRole('button', { name: /^Send/ });
   await url.waitFor({ state: 'visible', timeout: 15000 });
-  let marker;
-  let reachedUrl = false;
-  for (let i = 0; i < 30; i++) {
-    marker = (await debugText()).length;
-    await page.keyboard.press('Tab');
-    if (await url.evaluate((node) => node === document.activeElement)) {
-      reachedUrl = true;
-      report += `Reached Request URL in ${i + 1} Tab presses.\n`;
-      break;
-    }
-  }
-  assert.ok(reachedUrl, 'Keyboard navigation did not reach Request URL');
-  await waitForSpeech(marker, /Request\s+URL/i, 'Request URL');
+  let marker = (await debugText()).length;
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('button', { name: 'Skip to request URL' });
+  await skip.waitFor({ state: 'visible', timeout: 10000 });
+  assert.ok(await skip.evaluate((node) => node === document.activeElement), 'First Tab did not focus Skip to request URL');
+  await waitForSpeech(marker, /skip\s+to\s+request\s+url/i, 'Skip to request URL');
+  marker = (await debugText()).length;
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(
+    () => document.activeElement?.matches('input[aria-label="Request URL"]'),
+    null,
+    { timeout: 10000 }
+  );
+  assert.ok(await url.evaluate((node) => node === document.activeElement), 'Skip did not focus Request URL');
+  // Do not accept a delayed announcement of the skip button as the URL announcement.
+  await waitForSpeech(marker, /^(?!.*skip\s+to\s+request\s+url).*request\s+url/i, 'Request URL');
   await page.keyboard.press('Control+A');
   await page.keyboard.type(fixtureUrl);
   assert.equal(await url.inputValue(), fixtureUrl, 'Keyboard did not enter the fixture URL');

@@ -225,8 +225,8 @@ export function Extensions() {
             </article>
           );
         })}
+        <MediaPacks packs={media} pinned={preferences.pinned} onPin={pin} />
       </section>
-      <MediaPacks packs={media} pinned={preferences.pinned} onPin={pin} />
       {!visible.length && !media.length ? (
         <div className="pp-panel">
           <h2>No matching extensions.</h2>
