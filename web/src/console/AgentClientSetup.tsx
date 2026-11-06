@@ -84,7 +84,8 @@ export function AgentClientSetup({
       ) : null}
       {client === 'gemini-cli' ? (
         <p className="pp-agent-caption">
-          If Gemini folder trust is enabled, trust your project to connect MCP servers.
+          If Gemini folder trust is enabled, trust your project. Check the connection with{' '}
+          <code>gemini mcp list</code>.
         </p>
       ) : null}
       {setup ? (
@@ -108,13 +109,8 @@ export function AgentClientSetup({
           <a href={profile.docs} target="_blank" rel="noreferrer">
             {profile.label} setup documentation
           </a>
-          . Format checked 23 October 2026; native client connection not verified here.
         </p>
       ) : null}
-      <p className="pp-agent-caption">
-        ChatGPT web does not read local STDIO configuration. Use a local MCP client for this
-        connection.
-      </p>
     </section>
   );
 }

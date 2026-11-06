@@ -238,6 +238,70 @@ async function walkGuide(page, feature) {
   );
   return `${anchored}/${total} visible anchors`;
 }
+async function mobileAgentSetup(page, base, port) {
+  await readyPage(page, base, '/agents?client=claude-code');
+  const setup = page.getByRole('complementary', { name: 'Agent connection setup' });
+  const enable = setup.getByRole('button', { name: 'Enable agent connection' });
+  await enable.waitFor({ state: 'visible' });
+  await press(page, enable);
+  await setup.getByRole('button', { name: 'Disable and cancel active calls' }).waitFor();
+  const client = setup.getByRole('combobox', { name: 'Agent client' });
+  check((await client.inputValue()) === 'claude-code', 'mobile agent client selection was lost');
+  await client.selectOption('gemini-cli');
+  await setup.getByText(/If Gemini folder trust is enabled/).waitFor({ state: 'visible' });
+  const geometry = await setup.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    overflowY: getComputedStyle(element).overflowY,
+    pageWidth: document.documentElement.scrollWidth,
+    viewportWidth: innerWidth,
+  }));
+  check(geometry.scrollHeight <= geometry.clientHeight + 1,
+    `mobile agent setup has a nested vertical scroll: ${JSON.stringify(geometry)}`);
+  check(geometry.pageWidth <= geometry.viewportWidth,
+    `mobile agent setup overflows horizontally: ${JSON.stringify(geometry)}`);
+  const copy = setup.getByRole('button', { name: 'Copy MCP configuration' });
+  await copy.scrollIntoViewIfNeeded();
+  check(await copy.isVisible() && await copy.isEnabled(), 'mobile MCP copy control unavailable');
+  check(await copy.evaluate((button) => {
+    const rect = button.getBoundingClientRect();
+    const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+    return hit === button || button.contains(hit);
+  }), 'mobile MCP copy control is covered');
+  const activity = page.getByRole('region', { name: 'Agent activity' });
+  const refresh = activity.getByRole('button', { name: 'Refresh agent activity' });
+  await refresh.scrollIntoViewIfNeeded();
+  await press(page, refresh);
+  await activity.getByRole('heading', { name: 'Watch your agent work' }).waitFor({ state: 'visible' });
+
+  // Make an actual read-only request through the paired native CLI and owned loopback fixture.
+  const result = await new Promise((resolve, reject) => {
+    const agent = spawn(exe, ['agent', 'call', 'http_request'], { cwd: repository, env });
+    let stdout = '', stderr = '';
+    const timer = setTimeout(() => { agent.kill(); reject(new Error('mobile agent call timed out')); }, 20000);
+    agent.stdout.on('data', (chunk) => { stdout += chunk; });
+    agent.stderr.on('data', (chunk) => { stderr += chunk; });
+    agent.once('error', (error) => { clearTimeout(timer); reject(error); });
+    agent.once('close', (code) => { clearTimeout(timer); resolve({ code, stdout, stderr }); });
+    agent.stdin.end(JSON.stringify({ method: 'GET', url: `http://127.0.0.1:${port}/echo` }));
+  });
+  check(result.code === 0 && result.stdout.includes('protopeek-loopback-fixture'),
+    `mobile agent CLI did not return the fixture: ${result.stderr}`);
+  const call = activity.getByRole('button', { name: /http_request.*completed/i });
+  await call.waitFor({ state: 'visible' });
+  await call.scrollIntoViewIfNeeded();
+  await press(page, call);
+  const selected = activity.getByRole('region', { name: 'Selected agent result' });
+  await selected.getByText(/protopeek-loopback-fixture/).waitFor({ state: 'visible' });
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    'mobile agent result overflows horizontally');
+  const disable = setup.getByRole('button', { name: 'Disable and cancel active calls' });
+  await disable.scrollIntoViewIfNeeded();
+  await press(page, disable);
+  await enable.waitFor({ state: 'visible' });
+  console.log('PASS mobile agent setup: one scroll context, controls, empty activity and real loopback result');
+}
+
 async function operations(page, base, port) {
   await readyPage(page, base, '/protocols/http');
   await page.getByRole('textbox', { name: 'Request URL' }).fill(`http://127.0.0.1:${port}/echo`);
@@ -405,7 +469,13 @@ try {
           url.pathname === '/api/network/diagnostics' &&
           body?.mode === 'subnet' &&
           body?.target === '192.0.2.0/24';
-        if (snapshot || fixtureHTTP || fixtureScan || offlineSubnet) await route.continue();
+        const agentControl =
+          phase === 'agent-mobile' &&
+          request.method() === 'POST' &&
+          url.pathname === '/api/agent/control' &&
+          ['enable', 'disable'].includes(body?.action) &&
+          body?.allowWrites === false;
+        if (snapshot || fixtureHTTP || fixtureScan || offlineSubnet || agentControl) await route.continue();
         else {
           failures.push(`${viewport.name}: blocked unexpected ${request.method()} ${url.pathname}`);
           await route.abort();
@@ -462,6 +532,10 @@ try {
     await readyPage(page, base, '/downloader?mediaTool=gallery-dl');
     await walkGuide(page, { id: 'downloader', expectedName: 'Media downloader guided steps' });
     console.log(`PASS ${viewport.name} media handoff guide`);
+    if (viewport.name === 'mobile') {
+      phase = 'agent-mobile';
+      await mobileAgentSetup(page, base, port);
+    }
     phase = 'operations';
     await operations(page, base, port);
     await extensionHandoffs(page, base, port);

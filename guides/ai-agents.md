@@ -40,14 +40,14 @@ also offers LM Studio, whose Extensions Endpoint guide links to that profile thr
 **Configure LM Studio**, plus a generic profile. Merge the fragment
 under the named key in your existing client file rather than replacing unrelated settings.
 The generated profile shows the executable origin; choose the PATH variant only when your MCP
-client can resolve `protopeek`. A missing pairing-file location blocks copying, rather than
-creating an incomplete profile. Formats were checked against official client docs on 23 October
-2026; this does not establish real installed-client/account acceptance.
+client can resolve `protopeek`. Copy becomes available when the workbench has the pairing-file path.
 
 For Claude Code, run `claude` in the project, trust the folder if you recognize it, and approve
 the `protopeek` server when prompted. If `claude mcp get protopeek` reports **Pending approval**,
-complete that review before reconnecting. If Gemini CLI folder trust is enabled, trust the project
-before connecting local MCP servers; untrusted folders do not connect them.
+complete that review before reconnecting. If Gemini CLI folder trust is enabled, trust the project,
+then run `gemini mcp list`. In OpenCode, run `opencode mcp list`. Look for `protopeek` and its
+connection status. The [native client check](https://github.com/shreyam1008/ProtoPeek/actions/workflows/native-agent-clients.yml)
+exercises these three clients with a local, read-only pairing.
 
 The surrounding configuration format and reload step belong to your MCP client. This is a
 standard stdio server: stdout contains protocol messages only. The

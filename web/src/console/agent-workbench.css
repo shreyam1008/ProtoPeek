@@ -316,16 +316,13 @@
     min-height: 100%;
   }
   .pp-agent-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     overflow: visible;
   }
   .pp-agent-setup {
     border-right: 0;
     border-bottom: 1px solid var(--pp-stroke);
-    max-height: 55vh;
-  }
-  .pp-agent-activity {
-    min-height: 60vh;
+    overflow: visible;
   }
   .pp-agent-evidence {
     height: 70vh;
