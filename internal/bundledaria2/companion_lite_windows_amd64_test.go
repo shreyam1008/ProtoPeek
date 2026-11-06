@@ -99,6 +99,12 @@ func TestLiteCompanionThroughExecutable(t *testing.T) {
 		t.Fatal(err)
 	}
 	run("partial-cache")
+	original[0] ^= 1 // restore the original pinned notice bytes
+	if err := os.WriteFile(license, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	run("remove-legacy")
+	run("missing")
 }
 
 func TestLiteCompanionChild(t *testing.T) {
@@ -119,6 +125,16 @@ func TestLiteCompanionChild(t *testing.T) {
 	case "legacy":
 		if err != nil || Inspect().CachedPath != path || Inspect().Included {
 			t.Fatalf("legacy cache: %q %v %+v", path, err, Inspect())
+		}
+	case "remove-legacy":
+		if err != nil || path == "" {
+			t.Fatalf("verified legacy engine unavailable: %s %v", path, err)
+		}
+		if err := RemoveCached(); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(filepath.Dir(path)); !os.IsNotExist(err) {
+			t.Fatalf("legacy cache remains: %v", err)
 		}
 	case "changed-cache":
 		if !errors.Is(err, ErrCacheInvalid) || path != "" || !Inspect().Repairable {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
@@ -82,6 +83,8 @@ func registerManagedExtensions(mux *http.ServeMux) {
 						message = "Wait for the current operation or save the queue and stop Downloader in Settings, then try again."
 					}
 					http.Error(w, message, http.StatusConflict)
+				case errors.Is(err, os.ErrPermission):
+					http.Error(w, "Check the permissions on the local companion directory and retry.", http.StatusConflict)
 				case errors.Is(err, managedtools.ErrUnavailable):
 					http.Error(w, "This companion is unavailable on this platform", http.StatusServiceUnavailable)
 				case errors.Is(err, managedtools.ErrStorageUnsupported):

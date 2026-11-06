@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
 	"slices"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
@@ -65,7 +66,12 @@ func runManagedExtensions(ctx context.Context, args []string, stdout, stderr io.
 		case errors.Is(err, media.ErrLocalUnavailable):
 			return writeError("The media configuration directory is unavailable. Check its location and access permissions.", 1)
 		case errors.Is(err, managedtools.ErrInvalid):
+			if extensionstore.IsMedia(args[1]) {
+				return writeError("Media tool files failed verification; nothing was replaced. Run 'pp extensions status "+args[1]+"' for recovery guidance.", 1)
+			}
 			return writeError("Local companion files failed verification; nothing was replaced", 1)
+		case errors.Is(err, os.ErrPermission):
+			return writeError("Check the permissions on the local companion directory and retry.", 1)
 		case errors.Is(err, managedtools.ErrUnavailable):
 			return writeError("This companion is unavailable on this platform", 1)
 		case errors.Is(err, bundledaria2.ErrCompanionMissing), errors.Is(err, bundledaria2.ErrCompanionInvalid):

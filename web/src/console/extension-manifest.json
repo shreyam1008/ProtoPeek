@@ -3,7 +3,7 @@
     "id": "tailscale",
     "name": "Tailscale",
     "group": "Connect & publish",
-    "summary": "Reach private services, inspect peers and review local client actions.",
+    "summary": "Use the installed Tailscale client to inspect peers and review local actions.",
     "capability": "native-workbench",
     "route": "/network/tailnet",
     "openLabel": "Open Tailscale"
@@ -21,7 +21,7 @@
     "id": "netbird",
     "name": "NetBird",
     "group": "Connect & publish",
-    "summary": "Inspect installed private-network peers, paths, relays and client state.",
+    "summary": "Use the installed NetBird client to inspect peers, paths and relays.",
     "capability": "native-workbench",
     "route": "/extensions/netbird",
     "openLabel": "Open NetBird"
@@ -30,7 +30,7 @@
     "id": "wireshark",
     "name": "Wireshark capture",
     "group": "Inspect traffic & services",
-    "summary": "Capture a finite traffic sample with installed dumpcap, then inspect its evidence.",
+    "summary": "Live capture requires dumpcap. Packet files open in the built-in reader.",
     "capability": "native-workbench",
     "route": "/network/packets",
     "openLabel": "Open live capture"
@@ -39,7 +39,7 @@
     "id": "nmap",
     "name": "Nmap",
     "group": "Inspect traffic & services",
-    "summary": "Run a bounded authorized scan or import an existing XML report.",
+    "summary": "Scanning requires Nmap on this host. Existing XML reports open in the evidence map without Nmap.",
     "capability": "native-workbench",
     "route": "/network/nmap",
     "openLabel": "Open Nmap"

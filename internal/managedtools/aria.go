@@ -145,6 +145,9 @@ func (m *Manager) removeAria() (Tool, error) {
 	}
 	defer lease.Release()
 	if err := bundledaria2.RemoveCached(); err != nil {
+		if errors.Is(err, bundledaria2.ErrCacheInUse) {
+			return Tool{}, ErrBusy
+		}
 		if errors.Is(err, bundledaria2.ErrCacheInvalid) {
 			return Tool{}, ErrInvalid
 		}

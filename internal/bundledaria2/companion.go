@@ -12,6 +12,7 @@ import (
 var (
 	ErrCompanionMissing     = errors.New("aria2 companion is missing")
 	ErrCompanionInvalid     = errors.New("aria2 companion failed verification")
+	ErrCacheInUse           = errors.New("aria2 cache is in use; stop the downloader and retry")
 	ErrCacheInvalid         = errors.New("aria2 cache cannot be verified safely")
 	ErrPromotionUnsupported = errors.New("filesystem does not support safe aria2 promotion")
 )

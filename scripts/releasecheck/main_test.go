@@ -1,9 +1,26 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"runtime/debug"
+	"strings"
 	"testing"
 )
+
+func TestExtraAssetNeedsOneMatchingChecksum(t *testing.T) {
+	const contents = "installer"
+	line := fmt.Sprintf("%x  install.sh\n", sha256.Sum256([]byte(contents)))
+	for _, test := range []struct {
+		manifest string
+		valid    bool
+	}{{line, true}, {"", false}, {line + line, false}, {strings.Replace(line, "install.sh", "install.ps1", 1), false}, {strings.Repeat("0", 64) + "  install.sh\n", false}} {
+		err := verifyExtraChecksum([]byte(test.manifest), "install.sh", strings.NewReader(contents))
+		if (err == nil) != test.valid {
+			t.Fatalf("manifest %q: %v", test.manifest, err)
+		}
+	}
+}
 
 func TestReleaseBinaryContract(t *testing.T) {
 	makeInfo := func() *debug.BuildInfo {

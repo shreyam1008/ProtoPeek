@@ -82,7 +82,10 @@ archives:
 
 checksum:
   name_template: checksums.txt
-  extra_files:
+  extra_files: &rolling_extra_files
+    - glob: ./install.sh
+    - glob: ./install.ps1
+    - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
     - glob: ./internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip
       name_template: protopeek-aria2-1.37.0-win-64bit-build1.zip
 
@@ -94,12 +97,7 @@ sboms:
 release:
   prerelease: true
   make_latest: false
-  extra_files:
-    - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
-    - glob: ./internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip
-      name_template: protopeek-aria2-1.37.0-win-64bit-build1.zip
-    - glob: ./install.sh
-    - glob: ./install.ps1
+  extra_files: *rolling_extra_files
 
 changelog:
   disable: true

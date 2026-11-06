@@ -17,8 +17,8 @@ type ManagedTool struct {
 	CanInstall, CanRemove                   bool
 }
 
-func InspectManaged(name string) (ManagedTool, error) {
-	out := ManagedTool{ID: name}
+func InspectManaged(name string) (out ManagedTool, resultErr error) {
+	out = ManagedTool{ID: name}
 	if name != "yt-dlp" && name != "gallery-dl" && name != "deno" && name != "ffmpeg" {
 		return out, errors.New("unknown media tool")
 	}
@@ -42,18 +42,23 @@ func InspectManaged(name string) (ManagedTool, error) {
 		return out, nil
 	}
 	t := s.tool(name)
+	defer func() {
+		if t.warning != "" {
+			out.Message += " " + t.warning
+		}
+	}()
 	out.Version, out.InstallBytes = t.Version, t.InstallBytes
 	if supported {
 		out.SourceURL = a.URL
 		path := s.assetPath(a)
 		if t.Invalid {
 			out.Status = "invalid"
-			out.Message = "Local media tool files are incomplete or changed; no automatic replacement was attempted."
+			out.Message = "Local media tool files are incomplete or changed; no automatic replacement was attempted. " + s.RecoveryGuidance(name)
 			return out, nil
 		}
 		if t.Incomplete {
 			out.Status, out.CanInstall, out.CanRemove = "incomplete", true, true
-			out.Message = "A previous operation stopped; remaining files will be verified before repair or removal."
+			out.Message = "A previous operation stopped; remaining files will be verified before repair or removal. If verification fails: " + s.RecoveryGuidance(name)
 			return out, nil
 		}
 		if t.CanRemove && strings.EqualFold(filepath.Clean(t.Path), filepath.Clean(path)) {
@@ -73,7 +78,7 @@ func InspectManaged(name string) (ManagedTool, error) {
 		}
 		if len(entries) > 0 {
 			out.Status = "invalid"
-			out.Message = "Local media tool files are incomplete or changed; no automatic replacement was attempted."
+			out.Message = "Local media tool files are incomplete or changed; no automatic replacement was attempted. " + s.RecoveryGuidance(name)
 			return out, nil
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 // RemoveCached removes independently pinned files while holding the downloader lease.
@@ -64,7 +65,10 @@ func RemoveCached() error {
 	// A subsequent call verifies any remaining subset after an interrupted remove.
 	for _, member := range verified {
 		if err := os.Remove(member); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return ErrCacheInvalid
+			if errors.Is(err, syscall.Errno(32)) { // Windows ERROR_SHARING_VIOLATION.
+				return ErrCacheInUse
+			}
+			return err
 		}
 	}
 	if !retainedTemp {

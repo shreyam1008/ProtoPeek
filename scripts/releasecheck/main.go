@@ -45,16 +45,19 @@ func verifyRelease(dist string) error {
 	if err != nil {
 		return err
 	}
-	wantCompanion := fmt.Sprintf("%x  %s", sha256.Sum256(companion), bundledaria2.CompanionFilename)
-	hasCompanion := false
-	for _, line := range strings.Split(string(manifest), "\n") {
-		if strings.TrimSpace(line) == wantCompanion {
-			hasCompanion = true
-			break
-		}
+	if err := verifyExtraChecksum(manifest, bundledaria2.CompanionFilename, bytes.NewReader(companion)); err != nil {
+		return err
 	}
-	if !hasCompanion {
-		return fmt.Errorf("checksums.txt does not identify the separate, verified offline companion")
+	for _, source := range []string{"install.sh", "install.ps1", filepath.Join(".local", "aria2-"+bundledaria2.EngineVersion+"-companion-sources.tar.gz")} {
+		file, err := os.Open(source)
+		if err != nil {
+			return err
+		}
+		err = verifyExtraChecksum(manifest, filepath.Base(source), file)
+		file.Close()
+		if err != nil {
+			return err
+		}
 	}
 	reader, err := zip.OpenReader(archives[0])
 	if err != nil {
@@ -96,6 +99,28 @@ func verifyRelease(dist string) error {
 		if !found {
 			return fmt.Errorf("release archive missing %s", name)
 		}
+	}
+	return nil
+}
+
+func verifyExtraChecksum(manifest []byte, name string, contents io.Reader) error {
+	hash := sha256.New()
+	if _, err := io.Copy(hash, contents); err != nil {
+		return err
+	}
+	want := fmt.Sprintf("%x", hash.Sum(nil))
+	count := 0
+	for _, line := range strings.Split(string(manifest), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == name {
+			if fields[0] != want {
+				return fmt.Errorf("checksum mismatch for %s", name)
+			}
+			count++
+		}
+	}
+	if count != 1 {
+		return fmt.Errorf("expected one checksum for %s, found %d", name, count)
 	}
 	return nil
 }

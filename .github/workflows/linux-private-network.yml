@@ -46,3 +46,22 @@ jobs:
             protopeek-private-network /bin/acceptance -test.v -test.timeout=75s -test.run='^TestIsolatedTailscaleLifecycle$' \
             | tee "$RUNNER_TEMP/isolated-tailnet.log"
           grep -Eq '^--- PASS: TestIsolatedTailscaleLifecycle' "$RUNNER_TEMP/isolated-tailnet.log"
+      - name: Register two userspace peers with private Headscale
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra="$RUNNER_TEMP/isolated-headscale"
+          mkdir -p "$extra"
+          # SHA-256 from the official https://github.com/juanfont/headscale/releases/tag/v0.29.7 asset.
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            'https://github.com/juanfont/headscale/releases/download/v0.29.7/headscale_0.29.7_linux_amd64' -o "$extra/headscale"
+          echo "e827fc9b12d958bc95b081c4401dd63f8e0471d025b45b508535a920532150a8  $extra/headscale" | sha256sum --check --strict
+          chmod 0755 "$extra/headscale"
+          printf 'FROM protopeek-private-network\nCOPY headscale /bin/headscale\n' | docker build --network=none -t protopeek-private-peers -f - "$extra"
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run/tailscale:rw,nosuid,nodev,mode=0700 \
+            --pids-limit=160 --memory=768m \
+            -e PATH=/bin -e HOME=/tmp -e PROTOPEEK_ISOLATED_HEADSCALE=1 \
+            protopeek-private-peers /bin/acceptance -test.v -test.timeout=90s -test.run='^TestIsolatedHeadscalePeers$' \
+            | tee "$RUNNER_TEMP/isolated-headscale.log"
+          grep -Eq '^--- PASS: TestIsolatedHeadscalePeers' "$RUNNER_TEMP/isolated-headscale.log"

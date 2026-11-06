@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/shreyam1008/ProtoPeek/internal/media"
@@ -93,6 +95,54 @@ func TestManagedMediaMutationHonorsQueueOwner(t *testing.T) {
 	code := runManagedExtensions(context.Background(), []string{"install", "yt-dlp"}, &out, &stderr)
 	if code != 1 || !bytes.Contains(stderr.Bytes(), []byte("media session")) || out.Len() != 0 {
 		t.Fatalf("lock not honored: %d out=%s err=%s", code, out.String(), stderr.String())
+	}
+}
+
+func TestManagedMediaCLIReportsRecoveryPathAfterFailedVerification(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", root)
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("LOCALAPPDATA", root)
+	t.Setenv("PATH", t.TempDir())
+	status, err := media.InspectManaged("gallery-dl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Status == "unavailable" {
+		t.Skip("no managed gallery-dl package on this host")
+	}
+	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(config, "protopeek", "media", "tools", "gallery-dl", status.Version)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	binary := "gallery-dl"
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	receipt := filepath.Join(dir, binary+".verified")
+	if err := os.WriteFile(receipt, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var out, stderr bytes.Buffer
+	if code := runManagedExtensions(context.Background(), []string{"remove", "gallery-dl"}, &out, &stderr); code != 1 || !strings.Contains(stderr.String(), "pp extensions status gallery-dl") {
+		t.Fatalf("remove: %d %s", code, stderr.String())
+	}
+	out.Reset()
+	stderr.Reset()
+	if code := runManagedExtensions(context.Background(), []string{"status", "gallery-dl"}, &out, &stderr); code != 0 {
+		t.Fatalf("status: %d %s", code, stderr.String())
+	}
+	var got struct{ Message string }
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil || !strings.Contains(got.Message, dir) || !strings.Contains(got.Message, "move it to a safe location") {
+		t.Fatalf("recovery guidance: %s %v", out.String(), err)
+	}
+	if data, err := os.ReadFile(receipt); err != nil || string(data) != "changed" {
+		t.Fatalf("unverified receipt changed: %q %v", data, err)
 	}
 }
 

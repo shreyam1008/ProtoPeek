@@ -218,6 +218,7 @@ export function NetworkRoute({ store }: { store?: NetworkStore }) {
             onChange={(event) => void previewNmap(event)}
           />
           <button
+            id="import-nmap-xml"
             type="button"
             disabled={dirty || nmapBusy}
             onClick={() => nmapRef.current?.click()}

@@ -75,25 +75,54 @@ try {
     await route.continue();
   });
   const page = await context.newPage();
-  await page.goto(`${base}#/protocols/http`, { waitUntil: 'domcontentloaded' });
-  const method = page.getByRole('combobox', { name: 'HTTP method' });
+  await page.goto(`${base}#/`, { waitUntil: 'domcontentloaded' });
+  await page.getByRole('heading', { name: 'What do you need to check?' }).waitFor({ state: 'visible' });
+  await page.bringToFront();
+  await page.keyboard.press('Control+k');
+  const commands = page.getByRole('dialog', { name: 'ProtoPeek commands' });
+  await commands.waitFor({ state: 'visible' });
+  const search = commands.getByRole('combobox', { name: 'Search commands' });
+  assert.ok(await search.evaluate((node) => node === document.activeElement), 'Find did not focus search');
+  await page.keyboard.type('HTTP');
+  const selected = commands.locator('[role="option"][aria-selected="true"]');
+  assert.match(await selected.innerText(), /Open HTTP workbench/);
+  await page.keyboard.press('Enter');
+  await page.waitForURL(/#\/protocols\/http$/);
+  await page.waitForFunction(() =>
+    document.activeElement?.matches('#pp-workbench-canvas h1') &&
+    document.activeElement.textContent.includes('Request workbench')
+  );
   const url = page.getByRole('textbox', { name: 'Request URL' });
   const send = page.getByRole('button', { name: /^Send/ });
   await url.waitFor({ state: 'visible', timeout: 15000 });
-  await url.fill(fixtureUrl);
-  await page.bringToFront();
-  await method.focus();
-  let marker = (await debugText()).length;
-  await page.keyboard.press('Tab');
-  assert.ok(await url.evaluate((node) => node === document.activeElement), 'Tab did not focus Request URL');
+  let marker;
+  let reachedUrl = false;
+  for (let i = 0; i < 30; i++) {
+    marker = (await debugText()).length;
+    await page.keyboard.press('Tab');
+    if (await url.evaluate((node) => node === document.activeElement)) {
+      reachedUrl = true;
+      report += `Reached Request URL in ${i + 1} Tab presses.\n`;
+      break;
+    }
+  }
+  assert.ok(reachedUrl, 'Keyboard navigation did not reach Request URL');
   await waitForSpeech(marker, /Request\s+URL/i, 'Request URL');
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type(fixtureUrl);
+  assert.equal(await url.inputValue(), fixtureUrl, 'Keyboard did not enter the fixture URL');
   marker = (await debugText()).length;
   await page.keyboard.press('Tab');
   assert.ok(await send.evaluate((node) => node === document.activeElement), 'Tab did not focus Send');
   await waitForSpeech(marker, /\bSend\b/i, 'Send');
+  marker = (await debugText()).length;
   await page.keyboard.press('Enter');
   await page.locator('[aria-label="HTTP response evidence"]').getByText('orca-loopback-fixture')
     .waitFor({ state: 'visible', timeout: 15000 });
+  const summary = page.locator('.pp-http-response-summary');
+  assert.equal(await summary.getAttribute('aria-live'), 'polite');
+  assert.match(await summary.innerText(), /\b200\s+OK\b/);
+  await waitForSpeech(marker, /\b200\s+OK\b/i, 'HTTP response 200 OK');
   report += 'PASS keyboard Send returned the owned loopback fixture.\n';
   report += 'Scope: Orca dispatch attempts only; audio synthesis and audible output were not checked.\n';
   console.log(report);

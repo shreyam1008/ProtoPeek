@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -45,11 +46,58 @@ func TestMediaInstallExplainsUnsafeExistingFiles(t *testing.T) {
 	request.Header.Set(csrfHeaderName, cookie.Value)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "no files were replaced") {
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "no files were replaced") || !strings.Contains(response.Body.String(), dir) || !strings.Contains(response.Body.String(), "move it to a safe location") {
 		t.Fatalf("status %d: %s", response.Code, response.Body.String())
 	}
 	if b, err := os.ReadFile(marker); err != nil || string(b) != "keep" {
 		t.Fatalf("user file changed: %q %v", b, err)
+	}
+}
+
+func TestMediaRepairAndRemovalExplainPreservingUnverifiedFiles(t *testing.T) {
+	root := t.TempDir()
+	s, err := media.NewAt(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	var version string
+	for _, tool := range s.Snapshot().Tools {
+		if tool.Name == "gallery-dl" && tool.CanInstall {
+			version = tool.Version
+		}
+	}
+	if version == "" {
+		t.Skip("no managed gallery-dl package on this host")
+	}
+	dir := filepath.Join(root, "tools", "gallery-dl", version)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	binary := "gallery-dl"
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	receipt := filepath.Join(dir, binary+".verified")
+	if err := os.WriteFile(receipt, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	handler := Handler(nil, "", nil, nil, WithMediaService(s))
+	cookie := handlerCSRFCookie(t, handler)
+	for _, action := range []string{"install", "remove"} {
+		request := httptest.NewRequest(http.MethodPost, "/api/media/"+action, strings.NewReader(`{"engine":"gallery-dl"}`))
+		request.RemoteAddr = "127.0.0.1:1234"
+		request.Header.Set("Content-Type", "application/json")
+		request.AddCookie(cookie)
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), dir) || !strings.Contains(response.Body.String(), "move it to a safe location") {
+			t.Fatalf("%s: status %d: %s", action, response.Code, response.Body.String())
+		}
+		if got, err := os.ReadFile(receipt); err != nil || string(got) != "changed" {
+			t.Fatalf("%s changed unverified file: %q %v", action, got, err)
+		}
 	}
 }
 

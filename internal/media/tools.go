@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
@@ -51,6 +52,7 @@ type Tool struct {
 	Incomplete   bool   `json:"incomplete,omitempty"`
 	Invalid      bool   `json:"invalid,omitempty"`
 	Help         string `json:"help"`
+	warning      string
 }
 
 func assetFor(name string) (Asset, bool) {
@@ -104,17 +106,27 @@ func (s *Service) tool(name string) Tool {
 	}
 	switch name {
 	case "yt-dlp":
+		var invalid []string
 		for _, dependency := range []string{"deno", "ffmpeg"} {
 			if dependency == "deno" && s.tool("node").Path != "" {
 				continue
 			}
-			if s.tool(dependency).Path == "" {
+			dep := s.tool(dependency)
+			if dep.Invalid || dep.Incomplete {
+				invalid = append(invalid, dependency)
+				continue
+			}
+			if dep.Path == "" {
 				if a, ok := assetFor(dependency); ok {
 					t.InstallBytes += a.Size
 				}
 			}
 		}
 		t.Help = "Videos, audio and playlists. FFmpeg enables merged video and audio; a JavaScript runtime improves YouTube support."
+		if len(invalid) > 0 {
+			t.warning = "Setup skips optional " + strings.Join(invalid, " and ") + ": review their incomplete or changed files in Extensions before setting them up separately."
+			t.Help += " " + t.warning
+		}
 	case "gallery-dl":
 		t.Help = "Image galleries and albums. On platforms without a managed build, install gallery-dl with your package manager."
 	case "archivebox":
@@ -205,7 +217,8 @@ func (s *Service) Install(ctx context.Context, name string) error {
 			if dependency == "deno" && s.tool("node").Path != "" {
 				continue
 			}
-			if s.tool(dependency).Path == "" {
+			dep := s.tool(dependency)
+			if !dep.Invalid && !dep.Incomplete && dep.Path == "" {
 				if _, ok := assetFor(dependency); ok {
 					if err := s.installAsset(ctx, dependency); err != nil {
 						return err
@@ -231,12 +244,23 @@ func (s *Service) installAsset(ctx context.Context, name string) error {
 	if current.Incomplete {
 		files, _ := removalFiles(a, filepath.Base(p))
 		if err := removeVerifiedAsset(s.root, a, p, files, notices); err != nil {
-			return ErrInstallUnsafe
+			return err
 		}
 	} else if current.Path != "" {
 		return nil
 	}
 	return installVerifiedAsset(ctx, a, notices, p, http.DefaultClient)
+}
+
+// RecoveryGuidance identifies only a manifest-selected local directory; it
+// never moves or removes files. Users can preserve unexpected contents before
+// attempting setup again.
+func (s *Service) RecoveryGuidance(name string) string {
+	a, ok := assetFor(name)
+	if !ok {
+		return "Inspect the local media tool directory before retrying."
+	}
+	return "Inspect the tool's version folder and its parent directories: " + filepath.Dir(s.assetPath(a)) + ". If the folder is yours, move it to a safe location to preserve its contents, then retry setup. Do not follow unsafe links."
 }
 
 func (s *Service) recoverable(a Asset, path string) bool {

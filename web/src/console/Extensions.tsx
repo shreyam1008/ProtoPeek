@@ -208,6 +208,16 @@ export function Extensions() {
                     {entry.openLabel}
                   </Link>
                 ) : null}
+                {entry.id === 'nmap' && (
+                  <Link to="/network/map" hash="import-nmap-xml" preload={false}>
+                    Open XML import
+                  </Link>
+                )}
+                {entry.id === 'wireshark' && (
+                  <Link to="/network/packets" search={{ mode: 'file' }} preload={false}>
+                    Open packet reader
+                  </Link>
+                )}
                 <Link to="/extensions" search={{ extension: entry.id }} preload={false}>
                   {entry.route ? 'Setup & details' : 'Open setup'} <ArrowRight aria-hidden="true" />
                 </Link>

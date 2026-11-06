@@ -24,14 +24,25 @@ func IsMedia(id string) bool {
 
 func Status(manager *managedtools.Manager, id string) (managedtools.Tool, error) {
 	if !IsMedia(id) {
-		return manager.Status(id)
+		tool, err := manager.Status(id)
+		if err == nil {
+			tool.Message += remnantsFor(id, tool.Version)
+		}
+		return tool, err
 	}
 	t, err := media.InspectManaged(id)
-	return managedtools.Tool{ID: t.ID, Status: t.Status, Version: t.Version, InstallBytes: t.InstallBytes, CanInstall: t.CanInstall, CanRemove: t.CanRemove, Message: t.Message, SourceURL: t.SourceURL}, err
+	tool := managedtools.Tool{ID: t.ID, Status: t.Status, Version: t.Version, InstallBytes: t.InstallBytes, CanInstall: t.CanInstall, CanRemove: t.CanRemove, Message: t.Message, SourceURL: t.SourceURL}
+	if err == nil {
+		tool.Message += remnantsFor(id, tool.Version)
+	}
+	return tool, err
 }
 
 func Inventory(manager *managedtools.Manager) managedtools.Inventory {
 	inventory := manager.Inventory()
+	for i := range inventory.Tools {
+		inventory.Tools[i].Message += remnantsFor(inventory.Tools[i].ID, inventory.Tools[i].Version)
+	}
 	for _, id := range mediaIDs {
 		tool, _ := Status(manager, id)
 		inventory.Tools = append(inventory.Tools, tool)

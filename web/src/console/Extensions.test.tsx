@@ -130,6 +130,14 @@ describe('optional extension library', () => {
       'href',
       '/network/packets?mode=live'
     );
+    expect(screen.getByRole('link', { name: 'Open XML import' })).toHaveAttribute(
+      'href',
+      '/network/map#import-nmap-xml'
+    );
+    expect(screen.getByRole('link', { name: 'Open packet reader' })).toHaveAttribute(
+      'href',
+      '/network/packets?mode=file'
+    );
     fireEvent.click(screen.getByText('What is included and what needs setup?'));
     expect(screen.getByRole('link', { name: 'Read a packet file' })).toHaveAttribute(
       'href',

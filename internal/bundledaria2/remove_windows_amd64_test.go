@@ -3,9 +3,12 @@
 package bundledaria2
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"golang.org/x/sys/windows"
 )
 
 func TestRemoveCachedRequiresExactVerifiedFiles(t *testing.T) {
@@ -80,5 +83,36 @@ func TestRemoveCachedRetriesAfterInterruptionAndPreservesAbandonedBytes(t *testi
 	}
 	if data, err := os.ReadFile(temp); err != nil || string(data) != "preserve orphan" {
 		t.Fatalf("changed abandoned file: %q, %v", data, err)
+	}
+}
+
+func TestRemoveCachedWhileExecutableInUsePreservesNotices(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", t.TempDir())
+	path, err := Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	name, err := windows.UTF16PtrFromString(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle, err := windows.CreateFile(name, windows.GENERIC_READ, windows.FILE_SHARE_READ, nil, windows.OPEN_EXISTING, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = RemoveCached()
+	if closeErr := windows.CloseHandle(handle); closeErr != nil {
+		t.Fatal(closeErr)
+	}
+	if !errors.Is(err, ErrCacheInUse) {
+		t.Fatalf("wanted busy, got %v", err)
+	}
+	for _, pin := range windowsCacheMembers {
+		if err := verifyCacheMember(filepath.Join(filepath.Dir(path), pin.name), pin); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := RemoveCached(); err != nil {
+		t.Fatal(err)
 	}
 }

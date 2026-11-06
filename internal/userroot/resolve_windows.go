@@ -4,6 +4,7 @@ package userroot
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/sys/windows"
@@ -31,7 +32,12 @@ func resolveExisting(path string) (string, error) {
 	}
 	resolved := windows.UTF16ToString(buf[:n])
 	if strings.HasPrefix(resolved, `\\?\UNC\`) {
-		return `\\` + strings.TrimPrefix(resolved, `\\?\UNC\`), nil
+		resolved = `\\` + strings.TrimPrefix(resolved, `\\?\UNC\`)
+	} else {
+		resolved = strings.TrimPrefix(resolved, `\\?\`)
 	}
-	return strings.TrimPrefix(resolved, `\\?\`), nil
+	if !filepath.IsAbs(resolved) {
+		return "", errors.New("resolved user root is not an absolute filesystem path")
+	}
+	return resolved, nil
 }

@@ -153,3 +153,57 @@ func TestDamagedOptionalHelpersFallbackWithWarning(t *testing.T) {
 		t.Fatalf("wrong fallback args: %s", encoded)
 	}
 }
+
+func TestYTDLPSetupSkipsDamagedOptionalHelpers(t *testing.T) {
+	yt, ytOK := assetFor("yt-dlp")
+	deno, denoOK := assetFor("deno")
+	ffmpeg, ffmpegOK := assetFor("ffmpeg")
+	if !ytOK || !denoOK || !ffmpegOK {
+		t.Skip("managed media tools not all supported on this platform")
+	}
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("HOME", root)
+	t.Setenv("PATH", t.TempDir())
+	config, err := configDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := &Service{root: config}
+	denoDir := filepath.Dir(s.assetPath(deno))
+	ffmpegPath := s.assetPath(ffmpeg)
+	for _, dir := range []string{denoDir, filepath.Dir(ffmpegPath)} {
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unknown := filepath.Join(denoDir, "unexpected-user-file")
+	if err := os.WriteFile(unknown, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// This looks structurally recoverable but fails verification, without a
+	// costly status hash or any network request.
+	receipt := ffmpegPath + ".verified"
+	if err := os.WriteFile(receipt, []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	tool := s.tool("yt-dlp")
+	if tool.InstallBytes != yt.Size || !strings.Contains(tool.Help, "deno and ffmpeg") {
+		t.Fatalf("setup size or warning: %+v", tool)
+	}
+	state, err := InspectManaged("yt-dlp")
+	if err != nil || state.InstallBytes != yt.Size || !strings.Contains(state.Message, "deno and ffmpeg") {
+		t.Fatalf("inventory warning: %+v %v", state, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := s.Install(ctx, "yt-dlp"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("main install should be reached without attempting damaged helpers: %v", err)
+	}
+	for _, file := range []string{unknown, receipt} {
+		if _, err := os.Stat(file); err != nil {
+			t.Fatalf("optional file was changed or removed: %s: %v", file, err)
+		}
+	}
+}

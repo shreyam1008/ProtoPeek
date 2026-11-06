@@ -70,6 +70,10 @@ func registerMediaHandlers(mux *http.ServeMux, service *media.Service, factory f
 			return
 		}
 		if err := service.Install(r.Context(), input.Engine); err != nil {
+			if errors.Is(err, media.ErrRemoveInvalid) {
+				http.Error(w, "Managed tool files could not be verified; nothing was removed. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
+				return
+			}
 			if errors.Is(err, media.ErrInstallUnsupported) {
 				http.Error(w, "This filesystem cannot safely install the tool. Use a local config directory on a filesystem that supports atomic rename.", http.StatusConflict)
 				return
@@ -83,7 +87,7 @@ func registerMediaHandlers(mux *http.ServeMux, service *media.Service, factory f
 				return
 			}
 			if errors.Is(err, media.ErrInstallUnsafe) {
-				http.Error(w, "Existing local tool files or an unsafe directory prevent installation; no files were replaced", http.StatusConflict)
+				http.Error(w, "Existing local tool files or an unsafe directory prevent installation; no files were replaced. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
 				return
 			}
 			writeTransferError(w, err, http.StatusBadRequest)
@@ -109,7 +113,7 @@ func registerMediaHandlers(mux *http.ServeMux, service *media.Service, factory f
 			case errors.Is(err, media.ErrNotInstalled):
 				http.Error(w, "There is no managed copy to remove.", http.StatusConflict)
 			case errors.Is(err, media.ErrRemoveInvalid):
-				http.Error(w, "Managed tool files could not be verified; nothing was removed", http.StatusConflict)
+				http.Error(w, "Managed tool files could not be verified; nothing was removed. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
 			default:
 				http.Error(w, "The tool could not be fully removed; check the local tool directory", http.StatusConflict)
 			}
