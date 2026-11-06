@@ -80,7 +80,7 @@ export function LocalNetworkInventory({
     <section className="pp-local-inventory" aria-label="Devices known to this computer">
       <header className="pp-local-inventory-heading">
         <div>
-          <h3>Your network at a glance</h3>
+          <h2>Your network at a glance</h2>
           <p className="pp-scan-policy">
             {devices.filter((device) => device.kind === 'neighbor').length} cached neighbors · this
             device included. Read from this computer at{' '}
@@ -207,7 +207,7 @@ export function LocalNetworkInventory({
           <header>
             <div>
               <span className="pp-kicker">{sourceFor(selected)}</span>
-              <h4>{labelFor(selected)}</h4>
+              <h3>{labelFor(selected)}</h3>
               <code>{selected.address}</code>
             </div>
             <div className="pp-local-device-actions">

@@ -181,15 +181,20 @@ func (d detector) aria2(options Options) Extension {
 		result.Message = "aria2 was found on PATH. Downloader starts only when requested."
 		return result
 	}
+	if info.Unavailable != "" {
+		result.Status = "unavailable"
+		result.Message = boundedCacheError(info.Unavailable)
+		return result
+	}
 	if info.Included {
 		result.Status, result.Source = "included", "bundled"
-		result.Message = "This build includes an aria2 companion. It is prepared only when you start Downloader."
+		result.Message = "A verified aria2 companion is available. It is prepared only when you start Downloader."
 		if info.CacheError != "" {
 			result.Status = "unavailable"
 			result.Message = boundedCacheError(info.CacheError)
 		} else if info.CachedPath != "" && validPath(info.CachedPath) {
 			result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
-			result.Message = "The included aria2 companion is already cached and its checksum matches. Downloader is not started by this check."
+			result.Message = "The verified aria2 companion is already cached and its checksum matches. Downloader is not started by this check."
 		}
 		return result
 	}

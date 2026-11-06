@@ -108,8 +108,8 @@ export function Extensions() {
           AI agent activity <ArrowRight aria-hidden="true" />
         </Link>
       </PageHeader>
-      <aside className="pp-panel pp-extensions-base" aria-label="Included base tools">
-        <strong>The core workbench works on its own.</strong>
+      <details className="pp-panel pp-extensions-base" aria-label="Included base tools">
+        <summary>What is included and what needs setup?</summary>
         <p>
           Browsing, searching and pinning starts nothing. No tools, models or accounts are
           downloaded or connected. Native workbenches, setup guides and external companions are
@@ -122,7 +122,7 @@ export function Extensions() {
             Read a packet file
           </Link>
         </div>
-      </aside>
+      </details>
       <div className="pp-extension-controls">
         <label className="pp-extension-search">
           <Search aria-hidden="true" />
@@ -135,26 +135,28 @@ export function Extensions() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <fieldset className="pp-extension-filters" aria-label="Extension categories">
-          {groups.map((name) => (
-            <button
-              type="button"
-              key={name}
-              aria-pressed={group === name}
-              onClick={() => setGroup(name)}
-            >
-              {name}
-            </button>
-          ))}
-        </fieldset>
-        <label className="pp-extension-pinned-filter">
-          <input
-            type="checkbox"
-            checked={pinnedOnly}
-            onChange={(event) => setPinnedOnly(event.target.checked)}
-          />
-          Pinned ({preferences.pinned.length})
-        </label>
+        <div className="pp-extension-filter-row">
+          <fieldset className="pp-extension-filters" aria-label="Extension categories">
+            {groups.map((name) => (
+              <button
+                type="button"
+                key={name}
+                aria-pressed={group === name}
+                onClick={() => setGroup(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </fieldset>
+          <label className="pp-extension-pinned-filter">
+            <input
+              type="checkbox"
+              checked={pinnedOnly}
+              onChange={(event) => setPinnedOnly(event.target.checked)}
+            />
+            Pinned ({preferences.pinned.length})
+          </label>
+        </div>
       </div>
       {preferenceError ? <p role="alert">{preferenceError}</p> : null}
       <p role="status">
@@ -232,8 +234,8 @@ export function Extensions() {
       ) : null}
       <p className="pp-extensions-footnote">
         Setup content loads when opened. External tools stay installed and managed separately.
-        Windows x64 keeps its existing included aria2 companion; no additional vendor binaries or AI
-        runtimes are bundled.
+        Standard Windows x64 builds include an aria2 companion. Lightweight builds use a separate
+        local companion; other vendor tools and AI runtimes are managed separately.
       </p>
     </div>
   );

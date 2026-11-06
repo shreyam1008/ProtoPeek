@@ -20,6 +20,7 @@ export type DesktopShellProps = {
   onOpenNavigation: () => void;
   onCloseNavigation: () => void;
   onOpenCommand: () => void;
+  onOpenHelp: () => void;
   onToggleTheme: () => void;
 };
 
@@ -33,6 +34,7 @@ export function DesktopShell({
   onOpenNavigation,
   onCloseNavigation,
   onOpenCommand,
+  onOpenHelp,
   onToggleTheme,
 }: DesktopShellProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -115,6 +117,7 @@ export function DesktopShell({
         onCloseNavigation={onCloseNavigation}
         onInspect={onInspect}
         onOpenCommand={onOpenCommand}
+        onOpenHelp={onOpenHelp}
         onToggleTheme={onToggleTheme}
       >
         <SessionTabs

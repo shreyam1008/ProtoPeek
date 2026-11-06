@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 )
 
 type fakeEngine struct {
@@ -439,6 +441,18 @@ func TestServiceReleasesLockAfterStartFailure(t *testing.T) {
 	}
 	if locker.lease.releases() != 1 {
 		t.Fatalf("lock releases = %d", locker.lease.releases())
+	}
+}
+
+func TestServiceReportsCompanionFailureWithoutPrivateDetails(t *testing.T) {
+	for _, sentinel := range []error{bundledaria2.ErrCompanionMissing, bundledaria2.ErrCompanionInvalid} {
+		service, launcher, locker, _, _ := testService(t, &fakeEngine{})
+		launcher.err = fmt.Errorf("private-path: %w", sentinel)
+		health, err := service.Start(context.Background())
+		if !errors.Is(err, sentinel) || health.Status != "binary_missing" ||
+			strings.Contains(health.Message, "private-path") || health.Message != CompanionErrorMessage(sentinel) || locker.lease.releases() != 1 {
+			t.Fatalf("health=%#v err=%v", health, err)
+		}
 	}
 }
 

@@ -19,6 +19,12 @@ aria2 may also read and verify an existing cached bundle checksum. Detection doe
 scan, capture, sign-in flow, model download or service. Cancelling a slow check detaches the browser;
 an OS filesystem lookup already waiting may still finish.
 
+In current source, Help in the app shell gives short task guidance for the selected tool.
+A separate Windows x64 lightweight build is available as a local development preview: its
+aria2 archive sits beside the executable and is verified before use. Standard releases still
+embed the fallback. The preview is not a published package or a supported updater format;
+see the [build instructions](https://github.com/shreyam1008/ProtoPeek/blob/master/internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
+
 Setup applies to the **machine running ProtoPeek**, which may differ from the machine displaying
 your browser. A remote server or container needs its own accessible tools. Guidance uses the host
 operating system and points to official installation instructions.

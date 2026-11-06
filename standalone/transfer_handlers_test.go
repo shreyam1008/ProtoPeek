@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
 
@@ -547,6 +548,23 @@ func TestTransferErrorStatusMapping(t *testing.T) {
 				t.Fatalf("status = %d want=%d body=%q", response.Code, test.want, response.Body.String())
 			}
 		})
+	}
+}
+
+func TestTransferCompanionErrorsAreActionableAndSanitized(t *testing.T) {
+	for _, sentinel := range []error{bundledaria2.ErrCompanionMissing, bundledaria2.ErrCompanionInvalid} {
+		response := httptest.NewRecorder()
+		writeTransferError(response, fmt.Errorf("private-path: %w", sentinel), http.StatusInternalServerError)
+		body := response.Body.String()
+		if response.Code != http.StatusServiceUnavailable || strings.Contains(body, "private-path") ||
+			(!strings.Contains(body, bundledaria2.CompanionFilename) && !strings.Contains(body, "could not be verified")) {
+			t.Fatalf("companion error: status=%d body=%s", response.Code, body)
+		}
+	}
+	response := httptest.NewRecorder()
+	writeTransferError(response, errors.New("private-path"), http.StatusInternalServerError)
+	if strings.Contains(response.Body.String(), "private-path") {
+		t.Fatal("unrelated internal error escaped")
 	}
 }
 

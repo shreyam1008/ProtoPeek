@@ -15,7 +15,7 @@ const extension = {
   afterSetup:
     'Downloader prefers its configured engine, then PATH. Any included or cached companion is identified separately below.',
   notes: [
-    'The existing Windows x64 binary includes a pinned fallback. This library adds no vendor binaries or models.',
+    'Standard Windows x64 builds include a pinned fallback. The lightweight preview uses a separate local companion. This library adds no vendor binaries or models.',
     'A check may verify an existing cached bundle; it does not extract it, start aria2 or queue a transfer.',
   ],
   route: '/downloader',

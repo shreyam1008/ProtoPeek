@@ -109,6 +109,22 @@ jobs:
       - name: Go test
         run: go test ./...
 
+      - name: Verify Windows lightweight companion
+        if: runner.os == 'Windows'
+        run: go test -tags protopeek_lite ./internal/bundledaria2 ./internal/extensions ./internal/transfer ./internal/cli ./standalone
+
+      - name: Build lightweight Windows preview
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
+          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview
+          if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
+          foreach ($command in @('protopeek', 'pp')) {
+            & (Join-Path $preview "$command.exe") --version
+            if ($LASTEXITCODE -ne 0) { throw "Lightweight $command failed to start." }
+          }
+
       - name: Native Linux publishing evidence
         if: runner.os == 'Linux'
         env:

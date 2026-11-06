@@ -383,7 +383,7 @@ export function LocalNetworkPanel({
           ) : null}
 
           <section className="pp-local-service-scan" aria-label="Find open services">
-            <h3>Find open services</h3>
+            <h2>Find open services</h2>
             <p className="pp-scan-policy">
               Scanning starts only when you choose Scan network.
               {previewState.plan
@@ -582,7 +582,7 @@ function DiscoveryResult({
 
   return (
     <section aria-label="Local network evidence">
-      <h3>Observed endpoint evidence</h3>
+      <h2>Observed endpoint evidence</h2>
       <p className="pp-scan-policy">
         Observed means the ProtoPeek process received positive selected-port evidence. Device-role
         hints are unverified.
@@ -726,7 +726,7 @@ function DiscoveredHostDetails({
       <header>
         <div>
           <span className="pp-kicker">Observed host</span>
-          <h4>{host.address}</h4>
+          <h3>{host.address}</h3>
           <p>
             {host.ports.length} positive selected-port{' '}
             {host.ports.length === 1 ? 'observation' : 'observations'}
@@ -741,7 +741,7 @@ function DiscoveredHostDetails({
         className="pp-local-discovery-observations"
         aria-label={`Observed ports for ${host.address}`}
       >
-        <h5>Observed services</h5>
+        <h4>Observed services</h4>
         <ul>
           {host.ports.map((port) => {
             const applicationProbe = result.profile.applicationProbePorts.includes(port.port);

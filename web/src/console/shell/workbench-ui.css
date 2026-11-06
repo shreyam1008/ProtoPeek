@@ -90,7 +90,7 @@
 }
 .pp-tool-sidebar-heading > span {
   color: var(--pp-color-text-faint);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .pp-workbench-shell .pp-tool-sidebar > .pp-app-command {
@@ -120,7 +120,7 @@
 .pp-tool-group-label {
   padding: 0 8px 7px;
   color: var(--pp-color-text-faint);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.035em;
 }
@@ -134,7 +134,7 @@
   padding: 7px 9px;
   border-radius: 6px;
   color: var(--pp-color-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   text-decoration: none;
   border: 1px solid transparent;
@@ -292,13 +292,24 @@
   border-color: var(--pp-color-stroke-strong);
   background: var(--pp-color-surface);
   color: var(--pp-color-text);
-  font-size: 12px;
+  font-size: 13px;
 }
 .pp-workbench-shell .pp-workbench-canvas :where(textarea) {
   border-radius: 6px;
   border-color: var(--pp-color-stroke-strong);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .pp-workbench-shell
+    .pp-workbench-canvas
+    :where(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      select,
+      textarea
+    ) {
+    font-size: 16px;
+  }
 }
 .pp-workbench-shell :where(button, a, summary, input, select, textarea):focus-visible {
   outline: 2px solid var(--pp-color-accent);

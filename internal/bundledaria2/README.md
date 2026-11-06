@@ -1,6 +1,6 @@
 # aria2 companion provenance
 
-Current-source Windows amd64 builds carry the unmodified official
+Standard Windows amd64 builds carry the unmodified official
 [aria2 1.37.0 win-64bit-build1 archive](https://github.com/aria2/aria2/releases/tag/release-1.37.0).
 Its 2,475,379 compressed bytes add about 2.36 MiB to the Go executable. Other targets use a configured
 or PATH-installed engine. Stable ProtoPeek v0.5.0 contains no bundled engine.
@@ -37,3 +37,26 @@ The archive itself can be refreshed from
 `https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip`.
 Verify both committed digests before changing the payload. For a version update, update sources,
 notices, digests, platform tests, and upstream limitations together.
+
+## Optional Windows x64 lightweight local preview
+
+The normal release continues to embed the archive. Maintainers can build an **opt-in local preview**
+with a separate archive beside the executables:
+
+```powershell
+./scripts/build-lite-windows.ps1 -OutputDirectory .local/protopeek-lite-preview
+```
+
+Choose a new output directory: the script refuses to replace an existing one. The `protopeek_lite`
+build tag applies to Windows amd64; the script stages both commands, the pinned companion ZIP, and
+notices. The executable reads only the fixed companion filename beside itself, checks its pinned
+size and SHA-256 before extraction, and verifies the extracted executable. A missing or modified
+companion yields an actionable error; configured and PATH engines retain priority. No engine is
+downloaded by this build. The companion archive is loaded only when Downloader is requested, or
+when the user explicitly checks aria2 availability.
+
+This is a development preview, not an additional published release, Store package or updater format.
+Keep it separate from existing installations: the v0.7.0 updater and installers copy only the two
+executables and do not install a sidecar. Other optional providers, capture drivers, sign-in and
+platform-specific engines still have their own prerequisites. Distribution of the companion also
+requires the corresponding GPL source bundle and notices described above.

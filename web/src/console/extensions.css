@@ -24,8 +24,12 @@
   flex: none;
 }
 .pp-extensions-base {
-  margin-block: 20px;
+  margin-block: 12px;
   border-left: 3px solid var(--pp-brand);
+}
+.pp-extensions-base summary {
+  cursor: pointer;
+  font-weight: 600;
 }
 .pp-extensions-base p {
   margin-block: 6px;
@@ -68,6 +72,14 @@
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 4px;
+  flex: 1 1 340px;
+}
+.pp-extension-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 .pp-extension-filters button {
   flex: none;
@@ -95,7 +107,6 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 12px;
 }
 .pp-extension-grid {
   display: grid;

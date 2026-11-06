@@ -130,6 +130,7 @@ describe('optional extension library', () => {
       'href',
       '/network/packets?mode=live'
     );
+    fireEvent.click(screen.getByText('What is included and what needs setup?'));
     expect(screen.getByRole('link', { name: 'Read a packet file' })).toHaveAttribute(
       'href',
       '/network/packets?mode=file'

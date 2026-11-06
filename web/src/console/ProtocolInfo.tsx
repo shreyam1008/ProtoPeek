@@ -12,7 +12,7 @@ const protocols = {
     name: 'Cap’n Proto',
     transport: 'Schema-based binary messages · Capability RPC · TCP or verified TLS',
     detail:
-      'Cap’n Proto uses compiled schemas and object capabilities. This workbench calls one method on the peer’s bootstrap capability, with JSON converted according to that schema. It supports direct two-party RPC; returned capabilities, pipelining and generic interfaces need their own workflows. TCP alone is not encrypted; verified TLS is an explicit option.',
+      'Cap’n Proto uses schemas and object capabilities. This workbench converts JSON using the selected schema and supports direct two-party RPC, generic type bindings, and plans of up to eight calls using typed returned capabilities. TCP alone is not encrypted; verified TLS is an explicit option.',
   },
   cloudflare: {
     name: 'Cloudflare Tunnel',

@@ -387,7 +387,10 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		_ = lease.Release()
 		status := "failed"
 		message := "aria2c could not be started."
-		if errors.Is(err, ErrAria2NotFound) {
+		if companionMessage := CompanionErrorMessage(err); companionMessage != "" {
+			status = "binary_missing"
+			message = companionMessage
+		} else if errors.Is(err, ErrAria2NotFound) {
 			status = "binary_missing"
 			message = "aria2c was not found. Install it or configure its executable path."
 		}

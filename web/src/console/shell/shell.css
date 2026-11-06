@@ -588,7 +588,8 @@ body:has(.pp-workbench-shell) {
   }
 
   .pp-app-command,
-  .pp-app-theme {
+  .pp-app-theme,
+  .pp-app-help {
     width: var(--pp-narrow-touch-height);
     height: var(--pp-narrow-touch-height);
   }

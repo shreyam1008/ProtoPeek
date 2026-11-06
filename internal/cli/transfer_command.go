@@ -144,6 +144,8 @@ Flags:
 		} else if errors.Is(err, context.Canceled) {
 			fmt.Fprintln(stderr, "Download interrupted before aria2c started; no queue item was added.")
 			return 130
+		} else if message := transfer.CompanionErrorMessage(err); message != "" {
+			fmt.Fprintln(stderr, message)
 		} else if errors.Is(err, transfer.ErrAria2NotFound) {
 			fmt.Fprintln(stderr, "aria2c was not found. Install it or configure its executable path in ProtoPeek's transfer settings.")
 		} else {

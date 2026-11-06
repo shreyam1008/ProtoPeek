@@ -65,6 +65,11 @@ TCP port scans and bounded private-network discovery are built in. Nmap, live ca
 dumpcap, and provider access/publishing integrations use separately installed tools.
 They remain optional: opening the workbench does not download them or start their work.
 
+Current source adds contextual Help for the selected tool. It also includes an experimental
+[Windows x64 lightweight build](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview)
+that loads the Downloader engine from a separate verified local companion. This is a local
+development preview; existing releases, installers and updaters retain their standard packaging.
+
 ## Stable, Nightly and source
 
 | Channel | What it means |

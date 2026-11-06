@@ -22,6 +22,19 @@ func TestInspectBundleDoesNotExtractOrCreateCache(t *testing.T) {
 	}
 }
 
+func TestInspectBundleRejectsModifiedArchiveWithoutExtraction(t *testing.T) {
+	payload := fixtureBundle(t)
+	payload.archive[0] ^= 1
+	cache := filepath.Join(t.TempDir(), "not-created")
+	got := inspectBundle(payload, cache)
+	if !got.Included || got.CacheError == "" || got.CachedPath != "" {
+		t.Fatalf("tampered archive accepted: %#v", got)
+	}
+	if _, err := os.Stat(cache); !os.IsNotExist(err) {
+		t.Fatalf("inspection created cache: %v", err)
+	}
+}
+
 func TestInspectBundleVerifiesExistingCacheWithoutRepairingIt(t *testing.T) {
 	t.Parallel()
 	payload := fixtureBundle(t)

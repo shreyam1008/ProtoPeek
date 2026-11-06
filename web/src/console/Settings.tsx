@@ -98,6 +98,44 @@ const densities: Array<{ value: InterfaceDensity; label: string; detail: string 
 
 const editableHostStatuses = new Set<TransferHealthStatus>(['stopped', 'failed', 'binary_missing']);
 
+function narrowSettings() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (typeof window.matchMedia === 'function')
+      return window.matchMedia('(max-width: 600px)').matches;
+  } catch {
+    // Use the viewport fallback below when media queries are unavailable.
+  }
+  return window.innerWidth <= 600;
+}
+
+function useNarrowSettings() {
+  const [narrow, setNarrow] = useState(narrowSettings);
+  useEffect(() => {
+    let query: MediaQueryList | undefined;
+    try {
+      query = window.matchMedia?.('(max-width: 600px)');
+    } catch {
+      query = undefined;
+    }
+    if (
+      query &&
+      typeof query.addEventListener === 'function' &&
+      typeof query.removeEventListener === 'function'
+    ) {
+      const change = (event: MediaQueryListEvent) => setNarrow(event.matches);
+      setNarrow(query.matches);
+      query.addEventListener('change', change);
+      return () => query?.removeEventListener('change', change);
+    }
+    const resize = () => setNarrow(window.innerWidth <= 600);
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+  return narrow;
+}
+
 export function Settings() {
   const {
     appearance,
@@ -107,6 +145,7 @@ export function Settings() {
     preferenceStorageError,
   } = useProtocolShell();
   const [section, setSection] = useState('appearance');
+  const narrow = useNarrowSettings();
   const [notice, setNotice] = useState('');
   const [hostSnapshot, setHostSnapshot] = useState<TransferSnapshot | null>(null);
   const [hostDraft, setHostDraft] = useState<TransferHostConfig | null>(null);
@@ -369,7 +408,7 @@ export function Settings() {
         <AccessibleTabs
           id="settings"
           label="Settings sections"
-          orientation="vertical"
+          orientation={narrow ? 'horizontal' : 'vertical'}
           tabs={settingsSections}
           value={section}
           onChange={setSection}

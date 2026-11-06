@@ -22,6 +22,15 @@ import (
 
 var ErrAria2NotFound = errors.New("aria2c executable not found")
 
+// CompanionErrorMessage returns only fixed, safe guidance for the two known
+// local companion failures. Unrelated errors remain sanitized by callers.
+func CompanionErrorMessage(err error) string {
+	if errors.Is(err, bundledaria2.ErrCompanionMissing) || errors.Is(err, bundledaria2.ErrCompanionInvalid) {
+		return bundledaria2.CompanionMessage(err)
+	}
+	return ""
+}
+
 const (
 	defaultStartupTimeout = 10 * time.Second
 	defaultPollInterval   = 150 * time.Millisecond

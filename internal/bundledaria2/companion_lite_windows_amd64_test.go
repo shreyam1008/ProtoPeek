@@ -1,0 +1,90 @@
+//go:build protopeek_lite
+
+package bundledaria2
+
+import (
+	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Exercise the actual executable-relative lookup in a separate, isolated copy
+// of this test binary. No machine PATH, installed engine or user cache is used.
+func TestLiteCompanionThroughExecutable(t *testing.T) {
+	dir := t.TempDir()
+	current, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	binary, err := os.ReadFile(current)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := filepath.Join(dir, "companion-test.exe")
+	if err := os.WriteFile(child, binary, 0700); err != nil {
+		t.Fatal(err)
+	}
+	archive, err := os.ReadFile(filepath.Join("assets", strings.TrimPrefix(CompanionFilename, "protopeek-")))
+	if err != nil || len(archive) != windowsArchiveSize || digest(archive) != windowsArchiveSHA {
+		t.Fatalf("source archive does not match its pins: %v", err)
+	}
+	companion := filepath.Join(dir, CompanionFilename)
+	run := func(mode string) {
+		t.Helper()
+		cmd := exec.Command(child, "-test.run=^TestLiteCompanionChild$", "-test.v")
+		cmd.Env = append(os.Environ(), "PROTOPEEK_LITE_TEST_CHILD="+mode, "LOCALAPPDATA="+filepath.Join(dir, "cache"))
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%s: %v\n%s", mode, err, output)
+		}
+	}
+	run("missing")
+	if err := os.WriteFile(companion, archive, 0600); err != nil {
+		t.Fatal(err)
+	}
+	run("valid")
+	tampered := bytes.Clone(archive)
+	tampered[0] ^= 1
+	if err := os.WriteFile(companion, tampered, 0600); err != nil {
+		t.Fatal(err)
+	}
+	// The archive remains mandatory even when a verified cache already exists.
+	run("invalid")
+}
+
+func TestLiteCompanionChild(t *testing.T) {
+	mode := os.Getenv("PROTOPEEK_LITE_TEST_CHILD")
+	if mode == "" {
+		return
+	}
+	path, err := Path()
+	switch mode {
+	case "missing":
+		if !errors.Is(err, ErrCompanionMissing) || path != "" {
+			t.Fatalf("missing: %q %v", path, err)
+		}
+	case "invalid":
+		if !errors.Is(err, ErrCompanionInvalid) || path != "" {
+			t.Fatalf("invalid: %q %v", path, err)
+		}
+	case "valid":
+		if err != nil || filepath.Base(path) != "aria2c.exe" {
+			t.Fatalf("valid: %q %v", path, err)
+		}
+		binary, err := os.ReadFile(path)
+		if err != nil || digest(binary) != windowsBinarySHA {
+			t.Fatalf("extracted engine digest: %v", err)
+		}
+		for _, name := range []string{"COPYING", "AUTHORS", "README.mingw", "LICENSE.OpenSSL"} {
+			if _, err := os.Stat(filepath.Join(filepath.Dir(path), name)); err != nil {
+				t.Fatalf("notice %s: %v", name, err)
+			}
+		}
+	default:
+		t.Fatalf("unknown child mode %q", mode)
+	}
+}

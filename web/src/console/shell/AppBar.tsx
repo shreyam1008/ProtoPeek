@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import {
+  CircleHelp,
   Download,
   Home,
   type LucideIcon,
@@ -54,6 +55,7 @@ export type AppBarProps = {
   onCloseNavigation: () => void;
   onInspect: () => void;
   onOpenCommand: () => void;
+  onOpenHelp: () => void;
   onToggleTheme: () => void;
 };
 
@@ -147,6 +149,15 @@ export function AppBar(props: AppBarProps) {
                 </button>
               </div>
             ) : null}
+            <button
+              type="button"
+              className="pp-app-icon-action pp-app-help"
+              aria-label="Open ProtoPeek help"
+              title="Help for this tool"
+              onClick={props.onOpenHelp}
+            >
+              <CircleHelp aria-hidden="true" />
+            </button>
             <button
               type="button"
               className="pp-app-icon-action pp-app-theme"
@@ -281,6 +292,10 @@ function MobileNavigationDrawer(props: AppBarProps) {
           {props.children}
         </details>
         <div className="pp-navigation-actions">
+          <button type="button" className="pp-navigation-link" onClick={props.onOpenHelp}>
+            <CircleHelp aria-hidden="true" />
+            Help
+          </button>
           <button
             type="button"
             className="pp-navigation-link"

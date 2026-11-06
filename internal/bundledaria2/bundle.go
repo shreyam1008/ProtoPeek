@@ -25,7 +25,11 @@ type bundle struct {
 
 // Path returns an empty path without error on builds with no bundled engine.
 func Path() (string, error) {
-	if len(nativeBundle.archive) == 0 {
+	payload, err := loadNativeBundle()
+	if err != nil {
+		return "", err
+	}
+	if len(payload.archive) == 0 {
 		return "", nil
 	}
 	cache, err := os.UserCacheDir()
@@ -34,7 +38,7 @@ func Path() (string, error) {
 	}
 	extractMu.Lock()
 	defer extractMu.Unlock()
-	return extract(nativeBundle, filepath.Join(cache, "protopeek", "engines", "aria2", nativeBundle.binarySHA))
+	return extract(payload, filepath.Join(cache, "protopeek", "engines", "aria2", payload.binarySHA))
 }
 
 func extract(payload bundle, directory string) (string, error) {

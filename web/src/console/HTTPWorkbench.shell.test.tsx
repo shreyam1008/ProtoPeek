@@ -75,8 +75,8 @@ describe('HTTP run shortcut in the real shell', () => {
       dialog = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
       closeLabel = 'Close command palette';
       if (overlay === 'help') {
-        fireEvent.click(within(dialog).getByRole('option', { name: 'Open protocol checklist' }));
-        dialog = await screen.findByRole('dialog', { name: 'Debug what is actually on the wire.' });
+        fireEvent.click(within(dialog).getByRole('option', { name: 'Open tool help' }));
+        dialog = await screen.findByRole('dialog', { name: 'Help for this tool' });
         closeLabel = 'Close help';
       }
     }

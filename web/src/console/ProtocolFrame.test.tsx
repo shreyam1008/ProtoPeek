@@ -81,7 +81,7 @@ describe('ProtocolFrame', () => {
       within(primary).getByRole('link', { name: 'Open Inspect' }),
     ]);
     expect(screen.queryByRole('link', { name: /Roadmap/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Open ProtoPeek help' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open ProtoPeek help' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open ProtoPeek Home' })).toBeVisible();
   });
 
@@ -166,7 +166,7 @@ describe('ProtocolFrame', () => {
       within(commands).getByRole('option', { name: 'Open Cloudflare tunnel operations' })
     ).toBeVisible();
     expect(within(commands).getByRole('option', { name: 'Open product roadmap' })).toBeVisible();
-    expect(within(commands).getByRole('option', { name: 'Open protocol checklist' })).toBeVisible();
+    expect(within(commands).getByRole('option', { name: 'Open tool help' })).toBeVisible();
 
     fireEvent.change(within(commands).getByRole('combobox', { name: 'Search commands' }), {
       target: { value: 'trailers' },
@@ -207,7 +207,7 @@ describe('ProtocolFrame', () => {
         .map((link) => link.textContent?.trim())
     ).toEqual(['Home', 'Inspect', 'Network', 'Extensions', 'Files', 'Settings']);
     expect(within(drawer).queryByText('Roadmap')).not.toBeInTheDocument();
-    expect(within(drawer).queryByRole('button', { name: 'Help' })).not.toBeInTheDocument();
+    expect(within(drawer).getByRole('button', { name: 'Help' })).toBeVisible();
 
     fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
     expect(within(drawer).getByRole('button', { name: 'Inspect target' })).toHaveFocus();
@@ -314,6 +314,7 @@ describe('ProtocolFrame', () => {
       'aria-expanded',
       'false'
     );
+    expect(screen.getByRole('button', { name: 'Open ProtoPeek help' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Open navigation menu' }));
     const drawer = await screen.findByRole('dialog', { name: 'ProtoPeek' });
@@ -370,6 +371,64 @@ describe('ProtocolFrame', () => {
     expect(url).toHaveValue('http://127.0.0.1:8080/');
   });
 
+  it('opens contextual guidance without starting a check and restores focus', async () => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    const trigger = screen.getByRole('button', { name: 'Open ProtoPeek help' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const help = await screen.findByRole('dialog', { name: 'Help for this tool' });
+    const topic = within(help).getByRole('combobox', { name: 'Help topic' });
+    expect(topic).toHaveValue('protocols');
+    fireEvent.change(topic, { target: { value: 'network-nmap' } });
+    expect(
+      within(help).getByText(/scanner runs the separately installed Nmap only on request/)
+    ).toBeVisible();
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Help for this tool' })).toBeNull()
+    );
+    expect(trigger).toHaveFocus();
+    await act(async () => {
+      await router.navigate({ to: '/roadmap' });
+    });
+    await screen.findByRole('heading', { name: 'Product roadmap' });
+    fireEvent.click(trigger);
+    const nextHelp = await screen.findByRole('dialog', { name: 'Help for this tool' });
+    expect(within(nextHelp).getByRole('combobox', { name: 'Help topic' })).toHaveValue('roadmap');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('opens help from mobile navigation without keeping two dialogs open', async () => {
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    const menu = screen.getByRole('button', { name: 'Open navigation menu' });
+    menu.focus();
+    fireEvent.click(menu);
+    const navigation = await screen.findByRole('dialog', { name: 'ProtoPeek' });
+    fireEvent.click(within(navigation).getByRole('button', { name: 'Help' }));
+    const help = await screen.findByRole('dialog', { name: 'Help for this tool' });
+    expect(screen.getAllByRole('dialog')).toEqual([help]);
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Help for this tool' })).toBeNull()
+    );
+    expect(menu).toHaveFocus();
+  });
+
   it('keeps only one global modal focus owner open at a time', async () => {
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0);
@@ -387,17 +446,15 @@ describe('ProtocolFrame', () => {
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek' })).toBeNull();
     expect(screen.getAllByRole('dialog')).toEqual([palette]);
 
-    fireEvent.click(within(palette).getByRole('option', { name: 'Open protocol checklist' }));
+    fireEvent.click(within(palette).getByRole('option', { name: 'Open tool help' }));
     const help = await screen.findByRole('dialog', {
-      name: 'Debug what is actually on the wire.',
+      name: 'Help for this tool',
     });
     expect(screen.queryByRole('dialog', { name: 'ProtoPeek commands' })).toBeNull();
     expect(screen.getAllByRole('dialog')).toEqual([help]);
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
     expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
-    expect(
-      screen.queryByRole('dialog', { name: 'Debug what is actually on the wire.' })
-    ).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Help for this tool' })).toBeNull();
   });
 });

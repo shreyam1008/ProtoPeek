@@ -878,7 +878,7 @@
   padding-top: 0.8rem;
 }
 
-.pp-local-network-panel h3 {
+.pp-local-network-panel :is(h2, h3) {
   font-size: 0.78rem;
 }
 
@@ -1132,7 +1132,7 @@
   font-size: 0.7rem;
 }
 
-.pp-local-discovery-detail > header h4 {
+.pp-local-discovery-detail > header h3 {
   margin: 0.15rem 0;
   color: var(--pp-code-text);
   font-family: var(--font-mono);

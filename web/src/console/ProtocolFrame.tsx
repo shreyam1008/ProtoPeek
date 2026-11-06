@@ -1,6 +1,5 @@
 import { Outlet, useNavigate } from '@tanstack/react-router';
-import { X } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
   type AppearancePreference,
@@ -33,7 +32,6 @@ import {
 } from './ProtocolShellContext';
 import { normalizeRecentDiscoveries } from './recent-discovery';
 import { DesktopShell } from './shell/DesktopShell';
-import { useDialogFocus } from './use-dialog-focus';
 import './shell/shell.css';
 import './shell/workbench-ui.css';
 
@@ -43,6 +41,9 @@ const ScanTargetDialog = lazy(async () => {
 });
 const CommandPalette = lazy(() =>
   import('./CommandPalette').then((module) => ({ default: module.CommandPalette }))
+);
+const HelpDrawer = lazy(() =>
+  import('./HelpDrawer').then((module) => ({ default: module.HelpDrawer }))
 );
 
 function systemPrefersDark() {
@@ -251,7 +252,7 @@ export function ProtocolFrame() {
       },
       {
         id: 'help',
-        label: 'Open protocol checklist',
+        label: 'Open tool help',
         keywords: 'help evidence transport',
         run: openHelp,
       },
@@ -335,6 +336,7 @@ export function ProtocolFrame() {
         onOpenNavigation={openNavigation}
         onCloseNavigation={() => setNavigationOpen(false)}
         onOpenCommand={openCommand}
+        onOpenHelp={openHelp}
         onToggleTheme={() =>
           setAppearance({
             ...appearance,
@@ -402,73 +404,17 @@ export function ProtocolFrame() {
           />
         </Suspense>
       ) : null}
-      <HelpDrawer open={helpOpen} onClose={closeHelp} />
+      {helpOpen ? (
+        <Suspense
+          fallback={
+            <span className="pp-shell-announcement" role="status">
+              Opening help…
+            </span>
+          }
+        >
+          <HelpDrawer onClose={closeHelp} />
+        </Suspense>
+      ) : null}
     </ProtocolShellContext.Provider>
-  );
-}
-
-function HelpDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const drawerRef = useRef<HTMLElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  useDialogFocus(open, onClose, drawerRef, closeButtonRef);
-
-  if (!open) return null;
-  return (
-    <div className="pp-help-layer">
-      <button
-        type="button"
-        className="pp-help-backdrop"
-        aria-label="Close help"
-        onClick={onClose}
-      />
-      <aside
-        ref={drawerRef}
-        className="pp-help-drawer"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="protopeek-help-title"
-      >
-        <header>
-          <div>
-            <span>Protocol checklist</span>
-            <h2 id="protopeek-help-title">Debug what is actually on the wire.</h2>
-          </div>
-          <button ref={closeButtonRef} type="button" aria-label="Close help" onClick={onClose}>
-            <X aria-hidden="true" />
-          </button>
-        </header>
-        <section>
-          <h3>gRPC · available</h3>
-          <ul>
-            <li>Confirm plaintext versus verified TLS before invoking.</li>
-            <li>Use reflection, a browser folder, or host proto/protoset paths for the schema.</li>
-            <li>Inspect response headers, messages, trailers, and final status separately.</li>
-          </ul>
-        </section>
-        <section>
-          <h3>HTTP · available</h3>
-          <ul>
-            <li>Redirects are off and certificate verification is on by default.</li>
-            <li>Inspect negotiated protocol, remote peer, timing phases, and truncation.</li>
-            <li>Auth values remain in the live editor and are redacted from local history.</li>
-          </ul>
-        </section>
-        <section>
-          <h3>Network · available with explicit boundaries</h3>
-          <ul>
-            <li>
-              Linux Network Path separates DNS, kernel route, and active per-hop RTT evidence.
-            </li>
-            <li>Local discovery scans only an authorized private IPv4 /24-or-smaller plan.</li>
-            <li>
-              Maps and immutable snapshots stay browser-local and export as JSON, GraphML, or CSV.
-            </li>
-            <li>
-              ProtoPeek imports selected Nmap XML offline; it never installs or executes Nmap.
-            </li>
-          </ul>
-        </section>
-      </aside>
-    </div>
   );
 }

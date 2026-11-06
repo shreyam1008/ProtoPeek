@@ -16,22 +16,31 @@ type Metadata struct {
 	ArchiveBytes int
 	CachedPath   string
 	CacheError   string
+	Unavailable  string
 }
 
 func Inspect() Metadata {
-	if len(nativeBundle.archive) == 0 {
+	payload, err := loadNativeBundle()
+	if err != nil {
+		return Metadata{Unavailable: CompanionMessage(err)}
+	}
+	if len(payload.archive) == 0 {
 		return Metadata{}
 	}
 	cache, err := os.UserCacheDir()
 	if err != nil {
-		return Metadata{Included: true, ArchiveBytes: len(nativeBundle.archive), CacheError: "The user cache directory is unavailable."}
+		return Metadata{Included: true, ArchiveBytes: len(payload.archive), CacheError: "The user cache directory is unavailable."}
 	}
-	return inspectBundle(nativeBundle, cache)
+	return inspectBundle(payload, cache)
 }
 
 func inspectBundle(payload bundle, cache string) Metadata {
 	result := Metadata{Included: len(payload.archive) != 0, ArchiveBytes: len(payload.archive)}
 	if !result.Included {
+		return result
+	}
+	if digest(payload.archive) != payload.archiveSHA {
+		result.CacheError = "The aria2 companion did not match its pinned checksum."
 		return result
 	}
 	directory := filepath.Join(cache, "protopeek", "engines", "aria2", payload.binarySHA)

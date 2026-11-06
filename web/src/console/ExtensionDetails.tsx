@@ -18,7 +18,7 @@ import './extension-details.css';
 
 const statusLabels = {
   detected: 'Executable located',
-  included: 'Included companion',
+  included: 'Companion available',
   missing: 'CLI not located',
   unavailable: 'Check unavailable',
   external: 'External companion',
@@ -210,6 +210,36 @@ export default function ExtensionDetails({
               Official guide <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
+          {pack.endpoint ? (
+            <section className="pp-panel" aria-label="Prepare endpoint request">
+              <h2>Inspect your endpoint</h2>
+              <p>{pack.endpoint.notice}</p>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  openEndpoint();
+                }}
+              >
+                <label>
+                  Endpoint URL
+                  <input
+                    ref={endpointInput}
+                    value={endpoint}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-invalid={!!handoffError}
+                    onChange={(event) => {
+                      setEndpoint(event.target.value);
+                      setHandoffError('');
+                    }}
+                  />
+                </label>
+                <button type="submit">Open HTTP draft</button>
+              </form>
+              {handoffError ? <p role="alert">{handoffError}</p> : null}
+              <p>No probe runs here. Review the prepared request and choose Send in HTTP.</p>
+            </section>
+          ) : null}
           <section className="pp-panel" aria-label="Setup and requirements">
             <h2>Set up on the ProtoPeek host</h2>
             <label>
@@ -260,7 +290,7 @@ export default function ExtensionDetails({
               <p>
                 Locates {pack.tool} on this process’s PATH and supported install locations. It does
                 not run the tool, sign in, start a service or prove readiness. aria2 may verify an
-                existing included companion’s checksum.
+                available companion’s checksum.
               </p>
               {busy ? (
                 <p role="status">Checking the host. No external tool is being executed.</p>
@@ -278,7 +308,7 @@ export default function ExtensionDetails({
                   {observation.path ? <code>{observation.path}</code> : null}
                   {observation.bundled ? (
                     <p>
-                      This build includes an aria2 companion (
+                      An aria2 companion is available (
                       {(observation.bundledBytes / 1024 / 1024).toFixed(2)} MiB). It is prepared
                       only when Downloader is started.
                     </p>
@@ -290,36 +320,6 @@ export default function ExtensionDetails({
                   after a PATH change.
                 </p>
               )}
-            </section>
-          ) : null}
-          {pack.endpoint ? (
-            <section className="pp-panel" aria-label="Prepare endpoint request">
-              <h2>Inspect your endpoint</h2>
-              <p>{pack.endpoint.notice}</p>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  openEndpoint();
-                }}
-              >
-                <label>
-                  Endpoint URL
-                  <input
-                    ref={endpointInput}
-                    value={endpoint}
-                    autoComplete="off"
-                    spellCheck={false}
-                    aria-invalid={!!handoffError}
-                    onChange={(event) => {
-                      setEndpoint(event.target.value);
-                      setHandoffError('');
-                    }}
-                  />
-                </label>
-                <button type="submit">Open HTTP draft</button>
-              </form>
-              {handoffError ? <p role="alert">{handoffError}</p> : null}
-              <p>No probe runs here. Review the prepared request and choose Send in HTTP.</p>
             </section>
           ) : null}
           {pack.commands?.length ? (
