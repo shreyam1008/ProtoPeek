@@ -1,5 +1,5 @@
 import { FileJson2, PanelLeftClose, Search, Upload, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { OpenAPICollection, OpenAPIOperation } from './openapi';
 import './openapi-workbench.css';
@@ -21,6 +21,8 @@ export function OpenAPIImportPanel({
   onImportFile: (file?: File) => void;
   onClose: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => inputRef.current?.focus(), []);
   return (
     <section
       className="pp-openapi-import-panel"
@@ -48,6 +50,7 @@ export function OpenAPIImportPanel({
         <label htmlFor="openapi-definition-url">Swagger, Scalar, or definition URL</label>
         <div>
           <input
+            ref={inputRef}
             id="openapi-definition-url"
             className="pp-openapi-url-input"
             value={url}

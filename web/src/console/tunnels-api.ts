@@ -85,6 +85,7 @@ export type TunnelTool = {
   path: string;
   version: string;
   note: string;
+  source?: 'managed' | 'service' | 'path';
 };
 
 export type TunnelRuntime = {
@@ -357,11 +358,16 @@ function install(value: unknown): TunnelInstall {
 
 function tool(value: unknown): TunnelTool {
   const item = record(value);
+  const source =
+    item.source === 'managed' || item.source === 'service' || item.source === 'path'
+      ? item.source
+      : undefined;
   return {
     found: boolean(item.found),
     path: text(item.path, 4 * 1024),
     version: text(item.version, 160),
     note: text(item.note),
+    source,
   };
 }
 

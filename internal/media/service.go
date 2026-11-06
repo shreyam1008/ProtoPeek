@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 	"net/url"
 	"os"
 	"os/exec"
@@ -17,6 +16,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/transfer"
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 type Request struct {
@@ -33,6 +35,7 @@ type Job struct {
 	Request   Request   `json:"request"`
 	Status    string    `json:"status"`
 	Message   string    `json:"message"`
+	Warning   string    `json:"warning,omitempty"`
 	Directory string    `json:"directory"`
 	Bytes     float64   `json:"bytes"`
 	Total     float64   `json:"total"`
@@ -61,21 +64,67 @@ type Service struct {
 	wake      chan struct{}
 }
 
-func New() (*Service, error) {
+func configDirectory() (string, error) {
 	root, err := os.UserConfigDir()
 	if err != nil {
-		return nil, err
+		return "", ErrLocalUnavailable
 	}
-	return NewAt(filepath.Join(root, "protopeek", "media"))
+	root, err = userroot.Resolve(root)
+	if err != nil {
+		return "", ErrLocalUnavailable
+	}
+	return filepath.Join(root, "protopeek", "media"), nil
 }
 
-func NewAt(root string) (*Service, error) {
-	if err := os.MkdirAll(root, 0700); err != nil {
+func lockDirectory(root string) (transfer.Lock, error) {
+	if err := ensureSafeDirectory(root); err != nil {
 		return nil, err
 	}
 	lease, err := (transfer.FileLocker{}).TryLock(filepath.Join(root, "queue.lock"))
 	if err != nil {
-		return nil, fmt.Errorf("media queue is in use: %w", err)
+		if errors.Is(err, transfer.ErrLockHeld) {
+			return nil, fmt.Errorf("media queue is in use: %w", err)
+		}
+		return nil, ErrLocalUnavailable
+	}
+	return lease, nil
+}
+
+// ChangeCompanion serializes standalone CLI mutations with the workbench.
+// It never reads, starts or rewrites the saved download queue.
+func ChangeCompanion(ctx context.Context, action, name string) error {
+	root, err := configDirectory()
+	if err != nil {
+		return err
+	}
+	lease, err := lockDirectory(root)
+	if err != nil {
+		return err
+	}
+	defer lease.Release()
+	tools := &Service{root: root}
+	switch action {
+	case "install":
+		return tools.Install(ctx, name)
+	case "remove":
+		return tools.Remove(name)
+	default:
+		return errors.New("unknown companion action")
+	}
+}
+
+func New() (*Service, error) {
+	root, err := configDirectory()
+	if err != nil {
+		return nil, err
+	}
+	return NewAt(root)
+}
+
+func NewAt(root string) (*Service, error) {
+	lease, err := lockDirectory(root)
+	if err != nil {
+		return nil, err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{lease: lease, root: root, ctx: ctx, cancel: cancel, cancels: make(map[string]context.CancelFunc), wake: make(chan struct{}, 1)}
@@ -155,11 +204,11 @@ func (s *Service) Add(r Request) (Job, error) {
 	if err := validateRequest(&r); err != nil {
 		return Job{}, err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.tool(r.Engine).Path == "" {
 		return Job{}, fmt.Errorf("install %s first", r.Engine)
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.ctx.Err() != nil {
 		return Job{}, errors.New("downloader is shutting down")
 	}
@@ -211,6 +260,7 @@ func (s *Service) Action(id, action string) error {
 				return fmt.Errorf("install %s before retrying this job", j.Request.Engine)
 			}
 			j.Status, j.Message, j.Speed, j.ETA = "queued", "", 0, 0
+			j.Warning = ""
 			s.signal()
 		case "forget":
 			if _, running := s.cancels[id]; running || j.Status == "queued" {
@@ -298,21 +348,55 @@ func (s *Service) worker() {
 	}
 }
 
-func (s *Service) args(j Job) []string {
+type selectedMediaTools struct{ engine, runtimeName, runtimePath, ffmpeg, warning string }
+
+func (s *Service) resolveTools(j Job) (selectedMediaTools, error) {
+	var out selectedMediaTools
+	var err error
+	out.engine, err = s.selectedTool(j.Request.Engine)
+	if err != nil {
+		return out, err
+	}
+	if out.engine == "" {
+		return out, errors.New("the selected media engine is unavailable; install it first")
+	}
+	if j.Request.Engine != "yt-dlp" {
+		return out, nil
+	}
+	for _, runtime := range []string{"deno", "node"} {
+		p, err := s.selectedTool(runtime)
+		if err != nil {
+			out.warning = "Managed Deno could not be verified; it was skipped. Repair or remove it in Files."
+			continue
+		}
+		if p != "" {
+			out.runtimeName, out.runtimePath = runtime, p
+			break
+		}
+	}
+	out.ffmpeg, err = s.selectedTool("ffmpeg")
+	if err != nil {
+		out.ffmpeg = ""
+		if out.warning != "" {
+			out.warning += " "
+		}
+		out.warning += "Managed FFmpeg could not be verified; only already-combined formats are available. Repair or remove it in Files."
+	}
+	return out, nil
+}
+
+func (s *Service) args(j Job, tools selectedMediaTools) []string {
 	r := j.Request
 	if r.Engine == "gallery-dl" {
 		return []string{"--config-ignore", "--no-input", "--no-postprocessors", "--no-colors", "--windows-filenames", "--retries", "3", "--http-timeout", "20", "--range", fmt.Sprintf("%d-%d", r.Start, r.End), "--directory", j.Directory, "--", r.URL}
 	}
 	args := []string{"--ignore-config", "--no-plugin-dirs", "--no-remote-components", "--no-js-runtimes", "--newline", "--no-colors", "--no-overwrites", "--windows-filenames", "--trim-filenames", "180", "--socket-timeout", "20", "--retries", "3", "--fragment-retries", "3", "--concurrent-fragments", "4", "--playlist-start", strconv.Itoa(r.Start), "--playlist-end", strconv.Itoa(r.End), "--progress", "--progress-delta", "0.5", "--progress-template", "download:PP_PROGRESS:%(progress)j", "--print", "after_move:PP_FILE:%(filepath)j", "--paths", j.Directory, "--output", "%(title).120B [%(id)s].%(ext)s"}
-	for _, runtime := range []string{"deno", "node"} {
-		if p := s.tool(runtime).Path; p != "" {
-			args = append(args, "--js-runtimes", runtime+":"+p)
-			break
-		}
+	if tools.runtimePath != "" {
+		args = append(args, "--js-runtimes", tools.runtimeName+":"+tools.runtimePath)
 	}
 	format := "best[acodec!=none][vcodec!=none]"
-	if ffmpeg := s.tool("ffmpeg").Path; ffmpeg != "" {
-		args = append(args, "--ffmpeg-location", filepath.Dir(ffmpeg))
+	if tools.ffmpeg != "" {
+		args = append(args, "--ffmpeg-location", filepath.Dir(tools.ffmpeg))
 		format = "bestvideo+bestaudio/best"
 		if r.Format == "720" {
 			format = "bestvideo[height<=720]+bestaudio/best[height<=720]"
@@ -336,7 +420,21 @@ func (s *Service) download(ctx context.Context, j Job) error {
 	if j.Request.Engine == "archivebox" {
 		return s.archive(ctx, j)
 	}
-	cmd := exec.CommandContext(ctx, s.tool(j.Request.Engine).Path, s.args(j)...)
+	tools, err := s.resolveTools(j)
+	if err != nil {
+		return err
+	}
+	if tools.warning != "" {
+		s.mu.Lock()
+		for _, job := range s.jobs {
+			if job != nil && job.ID == j.ID {
+				job.Warning = tools.warning
+				break
+			}
+		}
+		s.mu.Unlock()
+	}
+	cmd := exec.CommandContext(ctx, tools.engine, s.args(j, tools)...)
 	configureProcess(cmd)
 	cmd.Dir = j.Directory
 	cmd.WaitDelay = 3 * time.Second

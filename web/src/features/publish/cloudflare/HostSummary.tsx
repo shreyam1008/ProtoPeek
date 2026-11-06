@@ -242,6 +242,8 @@ export function EmptyHostSummary({
       </div>
     );
   const inspected = Boolean(snapshot);
+  const managedNeedsAttention =
+    snapshot?.cloudflared.source === 'managed' && !snapshot.cloudflared.found;
   return (
     <div className={`pp-tunnel-setup ${inspected ? 'is-inspected' : ''}`}>
       <header className="pp-tunnel-setup-heading">
@@ -304,19 +306,26 @@ export function EmptyHostSummary({
             <header>
               <span className="pp-tunnel-section-label">Highest-priority next action</span>
               <h3 id="tunnel-next-step-heading">
-                {snapshot.cloudflared.found
-                  ? 'Finish the local tunnel setup'
-                  : 'Install cloudflared first'}
+                {managedNeedsAttention
+                  ? 'Check the managed companion'
+                  : snapshot.cloudflared.found
+                    ? 'Finish the local tunnel setup'
+                    : 'Install cloudflared first'}
               </h3>
               <p>
-                {snapshot.cloudflared.found
-                  ? 'The binary is available, but no manageable deployment was observed yet.'
-                  : 'Use an official Cloudflare source, then inspect this host again.'}
+                {managedNeedsAttention
+                  ? 'The managed companion is busy or could not be verified. Check its status in Extensions.'
+                  : snapshot.cloudflared.found
+                    ? 'The binary is available, but no manageable deployment was observed yet.'
+                    : 'Use an official Cloudflare source, then inspect this host again.'}
               </p>
+              {managedNeedsAttention ? (
+                <a href="#/extensions?extension=cloudflared">Open companion status</a>
+              ) : null}
             </header>
             <InstallPanel
               capabilities={capabilities}
-              cloudflaredFound={snapshot.cloudflared.found}
+              cloudflaredFound={snapshot.cloudflared.found || managedNeedsAttention}
               onNotice={onNotice}
             />
           </section>
@@ -378,7 +387,10 @@ function HostToolEvidence({ snapshot }: { snapshot: TunnelSnapshot | null }) {
         <Wrench aria-hidden="true" />
         <div>
           <h3 id="tunnel-tools-heading">Local tool checks</h3>
-          <p>Real PATH and version probes from this host; no bundled substitutes.</p>
+          <p>
+            Local service, managed companion and PATH evidence; cloudflared version is checked on
+            this host.
+          </p>
         </div>
       </header>
       {tools.map(({ label, tool: observed, icon: Icon }) => (
@@ -392,9 +404,22 @@ function HostToolEvidence({ snapshot }: { snapshot: TunnelSnapshot | null }) {
                 observed?.note ||
                 `${label} was not found on PATH.`}
             </small>
+            {observed?.source ? (
+              <small>
+                {observed.source === 'managed'
+                  ? 'ProtoPeek managed companion'
+                  : observed.source === 'service'
+                    ? 'Canonical service executable'
+                    : 'Found on PATH'}
+              </small>
+            ) : null}
           </div>
           <span className={observed?.found ? 'is-found' : ''}>
-            {observed?.found ? 'Found' : 'Not found'}
+            {observed?.found
+              ? 'Found'
+              : observed?.source === 'managed'
+                ? 'Needs attention'
+                : 'Not found'}
           </span>
         </article>
       ))}

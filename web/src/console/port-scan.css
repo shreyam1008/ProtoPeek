@@ -172,3 +172,20 @@
   color: var(--pp-accent);
   text-decoration: underline;
 }
+
+@media (max-width: 600px) {
+  .pp-scan-targets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .pp-scan-targets > * {
+    min-height: 44px;
+    padding: 6px;
+    align-items: center;
+    text-align: center;
+    font-size: 12px;
+  }
+  .pp-scan-targets span {
+    display: none;
+  }
+}

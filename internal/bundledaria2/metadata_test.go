@@ -22,6 +22,19 @@ func TestInspectBundleDoesNotExtractOrCreateCache(t *testing.T) {
 	}
 }
 
+func TestInspectBundleRejectsModifiedArchiveWithoutExtraction(t *testing.T) {
+	payload := fixtureBundle(t)
+	payload.archive[0] ^= 1
+	cache := filepath.Join(t.TempDir(), "not-created")
+	got := inspectBundle(payload, cache)
+	if !got.Included || got.CacheError == "" || got.CachedPath != "" {
+		t.Fatalf("tampered archive accepted: %#v", got)
+	}
+	if _, err := os.Stat(cache); !os.IsNotExist(err) {
+		t.Fatalf("inspection created cache: %v", err)
+	}
+}
+
 func TestInspectBundleVerifiesExistingCacheWithoutRepairingIt(t *testing.T) {
 	t.Parallel()
 	payload := fixtureBundle(t)
@@ -35,12 +48,21 @@ func TestInspectBundleVerifiesExistingCacheWithoutRepairingIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := inspectBundle(payload, cache)
-	if got.CachedPath != target || got.CacheError != "" {
-		t.Fatalf("valid cache metadata = %#v", got)
+	if !got.Partial || got.CachedPath != "" {
+		t.Fatalf("accepted incomplete cache: %#v", got)
 	}
 	entries, err := os.ReadDir(dir)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("inspection extracted extra files: %v %v", entries, err)
+	}
+	for _, pin := range payload.members[1:] {
+		if err := os.WriteFile(filepath.Join(dir, pin.name), []byte(pin.name), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got = inspectBundle(payload, cache)
+	if got.CachedPath != target || got.CacheError != "" {
+		t.Fatalf("valid cache metadata = %#v", got)
 	}
 	if err := os.WriteFile(target, []byte("xxxxxx"), 0o700); err != nil {
 		t.Fatal(err)

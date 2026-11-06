@@ -1,0 +1,1 @@
+import{r as e}from"./rolldown-runtime-QTnfLwEv.js";import{D as t}from"./console-core-BpcFxUVS.js";var n=e(t()),r=`files`,i=new Set;function a(e){if(r!==e){r=e;for(let e of i)e()}}function o(e){return i.add(e),()=>i.delete(e)}function s(){return(0,n.useSyncExternalStore)(o,()=>r,()=>`files`)}export{s as n,a as t};

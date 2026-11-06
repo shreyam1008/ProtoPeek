@@ -5,16 +5,14 @@ const extension = {
   download: 'https://learn.chatgpt.com/docs/codex/cli',
   guide: 'https://learn.chatgpt.com/docs/extend/mcp',
   setup: {
-    windows:
-      'Follow the official native Windows CLI setup and sign in with your chosen authentication method.',
-    darwin: 'Use the official macOS installer or package instructions, then sign in yourself.',
-    linux: 'Use the official Linux installer or package instructions, then sign in yourself.',
+    windows: 'Install the native Windows CLI and sign in.',
+    darwin: 'Install the macOS CLI and sign in.',
+    linux: 'Install the Linux CLI and sign in.',
   },
-  afterSetup:
-    'Open AI agent setup, pair a local connection and select Codex. Merge the generated TOML fragment into Codex configuration; do not replace the whole file.',
+  afterSetup: 'Pair in AI agent setup. Merge the Codex TOML snippet into your configuration.',
   notes: [
     'The recipe needs the actual pairing-file location. Never paste its private token into chat.',
-    'Format checked against official docs on 23 October 2026. Native client/account acceptance is separate.',
+    'Client configuration checked October 2026. Verify pairing in the client.',
   ],
   client: 'codex',
 } satisfies ExtensionPack;

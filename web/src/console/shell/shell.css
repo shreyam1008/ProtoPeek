@@ -441,6 +441,18 @@ body:has(.pp-workbench-shell) {
   overflow-y: auto;
 }
 
+.pp-mobile-destination-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+.pp-mobile-browse {
+  justify-content: center;
+  width: var(--pp-narrow-touch-height);
+}
+.pp-mobile-browse[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
 .pp-navigation-actions {
   margin-top: auto;
   border-top: var(--pp-stroke-width) solid var(--pp-color-stroke);
@@ -588,7 +600,10 @@ body:has(.pp-workbench-shell) {
   }
 
   .pp-app-command,
-  .pp-app-theme {
+  .pp-app-theme,
+  .pp-app-help,
+  .pp-app-tour,
+  .pp-rail-quick-actions .pp-app-icon-action {
     width: var(--pp-narrow-touch-height);
     height: var(--pp-narrow-touch-height);
   }

@@ -41,7 +41,7 @@ it('restarts an identical diagnostics command after local edits without putting 
     fireEvent.change(trust, { target: { value: 'Draft trust input' } });
     expect(screen.getByLabelText('Diagnostic')).toHaveValue('tls');
     expect(trust).toHaveValue('Draft trust input');
-    fireEvent.click(screen.getByRole('button', { name: 'Open global command menu' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Find anything/ }));
     fireEvent.click(await screen.findByRole('option', { name: 'Diagnose: DNS records' }));
     await waitFor(() => expect(screen.getByLabelText('Diagnostic')).toHaveValue('dns'));
     expect(router.state.location.search).toEqual({ mode: 'dns', target: undefined });

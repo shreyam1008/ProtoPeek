@@ -179,7 +179,7 @@ export const HTTPResponsePanel = memo(function HTTPResponsePanel({
   return (
     <section className="pp-http-response" aria-label="HTTP response evidence">
       <div className="pp-http-evidence-heading">
-        <div className="pp-http-response-summary" aria-live="polite" aria-atomic="true">
+        <div className="pp-http-response-summary">
           <span
             className={classNames(
               'pp-status-mark',

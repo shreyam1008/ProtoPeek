@@ -278,9 +278,9 @@ function Hero() {
           </a>
           <a
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none"
-            href="#product"
+            href="#find-tool"
           >
-            See how it works
+            Find a tool or guide
             <ArrowRight className="size-4" aria-hidden="true" />
           </a>
         </div>
@@ -299,31 +299,22 @@ function Hero() {
             </a>
           ))}
         </nav>
-        <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-relaxed text-neutral-700">
-          <strong className="block text-neutral-950">Nightly is an opt-in rolling preview.</strong>
-          <p className="mt-1">
-            Nightly follows main/master and can contain later work. Stable v0.7.0 includes the
-            published workbenches described here; native and provider prerequisites remain explicit.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
-            <a href={publicPagePath('workspace-ui')}>Explore the new workspace</a>
+        <details className="mt-5 text-sm text-neutral-600">
+          <summary className="w-fit cursor-pointer py-2 font-medium text-neutral-700">
+            Nightly builds and workspace guides
+          </summary>
+          <p className="mt-2">Nightly follows the latest changes on the default branch.</p>
+          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
+            <a href={publicPagePath('workspace-ui')}>Workspace guide</a>
             <a href={publicPagePath('ai-agents')}>Connect an agent</a>
             <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly">
               Download Nightly
             </a>
           </div>
-        </div>
+        </details>
       </div>
 
       <figure className="min-w-0 overflow-hidden rounded-2xl border border-neutral-800 bg-[#0b1118] p-2 shadow-2xl shadow-blue-950/15 sm:p-3">
-        <div className="flex items-center gap-1.5 px-1 pb-2 sm:px-2 sm:pb-3" aria-hidden="true">
-          <span className="size-2 rounded-full bg-[#ff6258]" />
-          <span className="size-2 rounded-full bg-[#f4a313]" />
-          <span className="size-2 rounded-full bg-[#30c775]" />
-          <span className="ml-auto font-mono text-[0.62rem] uppercase tracking-[0.14em] text-neutral-400">
-            local session
-          </span>
-        </div>
         <img
           src="/assets/protopeek-v0.7.0-home-20261023.png"
           alt="ProtoPeek v0.7.0 Home with direct unsent HTTP or gRPC entry"
@@ -342,7 +333,50 @@ function Hero() {
   );
 }
 
+const searchableGuides = [
+  ...networkJourneys.map((journey) => ({
+    path: journey.href,
+    title: journey.label,
+    description: journey.detail,
+    keywords: journey.title,
+    aliases: [] as string[],
+  })),
+  ...publicPagesRegistry.pages
+    .filter((page) => page.kind === 'feature' || page.kind === 'guide')
+    .map((page) => ({
+      path: page.path,
+      title: page.title,
+      description: page.description,
+      keywords: [...(page.highlights ?? []), ...(page.keywords ?? [])].join(' '),
+      aliases: page.keywords ?? [],
+    })),
+];
+
+function findGuides(terms: string[]) {
+  const words = (text: string): string[] => text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  return searchableGuides
+    .map((guide) => {
+      const title = words(guide.title);
+      const keywords = words(guide.keywords);
+      const details = words(guide.description);
+      const scores = terms.map<number>((term) => {
+        if (title.includes(term)) return 8;
+        if (guide.aliases.some((phrase) => phrase.toLowerCase() === term)) return 6;
+        if (title.some((word) => word.startsWith(term))) return 5;
+        if (keywords.some((word) => word.startsWith(term))) return 3;
+        return details.some((word) => word.startsWith(term)) ? 1 : 0;
+      });
+      return { guide, rank: scores.includes(0) ? 0 : scores.reduce((a, b) => a + b, 0) };
+    })
+    .filter(({ rank }) => rank > 0)
+    .sort((a, b) => b.rank - a.rank)
+    .map(({ guide }) => guide);
+}
+
 function ProductQuestions() {
+  const [query, setQuery] = useState('');
+  const terms = query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  const matches = terms.length ? findGuides(terms) : [];
   return (
     <section
       id="product"
@@ -354,38 +388,54 @@ function ProductQuestions() {
           <h2 id="product-title" className="text-3xl font-semibold tracking-[-0.045em] sm:text-5xl">
             Start with a question.
           </h2>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-neutral-600 sm:text-lg">
-            Pick the thing you are trying to understand. ProtoPeek keeps the evidence together.
-          </p>
+          <label className="mt-5 grid max-w-lg gap-2 text-sm font-semibold" htmlFor="find-tool">
+            Find a tool or guide
+            <input
+              id="find-tool"
+              type="search"
+              maxLength={160}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Try DNS, packet capture, or gRPC"
+              className="min-h-11 scroll-mt-20 rounded-lg border border-neutral-300 bg-white px-3 font-normal text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            />
+          </label>
         </div>
-
-        <div className="mt-10 border-t border-black/15">
-          {productQuestions.map((item, index) => (
-            <article
-              key={item.question}
-              className="group grid gap-4 border-b border-black/15 py-6 sm:grid-cols-[2rem_minmax(0,1fr)_minmax(15rem,0.8fr)_auto] sm:items-center sm:gap-6"
-            >
-              <span className="font-mono text-xs text-neutral-500" aria-hidden="true">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <h3 className="text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
-                {item.question}
-              </h3>
-              <p className="text-sm leading-relaxed text-neutral-600 sm:text-base">{item.answer}</p>
-              <a
-                className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-sm font-semibold text-[#0b5cff] sm:justify-self-end"
-                href={item.href}
-              >
-                {item.action}
-                <ChevronRight
-                  className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transform-none motion-reduce:transition-none"
-                  aria-hidden="true"
-                />
-              </a>
-            </article>
-          ))}
-        </div>
-
+        {terms.length ? (
+          <div className="mt-5">
+            <p role="status" className="text-sm text-neutral-600">
+              {matches.length
+                ? `${matches.length} matching guide${matches.length === 1 ? '' : 's'}`
+                : 'No matching guides. Try a protocol or tool name.'}
+            </p>
+            <ul className="mt-3 divide-y divide-neutral-200">
+              {matches.map((page) => (
+                <li key={page.path}>
+                  <a className="block rounded-lg px-2 py-3 hover:bg-neutral-50" href={page.path}>
+                    <strong className="text-base text-[#0b5cff]">{page.title}</strong>
+                    <span className="mt-1 block text-sm text-neutral-600">{page.description}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="mt-7 grid gap-x-10 md:grid-cols-2">
+            {productQuestions.map((item) => (
+              <article key={item.question} className="border-t border-black/15 py-5">
+                <h3 className="text-lg font-semibold tracking-tight">{item.question}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-neutral-600">{item.answer}</p>
+                <a
+                  className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-[#0b5cff]"
+                  href={item.href}
+                >
+                  {item.action}
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                </a>
+              </article>
+            ))}
+          </div>
+        )}
         <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-black/10 bg-neutral-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
             Follow one connected map through every feature, its evidence, and its limits.

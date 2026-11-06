@@ -1,0 +1,48 @@
+name: Isolated Linux NetBird acceptance
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  netbird:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Stage the pinned official Linux client
+        shell: bash
+        env:
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: '0'
+          VERSION: 0.82.0
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/isolated-netbird"
+          mkdir -p "$stage/bin"
+          # SHA-256 is from the official GitHub release asset metadata.
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            "https://github.com/netbirdio/netbird/releases/download/v${VERSION}/netbird_${VERSION}_linux_amd64.tar.gz" -o "$RUNNER_TEMP/netbird.tgz"
+          echo "b569f65de303d21317bc716f3116002e2cf175ae22a9f6d2bed91200a2f5000b  $RUNNER_TEMP/netbird.tgz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/netbird.tgz" -C "$stage/bin" netbird
+          go test -c -o "$stage/bin/acceptance" ./standalone
+          printf 'FROM scratch\nCOPY bin/ /bin/\n' | docker build --network=none -t protopeek-isolated-netbird -f - "$stage"
+      - name: Inspect the genuine signed-out daemon without network access
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges --user 65532:65532 \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run:rw,nosuid,nodev,mode=1777 \
+            --tmpfs /var/lib/netbird:rw,nosuid,nodev,mode=0700,uid=65532,gid=65532 \
+            --pids-limit=128 --memory=384m \
+            -e PATH=/bin -e HOME=/tmp -e USER=netbird -e PROTOPEEK_ISOLATED_NETBIRD=1 \
+            protopeek-isolated-netbird /bin/acceptance -test.v -test.timeout=75s -test.run='^TestIsolatedNetBirdLifecycle$' \
+            | tee "$RUNNER_TEMP/isolated-netbird.log"
+          grep -Eq '^--- PASS: TestIsolatedNetBirdLifecycle' "$RUNNER_TEMP/isolated-netbird.log"

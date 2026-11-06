@@ -38,6 +38,29 @@ afterEach(() => {
 });
 
 describe('HTTP run shortcut in the real shell', () => {
+  it('dismisses request tools with Escape and opens an import without sending', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const router = createProtoPeekRouter(
+      createMemoryHistory({ initialEntries: ['/protocols/http'] })
+    );
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('textbox', { name: 'Request URL' });
+    const tools = screen.getByRole('button', { name: 'Request tools' });
+    fireEvent.click(tools);
+    expect(tools).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.keyDown(tools, { key: 'Escape' });
+    expect(tools).toHaveAttribute('aria-expanded', 'false');
+    expect(tools).toHaveFocus();
+    fireEvent.click(tools);
+    fireEvent.click(screen.getByRole('button', { name: 'Import OpenAPI' }));
+    expect(tools).toHaveAttribute('aria-expanded', 'false');
+    const dialog = await screen.findByRole('dialog', { name: 'Import API definition' });
+    await waitFor(() =>
+      expect(within(dialog).getByLabelText('Swagger, Scalar, or definition URL')).toHaveFocus()
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it.each([
     'navigation',
     'commands',
@@ -71,12 +94,12 @@ describe('HTTP run shortcut in the real shell', () => {
       dialog = await screen.findByRole('dialog', { name: 'Scan target' });
       closeLabel = 'Close scan target dialog';
     } else {
-      fireEvent.click(screen.getByRole('button', { name: 'Open global command menu' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Find anything/ }));
       dialog = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
       closeLabel = 'Close command palette';
       if (overlay === 'help') {
-        fireEvent.click(within(dialog).getByRole('option', { name: 'Open protocol checklist' }));
-        dialog = await screen.findByRole('dialog', { name: 'Debug what is actually on the wire.' });
+        fireEvent.click(within(dialog).getByRole('option', { name: 'Open tool help' }));
+        dialog = await screen.findByRole('dialog', { name: 'Help for this tool' });
         closeLabel = 'Close help';
       }
     }

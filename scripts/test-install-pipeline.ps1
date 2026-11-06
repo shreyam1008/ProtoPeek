@@ -14,6 +14,10 @@ $env:PROTOPEEK_INSTALL_DIR = Join-Path ([IO.Path]::GetFullPath($FixtureRoot)) 'p
 $env:PROTOPEEK_VERSION = 'v0.6.1'
 $env:PROTOPEEK_NO_PATH_UPDATE = '1'
 $env:PROTOPEEK_NO_SHORTCUTS = '1'
+$fixtureProfile = New-Item -ItemType Directory -Path (Join-Path $FixtureRoot 'profile without Start menu') -Force
+$env:USERPROFILE = $fixtureProfile.FullName
+$env:APPDATA = $fixtureProfile.FullName
+$env:LOCALAPPDATA = $fixtureProfile.FullName
 Set-Location (Join-Path $env:WINDIR 'System32')
 if ($ScriptUrl) { Invoke-RestMethod -Uri $ScriptUrl | Invoke-Expression }
 else { Get-Content -LiteralPath $Installer -Raw | Invoke-Expression }

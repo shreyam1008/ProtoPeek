@@ -58,7 +58,14 @@ export function isExtensionId(value: unknown): value is ExtensionId {
 export type ExtensionObservation = {
   id: ExtensionId;
   status: 'detected' | 'included' | 'missing' | 'unavailable' | 'external';
-  source: 'configured' | 'path' | 'standard-location' | 'bundled' | 'cached-bundle' | 'none';
+  source:
+    | 'configured'
+    | 'path'
+    | 'standard-location'
+    | 'bundled'
+    | 'cached-bundle'
+    | 'managed'
+    | 'none';
   path: string;
   message: string;
   bundled: boolean;
@@ -117,9 +124,15 @@ function parseSnapshot(
         'unavailable',
         ...(version === 2 && item.id === 'chatgpt' ? ['external'] : []),
       ].includes(item.status) ||
-      !['configured', 'path', 'standard-location', 'bundled', 'cached-bundle', 'none'].includes(
-        item.source
-      ) ||
+      ![
+        'configured',
+        'path',
+        'standard-location',
+        'bundled',
+        'cached-bundle',
+        'managed',
+        'none',
+      ].includes(item.source) ||
       !boundedText(item.path, 4096) ||
       !boundedText(item.message, 2048) ||
       typeof item.bundled !== 'boolean' ||

@@ -11,6 +11,7 @@ import {
 } from './extension-catalog';
 import type { ExtensionPack } from './extension-pack';
 import { loadExtensionPack } from './extension-pack-loader';
+import { ManagedExtension } from './ManagedExtension';
 import { useProtocolShell } from './ProtocolShellContext';
 import { prepareServiceEntry } from './service-entry';
 import { PageHeader } from './shell/PageHeader';
@@ -18,7 +19,7 @@ import './extension-details.css';
 
 const statusLabels = {
   detected: 'Executable located',
-  included: 'Included companion',
+  included: 'Companion available',
   missing: 'CLI not located',
   unavailable: 'Check unavailable',
   external: 'External companion',
@@ -175,6 +176,9 @@ export default function ExtensionDetails({
         <p role="status">Loading this extension’s setup…</p>
       ) : (
         <>
+          {entry.id === 'cloudflared' || entry.id === 'aria2' ? (
+            <ManagedExtension id={entry.id} />
+          ) : null}
           <div className="pp-extension-detail-actions">
             {route ? (
               <Link
@@ -210,88 +214,7 @@ export default function ExtensionDetails({
               Official guide <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
-          <section className="pp-panel" aria-label="Setup and requirements">
-            <h2>Set up on the ProtoPeek host</h2>
-            <label>
-              Setup instructions for
-              <select
-                aria-label="Setup instructions for"
-                value={platform ?? ''}
-                onChange={(event) => onPlatform((event.target.value as SetupPlatform) || undefined)}
-              >
-                {!platform ? <option value="">Choose a system</option> : null}
-                <option value="windows">Windows</option>
-                <option value="darwin">macOS</option>
-                <option value="linux">Linux</option>
-              </select>
-            </label>
-            <p>
-              {platform
-                ? pack.setup[platform]
-                : 'Choose the system running ProtoPeek. Its system can differ from the browser or your agent’s environment.'}
-            </p>
-            <p>{pack.afterSetup}</p>
-            {pack.notes.map((note) => (
-              <p className="pp-extension-note" key={note}>
-                {note}
-              </p>
-            ))}
-            {entry.id === 'wireshark' && platform === 'windows' ? (
-              <a href="https://npcap.com/#download" target="_blank" rel="noreferrer">
-                Npcap capture permissions and download
-              </a>
-            ) : null}
-          </section>
-          {entry.id !== 'chatgpt' ? (
-            <section className="pp-panel" aria-label="Local installation observation">
-              <header>
-                <h2>Check the local CLI</h2>
-                {busy ? (
-                  <button type="button" onClick={cancelCheck}>
-                    Cancel check
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => void check()}>
-                    <RefreshCw aria-hidden="true" />
-                    Check this host
-                  </button>
-                )}
-              </header>
-              <p>
-                Locates {pack.tool} on this process’s PATH and supported install locations. It does
-                not run the tool, sign in, start a service or prove readiness. aria2 may verify an
-                existing included companion’s checksum.
-              </p>
-              {busy ? (
-                <p role="status">Checking the host. No external tool is being executed.</p>
-              ) : null}
-              {notice ? <p role="status">{notice}</p> : null}
-              {checkError ? <p role="alert">{checkError}</p> : null}
-              {observation ? (
-                <div className="pp-extension-observation">
-                  <strong>{statusLabels[observation.status]}</strong>
-                  <p>
-                    Observed {new Date(snapshot?.observedAt ?? '').toLocaleString()} ·{' '}
-                    {snapshot?.platform} / {snapshot?.architecture}
-                  </p>
-                  <p>{observation.message}</p>
-                  {observation.path ? <code>{observation.path}</code> : null}
-                  {observation.bundled ? (
-                    <p>
-                      This build includes an aria2 companion (
-                      {(observation.bundledBytes / 1024 / 1024).toFixed(2)} MiB). It is prepared
-                      only when Downloader is started.
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <p>
-                  Not checked. Install separately if needed, then check this host. Restart ProtoPeek
-                  after a PATH change.
-                </p>
-              )}
-            </section>
-          ) : null}
+
           {pack.endpoint ? (
             <section className="pp-panel" aria-label="Prepare endpoint request">
               <h2>Inspect your endpoint</h2>
@@ -319,7 +242,84 @@ export default function ExtensionDetails({
                 <button type="submit">Open HTTP draft</button>
               </form>
               {handoffError ? <p role="alert">{handoffError}</p> : null}
-              <p>No probe runs here. Review the prepared request and choose Send in HTTP.</p>
+              <p>Review the HTTP draft before sending.</p>
+            </section>
+          ) : null}
+          <section className="pp-panel" aria-label="Setup and requirements">
+            <h2>Set up on the ProtoPeek host</h2>
+            {typeof pack.setup === 'string' ? (
+              <p>{pack.setup}</p>
+            ) : (
+              <>
+                <label>
+                  Setup instructions for
+                  <select
+                    aria-label="Setup instructions for"
+                    value={platform ?? ''}
+                    onChange={(event) =>
+                      onPlatform((event.target.value as SetupPlatform) || undefined)
+                    }
+                  >
+                    {!platform ? <option value="">Choose a system</option> : null}
+                    <option value="windows">Windows</option>
+                    <option value="darwin">macOS</option>
+                    <option value="linux">Linux</option>
+                  </select>
+                </label>
+                <p>{platform ? pack.setup[platform] : 'Choose the system running ProtoPeek.'}</p>
+              </>
+            )}
+            <p>{pack.afterSetup}</p>
+            {pack.notes.map((note) => (
+              <p className="pp-extension-note" key={note}>
+                {note}
+              </p>
+            ))}
+            {entry.id === 'wireshark' && platform === 'windows' ? (
+              <a href="https://npcap.com/#download" target="_blank" rel="noreferrer">
+                Npcap capture permissions and download
+              </a>
+            ) : null}
+          </section>
+          {entry.id !== 'chatgpt' ? (
+            <section className="pp-panel" aria-label="Local installation observation">
+              <header>
+                <h2>Check the local CLI</h2>
+                {busy ? (
+                  <button type="button" onClick={cancelCheck}>
+                    Cancel check
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => void check()}>
+                    <RefreshCw aria-hidden="true" />
+                    Check this host
+                  </button>
+                )}
+              </header>
+              <p>Looks for {pack.tool} on the host. This check only inspects local files.</p>
+              {busy ? <p role="status">Checking local files…</p> : null}
+              {notice ? <p role="status">{notice}</p> : null}
+              {checkError ? <p role="alert">{checkError}</p> : null}
+              {observation ? (
+                <div className="pp-extension-observation">
+                  <strong>{statusLabels[observation.status]}</strong>
+                  <p>
+                    Observed {new Date(snapshot?.observedAt ?? '').toLocaleString()} ·{' '}
+                    {snapshot?.platform} / {snapshot?.architecture}
+                  </p>
+                  <p>{observation.message}</p>
+                  {observation.path ? <code>{observation.path}</code> : null}
+                  {observation.bundled ? (
+                    <p>
+                      An aria2 companion is available (
+                      {(observation.bundledBytes / 1024 / 1024).toFixed(2)} MiB). It is prepared
+                      only when Downloader is started.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <p>Restart ProtoPeek after changing PATH.</p>
+              )}
             </section>
           ) : null}
           {pack.commands?.length ? (

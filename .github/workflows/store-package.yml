@@ -26,6 +26,9 @@ jobs:
         with:
           ref: master
           persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
       - name: Download and verify stable release
         shell: pwsh
         env:
@@ -34,12 +37,20 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ($env:RELEASE_TAG -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Exact stable SemVer tag required.' }
-          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json tagName,isDraft,isPrerelease | ConvertFrom-Json
+          $release = gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json tagName,isDraft,isPrerelease,assets | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $release.isDraft -or $release.isPrerelease -or $release.tagName -cne $env:RELEASE_TAG) { throw 'Release must already be public and stable.' }
           $archive = 'protopeek_' + $env:RELEASE_TAG.Substring(1) + '_windows_x86_64.zip'
-          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --pattern $archive --pattern checksums.txt --dir .local/store-input
+          $sidecars = @($release.assets | Where-Object { $_.name -cmatch '^protopeek-aria2-[0-9A-Za-z._-]+-win-64bit-build[0-9]+\.zip$' })
+          if ($sidecars.Count -gt 1) { throw 'Ambiguous Windows aria2 sidecar release assets.' }
+          $patterns = @('--pattern', $archive, '--pattern', 'checksums.txt')
+          $packageArgs = @{}
+          if ($sidecars.Count -eq 1) {
+            $patterns += @('--pattern', $sidecars[0].name)
+            $packageArgs.CompanionArchive = Join-Path '.local/store-input' $sidecars[0].name
+          }
+          gh release download $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY @patterns --dir .local/store-input
           if ($LASTEXITCODE -ne 0) { throw 'Release download failed.' }
-          ./packaging/windows/store/build-store.ps1 -Tag $env:RELEASE_TAG -ReleaseArchive ".local/store-input/$archive" -Checksums .local/store-input/checksums.txt -OutputDirectory dist/store-ci
+          ./packaging/windows/store/build-store.ps1 -Tag $env:RELEASE_TAG -ReleaseArchive ".local/store-input/$archive" -Checksums .local/store-input/checksums.txt -OutputDirectory dist/store-ci @packageArgs
       - name: Retain package and provenance receipt for Partner Center
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

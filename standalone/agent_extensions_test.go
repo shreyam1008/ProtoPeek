@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -17,6 +18,42 @@ import (
 	"github.com/shreyam1008/ProtoPeek/internal/agentlink"
 	"github.com/shreyam1008/ProtoPeek/internal/extensions"
 )
+
+func TestAgentManagedToolsReturnsSixRealReadOnlyStatuses(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("LOCALAPPDATA", root)
+	t.Setenv("PATH", t.TempDir())
+	mux, agent := agentHarness(t)
+	registerManagedExtensions(mux)
+	token := agentEnable(t, mux, agent, false)
+	result := callAgentProtocol(t, mux, token, "managed_tools", json.RawMessage(`{}`))
+	if result.State != "completed" || result.Status != http.StatusOK {
+		t.Fatalf("result: %+v", result)
+	}
+	var inventory struct {
+		SchemaVersion int `json:"schemaVersion"`
+		Tools         []struct {
+			ID string `json:"id"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(result.Data, &inventory); err != nil || inventory.SchemaVersion != 1 || len(inventory.Tools) != 6 {
+		t.Fatalf("result=%s error=%v", result.Data, err)
+	}
+	seen := map[string]bool{}
+	for _, tool := range inventory.Tools {
+		seen[tool.ID] = true
+	}
+	for _, id := range []string{"aria2", "cloudflared", "yt-dlp", "gallery-dl", "deno", "ffmpeg"} {
+		if !seen[id] {
+			t.Errorf("missing %s", id)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(root, "protopeek", "media")); !os.IsNotExist(err) {
+		t.Fatalf("read initialized media queue: %v", err)
+	}
+}
 
 func TestAgentExtensionMetadataAndSingleLookupPreserveGETArgumentsAndReadOnlyPolicy(t *testing.T) {
 	mux, agent := agentHarness(t)
@@ -33,6 +70,7 @@ func TestAgentExtensionMetadataAndSingleLookupPreserveGETArgumentsAndReadOnlyPol
 	token := agentEnable(t, mux, agent, false)
 	for _, test := range []struct{ name, args, uri string }{
 		{"extensions_list", `{}`, "/api/extensions/catalog"},
+		{"managed_tools", `{}`, "/api/extensions/managed"},
 		{"extension_inspect", `{"id":"lm-studio"}`, "/api/extensions?id=lm-studio"},
 	} {
 		result := callAgentProtocol(t, mux, token, test.name, json.RawMessage(test.args))
@@ -40,7 +78,7 @@ func TestAgentExtensionMetadataAndSingleLookupPreserveGETArgumentsAndReadOnlyPol
 			t.Fatalf("%s result=%+v uri=%v", test.name, result, uris)
 		}
 	}
-	if len(uris) != 2 {
+	if len(uris) != 3 {
 		t.Fatalf("unexpected native requests: %v", uris)
 	}
 }

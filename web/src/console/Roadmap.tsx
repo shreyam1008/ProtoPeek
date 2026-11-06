@@ -1,4 +1,3 @@
-import { Beaker, CheckCircle2, Compass, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 
@@ -8,35 +7,34 @@ const roadmap = [
   {
     state: 'Available in this build',
     slug: 'available',
-    icon: CheckCircle2,
     items: [
       [
         'Workbench + themes',
-        'Persistent destination and tool navigation, consistent page headers, paired themes, and recent bounded discoveries.',
+        'Six destinations, paired themes, recent tools and step-by-step guides.',
       ],
       [
         'Local AI agents',
-        '23 opt-in MCP/CLI tools for HTTP, gRPC, events, Cap’n Proto, shared packet metadata, host evidence and explicit extension checks. Native results, write controls, bounded activity and cancellation.',
+        '25 local CLI/MCP tools with offline search, input schemas, read-only pairing, write permissions and cancellation.',
       ],
       [
         'Optional extension library',
-        '20 entries: six native workbenches and fourteen command, MCP, endpoint or external companions. Setup packs load only when selected; host checks are explicit. No automatic installation or vendor execution.',
+        '24 tools, including six managed companions. Review the package before installing. Pin a tool or open its setup from the library.',
       ],
       [
         'Host port scanner',
-        'Custom TCP ports and ranges for one local or remote host, IPv4/IPv6, presets, cancellation, open/closed/timeout evidence, and protocol inspection handoffs.',
+        'Scan selected TCP ports on one IPv4 or IPv6 host. See open, refused and timed-out connections, or open a protocol draft.',
       ],
       [
         'WebSocket + SSE',
-        'Text/binary WebSocket messages, SSE event names and IDs, headers, verified TLS, bounded live timelines, explicit connect/disconnect, and cleanup on navigation.',
+        'Connect with verified TLS, inspect WebSocket text or bytes and named SSE events, then disconnect.',
       ],
       [
         'gRPC workbench',
-        'Reflection and proto/protoset schemas, incremental messages in all stream modes, deadlines, metadata, headers, trailers, native status and explicit local limits.',
+        'Load reflection or schema files. Inspect messages, deadlines, metadata, headers, trailers and final status across all stream modes.',
       ],
       [
         'Cap’n Proto RPC',
-        'Source or compiled schemas, exact 64-bit values, generic bindings, typed returned capabilities and plans up to eight steps. Verified TLS, partial evidence and cancellation; optional external source compiler.',
+        'Load compiled schemas or use a source compiler. Inspect exact integers and typed capabilities, with verified TLS and plans up to eight steps.',
       ],
       [
         'HTTP workbench',
@@ -44,106 +42,105 @@ const roadmap = [
       ],
       [
         'Saved HTTP requests',
-        'Named browser-local requests, portable library import/merge and environment templates. Secret values stay in memory; persistence/export strip them. Loading prepares an unsent editor.',
+        'Save named requests, merge a library or use environment templates. Secret values stay in memory. Opening a request creates a draft.',
       ],
       [
         'Bounded discovery',
-        'Explicit TCP, gRPC, TLS, and HTTP evidence with fixed candidate and time limits.',
+        'Probe a selected endpoint with bounded TCP, TLS, gRPC and HTTP checks.',
       ],
       [
         'Next-hop evidence',
-        'One read-only kernel route lookup per resolved address from the ProtoPeek process; no hop probes.',
+        'Read the local kernel route for each resolved address without sending hop probes.',
       ],
       [
         'Network Path · native platforms',
-        'Linux UDP, Windows ICMP and macOS ICMP backends, pinned destinations, responder RTT and saved sourced labels. Native macOS runtime and real-router acceptance remain distinct gates.',
+        'Trace a pinned destination with Linux UDP or Windows/macOS ICMP. Inspect responder round trips and save path evidence.',
       ],
       [
         'Authorized private discovery',
-        'Explicit RFC 1918 IPv4 /24-or-smaller discovery with a previewed plan: bounded gRPC/HTTP inspection only on named application ports, TCP connect-only evidence elsewhere, hard limits, and cancellation.',
+        'Preview discovery on an authorized private IPv4 /24 or smaller. Selected ports support HTTP/gRPC checks. Other ports use TCP connect.',
       ],
       [
         'Network map + history',
-        'Logical topology and inventory, immutable A/B comparisons with ambiguous identity and not-observed states, manual notes/groups, sourced enrichment and bounded JSON/GraphML/CSV exchange.',
+        'Arrange observed devices, annotate groups, compare saved snapshots and export JSON, GraphML or CSV.',
       ],
       [
         'Offline Nmap XML import',
-        'Review bounded XML hints and exact conversion losses before creating a saved topology workspace. No invented edges; literal-IP endpoints require fresh protocol verification.',
+        'Preview XML conversion losses before saving a map. Verify hinted protocols separately.',
       ],
       [
         'Installed Nmap scanner',
-        'Explicit TCP connect or light service detection on one IP or a bounded private subnet, exact scope preview, cancellation, paginated results, export and protocol inspection handoff. Nmap is installed separately.',
+        'Review the target and ports, then use installed Nmap for TCP or light service detection. Export results or inspect one endpoint.',
       ],
       [
         'Packet inspection',
-        'Section/transport-aware packet and conversation triage, DHCP/QUIC-like metadata, and default-off bounded TCP payload evidence with gaps/conflicts. Metadata export excludes payload; native dumpcap acceptance remains pending.',
+        'Inspect packet files, conversations and optional bounded TCP payloads, including gaps and conflicts. Metadata exports exclude payload.',
       ],
       [
         'Tailscale client workbench',
-        'Installed Tailscale status and reviewed actions, plus a separate HTTPS Headscale login-server account flow. Native sign-in stays in the installed client; no implicit account replacement or elevation.',
+        'Inspect the installed client and peers. Review changes and use Tailscale or HTTPS Headscale sign-in in the native client.',
       ],
       [
         'NetBird client evidence',
-        'Separate native JSON status for management, signal, ICE, relay, DNS and peers, with reviewed bounded connect/disconnect. Real account/platform acceptance remains required.',
+        'Inspect peers, relay, DNS, ICE and management status. Review connection changes before applying.',
       ],
       [
         'Network diagnostics',
-        'Explicit DNS/resolver, TCP/TLS, IPv4/IPv6, finite sampling, TCP/UDP exchange, proxy, h2c and HTTP/3 evidence. Offline subnet planning prepares an unsent authorized-discovery draft.',
+        'Check DNS, TCP/TLS, IPv4/IPv6, proxies, h2c, HTTP/3 and raw TCP/UDP. Plan subnets offline.',
       ],
       [
         'Session activity + typed handoffs',
-        'Up to 40 sanitized memory-only receipts, explicit clear and unsent endpoint resume. Original discovery provenance survives reload; success is never refreshed into new evidence.',
+        'Review up to 40 sanitized receipts in memory. Reopen an endpoint as a draft with its original provenance.',
       ],
       [
         'Browser proto folders',
-        'Review and upload a bounded relative-path .proto manifest to the running ProtoPeek instance; folder access and schema bytes are never saved in profiles.',
+        'Review relative paths before uploading schemas. Folder access and schema bytes stay out of saved profiles.',
       ],
       [
         'gRPC Health Check + Watch',
-        'Explicit canonical checks and one bounded live Watch with status transitions, headers, trailers, cancellation, and final gRPC evidence; no polling or retry.',
+        'Run a canonical health check or watch status changes with headers, trailers, cancellation and final status.',
       ],
       [
         'Local transfer',
-        'Direct ProtoPeek-to-ProtoPeek files with TLS 1.3, receiver approval, progress, cancellation and SHA-256 receipts. Nearby discovery or manual pinned connections use existing routes; no VPN setup or relay.',
+        'Send over an existing LAN or VPN route with TLS 1.3, receiver approval and SHA-256 receipts.',
       ],
       [
         'Downloader',
-        'HTTP(S) queues through configured, system or bundled Windows amd64 aria2c, bounded options, live progress, pause/resume, restart recovery, completed history, checksum evidence and one-shot CLI transfer.',
+        'Queue files with aria2, pause and resume downloads, verify checksums, or transfer from the CLI. Save media with optional engines.',
       ],
       [
         'Security evidence',
-        'Public website HEAD/TLS evidence and JSON reports, a fixed five-path metadata plan, historical indexed names with filtering/export and unsent Inspect handoffs. No security score or automatic candidate probing.',
+        'Inspect website HEAD/TLS, five metadata paths and indexed names. Export a report or open a draft for one target.',
       ],
       [
         'GoBarryGo bridge',
-        'Read-first preview, bounded copy-only preference/session import, paused imported jobs, private receipts, and guarded rollback without changing GoBarryGo source files.',
+        'Preview settings and paused jobs before importing a copy. Review the receipt to roll back.',
       ],
       [
         'Cloudflare canonical operations',
-        'Canonical host/config inspection, validation, route matching, bounded logs/metrics/diagnostics and stale-guarded service actions. Reviewed writes require the exact writable user-owned config, validation and rollback.',
+        'Inspect connector provenance, routes, logs and metrics. Config changes require a verified user-owned file and a reviewed plan.',
       ],
       [
         'Temporary publishing sessions',
-        'Audience-first private Serve, public Quick Tunnel or Funnel; reviewed argv and prerequisites, separate origin/endpoint checks, owned foreground lifetime and Stop/expiry cleanup on Windows/Linux. All macOS modes remain unavailable; live provider acceptance stays explicit.',
+        'Review audience and origin before starting Serve, Quick Tunnel or Funnel on Windows/Linux. Verify the endpoint and stop the owned session.',
       ],
       [
         'Owned package channels',
-        'Homebrew on macOS/Linux and Scoop on Windows install checksum-pinned stable archives, declare aria2 as an external dependency, and provide both protopeek and pp. Each manifest records its independently promoted version.',
+        'Homebrew and Scoop install checksum-pinned stable archives, declare aria2 as a dependency and provide both CLI names.',
       ],
     ],
   },
   {
     state: 'Next',
     slug: 'next',
-    icon: Compass,
     items: [
       [
         'Native installed-tool acceptance',
-        'macOS loopback and counter checks run in native CI. Extend real capture, installed-client, account and service acceptance; fixtures and cross-compilation do not prove provider or real-router behavior.',
+        'Native CI checks macOS loopback and counters. Real routers, capture drivers, signed-in providers and services need separate acceptance.',
       ],
       [
         'Broader aria2 packaging',
-        'Earn reproducible per-architecture builds, source/notices and native download/install acceptance before broadening the bundled engine beyond Windows amd64.',
+        'Verify per-architecture builds, notices, sources and native transfers before embedding more engines.',
       ],
       [
         'WinGet package',
@@ -158,7 +155,6 @@ const roadmap = [
   {
     state: 'Exploring',
     slug: 'exploring',
-    icon: Beaker,
     items: [
       [
         'Persistent capability sessions',
@@ -173,7 +169,6 @@ const roadmap = [
   {
     state: 'Gated',
     slug: 'gated',
-    icon: ShieldAlert,
     items: [
       [
         'Bundled Nmap execution',
@@ -220,10 +215,7 @@ export function Roadmap() {
       <PageHeader className="pp-evidence-hero">
         <div>
           <h1>Product roadmap</h1>
-          <p>
-            Capabilities in this build and their acceptance gates. Earlier releases may have a
-            different feature set.
-          </p>
+          <p>Capabilities in this build and the work ahead.</p>
         </div>
         <input
           aria-label="Search roadmap"
@@ -259,7 +251,6 @@ export function Roadmap() {
           {visible.map((group) => (
             <section key={group.slug} className={`pp-roadmap-group is-${group.slug}`}>
               <header>
-                <group.icon aria-hidden="true" />
                 <h2>{group.state}</h2>
                 <span>{group.items.length}</span>
               </header>

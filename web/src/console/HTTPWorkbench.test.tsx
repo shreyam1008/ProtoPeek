@@ -316,6 +316,33 @@ describe('HTTPWorkbench', () => {
     expect(screen.getAllByText(/timeout between 0.1 and 120 seconds/i)).toHaveLength(2);
   });
 
+  it('announces each completed request once with the platform notification API', async () => {
+    const notify = vi.fn();
+    Object.defineProperty(document, 'ariaNotify', { configurable: true, value: notify });
+    try {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => Response.json(response))
+      );
+      renderWorkbench();
+      const send = screen.getByRole('button', { name: /^Send/ });
+      for (const count of [1, 2]) {
+        fireEvent.click(send);
+        await waitFor(() => expect(notify).toHaveBeenCalledTimes(count));
+        expect(notify).toHaveBeenLastCalledWith('HTTP response 200 OK.');
+        expect(screen.queryByText('HTTP response 200 OK.')).not.toBeInTheDocument();
+      }
+      notify.mockImplementationOnce(() => {
+        throw new DOMException('Platform notifications are unavailable');
+      });
+      fireEvent.click(send);
+      const fallback = await screen.findByText('HTTP response 200 OK.');
+      expect(fallback.closest('[aria-live]')).toHaveAttribute('aria-live', 'polite');
+    } finally {
+      Reflect.deleteProperty(document, 'ariaNotify');
+    }
+  });
+
   it('clears prior response evidence before showing a new draft validation error', async () => {
     // biome-ignore lint/suspicious/noDocumentCookie: jsdom does not implement the Cookie Store API
     document.cookie = '_protopeek_csrf_token=test-token; path=/';
@@ -330,6 +357,9 @@ describe('HTTPWorkbench', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
     const evidence = screen.getByRole('region', { name: 'HTTP response evidence' });
     await waitFor(() => expect(within(evidence).getByText(/"ok": true/)).toBeVisible());
+    const announcement = screen.getByText('HTTP response 200 OK.').closest('[aria-live]');
+    expect(announcement).toHaveAttribute('aria-live', 'polite');
+    expect(announcement).toHaveAttribute('aria-atomic', 'true');
 
     fireEvent.change(screen.getByLabelText('Request URL'), {
       target: { value: 'https://user:secret@example.test/' },
@@ -341,6 +371,8 @@ describe('HTTPWorkbench', () => {
     );
     expect(within(evidence).queryByText('{"ok":true}')).not.toBeInTheDocument();
     expect(within(evidence).getByText('No response yet')).toBeVisible();
+    expect(announcement).toBeInTheDocument();
+    expect(announcement).toBeEmptyDOMElement();
     expect(screen.getByRole('tab', { name: 'Response' })).toBeInTheDocument();
   });
 

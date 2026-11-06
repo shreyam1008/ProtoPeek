@@ -89,8 +89,10 @@ func TestWorkspaceInvokeReturnsPartialEvidenceAtLocalRetentionLimit(t *testing.T
 func TestHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testing.T) {
 	t.Parallel()
 
-	service := &workspaceWallHealthService{canceled: make(chan struct{})}
+	const configuredWall = 500 * time.Millisecond
+	service := &workspaceWallHealthService{started: make(chan struct{}), canceled: make(chan struct{})}
 	connection := startHealthGRPCTarget(t, service)
+	waitForGRPCConnectionReady(t, connection)
 	file, err := desc.LoadFileDescriptor("grpc/health/v1/health.proto")
 	if err != nil {
 		t.Fatalf("load health descriptor: %v", err)
@@ -101,7 +103,7 @@ func TestHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testing.T) {
 		"",
 		[]*desc.MethodDescriptor{method},
 		[]*desc.FileDescriptor{file},
-		WithInvokeMaxDuration(20*time.Millisecond),
+		WithInvokeMaxDuration(configuredWall),
 	)
 	cookie := workspaceUploadCSRFCookie(t, handler)
 	request := httptest.NewRequest(
@@ -129,15 +131,20 @@ func TestHandlerConfiguredInvokeWallReturnsLocalLimitEvidence(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if result.LocalLimit == nil || result.LocalLimit.Reason != "duration" || result.LocalLimit.MaxDurationSeconds != 0.02 {
+	if result.LocalLimit == nil || result.LocalLimit.Reason != "duration" || result.LocalLimit.MaxDurationSeconds != configuredWall.Seconds() {
 		t.Fatalf("configured local wall evidence = %#v", result.LocalLimit)
 	}
 	if result.Error != nil || len(result.Trailers) != 0 {
 		t.Fatalf("configured local wall fabricated final status = error %#v, trailers %#v", result.Error, result.Trailers)
 	}
 	select {
+	case <-service.started:
+	default:
+		t.Fatal("target did not start before the configured local wall")
+	}
+	select {
 	case <-service.canceled:
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("target did not observe configured local-wall cancellation")
 	}
 }

@@ -196,8 +196,9 @@ export function NmapImportPanel({
   return (
     <div className="pp-nmap-import" aria-busy={busy}>
       <p className="pp-scan-policy">
-        Import an existing <code>nmap -oX</code> file. ProtoPeek does not install, locate, or run
-        Nmap, and discards command arguments, scripts, OS guesses, and traces.
+        Import an existing <code>nmap -oX</code> file without running Nmap. The importer discards
+        command arguments, scripts, OS guesses, and traces. The separate Nmap scanner can run an
+        installed Nmap after you review a scan.
       </p>
       <div className="pp-nmap-file-row">
         <input

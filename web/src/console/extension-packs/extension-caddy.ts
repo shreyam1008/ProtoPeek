@@ -5,15 +5,11 @@ const extension = {
   download: 'https://caddyserver.com/docs/install',
   guide: 'https://caddyserver.com/docs/api',
   setup: {
-    windows:
-      'Use an official Caddy binary or documented Windows package; make caddy available to the host.',
-    darwin:
-      'Use the documented macOS binary or package. Homebrew packages are community-maintained.',
-    linux:
-      'Use the official distribution package. Some packages start a system service during installation.',
+    windows: 'Add the Caddy binary to PATH.',
+    darwin: 'Install Caddy for your Mac.',
+    linux: 'Install the distribution package. Some packages start a service.',
   },
-  afterSetup:
-    'Configure and start your proxy separately. The example reads upstream observations from an existing loopback admin API, not the full configuration.',
+  afterSetup: 'Start Caddy, then inspect upstreams through its local admin API.',
   notes: [
     'Never publish the Caddy admin port. This guide does not edit configuration or own a service.',
     'Upstream addresses can be private. Verify the chosen host and port before sending.',

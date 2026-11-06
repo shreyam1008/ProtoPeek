@@ -2,6 +2,7 @@
 package extensions
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 	"github.com/shreyam1008/ProtoPeek/internal/extensions/catalogids"
+	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"github.com/shreyam1008/ProtoPeek/internal/packetwork"
 )
 
@@ -47,6 +49,7 @@ type detector struct {
 	getenv                 func(string) string
 	captureTool            func() (string, error)
 	bundleInfo             func() bundledaria2.Metadata
+	managedCloudflared     func() (string, error)
 	now                    func() time.Time
 }
 
@@ -58,7 +61,7 @@ func nativeDetector() detector {
 	return detector{
 		platform: runtime.GOOS, architecture: runtime.GOARCH,
 		lookPath: exec.LookPath, stat: os.Stat, getenv: os.Getenv,
-		captureTool: packetwork.FindCaptureTool, bundleInfo: bundledaria2.Inspect,
+		captureTool: packetwork.FindCaptureTool, bundleInfo: bundledaria2.Inspect, managedCloudflared: managedtools.CloudflaredPath,
 		now: time.Now,
 	}
 }
@@ -82,6 +85,15 @@ func (d detector) nativeExtension(id string, options Options) Extension {
 		entry.Message = detectionMessage(entry, "Open Tailscale to inspect its existing login, daemon, and devices.", "Install the official Tailscale client, then refresh.")
 		return entry
 	case "cloudflared":
+		if d.managedCloudflared != nil {
+			path, err := d.managedCloudflared()
+			if err == nil && validPath(path) {
+				return Extension{ID: id, Status: "detected", Source: "managed", Path: path, Message: "The verified local cloudflared companion is ready. Open Cloudflare Tunnel to inspect its service and configuration."}
+			}
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return Extension{ID: id, Status: "unavailable", Source: "managed", Message: "The managed cloudflared companion could not be verified."}
+			}
+		}
 		entry := d.locate(id, "cloudflared", nil)
 		entry.Message = detectionMessage(entry, "Open Cloudflare Tunnel to inspect its service and configuration.", "cloudflared was not found on PATH. Open Cloudflare Tunnel to check a service installation or see setup guidance.")
 		return entry
@@ -181,16 +193,27 @@ func (d detector) aria2(options Options) Extension {
 		result.Message = "aria2 was found on PATH. Downloader starts only when requested."
 		return result
 	}
-	if info.Included {
+	if info.Unavailable != "" {
+		result.Status = "unavailable"
+		result.Message = boundedCacheError(info.Unavailable)
+		return result
+	}
+	switch {
+	case info.CacheError != "":
+		result.Status = "unavailable"
+		result.Message = boundedCacheError(info.CacheError)
+		return result
+	case info.CachedPath != "" && validPath(info.CachedPath):
+		result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
+		result.Message = "The verified aria2 companion is already cached. Downloader starts when requested."
+		return result
+	case info.Partial:
+		result.Status = "unavailable"
+		result.Message = "The cached aria2 installation is incomplete. Open Extensions to repair or remove it."
+		return result
+	case info.Included:
 		result.Status, result.Source = "included", "bundled"
-		result.Message = "This build includes an aria2 companion. It is prepared only when you start Downloader."
-		if info.CacheError != "" {
-			result.Status = "unavailable"
-			result.Message = boundedCacheError(info.CacheError)
-		} else if info.CachedPath != "" && validPath(info.CachedPath) {
-			result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
-			result.Message = "The included aria2 companion is already cached and its checksum matches. Downloader is not started by this check."
-		}
+		result.Message = "A verified aria2 companion is available. It is prepared only when you start Downloader."
 		return result
 	}
 	result.Message = "Install aria2 or set its executable path in Files. This build has no bundled download engine."

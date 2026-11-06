@@ -1,6 +1,7 @@
 package standalone
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/shreyam1008/ProtoPeek/internal/media"
@@ -69,7 +70,53 @@ func registerMediaHandlers(mux *http.ServeMux, service *media.Service, factory f
 			return
 		}
 		if err := service.Install(r.Context(), input.Engine); err != nil {
+			if errors.Is(err, media.ErrRemoveInvalid) {
+				http.Error(w, "Managed tool files could not be verified; nothing was removed. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
+				return
+			}
+			if errors.Is(err, media.ErrInstallUnsupported) {
+				http.Error(w, "This filesystem cannot safely install the tool. Use a local config directory on a filesystem that supports atomic rename.", http.StatusConflict)
+				return
+			}
+			if errors.Is(err, media.ErrExternalToolPresent) {
+				http.Error(w, "Use the installed tool on PATH or remove it from PATH before managed setup.", http.StatusConflict)
+				return
+			}
+			if errors.Is(err, media.ErrLocalUnavailable) {
+				http.Error(w, "Check the media configuration directory and its permissions.", http.StatusConflict)
+				return
+			}
+			if errors.Is(err, media.ErrInstallUnsafe) {
+				http.Error(w, "Existing local tool files or an unsafe directory prevent installation; no files were replaced. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
+				return
+			}
 			writeTransferError(w, err, http.StatusBadRequest)
+			return
+		}
+		writeTransferJSON(w, http.StatusOK, service.Snapshot())
+	})
+	registerTransferConfigPOST(mux, admission, "/api/media/remove", "remove media engine", func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Engine string `json:"engine"`
+		}
+		if !decodeStrictTransferJSON(w, r, 1024, &input) {
+			return
+		}
+		service := resolve(w)
+		if service == nil {
+			return
+		}
+		if err := service.Remove(input.Engine); err != nil {
+			switch {
+			case errors.Is(err, media.ErrRemoveBusy):
+				http.Error(w, "Stop active media downloads before removing this tool", http.StatusConflict)
+			case errors.Is(err, media.ErrNotInstalled):
+				http.Error(w, "There is no managed copy to remove.", http.StatusConflict)
+			case errors.Is(err, media.ErrRemoveInvalid):
+				http.Error(w, "Managed tool files could not be verified; nothing was removed. "+service.RecoveryGuidance(input.Engine), http.StatusConflict)
+			default:
+				http.Error(w, "The tool could not be fully removed; check the local tool directory", http.StatusConflict)
+			}
 			return
 		}
 		writeTransferJSON(w, http.StatusOK, service.Snapshot())

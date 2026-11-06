@@ -193,6 +193,22 @@ describe('published color and motion contracts', () => {
     }
   });
 
+  it('keeps accent text readable on the selected navigation background', () => {
+    for (const palette of palettes) {
+      for (const mode of ['light', 'dark'] as const) {
+        const colors = paletteColors(palette, mode);
+        const background = mixHex(
+          colors['--pp-color-accent'],
+          colors['--pp-color-surface-sunken'],
+          0.12
+        );
+        expect
+          .soft(contrastRatio(colors['--pp-color-accent-strong'], background), `${palette} ${mode}`)
+          .toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it('keeps strong boundaries visible and inverse labels readable in every palette pair', () => {
     for (const palette of palettes) {
       for (const mode of ['light', 'dark'] as const) {

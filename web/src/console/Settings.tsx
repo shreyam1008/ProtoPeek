@@ -45,6 +45,7 @@ import './suite-pages.css';
 import './settings.css';
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { DirectoryPicker } from './DirectoryPicker';
+import { useNarrowViewport } from './use-narrow-viewport';
 
 const settingsSections = [
   { value: 'appearance', label: 'Appearance' },
@@ -98,7 +99,7 @@ const densities: Array<{ value: InterfaceDensity; label: string; detail: string 
 
 const editableHostStatuses = new Set<TransferHealthStatus>(['stopped', 'failed', 'binary_missing']);
 
-export function Settings() {
+export function Settings({ initialSection = 'appearance' }: { initialSection?: string }) {
   const {
     appearance,
     setAppearance,
@@ -106,7 +107,8 @@ export function Settings() {
     setInterfacePreferences,
     preferenceStorageError,
   } = useProtocolShell();
-  const [section, setSection] = useState('appearance');
+  const [section, setSection] = useState(initialSection);
+  const narrow = useNarrowViewport();
   const [notice, setNotice] = useState('');
   const [hostSnapshot, setHostSnapshot] = useState<TransferSnapshot | null>(null);
   const [hostDraft, setHostDraft] = useState<TransferHostConfig | null>(null);
@@ -369,7 +371,7 @@ export function Settings() {
         <AccessibleTabs
           id="settings"
           label="Settings sections"
-          orientation="vertical"
+          orientation={narrow ? 'horizontal' : 'vertical'}
           tabs={settingsSections}
           value={section}
           onChange={setSection}

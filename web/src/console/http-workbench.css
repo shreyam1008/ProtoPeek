@@ -1,3 +1,27 @@
+.pp-http-header > div:first-child {
+  position: relative;
+}
+.pp-http-header h1:has(+ .pp-http-skip:focus) {
+  opacity: 0;
+}
+.pp-http-workbench .pp-http-skip {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 0;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 6px 12px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: var(--pp-radius-control);
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+  font: inherit;
+  white-space: nowrap;
+}
+.pp-http-skip:not(:focus) {
+  clip-path: inset(50%);
+  pointer-events: none;
+}
 .pp-http-workbench .pp-http-restore-draft {
   flex-shrink: 0;
   border: 1px solid var(--pp-color-stroke-strong);
@@ -11,13 +35,89 @@
   outline: 2px solid var(--pp-color-accent);
   outline-offset: 2px;
 }
+.pp-http-workbench .pp-http-header .pp-http-tool-group,
+.pp-http-workbench .pp-http-header .pp-http-tool-menu {
+  display: contents;
+}
+.pp-http-tool-toggle {
+  display: none;
+}
+.pp-http-workbench .pp-http-history > summary span {
+  color: var(--pp-color-text);
+  background: var(--pp-color-surface-sunken);
+}
 @media (max-width: 760px) {
   .pp-http-workbench {
     overflow: auto;
   }
+  .pp-http-workbench > :not(.pp-http-workspace) {
+    flex-shrink: 0;
+  }
+  .pp-http-workbench:has(.pp-http-tool-group[data-open="true"]) > :not(.pp-http-header) {
+    display: none;
+  }
   .pp-http-workbench > .pp-http-header {
     gap: 8px;
     padding: 10px;
+  }
+  .pp-http-workbench .pp-http-header > div:first-child h1 {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  .pp-http-workbench > .pp-http-header .pp-http-tool-group {
+    position: relative;
+    display: block;
+  }
+  .pp-http-workbench > .pp-http-header .pp-http-tool-group[data-open="true"] {
+    flex-basis: 100%;
+  }
+  .pp-http-workbench .pp-http-tool-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--pp-color-stroke-strong);
+    border-radius: var(--pp-radius-control);
+    background: var(--pp-color-surface);
+    color: var(--pp-color-text);
+  }
+  .pp-http-tool-toggle svg {
+    width: 14px;
+    height: 14px;
+  }
+  .pp-http-workbench .pp-http-header .pp-http-tool-menu {
+    position: static;
+    display: grid;
+    width: 100%;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 8px;
+    border: 1px solid var(--pp-color-stroke-strong);
+    border-radius: 8px;
+    background: var(--pp-color-surface);
+  }
+  .pp-http-workbench .pp-http-header .pp-http-tool-menu[data-open="false"] {
+    display: none;
+  }
+  .pp-http-workbench .pp-http-tool-menu :is(button, summary) {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .pp-http-workbench .pp-http-tool-menu .pp-protocol-info > div {
+    position: static;
+    width: auto;
+    box-shadow: none;
+  }
+  .pp-http-workbench .pp-http-tool-menu .pp-http-history[open] > div {
+    position: static;
+    width: auto;
+    box-shadow: none;
   }
   .pp-http-workbench > .pp-http-header .pp-http-new-request {
     display: inline-flex;

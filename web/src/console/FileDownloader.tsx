@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -202,6 +203,7 @@ export function FileDownloader() {
         setWarning([summary, result.persistenceWarning].filter(Boolean).join(' '));
       }
     } catch (cause) {
+      await refresh();
       setError(cause instanceof Error ? cause.message : 'The download could not be started.');
     } finally {
       recordOperationReceipt({
@@ -680,6 +682,11 @@ function EngineState({
         {transferHealthLabel(snapshot?.health.status || (loading ? 'loading' : 'unavailable'))}
       </span>
       <small>{snapshot?.health.message || 'Reading the local transfer service.'}</small>
+      {snapshot?.health.status === 'binary_missing' && (
+        <Link to="/extensions" search={{ extension: 'aria2' }} target="_blank" rel="noopener">
+          Set up aria2 in a new tab
+        </Link>
+      )}
       <button type="button" onClick={onRefresh} aria-label="Refresh Downloader state">
         <RefreshCw aria-hidden="true" />
       </button>

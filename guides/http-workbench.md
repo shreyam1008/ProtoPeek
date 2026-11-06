@@ -11,6 +11,10 @@ ProtoPeek sends one bounded HTTP or REST request through the local Go process an
 Open **Inspect → HTTP**, paste the full URL, and choose **Send**. Status, body, headers and timing
 appear beside the request. No account, collection or discovery scan is needed first.
 
+In current source, open **Search tools** with **Ctrl+K**, type **HTTP**, and press **Enter**.
+From the workbench heading, press **Tab** and **Enter** on **Skip to request URL** to start typing.
+The next **Tab** reaches **Send**. To browse the request tools instead, keep pressing **Tab**.
+
 In v0.7.0, choose **HTTP request** on Home, paste the URL, and select **Open HTTP**.
 The full path and query prepare an unsent draft; Send remains explicit. **Find a service instead** is a
 separate discovery action. Existing unsent work follows the workbench’s draft-recovery rules.

@@ -40,9 +40,14 @@ also offers LM Studio, whose Extensions Endpoint guide links to that profile thr
 **Configure LM Studio**, plus a generic profile. Merge the fragment
 under the named key in your existing client file rather than replacing unrelated settings.
 The generated profile shows the executable origin; choose the PATH variant only when your MCP
-client can resolve `protopeek`. A missing pairing-file location blocks copying, rather than
-creating an incomplete profile. Formats were checked against official client docs on 23 October
-2026; this does not establish real installed-client/account acceptance.
+client can resolve `protopeek`. Copy becomes available when the workbench has the pairing-file path.
+
+For Claude Code, run `claude` in the project, trust the folder if you recognize it, and approve
+the `protopeek` server when prompted. If `claude mcp get protopeek` reports **Pending approval**,
+complete that review before reconnecting. If Gemini CLI folder trust is enabled, trust the project,
+then run `gemini mcp list`. In OpenCode, run `opencode mcp list`. Look for `protopeek` and its
+connection status. The [native client check](https://github.com/shreyam1008/ProtoPeek/actions/workflows/native-agent-clients.yml)
+exercises these three clients with a local, read-only pairing.
 
 The surrounding configuration format and reload step belong to your MCP client. This is a
 standard stdio server: stdout contains protocol messages only. The
@@ -88,7 +93,12 @@ Shell-based agents can use the same connection without MCP:
 protopeek agent tools
 protopeek agent guide
 protopeek agent --help
+# Current source: discovery works before pairing.
+pp agent search subnet
+pp agent schema network_diagnose
 ```
+
+Discovery works before pairing. In search results, `writes: true` means a tool can change state. For HTTP, GET, HEAD and OPTIONS remain available with read-only pairing. Other methods require write access.
 
 Pass one JSON arguments object on stdin. PowerShell example:
 
@@ -118,6 +128,8 @@ during initialization and by `workbench_info`. Ctrl+C or MCP cancellation stops 
 | `scan_ports` | One host, at most 1,024 selected TCP ports | Inspection with active probes |
 | `route_lookup` | Selected local next-hop route; may resolve DNS | Inspection |
 | `tailnet_inspect` | Installed Tailscale status and peers | Inspection |
+| `managed_tools` (current source) | Local status and versions of downloadable companions | Inspection |
+| `network_diagnose` (current source) | System DNS, a TLS handshake, or offline subnet math | One explicit target |
 | `extensions_list` | The 20 IDs and integration levels; no host lookup | Inspection |
 | `extension_inspect` | One selected entry’s CLI-location evidence; ChatGPT web remains external | Inspection, explicit host lookup for detectable entries |
 | `download_queue` | Shared engine, configuration and queue | Inspection |

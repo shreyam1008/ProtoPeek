@@ -3,6 +3,13 @@
 All notable ProtoPeek changes are recorded here. Releases use Git tags as the
 version source of truth.
 
+## Unreleased
+
+- Open a guided tour of the current workbench with **Guide**. Each step highlights a real control. At narrow widths, **Search tools** opens the command palette directly.
+- Find 24 integrations under Extensions. Six companions support verified installation and removal on supported hosts. Use `pp extensions status` to inspect versions and installation options.
+- Windows x64 release recipes keep aria2 outside the executables. Existing verified v0.7.0 caches work on upgrade. For first-time offline setup, copy the separate aria2 ZIP beside the executable.
+- Discover agent tools offline with `pp agent search` and `pp agent schema`. Paired agents can inspect managed tools and run bounded DNS, TLS and subnet diagnostics.
+
 ## v0.7.0 — 2026-10-23
 
 - Adds independently lazy media, gallery and webpage downloads inside Files → Downloader.

@@ -14,6 +14,7 @@ type ToolObservation struct {
 	Path    string `json:"path"`
 	Version string `json:"version"`
 	Note    string `json:"note"`
+	Source  string `json:"source,omitempty"`
 }
 
 // ServiceObservation describes the one canonical cloudflared service for the host.

@@ -348,6 +348,9 @@ func safeAriaErrorMessage(code, rawMessage string) string {
 	if strings.TrimSpace(rawMessage) == "" && strings.TrimSpace(code) == "" {
 		return ""
 	}
+	if code == "3" {
+		return "The file was not found. Check the download URL before retrying (aria2 code 3)."
+	}
 	if code == "32" {
 		return "aria2c rejected the artifact because its checksum did not match."
 	}

@@ -495,6 +495,9 @@ func writeTransferError(writer http.ResponseWriter, err error, fallbackStatus in
 	case errors.Is(err, transfer.ErrLockHeld):
 		status = http.StatusLocked
 		message = "Another ProtoPeek process already owns the downloader"
+	case transfer.CompanionErrorMessage(err) != "":
+		status = http.StatusServiceUnavailable
+		message = transfer.CompanionErrorMessage(err)
 	case errors.Is(err, transfer.ErrAria2NotFound):
 		status = http.StatusServiceUnavailable
 		message = "aria2c was not found; install it or configure its executable path"

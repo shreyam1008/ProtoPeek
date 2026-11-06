@@ -354,7 +354,7 @@ func deploymentFromService(service cloudflared.ServiceObservation, config *cloud
 }
 
 func mapTool(value cloudflared.ToolObservation) Tool {
-	return Tool{Found: value.Found, Path: value.Path, Version: value.Version, Note: value.Note}
+	return Tool{Found: value.Found, Path: value.Path, Version: value.Version, Note: value.Note, Source: value.Source}
 }
 
 func mapRuntime(value cloudflared.ServiceObservation) Runtime {

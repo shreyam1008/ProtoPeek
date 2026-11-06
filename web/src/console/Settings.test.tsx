@@ -1,5 +1,5 @@
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { appearanceStorageKey } from '@/shared/theme';
@@ -95,6 +95,58 @@ describe('Settings', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Downloads' }));
     expect(screen.getByRole('spinbutton', { name: /^Active jobs/ })).toHaveValue(7);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches tab orientation and keyboard controls when the viewport changes', async () => {
+    let listener: ((event: MediaQueryListEvent) => void) | undefined;
+    const narrowQuery = {
+      matches: true,
+      addEventListener: vi.fn((_type: string, callback: (event: MediaQueryListEvent) => void) => {
+        listener = callback;
+      }),
+      removeEventListener: vi.fn(),
+    };
+    const darkQuery = { matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => (query.includes('max-width') ? narrowQuery : darkQuery))
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(hostSnapshot))
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    const view = render(<RouterProvider router={router} />);
+    const tabs = await screen.findByRole('tablist', { name: 'Settings sections' });
+    expect(tabs).toHaveAttribute('aria-orientation', 'horizontal');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Appearance' }), { key: 'ArrowRight' });
+    expect(screen.getByRole('tabpanel', { name: 'Preferences' })).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Preferences' }), { key: 'ArrowDown' });
+    expect(screen.getByRole('tabpanel', { name: 'Preferences' })).toBeVisible();
+    act(() => listener?.({ matches: false } as MediaQueryListEvent));
+    expect(tabs).toHaveAttribute('aria-orientation', 'vertical');
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Preferences' }), { key: 'ArrowDown' });
+    expect(screen.getByRole('tabpanel', { name: 'Downloads' })).toBeVisible();
+    view.unmount();
+    expect(narrowQuery.removeEventListener).toHaveBeenCalledWith('change', listener);
+  });
+
+  it('uses viewport resize as a fallback when matchMedia is unavailable', async () => {
+    vi.stubGlobal('matchMedia', undefined);
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(hostSnapshot))
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    const tabs = await screen.findByRole('tablist', { name: 'Settings sections' });
+    expect(tabs).toHaveAttribute('aria-orientation', 'horizontal');
+    act(() => {
+      window.innerWidth = 960;
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(tabs).toHaveAttribute('aria-orientation', 'vertical');
   });
 
   it('persists browser-local appearance and presentation choices', async () => {

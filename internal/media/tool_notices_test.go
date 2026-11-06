@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
 )
 
 type mediaRoundTrip func(*http.Request) (*http.Response, error)
@@ -94,7 +97,7 @@ func TestManagedInstallRetainsNoticeAndProvenanceBeforeReady(t *testing.T) {
 	if int64(len(license)) != notices.Files[0].Size || fixtureDigest(license) != notices.Files[0].SHA256 {
 		t.Fatal("notice fixture differs from independently pinned upstream bytes")
 	}
-	for _, mode := range []string{"valid", "corrupt-notice", "oversized-notice", "missing-notice", "cancelled"} {
+	for _, mode := range []string{"valid", "corrupt-notice", "oversized-notice", "missing-notice", "cancelled", "unsupported-promotion", "denied-promotion"} {
 		t.Run(mode, func(t *testing.T) {
 			binary := []byte("synthetic, never-executed executable")
 			name := "deno"
@@ -132,8 +135,21 @@ func TestManagedInstallRetainsNoticeAndProvenanceBeforeReady(t *testing.T) {
 			})}
 			asset := Asset{Engine: "deno", Platform: runtime.GOOS + "/" + runtime.GOARCH, Version: "v2.9.6", URL: server.URL + "/package.zip", Size: int64(len(payload)), SHA256: fixtureDigest(payload), Archive: "zip"}
 			executable := filepath.Join(t.TempDir(), "version", name)
-			err := installVerifiedAsset(ctx, asset, notices, executable, client)
+			promote := safepromote.Rename
+			if mode == "unsupported-promotion" {
+				promote = func(string, string) error { return safepromote.ErrUnsupported }
+			}
+			if mode == "denied-promotion" {
+				promote = func(string, string) error { return os.ErrPermission }
+			}
+			err := installVerifiedAssetWithPromotion(ctx, asset, notices, executable, client, promote)
 			if mode != "valid" {
+				if mode == "unsupported-promotion" && !errors.Is(err, ErrInstallUnsupported) {
+					t.Fatalf("misclassified unsupported filesystem: %v", err)
+				}
+				if mode == "denied-promotion" && !errors.Is(err, ErrLocalUnavailable) {
+					t.Fatalf("misclassified filesystem denial: %v", err)
+				}
 				if err == nil || managedAssetReady(asset, executable) {
 					t.Fatalf("failed/cancelled install accepted: %v", err)
 				}

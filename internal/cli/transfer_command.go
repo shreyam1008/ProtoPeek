@@ -49,6 +49,11 @@ func dispatchSubcommand(arguments []string) (int, bool) {
 	if arguments[0] == "migrate-gobarry" {
 		return runGoBarryMigrationCommand(arguments[1:], os.Stdout, os.Stderr, newConfiguredGoBarryMigrationService), true
 	}
+	if arguments[0] == "extensions" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runManagedExtensions(ctx, arguments[1:], os.Stdout, os.Stderr), true
+	}
 	if arguments[0] != "download" {
 		return 0, false
 	}
@@ -144,6 +149,8 @@ Flags:
 		} else if errors.Is(err, context.Canceled) {
 			fmt.Fprintln(stderr, "Download interrupted before aria2c started; no queue item was added.")
 			return 130
+		} else if message := transfer.CompanionErrorMessage(err); message != "" {
+			fmt.Fprintln(stderr, message)
 		} else if errors.Is(err, transfer.ErrAria2NotFound) {
 			fmt.Fprintln(stderr, "aria2c was not found. Install it or configure its executable path in ProtoPeek's transfer settings.")
 		} else {

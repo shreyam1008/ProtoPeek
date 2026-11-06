@@ -266,7 +266,7 @@
 .pp-settings-panel header p {
   margin-top: 0.2rem;
   color: var(--pp-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
 }
 
 .pp-settings-choice-group {
@@ -281,7 +281,7 @@
   grid-column: 1 / -1;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -313,7 +313,7 @@
 .pp-settings-choice-group button small {
   margin-top: 0.2rem;
   color: var(--pp-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -345,14 +345,14 @@
 
 .pp-settings-toggle strong,
 .pp-settings-boundary strong {
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
 }
 
 .pp-settings-toggle small,
 .pp-settings-boundary p {
   margin-top: 0.22rem;
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 

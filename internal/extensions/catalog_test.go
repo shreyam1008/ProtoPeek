@@ -159,6 +159,18 @@ func TestAria2BundleStatesAndUnavailableConfiguration(t *testing.T) {
 	}
 }
 
+func TestAria2CompanionUnavailableWithoutClaimingItIsBundled(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	d := fixtureDetector()
+	d.bundleInfo = func() bundledaria2.Metadata {
+		return bundledaria2.Metadata{Unavailable: bundledaria2.CompanionMessage(bundledaria2.ErrCompanionMissing)}
+	}
+	got := d.aria2(Options{Aria2ConfigKnown: true})
+	if got.Status != "unavailable" || got.Bundled || !strings.Contains(got.Message, bundledaria2.CompanionFilename) {
+		t.Fatalf("missing companion: %#v", got)
+	}
+}
+
 func TestCatalogBoundsAndRejectsUnsafePathMetadata(t *testing.T) {
 	d := fixtureDetector()
 	for _, path := range []string{strings.Repeat("x", 4097), "unsafe\npath", "\xff"} {

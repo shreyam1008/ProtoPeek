@@ -120,3 +120,14 @@
     justify-content: center;
   }
 }
+.pp-managed-extension {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+.pp-managed-extension a {
+  overflow-wrap: anywhere;
+}
+.pp-managed-extension p {
+  margin: 6px 0;
+}

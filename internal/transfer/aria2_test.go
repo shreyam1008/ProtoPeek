@@ -419,7 +419,7 @@ func TestAria2StatusNeverExposesRawErrorTextOrSecretQuery(t *testing.T) {
 	if strings.Contains(job.ErrorMessage, "example.com") || strings.Contains(job.ErrorMessage, "private-secret") {
 		t.Fatalf("safe error message = %q", job.ErrorMessage)
 	}
-	if job.ErrorMessage != "aria2c reported transfer error code 3." {
+	if job.ErrorMessage != "The file was not found. Check the download URL before retrying (aria2 code 3)." {
 		t.Fatalf("safe error message = %q", job.ErrorMessage)
 	}
 }

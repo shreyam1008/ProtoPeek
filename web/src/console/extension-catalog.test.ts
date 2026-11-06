@@ -31,6 +31,17 @@ describe('extension observations', () => {
   it('accepts one bounded observation for each supported integration', () => {
     expect(parseExtensionSnapshot(fixture()).extensions.map(({ id }) => id)).toEqual(extensionIds);
   });
+  it('accepts a locally managed companion in the existing observation contract', () => {
+    const observed = fixture();
+    const cloudflare = observed.extensions.find((entry) => entry.id === 'cloudflared');
+    if (!cloudflare) throw new Error('missing cloudflared fixture');
+    cloudflare.status = 'detected';
+    cloudflare.source = 'managed';
+    expect(
+      parseExtensionSnapshot(observed).extensions.find((entry) => entry.id === 'cloudflared')
+        ?.source
+    ).toBe('managed');
+  });
   it.each([
     null,
     { ...fixture(), schemaVersion: 2 },
@@ -74,7 +85,8 @@ describe('extension observations', () => {
       const pack = await loadExtensionPack(entry.id);
       expect(new URL(pack.download).protocol).toBe('https:');
       expect(new URL(pack.guide).protocol).toBe('https:');
-      expect(Object.keys(pack.setup).sort()).toEqual(['darwin', 'linux', 'windows']);
+      if (typeof pack.setup === 'string') expect(pack.setup.trim().length).toBeGreaterThan(8);
+      else expect(Object.keys(pack.setup).sort()).toEqual(['darwin', 'linux', 'windows']);
       expect(pack.afterSetup).toBeTruthy();
       if (pack.endpoint) {
         const prepared = prepareServiceEntry(pack.endpoint.url, 'http');
@@ -106,7 +118,8 @@ describe('extension observations', () => {
     expect(chatgpt.client).toBeUndefined();
     expect(chatgpt.endpoint).toBeUndefined();
     expect(chatgpt.commands?.[0].text).not.toMatch(/127\.0\.0\.1|Bearer|access_token/);
-    expect((await loadExtensionPack('lm-studio')).setup.darwin).toContain('Apple Silicon');
+    const studio = (await loadExtensionPack('lm-studio')).setup;
+    expect(typeof studio === 'object' && studio.darwin).toContain('Apple Silicon');
   });
   it('checks the connected hostname as well as the trust chain in the OpenSSL comparison', async () => {
     const openssl = await loadExtensionPack('openssl');

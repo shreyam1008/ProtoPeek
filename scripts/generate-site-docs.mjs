@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const docsRoot = path.join(repoRoot, 'docs');
 const publicRoot = path.join(repoRoot, 'web', 'site', 'public');
+const { screenshots } = JSON.parse(await fs.readFile(path.join(repoRoot, 'guides/screenshots.json'), 'utf8'));
 const siteBase = '';
 const siteRoot = 'https://protopeek.shreyam1008.com.np';
 const repoRootURL = 'https://github.com/shreyam1008/ProtoPeek';
@@ -576,6 +577,17 @@ function renderMarkdownPage(markdown, page) {
 
     if (!trimmed) {
       flushParagraph();
+      index += 1;
+      continue;
+    }
+
+    const image = /^!\[([^\]]+)\]\((\.\.\/web\/site\/public\/assets\/[\w.-]+)\)$/.exec(trimmed);
+    if (image) {
+      const capture = screenshots.find((item) => item.file === image[2]);
+      if (!capture) throw new Error(`Missing screenshot record for ${image[2]}`);
+      flushParagraph();
+      const src = `/assets/${path.basename(capture.file)}`;
+      html.push(`<p><a href="${src}" aria-label="Open full-size screenshot: ${escapeAttr(image[1])}"><img src="${src}" alt="${escapeAttr(image[1])}" width="${capture.width}" height="${capture.height}" loading="lazy" decoding="async" style="max-width:100%;height:auto"></a></p>`);
       index += 1;
       continue;
     }

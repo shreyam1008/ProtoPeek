@@ -36,7 +36,7 @@
   max-width: 46rem;
   margin-top: 0.25rem;
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -47,7 +47,7 @@
   padding: 0.35rem 0.55rem;
   color: var(--pp-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.56rem;
+  font-size: 0.6875rem;
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -78,7 +78,7 @@
   gap: 0.35rem;
   align-content: start;
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -97,7 +97,7 @@
   background: var(--pp-surface);
   color: var(--pp-text);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.8125rem;
   outline: none;
 }
 
@@ -111,8 +111,8 @@
 .pp-host-settings-grid > div > small,
 .pp-host-settings-fieldset small,
 .pp-host-settings-toggle small {
-  color: var(--pp-text-faint);
-  font-size: 0.59rem;
+  color: var(--pp-text-muted);
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.45;
 }
@@ -127,7 +127,7 @@
 .pp-host-settings-fieldset legend {
   padding: 0 0.2rem;
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -136,7 +136,7 @@
   align-items: center;
   gap: 0.45rem;
   color: var(--pp-text);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -183,7 +183,7 @@
   padding: 0.5rem 0.72rem;
   background: var(--pp-accent-signal);
   color: var(--pp-inverse-text);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   font-weight: 720;
 }
 
@@ -219,7 +219,7 @@
   padding: 0.58rem 0.68rem;
   background: color-mix(in srgb, var(--pp-danger-signal) 7%, var(--pp-surface));
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -751,13 +751,34 @@
   font-size: 12px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
+  .pp-settings-section .pp-host-settings-actions {
+    position: static;
+  }
   .pp-settings-page {
     padding: 8px;
   }
   .pp-settings-page .pp-settings-layout {
-    grid-template-columns: 100px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 8px;
+  }
+  .pp-settings-navigation {
+    min-width: 0;
+    flex-direction: row;
+    align-self: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--pp-stroke);
+    padding: 0 0 4px;
+  }
+  .pp-settings-navigation .pp-pane-tab {
+    min-height: 40px;
+    white-space: nowrap;
+  }
+  .pp-settings-navigation .pp-pane-tab-active {
+    box-shadow: inset 0 -2px var(--pp-accent-signal);
   }
   .pp-settings-page .pp-settings-local {
     display: none;

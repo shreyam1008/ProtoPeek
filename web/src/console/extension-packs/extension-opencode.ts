@@ -5,15 +5,14 @@ const extension = {
   download: 'https://opencode.ai/docs/',
   guide: 'https://opencode.ai/docs/mcp-servers/',
   setup: {
-    windows: 'OpenCode can run natively; its Windows guide recommends WSL for the best experience.',
-    darwin: 'Use the official macOS instructions and configure your chosen provider.',
-    linux: 'Use the official Linux instructions and configure your chosen provider.',
+    windows: 'Install natively or use the recommended WSL workflow.',
+    darwin: 'Install OpenCode and configure a provider.',
+    linux: 'Install OpenCode and configure a provider.',
   },
-  afterSetup:
-    'Pair in AI agent setup, select OpenCode and merge its local MCP fragment with your configuration. It uses a command array and environment object.',
+  afterSetup: 'Pair in AI agent setup and merge the OpenCode MCP fragment into your configuration.',
   notes: [
     'A client running in WSL has different executable paths and network context from the Windows host.',
-    'Format checked against official docs on 23 October 2026; no provider sign-in or native client acceptance is implied.',
+    'Client configuration checked October 2026. Verify pairing in the client.',
   ],
   client: 'opencode',
 } satisfies ExtensionPack;

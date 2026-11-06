@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 )
 
 type child interface {
@@ -33,6 +35,7 @@ type owned struct {
 	directory          string
 	bytes              int
 	pending            []byte
+	releaseCompanion   func()
 }
 type issuedPreview struct {
 	value    Preview
@@ -123,6 +126,19 @@ func (s *Supervisor) Start(ctx context.Context, request StartRequest) (Session, 
 	if !plan.origin.Connected {
 		return Session{}, publicError("the loopback origin did not accept a TCP connection; start that service and review again")
 	}
+	var releaseCompanion func()
+	if plan.request.Mode == "quick" {
+		releaseCompanion, err = managedtools.AcquireCloudflaredUse(plan.path)
+		if err != nil {
+			return Session{}, publicError("the managed Cloudflare companion is busy or could not be verified; review again")
+		}
+	}
+	started := false
+	defer func() {
+		if !started && releaseCompanion != nil {
+			releaseCompanion()
+		}
+	}()
 	id, err := randomID()
 	if err != nil {
 		return Session{}, err
@@ -132,7 +148,7 @@ func (s *Supervisor) Start(ctx context.Context, request StartRequest) (Session, 
 		duration = s.lifetimeLimit
 	}
 	lifetime, cancel := context.WithTimeout(s.ctx, duration)
-	value := &owned{Session: Session{ID: id, Mode: plan.request.Mode, Audience: plan.audience, OriginURL: plan.request.Origin, Origin: plan.origin, State: "starting", Cleanup: "pending", StartedAt: time.Now().UTC(), ExpiresAt: time.Now().UTC().Add(duration), Events: []Event{}}, prepared: plan, cancel: cancel, scope: lifetime, done: make(chan struct{}), ready: make(chan struct{})}
+	value := &owned{Session: Session{ID: id, Mode: plan.request.Mode, Audience: plan.audience, OriginURL: plan.request.Origin, Origin: plan.origin, State: "starting", Cleanup: "pending", StartedAt: time.Now().UTC(), ExpiresAt: time.Now().UTC().Add(duration), Events: []Event{}}, prepared: plan, cancel: cancel, scope: lifetime, done: make(chan struct{}), ready: make(chan struct{}), releaseCompanion: releaseCompanion}
 	args := append([]string{}, plan.args...)
 	if plan.request.Mode == "quick" {
 		value.directory, err = os.MkdirTemp("", "protopeek-quick-")
@@ -173,6 +189,7 @@ func (s *Supervisor) Start(ctx context.Context, request StartRequest) (Session, 
 	value.child = process
 	value.PID = process.PID()
 	s.mu.Unlock()
+	started = true
 	// From acceptance onward the process belongs to the supervisor lifetime,
 	// independently of the HTTP request or the browser page that started it.
 	go s.wait(value, lifetime)
@@ -286,6 +303,9 @@ func (s *Supervisor) wait(value *owned, ctx context.Context) {
 	removeConfig(value)
 	cleanup := "confirmed"
 	processUnconfirmed := errors.Is(err, errProcessOwnershipUnconfirmed)
+	if !processUnconfirmed && value.releaseCompanion != nil {
+		value.releaseCompanion()
+	}
 	if processUnconfirmed {
 		cleanup = "unconfirmed"
 	}

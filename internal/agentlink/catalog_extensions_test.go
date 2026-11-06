@@ -8,7 +8,7 @@ import (
 )
 
 func TestExtensionAgentCatalogOnlyAllowsFixedReadOnlyMetadataTools(t *testing.T) {
-	if len(Tools()) != 23 {
+	if len(Tools()) != 25 {
 		t.Fatalf("tool count=%d", len(Tools()))
 	}
 	list, err := Lookup("extensions_list", json.RawMessage(`{}`))

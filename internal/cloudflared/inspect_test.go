@@ -2,9 +2,13 @@ package cloudflared
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 )
 
 func TestParseConfigReturnsRoutesWithoutCredentialContents(t *testing.T) {
@@ -29,6 +33,54 @@ ingress:
 	}
 	if config.Routes[0].Protocol != "http" || config.Routes[1].Protocol != "h2c" {
 		t.Fatalf("unexpected protocols: %#v", config.Routes)
+	}
+}
+
+func TestToolObservationPreservesCanonicalServiceSource(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "connector")
+	if err := os.WriteFile(file, []byte("not an executable"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	tool := inspectTool(context.Background(), "cloudflared", file)
+	if !tool.Found || tool.Source != "service" || tool.Path != file {
+		t.Fatalf("canonical source: %#v", tool)
+	}
+}
+
+func TestCorruptManagedCompanionReportsAccurateEvidence(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", root)
+	t.Setenv("XDG_CACHE_HOME", root)
+	t.Setenv("LOCALAPPDATA", root)
+	manager, err := managedtools.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	status, err := manager.Status("cloudflared")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.Status == "unavailable" {
+		t.Skip("no managed asset on this platform")
+	}
+	cache, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(cache, "protopeek", "managed", "cloudflared", status.Version)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	name := "cloudflared"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), []byte("changed"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	tool := inspectTool(context.Background(), "cloudflared", "")
+	if tool.Found || tool.Source != "managed" || !strings.Contains(tool.Note, "could not be verified") {
+		t.Fatalf("invalid companion evidence: %#v", tool)
 	}
 }
 

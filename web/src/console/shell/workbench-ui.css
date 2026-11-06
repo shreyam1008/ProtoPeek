@@ -22,6 +22,10 @@
   padding: 10px 6px;
   background: var(--pp-color-surface-sunken);
 }
+.pp-app-tour {
+  font-size: 10px;
+  font-weight: 600;
+}
 .pp-workbench-shell .pp-app-brand {
   justify-content: center;
   flex: none;
@@ -90,7 +94,7 @@
 }
 .pp-tool-sidebar-heading > span {
   color: var(--pp-color-text-faint);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 .pp-workbench-shell .pp-tool-sidebar > .pp-app-command {
@@ -98,7 +102,7 @@
   flex: none;
   margin: 0 12px 12px;
   height: 32px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   background: var(--pp-color-surface);
 }
@@ -119,8 +123,8 @@
 }
 .pp-tool-group-label {
   padding: 0 8px 7px;
-  color: var(--pp-color-text-faint);
-  font-size: 10px;
+  color: var(--pp-color-text-muted);
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.035em;
 }
@@ -134,7 +138,7 @@
   padding: 7px 9px;
   border-radius: 6px;
   color: var(--pp-color-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   text-decoration: none;
   border: 1px solid transparent;
@@ -292,13 +296,24 @@
   border-color: var(--pp-color-stroke-strong);
   background: var(--pp-color-surface);
   color: var(--pp-color-text);
-  font-size: 12px;
+  font-size: 13px;
 }
 .pp-workbench-shell .pp-workbench-canvas :where(textarea) {
   border-radius: 6px;
   border-color: var(--pp-color-stroke-strong);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .pp-workbench-shell
+    .pp-workbench-canvas
+    :where(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      select,
+      textarea
+    ) {
+    font-size: 16px;
+  }
 }
 .pp-workbench-shell :where(button, a, summary, input, select, textarea):focus-visible {
   outline: 2px solid var(--pp-color-accent);
@@ -338,6 +353,8 @@
   :is(
     .pp-ports,
     .pp-events,
+    .pp-extension-library,
+    .pp-diagnostics,
     .pp-evidence-workbench,
     .pp-suite-page,
     .pp-security,
@@ -353,7 +370,10 @@
   gap: 16px;
   padding-bottom: 16px;
 }
-.pp-workbench-shell .pp-workbench-canvas :is(.pp-ports, .pp-events) > :not(.pp-page-header) {
+.pp-workbench-shell
+  .pp-workbench-canvas
+  :is(.pp-ports, .pp-events, .pp-extension-library, .pp-diagnostics)
+  > :not(.pp-page-header) {
   margin-inline: var(--pp-workspace-gutter);
 }
 .pp-workbench-shell .pp-workbench-canvas .pp-ports form {
@@ -600,6 +620,20 @@
   .pp-rail-actions {
     margin: 0 0 0 auto;
     padding: 0;
+  }
+  .pp-workbench-shell .pp-rail-actions .pp-rail-quick-actions {
+    display: flex;
+  }
+  .pp-workbench-shell .pp-quick-inspect {
+    display: none;
+  }
+  .pp-navigation-drawer .pp-navigation-link,
+  .pp-navigation-drawer .pp-tool-link {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .pp-navigation-drawer .pp-mobile-browse {
+    width: 44px;
   }
   .pp-navigation-drawer .pp-tool-navigation {
     border-top: 1px solid var(--pp-color-stroke);
@@ -892,13 +926,19 @@
 }
 @media (max-width: 760px) {
   .pp-workbench-shell .pp-roadmap-layout {
-    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     gap: 10px;
     padding: 12px;
   }
+  .pp-workbench-shell .pp-roadmap-filters {
+    flex-direction: row;
+    overflow-x: auto;
+  }
   .pp-workbench-shell .pp-roadmap-filters button {
-    font-size: 11px;
-    padding: 8px 5px;
+    flex: none;
+    font-size: 12px;
+    padding: 8px 10px;
   }
 }
 
@@ -1103,8 +1143,14 @@
 .pp-workbench-shell .pp-packet-results {
   padding: 0;
 }
+.pp-workbench-shell .pp-events-results:has(.pp-empty-state) {
+  flex: 0 0 auto;
+  min-height: fit-content;
+}
 .pp-workbench-shell .pp-events-timeline > .pp-empty-state {
-  margin: 16px;
+  min-height: auto;
+  margin: 0;
+  padding: 16px;
   border: 0;
   background: transparent;
 }
@@ -1315,7 +1361,7 @@
     gap: 8px;
   }
   .pp-workbench-shell .pp-sidebar-toggle,
-  .pp-workbench-shell .pp-rail-quick-actions {
+  .pp-workbench-shell[data-sidebar-collapsed="true"] .pp-rail-quick-actions {
     display: flex;
   }
   .pp-workbench-shell .pp-rail-actions .pp-app-icon-action {
@@ -1334,3 +1380,19 @@
   }
 }
 /* End sidebar collapse and recent-tool navigation. */
+
+/* A short browser window needs one scroll surface for the tabs and task. */
+@media (max-width: 760px) and (max-height: 500px) {
+  .pp-workbench-shell .pp-workbench-canvas :is(.pp-security, .pp-suite-page.pp-settings-page) {
+    display: block;
+    overflow-y: auto;
+  }
+  .pp-workbench-shell .pp-workbench-canvas :is(.pp-security-layout, .pp-settings-layout) {
+    grid-template-rows: auto auto;
+    overflow: visible;
+  }
+  .pp-workbench-shell :is(.pp-security-content, .pp-settings-content) {
+    overflow: visible;
+    height: auto;
+  }
+}

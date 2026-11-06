@@ -811,14 +811,23 @@
   color: var(--pp-text-muted);
 }
 @media (max-width: 760px) {
-  .pp-security-layout {
-    grid-template-columns: 102px minmax(0, 1fr);
-  }
-  .pp-security-sections .pp-pane-tab {
-    padding: 10px 5px;
-    font-size: 11px;
-  }
   .pp-security-content .pp-security-website {
     margin: 6px;
+  }
+  .pp-security-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .pp-security-sections {
+    flex-direction: row;
+    padding: 4px 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--pp-stroke);
+  }
+  .pp-security-sections .pp-pane-tab {
+    flex: none;
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
   }
 }

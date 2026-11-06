@@ -19,9 +19,33 @@ aria2 may also read and verify an existing cached bundle checksum. Detection doe
 scan, capture, sign-in flow, model download or service. Cancelling a slow check detaches the browser;
 an OS filesystem lookup already waiting may still finish.
 
+In current source, choose **Guide** to walk through the selected tool. The tour shows the controls and prerequisites for the tool you have open.
+Current release recipes use the lightweight Windows x64 build. Install aria2 on demand or supply its
+verified offline ZIP beside the executable. The release recipes attach the Windows aria2 ZIP separately under its expected name. A previously prepared v0.7.0 engine can be reused after verification. Published v0.7.0 embeds the fallback. The Store package builder pairs a lightweight Windows release with its verified offline ZIP inside the MSIX. This keeps the Store download usable offline when the app folder is read-only. See the
+[offline build instructions](https://github.com/shreyam1008/ProtoPeek/blob/master/internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
+
 Setup applies to the **machine running ProtoPeek**, which may differ from the machine displaying
 your browser. A remote server or container needs its own accessible tools. Guidance uses the host
 operating system and points to official installation instructions.
+
+## Manage a local companion (current source)
+
+![The Windows source preview showing the six managed tools in Extensions](../web/site/public/assets/protopeek-managed-tools-20261106.png)
+
+The current library has 24 entries. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Each entry lists the hosts with pinned builds. In Files you can install the selected tool, use it, and remove its verified managed copy. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
+
+Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop active use before choosing **Remove companion**. If a cached aria2 archive changes, **Repair companion** preserves it in quarantine and downloads a verified replacement. Files offers **Repair setup** for a partial media installation when its remaining files can be verified.
+
+The terminal uses the same local installation and returns JSON:
+
+```sh
+pp extensions status --json
+pp extensions status cloudflared
+pp extensions install cloudflared
+pp extensions remove cloudflared
+```
+
+Inventory covers all six managed companions. Media installs can add missing supported helpers for yt-dlp. CLI media changes require the Files queue to be free. If the workbench owns the queue, use Files there or close the workbench before the CLI operation. A paired agent can inspect this inventory with `managed_tools`. Use the published release instructions above when running v0.7.0.
 
 ## Six native workbenches
 
@@ -37,9 +61,7 @@ controls. It does not prove that your installed tool, account, permissions or en
 | Network tools | Nmap | Bounded TCP connect or light service detection with explicit scope | `/network/nmap` |
 | Transfers | aria2 | The local engine used by resumable HTTP(S) downloads | `/downloader` |
 
-All existing workbench links remain valid. Choosing a card does not install a package or begin
-the tool's active work. Installation is performed separately through the vendor's installer or
-the host's package manager. Return to the selected entry and check again after setup.
+Open a card to see its requirements and supported actions. Install a managed companion through its setup controls. For a VPN client, capture driver or externally managed CLI, use the listed vendor installer or host package manager, then return to the entry and check the host.
 
 ## Fourteen guided entries
 
@@ -57,8 +79,8 @@ them, install packages, start services or authenticate with vendors.
 | [kubectl](https://kubernetes.io/docs/tasks/tools/) | Command guide | Review an authorized loopback port-forward; cluster/context/namespace stay user-owned |
 | [OpenSSL](https://docs.openssl.org/master/man1/openssl/) | Command guide | Compare native certificate/TLS observations; built-in TLS diagnostics remain available |
 | [Codex CLI](https://learn.chatgpt.com/docs/codex/cli) | MCP setup | Merge a generated local MCP fragment from AI agent setup |
-| [Claude Code](https://code.claude.com/docs/en/mcp) | MCP setup | Merge the generated stdio client fragment without replacing other settings |
-| [Gemini CLI](https://geminicli.com/docs/tools/mcp-server/) | MCP setup | Merge the generated `mcpServers` settings fragment |
+| [Claude Code](https://code.claude.com/docs/en/mcp) | MCP setup | Merge the fragment, then review and approve `protopeek` in your trusted project |
+| [Gemini CLI](https://geminicli.com/docs/tools/mcp-server/) | MCP setup | Merge the `mcpServers` fragment; if folder trust is enabled, trust your project before connecting |
 | [OpenCode](https://opencode.ai/docs/mcp-servers/) | MCP setup | Merge the local command-array and `environment` fragment |
 | [Ollama](https://docs.ollama.com/api/introduction) | Endpoint guide | Prepare an unsent loopback `/api/tags` request for your running local server |
 | [LM Studio](https://lmstudio.ai/docs/developer/openai-compat) | Endpoint guide | Prepare an unsent loopback `/v1/models` request for your running local server |
@@ -118,7 +140,7 @@ ProtoPeek uses the installed client; it does not provide the private-network ser
 
 Use Cloudflare's [cloudflared downloads](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/)
 for the tunnel connector. Its ProtoPeek workbench inspects the local host and canonical service.
-It does not create an account, sign in or install the connector. v0.7.0 configuration
+Current source can install a pinned cloudflared companion from Extensions. For published v0.7.0, install the connector through the vendor first. Sign-in and account setup take place in Cloudflare. v0.7.0 configuration
 writes require the supported user-owned canonical file, a fresh revision and explicit review.
 See the [Cloudflare Tunnel guide](cloudflare-tunnels.md) for supported controls and configuration
 authority. Wrangler and Docker availability are diagnostic details, not additional working adapters.
@@ -156,13 +178,11 @@ its workbench and review the target and ports. ProtoPeek supports bounded TCP co
 service detection. These modes use ordinary TCP sockets; executable detection does not run a scan.
 See [Nmap scope and evidence limits](network-workbench.md#installed-nmap-in-current-source).
 
-The Downloader uses [aria2](https://aria2.github.io/). Official downloads are linked from the
-[aria2 release page](https://github.com/aria2/aria2/releases/latest). The engine can be configured,
-found on PATH, or supplied as a fallback by the build. Check the card and Downloader's engine
-details before installing another copy. Detection does not start the engine or queue a transfer.
+The Downloader uses [aria2](https://aria2.github.io/). Check the engine in **Files → Downloader** to see which executable the host selected. A configured executable or one on PATH can serve the workbench. Published v0.7.0 includes a Windows x64 fallback. The current lightweight Windows x64 package can install a verified companion from Extensions, use an adjacent offline ZIP, or reuse a verified cache prepared by v0.7.0. [Official aria2 releases](https://github.com/aria2/aria2/releases).
 
-The existing **Windows x64 aria2 bundle is the explicit exception** to separately installed tools.
-This library adds no new vendor executables, SDKs or model bundles for users who do not use them.
+### Recovering interrupted or changed files
+
+Stop active jobs and close other ProtoPeek processes before repairing or removing a companion. If a media file fails verification, Files and the CLI give the affected version folder. Move that folder to a location you control after inspecting its contents, then retry setup. Repair keeps modified aria2 data in a separate quarantine location. An interrupted install can leave staging files in the tool's cache or configuration folder. You can review these manually after closing ProtoPeek. Keep unknown files until you identify them.
 
 ## What stays in the core
 

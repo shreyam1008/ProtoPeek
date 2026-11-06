@@ -6,17 +6,14 @@ const extension = {
   guide:
     'https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse',
   setup: {
-    windows:
-      "Use Windows' OpenSSH Client optional feature. A local forward does not require OpenSSH Server.",
-    darwin: 'Use the macOS ssh client or a supported OpenSSH package.',
-    linux:
-      "Install your distribution's OpenSSH client; a local forward does not need a local SSH server.",
+    windows: 'Enable the OpenSSH Client optional feature.',
+    darwin: 'Use the built-in ssh client.',
+    linux: 'Install the OpenSSH client. A forward only needs the client.',
   },
-  afterSetup:
-    'Replace the example account and destination in your terminal. You own authentication and the forward; inspect its actual local port after it starts listening.',
+  afterSetup: 'Set the account and host, start the SSH forward, then inspect its local port.',
   notes: [
     "The example binds only 127.0.0.1 and reaches the remote account's loopback service; those are different machines.",
-    'This guide does not read keys, passwords or SSH configuration, or create a tunnel.',
+    'Your SSH keys, credentials, config and tunnel stay in your SSH client.',
   ],
   commands: [
     {
@@ -26,8 +23,7 @@ const extension = {
   ],
   endpoint: {
     url: 'http://127.0.0.1:8080/',
-    notice:
-      'Example forwarded port. Start your authorized SSH forward separately and confirm its real local port before Send.',
+    notice: 'Start your authorized SSH forward and confirm its local port before Send.',
   },
 } satisfies ExtensionPack;
 

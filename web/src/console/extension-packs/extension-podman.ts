@@ -5,14 +5,11 @@ const extension = {
   download: 'https://podman.io/docs/installation',
   guide: 'https://docs.podman.io/en/latest/markdown/podman-port.1.html',
   setup: {
-    windows:
-      "Follow Podman's Windows installation and machine setup; containers use a WSLv2-backed guest.",
-    darwin:
-      'Use the official installer and explicitly initialize/start a Podman machine when needed.',
-    linux: 'Use the documented distribution package; rootless operation can need local setup.',
+    windows: 'Install Podman and set up its WSL2 machine.',
+    darwin: 'Install Podman and initialize its VM.',
+    linux: 'Install Podman and configure rootless operation if needed.',
   },
-  afterSetup:
-    "Inspect an existing container's mapping with native Podman, then set the HTTP draft to the real local port. A located CLI does not prove its machine is started.",
+  afterSetup: 'Check the running container’s mapped port in Podman, then open it in HTTP.',
   notes: [
     'This guide does not create or start machines, contact Podman, pull images or run containers.',
     'Keep local services bound to loopback. A guest port can differ from its host mapping.',

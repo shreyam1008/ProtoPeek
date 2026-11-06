@@ -129,6 +129,20 @@
       "artifactSha256": "0ba38641b5e7d87ff714384a7ae845dd208100a3406f79ff027380966ea19b31",
       "workflow": "Real installed Chrome 155 capture on Windows at 1366 by 900 CSS pixels, against the same actual v0.7.0 Windows x64 release-package draft before publication. The clean library has 20 entries and no host checks requested. No tool installation, account or native-client acceptance is implied. Pixels are unchanged. Public release identity must be independently compared before using this as current-release website evidence. The public v0.7.0 archive/executable bytes were subsequently verified unchanged on 23 October 2026; this does not change the pre-publication capture stage.",
       "publicArtifactVerifiedAt": "2026-10-23"
+    },
+    {
+      "file": "../web/site/public/assets/protopeek-managed-tools-20261106.png",
+      "alt": "Current-source ProtoPeek Extensions filtered to its six managed companions",
+      "platform": "desktop-windows",
+      "capturedVersion": "unreleased current-source preview, 6 November 2026",
+      "releaseStatus": "unreleased-source",
+      "captureStage": "local-build",
+      "capturedAt": "2026-11-06",
+      "width": 1366,
+      "height": 960,
+      "sha256": "3f4c9a3fc794fb1febd8e6c8292e1305da9027cf6c8c46c9b2ceef0037b07b8f",
+      "artifactSha256": "e83f33d262b49c9bb85383034b533b12abedfeebe74879b8576c7d4832eb0f57",
+      "workflow": "Chromium opened the lightweight Windows build in a fresh profile and selected Managed. The screenshot shows all six companion names, their setup links and supported hosts."
     }
   ]
 }

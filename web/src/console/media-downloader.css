@@ -103,7 +103,14 @@
 }
 @media (max-width: 700px) {
   .pp-media-types {
-    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .pp-media-downloader .pp-media-types button {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .pp-media-types span {
+    display: none;
   }
   .pp-media-setup,
   .pp-media-submit,

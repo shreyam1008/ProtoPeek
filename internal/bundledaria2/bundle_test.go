@@ -12,7 +12,9 @@ func fixtureBundle(t *testing.T) bundle {
 	t.Helper()
 	var output bytes.Buffer
 	writer := zip.NewWriter(&output)
+	var members []memberPin
 	for _, name := range []string{"aria2c", "COPYING", "AUTHORS", "README.mingw", "LICENSE.OpenSSL"} {
+		members = append(members, memberPin{name, int64(len(name)), digest([]byte(name))})
 		file, err := writer.Create("fixture/" + name)
 		if err != nil {
 			t.Fatal(err)
@@ -24,7 +26,7 @@ func fixtureBundle(t *testing.T) bundle {
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
-	return bundle{archive: output.Bytes(), archiveSHA: digest(output.Bytes()), binarySHA: digest([]byte("aria2c")), prefix: "fixture/", binary: "aria2c"}
+	return bundle{members: members, archive: output.Bytes(), archiveSHA: digest(output.Bytes()), binarySHA: digest([]byte("aria2c")), prefix: "fixture/", binary: "aria2c"}
 }
 
 func TestExtractionVerifiesCacheAndIncludesNotices(t *testing.T) {
@@ -49,6 +51,44 @@ func TestExtractionVerifiesCacheAndIncludesNotices(t *testing.T) {
 	}
 	if _, err := extract(fixture, dir); err == nil {
 		t.Fatal("tampered cache accepted")
+	}
+}
+
+func TestExtractionPreservesConflictingFilesAndRetriesIdenticalPartial(t *testing.T) {
+	t.Parallel()
+	payload := fixtureBundle(t)
+	dir := t.TempDir()
+	userFile := filepath.Join(dir, "COPYING")
+	if err := os.WriteFile(userFile, []byte("user content"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := extract(payload, dir); err == nil {
+		t.Fatal("accepted conflicting notice")
+	}
+	got, err := os.ReadFile(userFile)
+	if err != nil || string(got) != "user content" {
+		t.Fatalf("overwrote user file: %q %v", got, err)
+	}
+	if err := os.WriteFile(userFile, []byte("COPYING"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := extract(payload, dir); err != nil {
+		t.Fatalf("retry of identical partial failed: %v", err)
+	}
+}
+
+func TestSafeCacheDirectoryRejectsLinkedAncestor(t *testing.T) {
+	t.Parallel()
+	cache, outside := t.TempDir(), t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(cache, "protopeek")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := cacheDirectory(cache, "fixture", true); err == nil {
+		t.Fatal("accepted linked cache ancestor")
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("wrote through linked ancestor: %v %v", entries, err)
 	}
 }
 

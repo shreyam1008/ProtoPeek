@@ -39,6 +39,10 @@ describe('public site', () => {
       screen.getByRole('heading', { level: 1, name: 'Find, reach, and inspect services locally.' })
     ).toBeVisible();
     expect(screen.getByText('Local-first. No account.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Find a tool or guide' })).toHaveAttribute(
+      'href',
+      '#find-tool'
+    );
 
     const product = screen.getByRole('region', { name: 'Start with a question.' });
     expect(
@@ -92,6 +96,36 @@ describe('public site', () => {
       'href',
       '/docs/'
     );
+  });
+
+  it.each([
+    ['Tailscale', '/extensions/'],
+    ['NetBird', '/extensions/'],
+    ['gallery-dl', '/media-downloads/'],
+    ['FFmpeg', '/media-downloads/'],
+    ['cloudflared', '/cloudflare-tunnels/'],
+    ['Codex', '/ai-agents/'],
+  ])('finds %s by tool name', (term, destination) => {
+    render(<App />);
+    const product = screen.getByRole('region', { name: 'Start with a question.' });
+    fireEvent.change(within(product).getByRole('searchbox'), { target: { value: term } });
+    expect(within(product).getAllByRole('link')[0]).toHaveAttribute('href', destination);
+  });
+
+  it('finds protocol workbenches and recovers from an empty search', () => {
+    render(<App />);
+    const product = screen.getByRole('region', { name: 'Start with a question.' });
+    const field = within(product).getByRole('searchbox');
+    fireEvent.change(field, { target: { value: 'port scan' } });
+    expect(within(product).getAllByRole('listitem')[0]).toHaveTextContent('See port scanning');
+    fireEvent.change(field, { target: { value: 'WebSocket' } });
+    expect(
+      within(product).getByRole('link', { name: /WebSocket and SSE workbench/i })
+    ).toHaveAttribute('href', '/event-streams/');
+    fireEvent.change(field, { target: { value: 'nonexistent-protocol-xyz' } });
+    expect(within(product).getByRole('status')).toHaveTextContent('No matching guides');
+    fireEvent.change(field, { target: { value: '' } });
+    expect(within(product).getByRole('link', { name: /explore extensions/i })).toBeVisible();
   });
 
   it('shows actual v0.7.0 package captures with honest stage and intrinsic dimensions', () => {

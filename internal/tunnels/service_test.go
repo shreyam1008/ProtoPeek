@@ -10,6 +10,13 @@ import (
 	"github.com/shreyam1008/ProtoPeek/internal/cloudflared"
 )
 
+func TestManagedToolSourceIsPreserved(t *testing.T) {
+	value := mapTool(cloudflared.ToolObservation{Found: true, Source: "managed", Path: "/managed/cloudflared"})
+	if !value.Found || value.Source != "managed" || value.Path != "/managed/cloudflared" {
+		t.Fatalf("lost tool provenance: %#v", value)
+	}
+}
+
 type fakeObserver struct{ value cloudflared.Observation }
 
 func (observer fakeObserver) Inspect(context.Context) (cloudflared.Observation, error) {

@@ -169,7 +169,7 @@
   --pp-color-text-muted: #4f6268;
   --pp-color-text-faint: #566568;
   --pp-color-accent: #087e8b;
-  --pp-color-accent-strong: #006d77;
+  --pp-color-accent-strong: #005c64;
 }
 
 :root[data-palette="solarized"][data-theme="dark"] {

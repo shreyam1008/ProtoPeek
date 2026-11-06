@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"github.com/shreyam1008/ProtoPeek/internal/tailnet"
 )
 
@@ -27,7 +28,10 @@ func findTool(tool string) (string, error) {
 	if tool == "tailscale" {
 		path, err = tailnet.New().Find()
 	} else {
-		path, err = exec.LookPath("cloudflared")
+		path, err = managedtools.CloudflaredPath()
+		if errors.Is(err, os.ErrNotExist) {
+			path, err = exec.LookPath("cloudflared")
+		}
 	}
 	if err != nil {
 		return "", err

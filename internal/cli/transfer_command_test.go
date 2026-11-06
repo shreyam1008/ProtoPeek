@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
 
@@ -32,6 +33,19 @@ type fakeDownloadService struct {
 
 	calls   []string
 	lastAdd transfer.AddRequest
+}
+
+func TestDownloadCompanionErrorIsActionableAndSafe(t *testing.T) {
+	for _, sentinel := range []error{bundledaria2.ErrCompanionMissing, bundledaria2.ErrCompanionInvalid} {
+		var stdout, stderr bytes.Buffer
+		service := &fakeDownloadService{startErr: errors.Join(sentinel, errors.New("private-path"))}
+		code := runDownloadCommand(context.Background(), []string{"https://example.com/file"}, &stdout, &stderr,
+			func() (downloadCommandService, error) { return service, nil }, false)
+		if code != 1 || strings.Contains(stderr.String(), "private-path") ||
+			(!strings.Contains(stderr.String(), bundledaria2.CompanionFilename) && !strings.Contains(stderr.String(), "could not be verified")) {
+			t.Fatalf("code=%d stderr=%q", code, stderr.String())
+		}
+	}
 }
 
 func (service *fakeDownloadService) Start(context.Context) (transfer.Health, error) {
@@ -104,6 +118,12 @@ func TestRootUsageListsEveryDevelopmentSubcommand(t *testing.T) {
 	for _, expected := range []string{
 		"pp download [flags] URL",
 		"pp migrate-gobarry [flags]",
+		"pp agent search WORDS",
+		"pp agent schema NAME",
+		"pp mcp",
+		"pp extensions status [ID]",
+		"pp extensions install",
+		"pp extensions remove",
 		`pp download --help`,
 		`pp migrate-gobarry --help`,
 		"opens Home",

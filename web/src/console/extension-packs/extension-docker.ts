@@ -5,16 +5,14 @@ const extension = {
   download: 'https://docs.docker.com/get-started/get-docker/',
   guide: 'https://docs.docker.com/engine/network/port-publishing/',
   setup: {
-    windows:
-      'Install a supported Docker Desktop build and its required Windows backend. Commercial terms may apply.',
-    darwin: 'Install Docker Desktop for your processor architecture and start it yourself.',
-    linux: 'Choose Docker Engine or Desktop using the official distribution instructions.',
+    windows: 'Install Docker Desktop and its Windows backend. Check commercial terms.',
+    darwin: 'Install Docker Desktop for your CPU and start it.',
+    linux: 'Install Docker Engine or Desktop.',
   },
-  afterSetup:
-    "Use native Docker to identify an existing container's mapped host port, then edit the HTTP example to match. A located CLI does not prove the daemon is running.",
+  afterSetup: 'Read the container’s published port in Docker and use it in the HTTP draft.',
   notes: [
-    'This guide does not contact Docker, pull images, create containers or publish ports.',
-    'Prefer loopback-only host bindings. A container port is not automatically a host-accessible service.',
+    'Manage images, containers and port bindings in Docker.',
+    'Bind to loopback and use the mapped host port.',
   ],
   commands: [
     {
@@ -24,8 +22,7 @@ const extension = {
   ],
   endpoint: {
     url: 'http://127.0.0.1:8080/',
-    notice:
-      'Example host-mapped HTTP port. Confirm the container, loopback binding and actual port before Send.',
+    notice: 'Confirm the container and mapped loopback port before Send.',
   },
 } satisfies ExtensionPack;
 

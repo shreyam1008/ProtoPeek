@@ -5,21 +5,15 @@ const extension = {
   download: 'https://github.com/aria2/aria2/releases/latest',
   guide: 'https://aria2.github.io/',
   setup: {
-    windows:
-      'Get the official aria2 Windows archive. Add aria2c.exe to PATH or select its full path in Downloader settings.',
-    darwin:
-      'Install aria2 using a package manager, then make aria2c available to the ProtoPeek process.',
-    linux:
-      'Install your distribution’s aria2 package, or select an existing aria2c in Downloader settings.',
+    windows: 'Choose the managed companion or set the full aria2c.exe path in Files.',
+    darwin: 'Install aria2 with your package manager.',
+    linux: 'Install the aria2 package or set its executable path in Files.',
   },
-  afterSetup:
-    'Downloader prefers its configured engine, then PATH. Any included or cached companion is identified separately below.',
+  afterSetup: 'Downloader checks your configured engine, PATH, then its companion.',
   notes: [
-    'The existing Windows x64 binary includes a pinned fallback. This library adds no vendor binaries or models.',
-    'A check may verify an existing cached bundle; it does not extract it, start aria2 or queue a transfer.',
+    'On Windows x64, install here on demand or supply the offline ZIP. v0.7.0 embeds its fallback.',
+    'Checking status reads the cache. Installation and transfers are separate actions.',
   ],
-  route: '/downloader',
-  openLabel: 'Open Downloader',
 } satisfies ExtensionPack;
 
 export default extension;

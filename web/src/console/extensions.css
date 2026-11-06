@@ -24,8 +24,11 @@
   flex: none;
 }
 .pp-extensions-base {
-  margin-block: 20px;
+  margin-block: 12px;
   border-left: 3px solid var(--pp-brand);
+}
+.pp-extensions-base summary {
+  font-weight: 600;
 }
 .pp-extensions-base p {
   margin-block: 6px;
@@ -68,6 +71,14 @@
   gap: 6px;
   overflow-x: auto;
   padding-bottom: 4px;
+  flex: 1 1 340px;
+}
+.pp-extension-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 .pp-extension-filters button {
   flex: none;
@@ -95,7 +106,6 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 12px;
 }
 .pp-extension-grid {
   display: grid;
@@ -104,7 +114,13 @@
   margin-top: 16px;
 }
 .pp-extension-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   min-width: 0;
+}
+.pp-extension-card > .pp-extension-actions {
+  margin-block-start: auto;
 }
 .pp-extension-card-heading {
   display: flex;
@@ -119,12 +135,10 @@
   font-size: 15px;
   font-weight: 650;
 }
-.pp-extension-card-heading span {
+.pp-extension-card-heading span,
+.pp-extension-level {
   color: var(--pp-muted);
   font-size: 11px;
-}
-.pp-extension-card > p {
-  margin-block: 12px;
 }
 .pp-extension-pin {
   display: flex;
@@ -136,20 +150,11 @@
   color: var(--pp-ink);
   background: var(--pp-panel);
 }
-.pp-extension-level {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--pp-muted);
-  font-size: 11px;
-}
 .pp-extension-actions a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
-}
-.pp-extensions-footnote {
-  margin-top: 24px;
 }
 .pp-extensions :is(a, button, select, input, pre):focus-visible {
   outline: 2px solid var(--pp-brand);

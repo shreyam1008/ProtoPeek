@@ -1,0 +1,70 @@
+#pp-workbench-canvas .pp-tour-target {
+  outline: 3px solid var(--pp-color-accent);
+  outline-offset: 3px;
+}
+.pp-tool-tour {
+  position: fixed;
+  z-index: 95;
+  right: 16px;
+  bottom: 16px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(60vh, 500px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 10px;
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+  box-shadow: 0 12px 40px var(--pp-shadow);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pp-tool-tour header,
+.pp-tour-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.pp-tool-tour header span,
+.pp-tour-note {
+  color: var(--pp-color-text-muted);
+  font-size: 12px;
+}
+.pp-tool-tour h2 {
+  margin: 2px 0 0;
+  font-size: 18px;
+}
+.pp-tool-tour p {
+  margin: 12px 0;
+}
+.pp-tool-tour button {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--pp-color-stroke-strong);
+  border-radius: 6px;
+  background: var(--pp-color-surface);
+  color: var(--pp-color-text);
+}
+.pp-tool-tour button:focus-visible {
+  outline: 2px solid var(--pp-color-accent);
+  outline-offset: 2px;
+}
+.pp-tool-tour button:disabled {
+  opacity: 0.55;
+}
+.pp-tour-actions {
+  justify-content: flex-end;
+}
+
+.pp-tool-tour[data-dock] {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: auto;
+  padding: 6px;
+}
+.pp-tool-tour[data-dock="top"] {
+  top: 8px;
+  bottom: auto;
+}

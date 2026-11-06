@@ -75,7 +75,7 @@ describe('protocol routes', () => {
         router={createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/'] }))}
       />
     );
-    fireEvent.click(await screen.findByRole('button', { name: 'Open global command menu' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Find anything/ }));
     const search = await screen.findByRole('combobox', { name: 'Search commands' });
     fireEvent.change(search, { target: { value: 'reusable health' } });
     fireEvent.click(

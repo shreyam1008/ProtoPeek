@@ -39,6 +39,8 @@ in the private ProtoPeek media tools directory. No terminal, separate Python set
 or administrator prompt is needed for a supported managed build. Installed engines
 are used only for explicit jobs.
 
+In current source, **Extensions → Media** opens a specific companion directly in Files. Before a managed job starts, ProtoPeek verifies the selected executable and required managed helpers. To uninstall, stop active jobs, choose **Remove** in the tool’s setup and confirm. Removal checks the pinned files and notices, and refuses modified or unexpected files. An interrupted installation with verified partial files offers **Repair setup**. Unknown files require your review. Your downloads, external installations and older versions stay in place.
+
 Current managed builds and approximate compressed download sizes:
 
 | Engine | Windows x64 | Linux x64 | macOS |
