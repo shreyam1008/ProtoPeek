@@ -1050,9 +1050,7 @@ export function HTTPWorkbench() {
         </div>
       ) : null}
       <OperationStatus busy={requestPending} label="Sending HTTP request" />
-      <p className="sr-only pp-http-result-announcement" aria-live="polite" aria-atomic="true">
-        {response ? `HTTP response ${response.status}.` : ''}
-      </p>
+      <HTTPResultAnnouncement response={response} />
       {requestPending ? (
         <p className="pp-http-running-notice">Leaving this tool cancels the request.</p>
       ) : null}
@@ -1436,6 +1434,30 @@ export function HTTPWorkbench() {
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function HTTPResultAnnouncement({ response }: { response: HTTPResponse | null }) {
+  // Embedded hosts can restrict platform announcements through Permissions Policy.
+  const [useLiveRegion, setUseLiveRegion] = useState(() => window.self !== window.top);
+  const notify =
+    !useLiveRegion && 'ariaNotify' in document && typeof document.ariaNotify === 'function'
+      ? document.ariaNotify
+      : undefined;
+  const message = response ? `HTTP response ${response.status}.` : '';
+  useEffect(() => {
+    if (notify && response) {
+      try {
+        notify.call(document, message);
+      } catch {
+        setUseLiveRegion(true);
+      }
+    }
+  }, [notify, response, message]);
+  return (
+    <div className="sr-only pp-http-result-announcement" aria-live="polite" aria-atomic="true">
+      {!notify && response ? <p>{message}</p> : null}
     </div>
   );
 }

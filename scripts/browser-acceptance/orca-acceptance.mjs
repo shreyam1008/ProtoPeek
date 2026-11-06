@@ -18,6 +18,7 @@ await mkdir(appConfig);
 await mkdir(appCache);
 let child, browser, fixture;
 let report = 'Orca navigation acceptance started.\n';
+const responsePhases = [];
 
 async function debugText() {
   return readFile(PROTOPEEK_ORCA_LOG, 'utf8').catch(() => '');
@@ -129,17 +130,22 @@ try {
   await waitForSpeech(marker, /\bSend\b/i, 'Send');
   const summary = page.locator('.pp-http-response-summary');
   const announcement = page.locator('.pp-http-result-announcement');
+  const hasNativeNotifications = await page.evaluate(() => typeof document.ariaNotify === 'function');
   assert.equal(await announcement.getAttribute('aria-live'), 'polite');
   assert.equal(await announcement.getAttribute('aria-atomic'), 'true');
   for (const [index, status] of ['200 OK', '202 Accepted'].entries()) {
     assert.ok(await send.evaluate((node) => node === document.activeElement), 'Send lost keyboard focus');
     marker = (await debugText()).length;
+    responsePhases.push({ status, start: marker });
     await page.keyboard.press('Enter');
     await page.locator('[aria-label="HTTP response evidence"]').getByText(`orca-loopback-fixture-${index + 1}`)
       .waitFor({ state: 'visible', timeout: 15000 });
     assert.ok((await summary.innerText()).includes(status));
     const result = `HTTP response ${status}`;
-    assert.equal(await announcement.textContent(), result + '.');
+    const fallbackText = await announcement.textContent();
+    assert.ok(fallbackText === result + '.' || (hasNativeNotifications && fallbackText === ''),
+      'Unexpected final response announcement');
+    report += `Response ${status} via ${fallbackText ? 'live region' : 'platform notification'}.\n`;
     await waitForSpeech(marker, new RegExp(result, 'i'), result);
   }
   assert.equal(requests, 2);
@@ -148,14 +154,52 @@ try {
   console.log(report);
 } catch (error) {
   report += `FAIL ${error.message}\n`;
-  // Only capture speech attempts from this isolated, local-only session, not raw debug logs.
+  // Do not upload Orca's raw debug log: it can contain field values and object names.
+  // Keep only fixed categories, timestamps and the two known local fixture statuses.
   const debug = await debugText();
   report += `Orca settings loaded: ${debug.includes('ORCA: User Settings Loaded')}\n`;
   report += `Speech Dispatcher connection error: ${debug.includes('ERROR: Speech Dispatcher service failed to connect')}\n`;
+  const knownMessages = [
+    'Skip to request URL', 'Request URL', 'Send', 'Cancel',
+    'HTTP response 200 OK', 'HTTP response 202 Accepted',
+  ];
+  const handlers = [
+    'WEB: Event to be handled as live region',
+    'WEB: Ignoring because live region event not to be handled.',
+    'WEB: Event is believed to be duplicate message',
+    'WEB: Event is believed to be redundant live region notification',
+    'WEB: Live region source is not in active tab.',
+    'WEB: Ignoring deletion from live region',
+    'EVENT MANAGER: Ignoring event type due to deluge',
+    'EVENT MANAGER: Not processing this event due to flood.',
+    'EVENT MANAGER: Pruning event queue due to flood.',
+    'PRESENT LIVE REGION MESSAGE',
+  ];
+  function diagnostic(line) {
+    const time = line.match(/\b\d{2}:\d{2}:\d{2}\.\d+\b/)?.[0] ?? 'time unavailable';
+    if (line.includes('SPEECH DISPATCHER: Speaking')) {
+      const message = knownMessages.find((text) => line.includes(text));
+      return message ? `${time} speech: ${message}` : null;
+    }
+    const event = line.match(/object:(?:text-changed:(?:insert|delete)|children-changed:add)/)?.[0];
+    if (event) {
+      const queue = line.match(/EVENT MANAGER: (Queueing|Dequeued|Pruning|Not pruning)/)?.[1];
+      const status = line.match(/\b(?:200 OK|202 Accepted)\b/)?.[0];
+      return `${time} ${queue ?? 'event'} ${event}${status ? ` ${status}` : ''}`;
+    }
+    const handler = handlers.find((text) => line.includes(text));
+    return handler ? `${time} ${handler}` : null;
+  }
   const speech = debug.split('\n')
     .filter((line) => line.includes('SPEECH DISPATCHER: Speaking'))
-    .slice(-40).join('\n');
-  report += `Recent Orca dispatch attempts:\n${speech}\n`;
+    .map(diagnostic).filter(Boolean).slice(-40);
+  report += `Redacted recent Orca dispatch attempts:\n${speech.join('\n')}\n`;
+  for (const [index, phase] of responsePhases.entries()) {
+    const end = responsePhases[index + 1]?.start ?? debug.length;
+    const lines = debug.slice(phase.start, end).split('\n').map(diagnostic).filter(Boolean);
+    report += `Redacted Orca/AT-SPI diagnostics for ${phase.status} (${lines.length} matching lines; last 100):\n`;
+    report += `${lines.slice(-100).join('\n')}\n`;
+  }
   console.error(report);
   process.exitCode = 1;
 } finally {
