@@ -20,8 +20,8 @@ func TestResolveTrustedRootAliasWithoutCreatingDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// macOS exposes its temporary directory through /var -> /private/var.
-	canonical, err := filepath.EvalSymlinks(real)
+	// OS temporary roots can contain aliases such as /var or Windows 8.3 names.
+	canonical, err := resolveExisting(real)
 	if err != nil {
 		t.Fatal(err)
 	}

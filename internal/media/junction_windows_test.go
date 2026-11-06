@@ -8,10 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 func TestWindowsConfigJunctionAndOwnedJunctionBoundary(t *testing.T) {
-	base := t.TempDir()
+	base, err := userroot.Resolve(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	actual := filepath.Join(base, "actual")
 	if err := os.Mkdir(actual, 0700); err != nil {
 		t.Fatal(err)
@@ -25,10 +30,10 @@ func TestWindowsConfigJunctionAndOwnedJunctionBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OS config junction rejected: %v", err)
 	}
+	s.Close()
 	if !strings.EqualFold(filepath.Clean(s.root), filepath.Join(actual, "protopeek", "media")) {
 		t.Fatalf("config root not resolved: %s", s.root)
 	}
-	s.Close()
 	other := filepath.Join(base, "other")
 	if err := os.Mkdir(other, 0700); err != nil {
 		t.Fatal(err)

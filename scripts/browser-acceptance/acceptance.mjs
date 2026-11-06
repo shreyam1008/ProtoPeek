@@ -62,6 +62,8 @@ const requiredInitialAnchors = new Set([
   'http',
   'events',
   'capnp',
+  'network',
+  'network-local',
   'network-ports',
   'network-diagnostics',
   'network-route',
@@ -186,25 +188,35 @@ async function walkGuide(page, feature) {
   );
   let anchored = 0;
   for (let index = 1; index <= total; index++) {
-    await page.waitForFunction(
+    const state = await page.waitForFunction(
       ({ expected, selector }) => {
         const panel = document.querySelector('.pp-tool-tour');
         const target = document.querySelector('.pp-tour-target');
         const go = panel?.querySelector('.pp-tour-show');
-        const fallback = [...(panel?.querySelectorAll('button') ?? [])].some(
-          (button) => button.textContent.trim() === 'Find this step'
+        const fallback = [...(panel?.querySelectorAll('button') ?? [])].find(
+          (button) => button.textContent.trim() === 'Find this step' && button.getClientRects().length
         );
-        return (
-          panel?.querySelector('header span')?.textContent.includes(`${expected} of `) &&
-          ((target && go && target.matches(selector)) || (!target && fallback))
+        if (!panel?.querySelector('header span')?.textContent.includes(`${expected} of `))
+          return false;
+        if (target && go?.getClientRects().length && target.matches(selector)) return 'target';
+        const available = [...document.querySelectorAll(`#pp-workbench-canvas ${selector}`)].some(
+          (node) =>
+            !node.matches(':disabled') &&
+            !node.closest('[hidden], [inert], [aria-hidden="true"]') &&
+            getComputedStyle(node).visibility !== 'hidden' &&
+            node.getClientRects().length
         );
+        const note = fallback?.parentElement?.querySelector('.pp-tour-note')?.textContent.trim();
+        return !target && !available && fallback && note?.length > 10 ? 'fallback' : false;
       },
       { expected: index, selector: selectors[index - 1] }
     );
+    const outcome = await state.jsonValue();
+    await state.dispose();
     const go = guide.getByRole('button', { name: 'Go to highlighted area' });
     if (index === 1 && (requiredInitialAnchors.has(feature.id) || isMedia))
       await go.waitFor({ state: 'visible', timeout: 10000 });
-    if (await go.isVisible()) {
+    if (outcome === 'target' || (index === 1 && (requiredInitialAnchors.has(feature.id) || isMedia))) {
       anchored++;
       await press(page, go);
       check(
@@ -215,18 +227,7 @@ async function walkGuide(page, feature) {
         ),
         `${feature.id} step ${index}: highlight did not receive focus`
       );
-    } else {
-      check(
-        await guide.getByRole('button', { name: 'Find this step' }).isVisible(),
-        `${feature.id} step ${index}: missing target and prerequisite`
-      );
-      check(
-        (await guide.locator('.pp-tour-note').allTextContents()).some(
-          (text) => text.trim().length > 10
-        ),
-        `${feature.id}: missing prerequisite text`
-      );
-    }
+    } else check(outcome === 'fallback', `${feature.id} step ${index}: missing target and prerequisite`);
     if (index < total) await press(page, guide.getByRole('button', { name: 'Next' }));
     else await press(page, guide.getByRole('button', { name: 'Done' }));
   }
