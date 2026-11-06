@@ -1,0 +1,48 @@
+name: Isolated Linux private network acceptance
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  tailscale:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Stage the pinned official Linux client and daemon
+        shell: bash
+        env:
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: '0'
+          VERSION: 1.104.5
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/isolated-tailnet"
+          mkdir -p "$stage/bin"
+          # https://pkgs.tailscale.com/stable/tailscale_1.104.5_amd64.tgz.sha256
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            "https://pkgs.tailscale.com/stable/tailscale_${VERSION}_amd64.tgz" -o "$RUNNER_TEMP/tailscale.tgz"
+          echo "720cbbccbfc03d8b55df72afc19e5a72e31b0f65934700aa6fa38074d4ad7bf7  $RUNNER_TEMP/tailscale.tgz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/tailscale.tgz" --strip-components=1 -C "$stage/bin" \
+            "tailscale_${VERSION}_amd64/tailscale" "tailscale_${VERSION}_amd64/tailscaled"
+          go test -c -o "$stage/bin/acceptance" ./standalone
+          printf 'FROM scratch\nCOPY bin/ /bin/\n' | docker build --network=none -t protopeek-private-network -f - "$stage"
+      - name: Inspect the private daemon through ProtoPeek with all external networking disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run/tailscale:rw,nosuid,nodev,mode=0700 \
+            --pids-limit=128 --memory=384m \
+            -e PATH=/bin -e HOME=/tmp -e PROTOPEEK_ISOLATED_TAILNET=1 \
+            protopeek-private-network /bin/acceptance -test.v -test.timeout=75s -test.run='^TestIsolatedTailscaleLifecycle$' \
+            | tee "$RUNNER_TEMP/isolated-tailnet.log"
+          grep -Eq '^--- PASS: TestIsolatedTailscaleLifecycle' "$RUNNER_TEMP/isolated-tailnet.log"

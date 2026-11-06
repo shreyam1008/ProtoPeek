@@ -1,0 +1,121 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import path from 'node:path';
+import { chromium } from 'playwright';
+
+// Orca 46 logs immediately before invoking its Speech Dispatcher client:
+// https://raw.githubusercontent.com/GNOME/orca/ORCA_46_1/src/orca/speechdispatcherfactory.py
+// These checks establish real Orca dispatch attempts, not synthesized or audible sound.
+const { RUNNER_TEMP, PROTOPEEK_ORCA_BINARY, PROTOPEEK_ORCA_LOG, PROTOPEEK_ORCA_REPORT } = process.env;
+assert.ok(RUNNER_TEMP && PROTOPEEK_ORCA_BINARY && PROTOPEEK_ORCA_LOG && PROTOPEEK_ORCA_REPORT);
+const run = await mkdtemp(path.join(RUNNER_TEMP, 'protopeek-orca-profile-'));
+const appConfig = path.join(run, 'config');
+const appCache = path.join(run, 'cache');
+await mkdir(appConfig);
+await mkdir(appCache);
+let child, browser, fixture;
+let report = 'Orca navigation acceptance started.\n';
+
+async function debugText() {
+  return readFile(PROTOPEEK_ORCA_LOG, 'utf8').catch(() => '');
+}
+async function waitForSpeech(start, pattern, label) {
+  const deadline = Date.now() + 10000;
+  while (Date.now() < deadline) {
+    const lines = (await debugText()).slice(start).split('\n');
+    if (lines.some((line) => line.includes('SPEECH DISPATCHER: Speaking') && pattern.test(line))) {
+      report += `PASS Orca dispatch attempt: ${label}\n`;
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Orca did not dispatch the expected ${label} utterance after keyboard navigation`);
+}
+
+try {
+  fixture = createServer((_request, response) => {
+    response.writeHead(200, { 'content-type': 'text/plain' });
+    response.end('orca-loopback-fixture');
+  });
+  await new Promise((resolve) => fixture.listen(0, '127.0.0.1', resolve));
+  const fixtureUrl = `http://127.0.0.1:${fixture.address().port}/`;
+  const hash = createHash('sha256').update(await readFile(PROTOPEEK_ORCA_BINARY)).digest('hex');
+  report += `Native launcher SHA-256: ${hash}\n`;
+  child = spawn(PROTOPEEK_ORCA_BINARY, ['-port=0', '-open-browser=false'], {
+    env: { ...process.env, XDG_CONFIG_HOME: appConfig, XDG_CACHE_HOME: appCache },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const base = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Native launcher did not become ready')), 20000);
+    let output = '';
+    child.once('error', reject);
+    child.once('exit', (code) => reject(new Error(`Native launcher exited before ready: ${code}`)));
+    child.stdout.on('data', (chunk) => {
+      output += chunk;
+      const match = output.match(/ProtoPeek available at (http:\/\/127\.0\.0\.1:\d+\/)/);
+      if (match) {
+        clearTimeout(timer);
+        resolve(match[1]);
+      }
+    });
+  });
+
+  browser = await chromium.launch({
+    headless: false,
+    args: ['--force-renderer-accessibility', '--disable-background-networking', '--no-first-run'],
+  });
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  await context.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname !== '127.0.0.1' || !['http:', 'ws:'].includes(url.protocol))
+      throw new Error('Unexpected external browser request blocked');
+    await route.continue();
+  });
+  const page = await context.newPage();
+  await page.goto(`${base}#/protocols/http`, { waitUntil: 'domcontentloaded' });
+  const method = page.getByRole('combobox', { name: 'HTTP method' });
+  const url = page.getByRole('textbox', { name: 'Request URL' });
+  const send = page.getByRole('button', { name: /^Send/ });
+  await url.waitFor({ state: 'visible', timeout: 15000 });
+  await url.fill(fixtureUrl);
+  await page.bringToFront();
+  await method.focus();
+  let marker = (await debugText()).length;
+  await page.keyboard.press('Tab');
+  assert.ok(await url.evaluate((node) => node === document.activeElement), 'Tab did not focus Request URL');
+  await waitForSpeech(marker, /Request\s+URL/i, 'Request URL');
+  marker = (await debugText()).length;
+  await page.keyboard.press('Tab');
+  assert.ok(await send.evaluate((node) => node === document.activeElement), 'Tab did not focus Send');
+  await waitForSpeech(marker, /\bSend\b/i, 'Send');
+  await page.keyboard.press('Enter');
+  await page.locator('[aria-label="HTTP response evidence"]').getByText('orca-loopback-fixture')
+    .waitFor({ state: 'visible', timeout: 15000 });
+  report += 'PASS keyboard Send returned the owned loopback fixture.\n';
+  report += 'Scope: Orca dispatch attempts only; audio synthesis and audible output were not checked.\n';
+  console.log(report);
+} catch (error) {
+  report += `FAIL ${error.message}\n`;
+  // Only capture speech attempts from this isolated, local-only session, not raw debug logs.
+  const debug = await debugText();
+  report += `Orca settings loaded: ${debug.includes('ORCA: User Settings Loaded')}\n`;
+  report += `Speech Dispatcher connection error: ${debug.includes('ERROR: Speech Dispatcher service failed to connect')}\n`;
+  const speech = debug.split('\n')
+    .filter((line) => line.includes('SPEECH DISPATCHER: Speaking'))
+    .slice(-40).join('\n');
+  report += `Recent Orca dispatch attempts:\n${speech}\n`;
+  console.error(report);
+  process.exitCode = 1;
+} finally {
+  await writeFile(PROTOPEEK_ORCA_REPORT, report);
+  if (browser) await browser.close();
+  if (fixture) await new Promise((resolve) => fixture.close(resolve));
+  if (child && child.exitCode === null) {
+    child.kill();
+    await new Promise((resolve) => child.once('exit', resolve));
+  }
+  await rm(run, { recursive: true, force: true });
+}

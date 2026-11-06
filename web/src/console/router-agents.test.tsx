@@ -54,6 +54,7 @@ it('opens and changes actual client deep links without enabling or running tools
   const router = createProtoPeekRouter(
     createMemoryHistory({ initialEntries: ['/agents?client=codex'] })
   );
+  await router.load();
   render(<RouterProvider router={router} />);
   expect(await screen.findByRole('combobox', { name: 'Agent client' })).toHaveValue('codex');
   fireEvent.change(screen.getByRole('combobox', { name: 'Agent client' }), {

@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -32,6 +33,18 @@ func main() {
 	}
 }
 
+// Windows can briefly retain a sharing lock on the executable after the child exits.
+func removeSmokeProfile(root string) error {
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		err := os.RemoveAll(root)
+		if runtime.GOOS != "windows" || !errors.Is(err, syscall.Errno(32)) || time.Now().After(deadline) {
+			return err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func run() (finalErr error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
@@ -40,7 +53,7 @@ func run() (finalErr error) {
 		return err
 	}
 	defer func() {
-		if err := os.RemoveAll(root); err != nil {
+		if err := removeSmokeProfile(root); err != nil {
 			finalErr = errors.Join(finalErr, fmt.Errorf("remove isolated profile: %w", err))
 		}
 		if _, err := os.Stat(root); !os.IsNotExist(err) {
