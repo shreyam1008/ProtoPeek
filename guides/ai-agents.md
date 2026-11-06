@@ -88,7 +88,12 @@ Shell-based agents can use the same connection without MCP:
 protopeek agent tools
 protopeek agent guide
 protopeek agent --help
+# Current source: discovery works before pairing.
+pp agent search subnet
+pp agent schema network_diagnose
 ```
+
+Discovery works before pairing. In search results, `writes: true` means a tool can change state. For HTTP, GET, HEAD and OPTIONS remain available with read-only pairing. Other methods require write access.
 
 Pass one JSON arguments object on stdin. PowerShell example:
 
@@ -118,6 +123,8 @@ during initialization and by `workbench_info`. Ctrl+C or MCP cancellation stops 
 | `scan_ports` | One host, at most 1,024 selected TCP ports | Inspection with active probes |
 | `route_lookup` | Selected local next-hop route; may resolve DNS | Inspection |
 | `tailnet_inspect` | Installed Tailscale status and peers | Inspection |
+| `managed_tools` (current source) | Local status and versions of downloadable companions | Inspection |
+| `network_diagnose` (current source) | System DNS, a TLS handshake, or offline subnet math | One explicit target |
 | `extensions_list` | The 20 IDs and integration levels; no host lookup | Inspection |
 | `extension_inspect` | One selected entry’s CLI-location evidence; ChatGPT web remains external | Inspection, explicit host lookup for detectable entries |
 | `download_queue` | Shared engine, configuration and queue | Inspection |

@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)][string]$OutputDirectory
+    [Parameter(Mandatory = $true)][string]$OutputDirectory,
+    [switch]$CoreOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,13 +46,15 @@ try {
         & go build -trimpath -ldflags '-s -w' -tags protopeek_lite -o (Join-Path $destination "$command.exe") "./cmd/$command"
         if ($LASTEXITCODE -ne 0) { throw "Building $command failed; inspect the preserved output directory." }
     }
-    Copy-Item -LiteralPath $asset -Destination (Join-Path $destination $name)
+    if (-not $CoreOnly) { Copy-Item -LiteralPath $asset -Destination (Join-Path $destination $name) }
     Copy-Item -LiteralPath (Join-Path $root 'LICENSE') -Destination $destination
     Copy-Item -LiteralPath (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Destination $destination
     Copy-Item -LiteralPath (Join-Path $root 'internal/bundledaria2/README.md') -Destination (Join-Path $destination 'aria2-provenance.md')
     Copy-Item -LiteralPath (Join-Path $root 'internal/bundledaria2/notices') -Destination (Join-Path $destination 'aria2-notices') -Recurse
-    Write-Host "Local lightweight preview created in $destination"
-    Write-Host 'Keep the companion ZIP beside both executables. This preview is not a published release or updater package.'
+    Copy-Item -LiteralPath (Join-Path $root 'third_party/licenses') -Destination (Join-Path $destination 'licenses') -Recurse
+    Write-Host "Lightweight preview created in $destination"
+    if ($CoreOnly) { Write-Host 'Install aria2 from Extensions when you need it.' }
+    else { Write-Host 'Keep the companion ZIP beside the executables for offline setup.' }
 } finally {
     Pop-Location
 }

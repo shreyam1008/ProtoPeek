@@ -6,19 +6,16 @@ const extension = {
     'https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/',
   guide: 'https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/',
   setup: {
-    windows:
-      'Install cloudflared using the official Windows instructions and make it available on PATH.',
-    darwin: 'Use the official macOS package instructions to install cloudflared.',
-    linux: 'Use the official repository or package for your distribution and architecture.',
+    windows: 'Install the managed connector or add cloudflared.exe to PATH.',
+    darwin: 'Install the managed connector or the macOS package.',
+    linux: 'Install the managed connector on amd64/arm64, or use the distribution package.',
   },
   afterSetup:
-    'Open the workbench to inspect configuration and service state. Installing the connector does not publish a service.',
+    'Open Cloudflare Tunnel to inspect the connector. Publishing requires a separate action.',
   notes: [
-    'Config writes require the exact supported user-owned canonical file, fresh revision and explicit review.',
-    'Owned foreground publishing is gated to Windows/Linux; macOS modes remain unavailable. Account and cleanup acceptance are separate.',
+    'Review config changes against the latest version of your supported user-owned file.',
+    'Foreground publishing supports Windows and Linux. Account setup and cleanup are separate.',
   ],
-  route: '/tunnels',
-  openLabel: 'Open Cloudflare Tunnel',
 } satisfies ExtensionPack;
 
 export default extension;

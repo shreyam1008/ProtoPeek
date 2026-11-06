@@ -751,7 +751,10 @@
   font-size: 12px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
+  .pp-settings-section .pp-host-settings-actions {
+    position: static;
+  }
   .pp-settings-page {
     padding: 8px;
   }

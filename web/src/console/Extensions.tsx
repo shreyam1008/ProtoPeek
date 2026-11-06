@@ -1,5 +1,5 @@
 import { Link, useSearch } from '@tanstack/react-router';
-import { ArrowRight, Pin, Puzzle, Search } from 'lucide-react';
+import { ArrowRight, Puzzle, Search } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
 import {
   capabilityLabels,
@@ -11,14 +11,21 @@ import {
 } from './extension-catalog';
 import {
   type ExtensionPreferences,
+  type PinnedToolId,
   readExtensionPreferences,
   saveExtensionPreferences,
 } from './extension-preferences';
+import { MediaPacks, matchingMediaPacks, mediaPacks, PinExtension } from './MediaPacks';
 import { PageHeader } from './shell/PageHeader';
 import './extensions.css';
 
 const ExtensionDetails = lazy(() => import('./ExtensionDetails'));
-const groups = ['All', ...new Set(extensionCatalog.map((entry) => entry.group))];
+const groups = [
+  'All',
+  'Managed',
+  'Media',
+  ...new Set(extensionCatalog.map((entry) => entry.group)),
+];
 export function Extensions() {
   const { extension } = useSearch({ from: '/extensions' });
   const [preferences, setPreferences] = useState(readExtensionPreferences);
@@ -38,7 +45,7 @@ export function Extensions() {
         : 'Preferences could not be saved. Your choices still work for this visit.'
     );
   }
-  function pin(id: ExtensionId) {
+  function pin(id: PinnedToolId) {
     save({
       ...preferences,
       pinned: preferences.pinned.includes(id)
@@ -78,11 +85,17 @@ export function Extensions() {
         )}
       </div>
     );
+  const managed = (id: string) => id === 'cloudflared' || id === 'aria2';
   const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const media = ['All', 'Managed', 'Media'].includes(group)
+    ? matchingMediaPacks(query).filter(
+        (pack) => !pinnedOnly || preferences.pinned.includes(pack.id)
+      )
+    : [];
   const visible = extensionCatalog
     .filter(
       (entry) =>
-        (group === 'All' || entry.group === group) &&
+        (group === 'All' || entry.group === group || (group === 'Managed' && managed(entry.id))) &&
         (!pinnedOnly || preferences.pinned.includes(entry.id)) &&
         tokens.every((token) =>
           `${entry.id} ${entry.name} ${entry.summary} ${entry.group} ${capabilityLabels[entry.capability]} ${entry.id === 'tailscale' ? 'headscale vpn wireguard' : ''}`
@@ -100,9 +113,7 @@ export function Extensions() {
         <div>
           <p className="pp-eyebrow">Extensions</p>
           <h1>Add only what you need.</h1>
-          <p>
-            20 optional tools and companions. Choose a task, review setup, then open its workspace.
-          </p>
+          <p>Manage local companions or find a tool for your next task.</p>
         </div>
         <Link to="/agents" preload={false}>
           AI agent activity <ArrowRight aria-hidden="true" />
@@ -110,11 +121,7 @@ export function Extensions() {
       </PageHeader>
       <details className="pp-panel pp-extensions-base" aria-label="Included base tools">
         <summary>What is included and what needs setup?</summary>
-        <p>
-          Browsing, searching and pinning starts nothing. No tools, models or accounts are
-          downloaded or connected. Native workbenches, setup guides and external companions are
-          labelled separately.
-        </p>
+        <p>Browse built-in tools below. Optional companions run when you choose them.</p>
         <div>
           <Link to="/protocols">Inspect an API</Link>
           <Link to="/network/local">See nearby devices</Link>
@@ -160,8 +167,7 @@ export function Extensions() {
       </div>
       {preferenceError ? <p role="alert">{preferenceError}</p> : null}
       <p role="status">
-        {visible.length} of {extensionCatalog.length} extensions · Installation checks run only when
-        requested.
+        {visible.length + media.length} of {extensionCatalog.length + mediaPacks.length} tools
       </p>
       <section className="pp-extension-grid" aria-label="Extension library">
         {visible.map((entry) => {
@@ -179,17 +185,11 @@ export function Extensions() {
                   <h2 id={`extension-${entry.id}`}>{entry.name}</h2>
                   <span>{entry.group}</span>
                 </div>
-                <button
-                  className="pp-extension-pin"
-                  type="button"
-                  aria-label={`${pinned ? 'Unpin' : 'Pin'} ${entry.name}`}
-                  aria-pressed={pinned}
-                  onClick={() => pin(entry.id)}
-                >
-                  <Pin aria-hidden="true" />
-                </button>
+                <PinExtension name={entry.name} pinned={pinned} onPin={() => pin(entry.id)} />
               </div>
-              <span className="pp-extension-level">{capabilityLabels[entry.capability]}</span>
+              <span className="pp-extension-level">
+                {managed(entry.id) ? 'Managed companion' : capabilityLabels[entry.capability]}
+              </span>
               <p>{entry.summary}</p>
               {observed ? (
                 <p>
@@ -216,7 +216,8 @@ export function Extensions() {
           );
         })}
       </section>
-      {!visible.length ? (
+      <MediaPacks packs={media} pinned={preferences.pinned} onPin={pin} />
+      {!visible.length && !media.length ? (
         <div className="pp-panel">
           <h2>No matching extensions.</h2>
           <p>Try another name, task or category.</p>
@@ -232,11 +233,6 @@ export function Extensions() {
           </button>
         </div>
       ) : null}
-      <p className="pp-extensions-footnote">
-        Setup content loads when opened. External tools stay installed and managed separately.
-        Standard Windows x64 builds include an aria2 companion. Lightweight builds use a separate
-        local companion; other vendor tools and AI runtimes are managed separately.
-      </p>
     </div>
   );
 }

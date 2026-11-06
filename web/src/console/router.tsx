@@ -67,6 +67,17 @@ const capnpRoute = createRoute({
 const downloaderRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/downloader',
+  validateSearch: (
+    search: Record<string, unknown>
+  ): { mediaTool?: 'yt-dlp' | 'gallery-dl' | 'deno' | 'ffmpeg' } => ({
+    mediaTool:
+      search.mediaTool === 'yt-dlp' ||
+      search.mediaTool === 'gallery-dl' ||
+      search.mediaTool === 'deno' ||
+      search.mediaTool === 'ffmpeg'
+        ? search.mediaTool
+        : undefined,
+  }),
   component: lazyRouteComponent(() => import('./Downloader'), 'Downloader'),
 });
 const localTransferRoute = createRoute({
@@ -178,10 +189,17 @@ const publishingRoute = createRoute({
   path: '/extensions/publish',
   component: lazyRouteComponent(() => import('./PublishingWorkbench'), 'PublishingWorkbench'),
 });
+const LazySettings = lazyRouteComponent(() => import('./Settings'), 'Settings');
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
-  component: lazyRouteComponent(() => import('./Settings'), 'Settings'),
+  validateSearch: (search: Record<string, unknown>): { section?: 'downloads' } => ({
+    section: search.section === 'downloads' ? 'downloads' : undefined,
+  }),
+  component: function SettingsRoute() {
+    const { section } = settingsRoute.useSearch();
+    return <LazySettings key={section} initialSection={section} />;
+  },
 });
 const agentsRoute = createRoute({
   getParentRoute: () => rootRoute,

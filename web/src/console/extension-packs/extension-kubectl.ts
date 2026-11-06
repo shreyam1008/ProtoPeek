@@ -5,17 +5,14 @@ const extension = {
   download: 'https://kubernetes.io/docs/tasks/tools/',
   guide: 'https://kubernetes.io/docs/reference/kubectl/generated/kubectl_port-forward/',
   setup: {
-    windows:
-      'Use the official Windows client instructions and configure your own authorized cluster context.',
-    darwin:
-      'Use the official macOS client instructions and configure your own authorized cluster context.',
-    linux:
-      'Use the official Linux client instructions and configure your own authorized cluster context.',
+    windows: 'Install kubectl and select an authorized cluster context.',
+    darwin: 'Install kubectl and select an authorized cluster context.',
+    linux: 'Install kubectl and select an authorized cluster context.',
   },
   afterSetup:
-    'Choose your context, namespace and service in the native client. Start and own the forward yourself, then inspect its actual listening local port.',
+    'Choose the cluster, namespace and service. Forward its port locally, then inspect that port.',
   notes: [
-    'Installing kubectl grants no cluster access. ProtoPeek does not read kubeconfig or run cluster commands here.',
+    'Use kubectl to choose your cluster context and authorize access.',
     'The example binds 127.0.0.1 in the current namespace. Replace service/example deliberately; stop the native forward when finished.',
   ],
   commands: [

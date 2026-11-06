@@ -85,6 +85,7 @@ type Tool struct {
 	Path    string `json:"path"`
 	Version string `json:"version"`
 	Note    string `json:"note"`
+	Source  string `json:"source,omitempty"`
 }
 
 type Runtime struct {

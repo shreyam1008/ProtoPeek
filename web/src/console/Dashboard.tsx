@@ -119,7 +119,6 @@ export function Dashboard() {
           <p>Start with an address or open a tool.</p>
         </div>
       </PageHeader>
-      <OperationHistoryControl />
       <div className="pp-home-content">
         <section className="pp-home-start" aria-labelledby="home-target-title">
           <div>
@@ -280,6 +279,7 @@ export function Dashboard() {
             })}
           </div>
         </section>
+        <OperationHistoryControl />
       </div>
     </div>
   );

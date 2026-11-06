@@ -5,14 +5,13 @@ const extension = {
   download: 'https://ngrok.com/download',
   guide: 'https://ngrok.com/docs/getting-started/',
   setup: {
-    windows: "Use ngrok's official Windows installer and complete native account setup.",
-    darwin: "Use ngrok's official macOS package or binary and complete native account setup.",
-    linux: "Use ngrok's official repository or binary for your architecture.",
+    windows: 'Install ngrok for Windows and sign in.',
+    darwin: 'Install ngrok for macOS and sign in.',
+    linux: 'Install ngrok for your architecture.',
   },
-  afterSetup:
-    'Requires your ngrok account. Review the service, authentication and intended public audience before running the example yourself; ProtoPeek does not own this tunnel.',
+  afterSetup: 'Sign in to ngrok and review the public audience and authentication before sharing.',
   notes: [
-    'Running the example in your terminal creates a public endpoint. Choosing this guide does not publish anything.',
+    'Running this terminal command creates a public endpoint.',
     "Never expose admin or model-server ports. Keep authtokens in ngrok's native configuration.",
   ],
   commands: [

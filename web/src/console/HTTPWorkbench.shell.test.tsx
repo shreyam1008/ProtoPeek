@@ -71,7 +71,7 @@ describe('HTTP run shortcut in the real shell', () => {
       dialog = await screen.findByRole('dialog', { name: 'Scan target' });
       closeLabel = 'Close scan target dialog';
     } else {
-      fireEvent.click(screen.getByRole('button', { name: 'Open global command menu' }));
+      fireEvent.click(screen.getByRole('button', { name: /^Find anything/ }));
       dialog = await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
       closeLabel = 'Close command palette';
       if (overlay === 'help') {

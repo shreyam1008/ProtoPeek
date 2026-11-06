@@ -155,11 +155,11 @@ func (s *Service) Add(r Request) (Job, error) {
 	if err := validateRequest(&r); err != nil {
 		return Job{}, err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.tool(r.Engine).Path == "" {
 		return Job{}, fmt.Errorf("install %s first", r.Engine)
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.ctx.Err() != nil {
 		return Job{}, errors.New("downloader is shutting down")
 	}
@@ -298,21 +298,47 @@ func (s *Service) worker() {
 	}
 }
 
-func (s *Service) args(j Job) []string {
+type selectedMediaTools struct{ engine, runtimeName, runtimePath, ffmpeg string }
+
+func (s *Service) resolveTools(j Job) (selectedMediaTools, error) {
+	var out selectedMediaTools
+	var err error
+	out.engine, err = s.selectedTool(j.Request.Engine)
+	if err != nil {
+		return out, err
+	}
+	if out.engine == "" {
+		return out, errors.New("the selected media engine is unavailable; install it first")
+	}
+	if j.Request.Engine != "yt-dlp" {
+		return out, nil
+	}
+	for _, runtime := range []string{"deno", "node"} {
+		p, err := s.selectedTool(runtime)
+		if err != nil {
+			return out, err
+		}
+		if p != "" {
+			out.runtimeName, out.runtimePath = runtime, p
+			break
+		}
+	}
+	out.ffmpeg, err = s.selectedTool("ffmpeg")
+	return out, err
+}
+
+func (s *Service) args(j Job, tools selectedMediaTools) []string {
 	r := j.Request
 	if r.Engine == "gallery-dl" {
 		return []string{"--config-ignore", "--no-input", "--no-postprocessors", "--no-colors", "--windows-filenames", "--retries", "3", "--http-timeout", "20", "--range", fmt.Sprintf("%d-%d", r.Start, r.End), "--directory", j.Directory, "--", r.URL}
 	}
 	args := []string{"--ignore-config", "--no-plugin-dirs", "--no-remote-components", "--no-js-runtimes", "--newline", "--no-colors", "--no-overwrites", "--windows-filenames", "--trim-filenames", "180", "--socket-timeout", "20", "--retries", "3", "--fragment-retries", "3", "--concurrent-fragments", "4", "--playlist-start", strconv.Itoa(r.Start), "--playlist-end", strconv.Itoa(r.End), "--progress", "--progress-delta", "0.5", "--progress-template", "download:PP_PROGRESS:%(progress)j", "--print", "after_move:PP_FILE:%(filepath)j", "--paths", j.Directory, "--output", "%(title).120B [%(id)s].%(ext)s"}
-	for _, runtime := range []string{"deno", "node"} {
-		if p := s.tool(runtime).Path; p != "" {
-			args = append(args, "--js-runtimes", runtime+":"+p)
-			break
-		}
+	if tools.runtimePath != "" {
+		args = append(args, "--js-runtimes", tools.runtimeName+":"+tools.runtimePath)
 	}
 	format := "best[acodec!=none][vcodec!=none]"
-	if ffmpeg := s.tool("ffmpeg").Path; ffmpeg != "" {
-		args = append(args, "--ffmpeg-location", filepath.Dir(ffmpeg))
+	if tools.ffmpeg != "" {
+		args = append(args, "--ffmpeg-location", filepath.Dir(tools.ffmpeg))
 		format = "bestvideo+bestaudio/best"
 		if r.Format == "720" {
 			format = "bestvideo[height<=720]+bestaudio/best[height<=720]"
@@ -336,7 +362,11 @@ func (s *Service) download(ctx context.Context, j Job) error {
 	if j.Request.Engine == "archivebox" {
 		return s.archive(ctx, j)
 	}
-	cmd := exec.CommandContext(ctx, s.tool(j.Request.Engine).Path, s.args(j)...)
+	tools, err := s.resolveTools(j)
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, tools.engine, s.args(j, tools)...)
 	configureProcess(cmd)
 	cmd.Dir = j.Directory
 	cmd.WaitDelay = 3 * time.Second

@@ -28,7 +28,6 @@
   border-left: 3px solid var(--pp-brand);
 }
 .pp-extensions-base summary {
-  cursor: pointer;
   font-weight: 600;
 }
 .pp-extensions-base p {
@@ -126,7 +125,7 @@
   flex: 1;
   min-width: 0;
 }
-.pp-extension-card h2 {
+.pp-extension-card :is(h2, h3) {
   font-size: 15px;
   font-weight: 650;
 }

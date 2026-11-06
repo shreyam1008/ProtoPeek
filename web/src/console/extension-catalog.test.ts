@@ -31,6 +31,17 @@ describe('extension observations', () => {
   it('accepts one bounded observation for each supported integration', () => {
     expect(parseExtensionSnapshot(fixture()).extensions.map(({ id }) => id)).toEqual(extensionIds);
   });
+  it('accepts a locally managed companion in the existing observation contract', () => {
+    const observed = fixture();
+    const cloudflare = observed.extensions.find((entry) => entry.id === 'cloudflared');
+    if (!cloudflare) throw new Error('missing cloudflared fixture');
+    cloudflare.status = 'detected';
+    cloudflare.source = 'managed';
+    expect(
+      parseExtensionSnapshot(observed).extensions.find((entry) => entry.id === 'cloudflared')
+        ?.source
+    ).toBe('managed');
+  });
   it.each([
     null,
     { ...fixture(), schemaVersion: 2 },

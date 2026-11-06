@@ -11,6 +11,7 @@ import {
 } from './extension-catalog';
 import type { ExtensionPack } from './extension-pack';
 import { loadExtensionPack } from './extension-pack-loader';
+import { ManagedExtension } from './ManagedExtension';
 import { useProtocolShell } from './ProtocolShellContext';
 import { prepareServiceEntry } from './service-entry';
 import { PageHeader } from './shell/PageHeader';
@@ -210,6 +211,9 @@ export default function ExtensionDetails({
               Official guide <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
+          {entry.id === 'cloudflared' || entry.id === 'aria2' ? (
+            <ManagedExtension id={entry.id} />
+          ) : null}
           {pack.endpoint ? (
             <section className="pp-panel" aria-label="Prepare endpoint request">
               <h2>Inspect your endpoint</h2>

@@ -1022,9 +1022,13 @@ func printLaunchBanner(url, target string) {
 }
 
 const rootUsageFormat = `Usage:
-	%s [flags] [address]
-	%s download [flags] URL
-	%s migrate-gobarry [flags]
+	%[1]s [flags] [address]
+	%[1]s download [flags] URL
+	%[1]s migrate-gobarry [flags]
+	%[1]s agent search WORDS
+	%[1]s agent schema NAME
+	%[1]s mcp
+	%[1]s extensions status [aria2|cloudflared]
 
 Starts the ProtoPeek web console.
 
@@ -1032,19 +1036,24 @@ Update a direct installation with "protopeek update" or "pp update". Use
 "update --check" to check only, or "update --channel edge" to choose the rolling
 preview. Package-managed installations show their own update commands.
 
-Connect local AI agents with "protopeek mcp" (MCP over stdio). Pair the running
-workbench from Settings > AI agents first. "protopeek agent tools" prints JSON
-schemas; "protopeek agent guide" teaches the workflows. Use "protopeek agent
-call NAME" with a JSON object on stdin to share actions and visible results.
-Run "protopeek agent --help" for setup and cancellation details.
+Connect local AI agents with "%[1]s mcp" (MCP over stdio). Pair the running
+workbench from Settings > AI agents first. "%[1]s agent tools" prints JSON
+schemas; "agent search WORDS" and "agent schema NAME" work offline before pairing.
+"%[1]s agent guide" teaches the workflows. Use "%[1]s agent call NAME" with a
+JSON object on stdin to share actions and visible results. Run "%[1]s agent --help"
+for setup and cancellation details.
+
+Manage optional companions with "%[1]s extensions status", then use
+"%[1]s extensions install ID" or "%[1]s extensions remove ID". Installation is
+explicit; PATH tools are not removed. Add --json for machine-readable output.
 
 The download command performs one local HTTP(S) transfer through the configured
-or system aria2c binary. Run "%s download --help" for its bounded output-name
+or system aria2c binary. Run "%[1]s download --help" for its bounded output-name
 and optional SHA-256 verification flags.
 
 The migrate-gobarry command previews, explicitly copies, or safely rolls back
 bounded state from the one known local GoBarryGo profile. Run
-"%s migrate-gobarry --help" for its preservation and acknowledgement flags.
+"%[1]s migrate-gobarry --help" for its preservation and acknowledgement flags.
 
 If a host:port address is provided, ProtoPeek connects directly to that target
 and opens the console in single-target mode. A bare host or HTTP(S) authority
@@ -1071,7 +1080,7 @@ Available flags:
 `
 
 func rootUsageText(executable string) string {
-	return fmt.Sprintf(rootUsageFormat, executable, executable, executable, executable, executable)
+	return fmt.Sprintf(rootUsageFormat, executable)
 }
 
 func usage() {

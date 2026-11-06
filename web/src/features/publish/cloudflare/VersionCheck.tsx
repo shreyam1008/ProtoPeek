@@ -91,7 +91,7 @@ export function InstallPanel({
 }) {
   const install = capabilities?.install;
   if (!install) return null;
-  return (
+  const panel = (
     <section className="pp-tunnel-install" aria-labelledby="tunnel-install-heading">
       <header>
         <Download aria-hidden="true" />
@@ -106,6 +106,9 @@ export function InstallPanel({
           </p>
         </div>
       </header>
+      <p>
+        <a href="#/extensions?extension=cloudflared">Manage the ProtoPeek companion</a>
+      </p>
       <div className="pp-tunnel-external-links">
         {install.downloadsUrl ? (
           <a href={install.downloadsUrl} target="_blank" rel="noreferrer noopener">
@@ -157,6 +160,14 @@ export function InstallPanel({
         </div>
       </div>
     </section>
+  );
+  return cloudflaredFound ? (
+    <details className="pp-tunnel-progressive">
+      <summary>Other installation options</summary>
+      {panel}
+    </details>
+  ) : (
+    panel
   );
 }
 

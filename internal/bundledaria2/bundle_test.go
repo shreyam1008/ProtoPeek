@@ -52,6 +52,44 @@ func TestExtractionVerifiesCacheAndIncludesNotices(t *testing.T) {
 	}
 }
 
+func TestExtractionPreservesConflictingFilesAndRetriesIdenticalPartial(t *testing.T) {
+	t.Parallel()
+	payload := fixtureBundle(t)
+	dir := t.TempDir()
+	userFile := filepath.Join(dir, "COPYING")
+	if err := os.WriteFile(userFile, []byte("user content"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := extract(payload, dir); err == nil {
+		t.Fatal("accepted conflicting notice")
+	}
+	got, err := os.ReadFile(userFile)
+	if err != nil || string(got) != "user content" {
+		t.Fatalf("overwrote user file: %q %v", got, err)
+	}
+	if err := os.WriteFile(userFile, []byte("COPYING"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := extract(payload, dir); err != nil {
+		t.Fatalf("retry of identical partial failed: %v", err)
+	}
+}
+
+func TestSafeCacheDirectoryRejectsLinkedAncestor(t *testing.T) {
+	t.Parallel()
+	cache, outside := t.TempDir(), t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(cache, "protopeek")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	if _, err := safeCacheDirectory(cache, "fixture"); err == nil {
+		t.Fatal("accepted linked cache ancestor")
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("wrote through linked ancestor: %v %v", entries, err)
+	}
+}
+
 func TestExtractionRejectsInvalidPayloadBeforeExposingExecutable(t *testing.T) {
 	t.Parallel()
 	for _, kind := range []string{"archive", "binary", "missing"} {

@@ -212,7 +212,7 @@ describe('gRPC keyboard validation inside the real shell', () => {
     const editor = await screen.findByLabelText('Request JSON');
     const invocations = () =>
       fetchMock.mock.calls.filter(([input]) => String(input).includes('/invoke/'));
-    fireEvent.click(screen.getByRole('button', { name: 'Open global command menu' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Find anything/ }));
     await screen.findByRole('dialog', { name: 'ProtoPeek commands' });
     fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
     expect(invocations()).toHaveLength(0);

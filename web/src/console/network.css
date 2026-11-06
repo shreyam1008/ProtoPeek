@@ -420,7 +420,7 @@
 
 .pp-path-consent span {
   flex: none;
-  color: var(--pp-text-faint);
+  color: var(--pp-text-muted);
   font-family: var(--font-mono);
 }
 

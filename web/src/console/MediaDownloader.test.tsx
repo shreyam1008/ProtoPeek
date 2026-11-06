@@ -22,6 +22,71 @@ afterEach(() => {
 });
 
 describe('Media downloader', () => {
+  it('confirms removal of a managed tool and explains a running-job conflict', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/remove')) {
+        expect(JSON.parse(String(init?.body))).toEqual({ engine: 'gallery-dl' });
+        return new Response('Stop active media downloads before removing this tool', {
+          status: 409,
+        });
+      }
+      return Response.json({
+        ...snapshot,
+        tools: [
+          ...snapshot.tools,
+          {
+            name: 'gallery-dl',
+            path: 'managed',
+            help: 'Gallery',
+            canInstall: true,
+            canRemove: true,
+            installBytes: 0,
+          },
+        ],
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<MediaDownloader initialTool="gallery-dl" />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove managed gallery-dl' }));
+    expect(screen.getByText(/Downloaded media and other tools remain/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove gallery-dl' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Stop active media downloads before removing this tool'
+    );
+  });
+  it('opens the selected support tool and installs that tool through the media service', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/install')) {
+        expect(JSON.parse(String(init?.body))).toEqual({ engine: 'deno' });
+        return Response.json({ ok: true });
+      }
+      return Response.json({
+        ...snapshot,
+        tools: [
+          ...snapshot.tools,
+          {
+            name: 'deno',
+            path: '',
+            help: 'Runtime for video',
+            canInstall: true,
+            installBytes: 1048576,
+          },
+        ],
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<MediaDownloader initialTool="deno" />);
+    expect(await screen.findByText('Runtime for video')).toBeVisible();
+    expect(screen.getByText(/not a standalone download engine/)).toBeVisible();
+    expect(screen.getByRole('button', { name: /Video & audio/ })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Install deno/ }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/install'))).toBe(true)
+    );
+  });
   it('redacts URLs echoed by failed snapshot reads, vendor messages and action or inspection errors', async () => {
     let snapshots = 0;
     vi.stubGlobal(

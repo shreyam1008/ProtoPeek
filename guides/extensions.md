@@ -19,15 +19,30 @@ aria2 may also read and verify an existing cached bundle checksum. Detection doe
 scan, capture, sign-in flow, model download or service. Cancelling a slow check detaches the browser;
 an OS filesystem lookup already waiting may still finish.
 
-In current source, Help in the app shell gives short task guidance for the selected tool.
-A separate Windows x64 lightweight build is available as a local development preview: its
-aria2 archive sits beside the executable and is verified before use. Standard releases still
-embed the fallback. The preview is not a published package or a supported updater format;
+In current source, choose **Help → Start guided steps** to walk through the selected tool.
+The lightweight Windows x64 preview can install aria2 from Extensions or use a verified ZIP beside the executable for offline setup. Standard Windows x64 releases embed the fallback. For the local preview,
 see the [build instructions](https://github.com/shreyam1008/ProtoPeek/blob/master/internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
 
 Setup applies to the **machine running ProtoPeek**, which may differ from the machine displaying
 your browser. A remote server or container needs its own accessible tools. Guidance uses the host
 operating system and points to official installation instructions.
+
+## Manage a local companion (current source)
+
+The current library has 24 entries. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Each entry lists the hosts with pinned builds. In Files you can install the selected tool, use it, and remove its verified managed copy. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
+
+Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop any active use before choosing **Remove companion**.
+
+The terminal uses the same local installation and returns JSON:
+
+```sh
+pp extensions status --json
+pp extensions status cloudflared
+pp extensions install cloudflared
+pp extensions remove cloudflared
+```
+
+Inventory covers all six managed companions. Media installs can add missing supported helpers for yt-dlp. CLI media changes require the Files queue to be free. If the workbench owns the queue, use Files there or close the workbench before the CLI operation. A paired agent can inspect this inventory with `managed_tools`. Use the published release instructions above when running v0.7.0.
 
 ## Six native workbenches
 

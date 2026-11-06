@@ -20,6 +20,7 @@ import (
 
 	"github.com/shreyam1008/ProtoPeek/internal/agentlink"
 	"github.com/shreyam1008/ProtoPeek/internal/extensions"
+	"github.com/shreyam1008/ProtoPeek/internal/netdiag"
 	"github.com/shreyam1008/ProtoPeek/internal/portscan"
 )
 
@@ -376,6 +377,19 @@ func (m *agentManager) execute(ctx context.Context, tool agentlink.Tool, input j
 		}
 		if args.TimeoutMS == 0 {
 			args.TimeoutMS = 350
+		}
+		input, _ = json.Marshal(args)
+	}
+	if tool.Name == "network_diagnose" {
+		var args netdiag.Request
+		if err := json.Unmarshal(input, &args); err != nil {
+			return agentlink.Result{Status: http.StatusBadRequest, Preview: "invalid diagnostic arguments"}
+		}
+		if args.TimeoutMS == 0 {
+			args.TimeoutMS = 1000
+		}
+		if args.Mode == "dns" && args.RecordType == "" {
+			args.RecordType = "A"
 		}
 		input, _ = json.Marshal(args)
 	}

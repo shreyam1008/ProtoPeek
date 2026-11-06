@@ -155,36 +155,6 @@ export function PortScanner() {
           <span>Enter the address below to inspect its ports</span>
         </button>
       </section>
-      <details className="pp-scan-capabilities">
-        <summary>What can I scan?</summary>
-        <dl>
-          <dt>TCP ports · built in</dt>
-          <dd>
-            One IPv4, IPv6 or hostname; all 65,535 TCP ports, processed in bounded batches. Open,
-            refused, unreachable and no-response results.
-          </dd>
-          <dt>Local network · built in</dt>
-          <dd>
-            Select a private subnet and a bounded discovery profile. Open a discovered device here
-            to check more ports.
-          </dd>
-          <dt>HTTP and gRPC · built in</dt>
-          <dd>
-            Inspect an open endpoint for protocol evidence. A port number alone does not identify a
-            service.
-          </dd>
-          <dt>Service detection · optional Nmap</dt>
-          <dd>
-            TCP connect and light service detection for an IP or private IPv4 subnet. Requires Nmap
-            on the host. <Link to="/network/nmap">Open Nmap</Link>
-          </dd>
-          <dt>Processes and UDP binds · local only</dt>
-          <dd>
-            <Link to="/this-pc">This Device</Link> can report local owners where supported. Remote
-            scans cannot report PIDs. The built-in port scanner does not probe UDP.
-          </dd>
-        </dl>
-      </details>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -274,6 +244,36 @@ export function PortScanner() {
           </button>
         )}
       </form>
+      <details className="pp-scan-capabilities">
+        <summary>What can I scan?</summary>
+        <dl>
+          <dt>TCP ports · built in</dt>
+          <dd>
+            One IPv4, IPv6 or hostname; all 65,535 TCP ports, processed in bounded batches. Open,
+            refused, unreachable and no-response results.
+          </dd>
+          <dt>Local network · built in</dt>
+          <dd>
+            Select a private subnet and a bounded discovery profile. Open a discovered device here
+            to check more ports.
+          </dd>
+          <dt>HTTP and gRPC · built in</dt>
+          <dd>
+            Inspect an open endpoint for protocol evidence. A port number alone does not identify a
+            service.
+          </dd>
+          <dt>Service detection · optional Nmap</dt>
+          <dd>
+            TCP connect and light service detection for an IP or private IPv4 subnet. Requires Nmap
+            on the host. <Link to="/network/nmap">Open Nmap</Link>
+          </dd>
+          <dt>Processes and UDP binds · local only</dt>
+          <dd>
+            <Link to="/this-pc">This Device</Link> can report local owners where supported. Remote
+            scans cannot report PIDs. The built-in port scanner does not probe UDP.
+          </dd>
+        </dl>
+      </details>
       <OperationStatus
         busy={busy}
         label="Scanning TCP ports"

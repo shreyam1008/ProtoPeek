@@ -45,6 +45,7 @@ import './suite-pages.css';
 import './settings.css';
 import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { DirectoryPicker } from './DirectoryPicker';
+import { useNarrowViewport } from './use-narrow-viewport';
 
 const settingsSections = [
   { value: 'appearance', label: 'Appearance' },
@@ -98,45 +99,7 @@ const densities: Array<{ value: InterfaceDensity; label: string; detail: string 
 
 const editableHostStatuses = new Set<TransferHealthStatus>(['stopped', 'failed', 'binary_missing']);
 
-function narrowSettings() {
-  if (typeof window === 'undefined') return false;
-  try {
-    if (typeof window.matchMedia === 'function')
-      return window.matchMedia('(max-width: 600px)').matches;
-  } catch {
-    // Use the viewport fallback below when media queries are unavailable.
-  }
-  return window.innerWidth <= 600;
-}
-
-function useNarrowSettings() {
-  const [narrow, setNarrow] = useState(narrowSettings);
-  useEffect(() => {
-    let query: MediaQueryList | undefined;
-    try {
-      query = window.matchMedia?.('(max-width: 600px)');
-    } catch {
-      query = undefined;
-    }
-    if (
-      query &&
-      typeof query.addEventListener === 'function' &&
-      typeof query.removeEventListener === 'function'
-    ) {
-      const change = (event: MediaQueryListEvent) => setNarrow(event.matches);
-      setNarrow(query.matches);
-      query.addEventListener('change', change);
-      return () => query?.removeEventListener('change', change);
-    }
-    const resize = () => setNarrow(window.innerWidth <= 600);
-    resize();
-    window.addEventListener('resize', resize);
-    return () => window.removeEventListener('resize', resize);
-  }, []);
-  return narrow;
-}
-
-export function Settings() {
+export function Settings({ initialSection = 'appearance' }: { initialSection?: string }) {
   const {
     appearance,
     setAppearance,
@@ -144,8 +107,8 @@ export function Settings() {
     setInterfacePreferences,
     preferenceStorageError,
   } = useProtocolShell();
-  const [section, setSection] = useState('appearance');
-  const narrow = useNarrowSettings();
+  const [section, setSection] = useState(initialSection);
+  const narrow = useNarrowViewport();
   const [notice, setNotice] = useState('');
   const [hostSnapshot, setHostSnapshot] = useState<TransferSnapshot | null>(null);
   const [hostDraft, setHostDraft] = useState<TransferHostConfig | null>(null);

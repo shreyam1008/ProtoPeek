@@ -6,14 +6,11 @@ const extension = {
   download: 'https://lmstudio.ai/download',
   guide: 'https://lmstudio.ai/docs/developer/openai-compat',
   setup: {
-    windows:
-      'Use the official Windows build and review CPU/GPU requirements; start LM Studio or llmster yourself.',
-    darwin:
-      'Use a supported Apple Silicon Mac; current official requirements do not support Intel Macs.',
-    linux: 'Use an official supported Linux build and check CPU/GPU and distribution requirements.',
+    windows: 'Install LM Studio for your CPU/GPU, then start its local server.',
+    darwin: 'Use an Apple Silicon Mac and start the local server.',
+    linux: 'Install a supported Linux build for your CPU/GPU.',
   },
-  afterSetup:
-    'Enable your local HTTP server separately and set its actual port. The example uses 1234; finding lms does not prove that the server or a model is running.',
+  afterSetup: 'Start your local server. Set the draft to its listening port (typically 1234).',
   notes: [
     'Never publish the model-server port. ProtoPeek does not start the app/daemon or download/load models.',
     'CLI location is separate from app, model and server readiness. Native runtime acceptance remains separate.',

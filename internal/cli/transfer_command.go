@@ -49,6 +49,11 @@ func dispatchSubcommand(arguments []string) (int, bool) {
 	if arguments[0] == "migrate-gobarry" {
 		return runGoBarryMigrationCommand(arguments[1:], os.Stdout, os.Stderr, newConfiguredGoBarryMigrationService), true
 	}
+	if arguments[0] == "extensions" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return runManagedExtensions(ctx, arguments[1:], os.Stdout, os.Stderr), true
+	}
 	if arguments[0] != "download" {
 		return 0, false
 	}

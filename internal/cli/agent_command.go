@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -22,6 +23,8 @@ func dispatchAgentCommand(args []string) int {
 
   protopeek mcp                 MCP server over stdio; attach to the paired UI
   protopeek agent tools         Print tool names and JSON input schemas
+  protopeek agent search WORDS  Find matching tools offline (compact JSON)
+  protopeek agent schema NAME   Print one tool and its input schema offline
   protopeek agent guide         Print agent instructions
   protopeek agent call NAME     Read one JSON arguments object from stdin
 
@@ -34,6 +37,42 @@ Calls and their results appear in AI agents. Ctrl+C cancels the current command.
 	}
 	if args[0] == "agent" && len(args) == 2 && args[1] == "tools" {
 		return agentPrint(os.Stdout, agentlink.Tools())
+	}
+	if args[0] == "agent" && len(args) >= 3 && args[1] == "search" {
+		type match struct {
+			Name   string `json:"name"`
+			Route  string `json:"route"`
+			Writes bool   `json:"writes"`
+		}
+		words := strings.Fields(strings.ToLower(strings.Join(args[2:], " ")))
+		if len(words) == 0 {
+			fmt.Fprintln(os.Stderr, "provide a search term")
+			return 2
+		}
+		matches := []match{}
+		for _, tool := range agentlink.Tools() {
+			index := strings.ToLower(tool.Name + " " + tool.Route + " " + tool.Description)
+			matched := true
+			for _, word := range words {
+				if !strings.Contains(index, word) {
+					matched = false
+					break
+				}
+			}
+			if matched {
+				matches = append(matches, match{tool.Name, tool.Route, tool.Writes})
+			}
+		}
+		return agentPrint(os.Stdout, matches)
+	}
+	if args[0] == "agent" && len(args) == 3 && args[1] == "schema" {
+		for _, tool := range agentlink.Tools() {
+			if tool.Name == args[2] {
+				return agentPrint(os.Stdout, tool)
+			}
+		}
+		fmt.Fprintln(os.Stderr, "unknown tool; use protopeek agent search")
+		return 2
 	}
 	if args[0] == "agent" && len(args) == 2 && args[1] == "guide" {
 		fmt.Fprintln(os.Stdout, agentlink.Guide)
@@ -119,7 +158,7 @@ func agentPrint(w io.Writer, value any) int {
 func newAgentMCPServer(client *agentlink.Client) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "protopeek", Version: Version}, &mcp.ServerOptions{Instructions: agentlink.Guide})
 	for _, tool := range agentlink.Tools() {
-		server.AddTool(&mcp.Tool{Name: tool.Name, Description: tool.Description, InputSchema: tool.InputSchema, Annotations: &mcp.ToolAnnotations{ReadOnlyHint: !tool.Writes && tool.Name != "http_request"}}, func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		server.AddTool(&mcp.Tool{Name: tool.Name, Description: tool.Description, InputSchema: tool.InputSchema, Annotations: &mcp.ToolAnnotations{ReadOnlyHint: !tool.Writes}}, func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			result, err := client.Call(ctx, agentlink.Call{Name: request.Params.Name, Arguments: request.Params.Arguments})
 			if err != nil {
 				return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: err.Error()}}}, nil

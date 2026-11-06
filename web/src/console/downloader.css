@@ -15,7 +15,7 @@
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
   padding: 0.35rem 1.55rem;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: var(--pp-text-muted);
 }
 
@@ -66,7 +66,7 @@
   gap: 0.42rem;
   color: var(--pp-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -88,7 +88,7 @@
 .pp-engine-state small {
   overflow: hidden;
   color: var(--pp-text-faint);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -123,7 +123,7 @@
   grid-column: 1 / -1;
   color: var(--pp-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -137,7 +137,7 @@
   background: var(--pp-surface);
   color: var(--pp-text);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   outline: none;
 }
 
@@ -170,7 +170,7 @@
   padding: 0 1rem;
   background: var(--pp-accent-signal);
   color: var(--pp-inverse-text);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 780;
 }
 
@@ -186,7 +186,7 @@
 .pp-download-options {
   grid-column: 1 / -1;
   color: var(--pp-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .pp-download-options summary {
@@ -201,7 +201,7 @@
 
 .pp-download-options summary span {
   color: var(--pp-text-faint);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
 }
 
 .pp-download-options[open] summary {
@@ -212,7 +212,7 @@
   grid-column: 1;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
 }
 
 .pp-batch-hint strong {
@@ -227,7 +227,7 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.62rem 1.55rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .pp-downloader-error {
@@ -320,7 +320,7 @@
   padding: 0 0.48rem;
   background: var(--pp-surface-raised);
   color: var(--pp-text-muted);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -342,7 +342,7 @@
   margin-left: 0.25rem;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
 }
 
 .pp-transfer-filters {
@@ -361,7 +361,7 @@
   gap: 0.35rem;
   padding: 0 0.55rem;
   color: var(--pp-text-muted);
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -389,7 +389,7 @@
   background: var(--pp-surface-sunken);
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.75rem;
 }
 
 .pp-transfer-columns,
@@ -406,7 +406,7 @@
   padding: 0.5rem 3.25rem 0.5rem 0.9rem;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -437,7 +437,7 @@
   min-width: 0;
   padding: 0.72rem 0.5rem 0.72rem 0.9rem;
   color: var(--pp-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.75rem;
   text-align: left;
 }
 
@@ -454,16 +454,16 @@
 .pp-transfer-name strong {
   overflow: hidden;
   color: var(--pp-text);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .pp-transfer-name small {
   overflow: hidden;
-  color: var(--pp-text-faint);
+  color: var(--pp-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -474,7 +474,7 @@
   align-items: center;
   gap: 0.34rem;
   color: var(--pp-text-muted);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   text-transform: capitalize;
 }
 
@@ -525,7 +525,7 @@
 .pp-transfer-progress small {
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
   text-align: right;
 }
 
@@ -577,7 +577,7 @@
 
 .pp-transfer-notice p {
   max-width: 30rem;
-  font-size: 0.66rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -591,7 +591,7 @@
   padding: 0 0.8rem;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
 }
 
 .pp-transfer-inspector {
@@ -612,7 +612,7 @@
   overflow: hidden;
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -634,7 +634,7 @@
 
 .pp-transfer-inspector.is-empty p {
   max-width: 23rem;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.5;
 }
 
@@ -653,7 +653,7 @@
 
 .pp-inspector-progress > div:first-child strong {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-progress > .pp-progress-track {
@@ -684,7 +684,7 @@
 .pp-inspector-progress dt,
 .pp-inspector-section dt {
   color: var(--pp-text-faint);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-progress dd,
@@ -693,7 +693,7 @@
   overflow-wrap: anywhere;
   color: var(--pp-text);
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-section dl {
@@ -708,7 +708,7 @@
   gap: 0.35rem;
   margin-top: 0.6rem;
   color: var(--pp-accent-signal);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-copy svg {
@@ -719,7 +719,7 @@
   display: block;
   margin-top: 0.45rem;
   color: var(--pp-text-faint);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-failure {
@@ -737,12 +737,12 @@
 }
 
 .pp-inspector-failure strong {
-  font-size: 0.66rem;
+  font-size: 0.75rem;
 }
 
 .pp-inspector-failure p {
   margin-top: 0.2rem;
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -766,7 +766,7 @@
   padding: 0.45rem 0.65rem;
   background: var(--pp-surface-raised);
   color: var(--pp-text);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   font-weight: 650;
 }
 
@@ -800,7 +800,7 @@
   background: var(--pp-chrome);
   color: var(--pp-text-faint);
   font-family: var(--font-mono);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
 }
 
 .pp-downloader-status > span {
@@ -986,4 +986,8 @@
   .is-spinning {
     animation: none;
   }
+}
+
+.pp-download-observation small {
+  font-size: 0.75rem;
 }

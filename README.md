@@ -65,9 +65,12 @@ TCP port scans and bounded private-network discovery are built in. Nmap, live ca
 dumpcap, and provider access/publishing integrations use separately installed tools.
 They remain optional: opening the workbench does not download them or start their work.
 
-Current source adds contextual Help for the selected tool. It also includes an experimental
+Current source adds interactive tours in Help and a library of 24 optional tools. Six have managed installation on supported hosts: cloudflared, aria2, yt-dlp, gallery-dl, Deno and FFmpeg.
+Run `pp extensions status --json` to inspect versions or `pp agent search subnet` to discover an agent workflow.
+See the [extension guide](guides/extensions.md) for supported hosts and the
+experimental
 [Windows x64 lightweight build](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview)
-that loads the Downloader engine from a separate verified local companion. This is a local
+that can fetch the verified Downloader engine on demand or load its offline ZIP. This is a local
 development preview; existing releases, installers and updaters retain their standard packaging.
 
 ## Stable, Nightly and source
@@ -77,7 +80,7 @@ development preview; existing releases, installers and updaters retain their sta
 | **Stable** | Default installers select the [latest published stable archive](https://github.com/shreyam1008/ProtoPeek/releases/latest), never a draft or prerelease. |
 | **Package channels** | Homebrew, Scoop and APT pin independently promoted versions. Check the installed version and the channel's current manifest. |
 | **Nightly** | Opt-in rolling builds from main/master; read the [release page](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) for the archive’s source. Stable/package promotion is separate. |
-| **v0.7.0 build** | The implementation described by this checkout, including 20 optional extension entries, 23 local agent tools and 13 diagnostics. Publication, native/provider acceptance and package promotion are separate gates. |
+| **v0.7.0 build** | The published stable build includes 20 optional extension entries, 23 local agent tools and 13 diagnostics. Publication, native/provider acceptance and package promotion are separate gates. |
 | **Legacy Edge** | Older manual preview archives and dated screenshots, retained as historical evidence. It is not the recommended rolling channel. |
 
 The v0.7.0 build uses **Home, Inspect, Network, Extensions, Files and Settings**. Existing deep

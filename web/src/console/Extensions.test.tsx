@@ -120,12 +120,12 @@ describe('optional extension library', () => {
     expect(screen.queryByText('Executable located')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Check this host' })).toBeEnabled();
   });
-  it('shows all20, filters and pins without checking, preloading packs or downloading tools', async () => {
+  it('shows integrations and four media tools, filters and pins without checking, preloading packs or downloading tools', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     show();
     await screen.findByRole('heading', { name: 'Add only what you need.' });
-    expect(screen.getAllByRole('article')).toHaveLength(20);
+    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4);
     expect(screen.getByRole('link', { name: 'Open live capture' })).toHaveAttribute(
       'href',
       '/network/packets?mode=live'
@@ -162,7 +162,7 @@ describe('optional extension library', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nothing-matches' } });
     expect(screen.getByRole('heading', { name: 'No matching extensions.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length);
+    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4);
     const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('quota');
     });

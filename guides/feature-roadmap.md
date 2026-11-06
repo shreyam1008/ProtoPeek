@@ -10,7 +10,13 @@ need an initial installer upgrade to obtain the command.
 Updated for v0.6.1 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
 the [acceptance record](workbench-overhaul-2026-09.md) records tests, observations and remaining gaps.
 
-## Current-source checkpoint · 23 October 2026
+## Source changes since v0.7.0
+
+- Contextual Help offers guided steps inside workbenches. Mobile Settings, Security and Roadmap place section controls above their content.
+- Extensions manages Cloudflare Tunnel and the Windows aria2 companion from the app and CLI. Four additional media companions install and remove through Files. Other integrations link to vendor setup or an existing workbench. See [Extensions](extensions.md).
+- Agents can search tools offline, inspect a single schema, read managed-companion availability, and request bounded DNS, TLS or subnet checks. See [agent setup](ai-agents.md).
+
+## Published checkpoint · 23 October 2026
 
 The following capabilities are included in published v0.7.0, beyond the older v0.6.1
 binaries and earlier edge archives. Check the running build and its live agent catalog. Source,

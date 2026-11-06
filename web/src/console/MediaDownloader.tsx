@@ -12,6 +12,7 @@ type Tool = {
   version: string;
   installBytes: number;
   canInstall: boolean;
+  canRemove?: boolean;
   help: string;
 };
 type Job = {
@@ -55,9 +56,13 @@ const choices = [
   },
 ];
 
-export default function MediaDownloader() {
+type MediaTool = 'yt-dlp' | 'gallery-dl' | 'deno' | 'ffmpeg';
+export default function MediaDownloader({ initialTool }: { initialTool?: MediaTool }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [engine, setEngine] = useState('native-go');
+  const [engine, setEngine] = useState(
+    initialTool === 'gallery-dl' ? 'gallery-dl' : initialTool ? 'yt-dlp' : 'native-go'
+  );
+  const [setupName, setSetupName] = useState<string>(initialTool ?? 'native-go');
   const [url, setURL] = useState('');
   const [format, setFormat] = useState('auto');
   const [directory, setDirectory] = useState('');
@@ -67,6 +72,7 @@ export default function MediaDownloader() {
   const [error, setError] = useState('');
   const [snapshotError, setSnapshotError] = useState('');
   const [notice, setNotice] = useState('');
+  const [confirmRemove, setConfirmRemove] = useState('');
   const [preview, setPreview] = useState<{
     title: string;
     items: { url: string; kind: string }[];
@@ -75,6 +81,17 @@ export default function MediaDownloader() {
   const operation = useRef<AbortController | null>(null);
   const inspection = useRef<AbortController | null>(null);
   const snapshotRevision = useRef(0);
+  const setupSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (initialTool) {
+      setEngine(initialTool === 'gallery-dl' ? 'gallery-dl' : 'yt-dlp');
+      setSetupName(initialTool);
+      setupSection.current?.focus({ preventScroll: true });
+      setupSection.current?.scrollIntoView?.({ block: 'start' });
+      setFormat('video');
+      setConfirmRemove('');
+    }
+  }, [initialTool]);
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const revision = ++snapshotRevision.current;
     try {
@@ -141,6 +158,7 @@ export default function MediaDownloader() {
       if (!controller.signal.aborted) {
         await refresh(controller.signal);
         if (path === 'add') setNotice('Queued. Downloads continue while ProtoPeek is running.');
+        if (path === 'remove') setNotice('Managed tool removed. Your downloaded media remains.');
       }
     } catch (cause) {
       if (!controller.signal.aborted)
@@ -153,6 +171,7 @@ export default function MediaDownloader() {
     }
   }
   const tool = snapshot?.tools.find((item) => item.name === engine);
+  const setupTool = snapshot?.tools.find((item) => item.name === setupName);
   const ffmpeg = snapshot?.tools.find((item) => item.name === 'ffmpeg');
   return (
     <div className="pp-media-downloader">
@@ -171,6 +190,8 @@ export default function MediaDownloader() {
             onClick={() => {
               clearInspection();
               setEngine(choice.id);
+              setSetupName(choice.id);
+              setConfirmRemove('');
               setFormat(choice.id === 'native-go' ? 'auto' : 'video');
             }}
           >
@@ -190,30 +211,55 @@ export default function MediaDownloader() {
         </p>
       )}
       {notice && <p role="status">{safeDownloadMessage(notice)}</p>}
-      <section className="pp-media-setup" aria-label="Engine setup">
+      <section
+        ref={setupSection}
+        tabIndex={-1}
+        className="pp-media-setup"
+        aria-label="Engine setup"
+      >
         <div>
           <strong>
-            {engine}{' '}
-            {tool ? (tool.path ? '· Found on this host' : '· Setup needed') : '· Not observed'}
+            {setupName}{' '}
+            {setupTool
+              ? setupTool.path
+                ? '· Found on this host'
+                : '· Setup needed'
+              : '· Not observed'}
           </strong>
-          <p>{tool?.help ?? 'Reading local capabilities…'}</p>
+          <p>{setupTool?.help ?? 'Reading local capabilities…'}</p>
+          {(setupName === 'deno' || setupName === 'ffmpeg') && (
+            <p>
+              This supports Video &amp; audio downloads; it is not a standalone download engine.
+            </p>
+          )}
         </div>
-        {tool?.canInstall && (!tool.path || (engine === 'yt-dlp' && tool.installBytes > 0)) && (
+        {setupTool?.canInstall &&
+          (!setupTool.path || (setupName === 'yt-dlp' && setupTool.installBytes > 0)) && (
+            <button
+              type="button"
+              disabled={Boolean(busy)}
+              onClick={() =>
+                void mutate(
+                  'install',
+                  { engine: setupName },
+                  `Installing ${setupName} · ${size(setupTool.installBytes)}`
+                )
+              }
+            >
+              {setupTool.path ? 'Complete setup' : `Install ${setupName}`} ·{' '}
+              {size(setupTool.installBytes)}
+            </button>
+          )}
+        {setupTool?.canRemove && !confirmRemove && (
           <button
             type="button"
             disabled={Boolean(busy)}
-            onClick={() =>
-              void mutate(
-                'install',
-                { engine },
-                `Installing ${engine} · ${size(tool.installBytes)}`
-              )
-            }
+            onClick={() => setConfirmRemove(setupName)}
           >
-            {tool.path ? 'Complete setup' : `Install ${engine}`} · {size(tool.installBytes)}
+            Remove managed {setupName}
           </button>
         )}
-        {engine === 'archivebox' && !tool?.path && (
+        {setupName === 'archivebox' && !setupTool?.path && (
           <a
             href="https://github.com/ArchiveBox/ArchiveBox#quickstart"
             target="_blank"
@@ -222,7 +268,7 @@ export default function MediaDownloader() {
             ArchiveBox setup
           </a>
         )}
-        {engine === 'gallery-dl' && tool && !tool.path && !tool.canInstall && (
+        {setupName === 'gallery-dl' && setupTool && !setupTool.path && !setupTool.canInstall && (
           <a
             href="https://github.com/mikf/gallery-dl#installation"
             target="_blank"
@@ -231,7 +277,45 @@ export default function MediaDownloader() {
             Installation instructions
           </a>
         )}
+        {(setupName === 'deno' || setupName === 'ffmpeg') &&
+          setupTool &&
+          !setupTool.path &&
+          !setupTool.canInstall && (
+            <a
+              href={
+                setupName === 'deno'
+                  ? 'https://docs.deno.com/runtime/getting_started/installation/'
+                  : 'https://ffmpeg.org/download.html'
+              }
+              target="_blank"
+              rel="noreferrer"
+            >
+              Install separately and add to PATH
+            </a>
+          )}
       </section>
+      {confirmRemove && (
+        <section className="pp-media-setup" aria-label="Confirm media tool removal">
+          <p>
+            Remove verified {confirmRemove} from ProtoPeek? Downloaded media and other tools remain.
+            Stop active downloads that use it first.
+          </p>
+          <button
+            type="button"
+            disabled={Boolean(busy)}
+            onClick={() => {
+              const target = confirmRemove;
+              setConfirmRemove('');
+              void mutate('remove', { engine: target }, `Removing ${target}`);
+            }}
+          >
+            Remove {confirmRemove}
+          </button>
+          <button type="button" disabled={Boolean(busy)} onClick={() => setConfirmRemove('')}>
+            Cancel
+          </button>
+        </section>
+      )}
       <OperationStatus busy={Boolean(busy)} label={busy} />
       {(busy.startsWith('Installing') || busy === 'Inspecting page') && (
         <button

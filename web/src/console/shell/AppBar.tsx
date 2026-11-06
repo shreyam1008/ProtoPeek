@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import {
+  ChevronDown,
   CircleHelp,
   Download,
   Home,
@@ -17,7 +18,7 @@ import {
   Sun,
   X,
 } from 'lucide-react';
-import { type ReactNode, useRef } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import type { DestinationDefinition, DestinationId } from '../app/feature-registry';
 import { ProtoPeekMark } from '../ProtoPeekMark';
 import { useDialogFocus } from '../use-dialog-focus';
@@ -132,7 +133,7 @@ export function AppBar(props: AppBarProps) {
                 <button
                   type="button"
                   className="pp-app-icon-action"
-                  aria-label="Open global command menu"
+                  aria-label="Find anything"
                   title={`Find anything (${props.modifier} K)`}
                   onClick={props.onOpenCommand}
                 >
@@ -181,12 +182,7 @@ export function AppBar(props: AppBarProps) {
             <strong>{destination?.label ?? 'Workspace'}</strong>
             <span>{destination ? descriptions[destination.id] : 'Choose a tool to begin'}</span>
           </div>
-          <button
-            type="button"
-            className="pp-app-command"
-            aria-label="Open global command menu"
-            onClick={props.onOpenCommand}
-          >
+          <button type="button" className="pp-app-command" onClick={props.onOpenCommand}>
             <Search aria-hidden="true" />
             <span>Find anything</span>
             <kbd>{props.modifier} K</kbd>
@@ -211,7 +207,7 @@ export function AppBar(props: AppBarProps) {
           </div>
         </div>
       </header>
-      <MobileNavigationDrawer {...props} />
+      {props.navigationOpen ? <MobileNavigationDrawer {...props} /> : null}
     </>
   );
 }
@@ -220,7 +216,9 @@ function MobileNavigationDrawer(props: AppBarProps) {
   const drawerRef = useRef<HTMLElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   useDialogFocus(props.navigationOpen, props.onCloseNavigation, drawerRef, closeButtonRef);
-  if (!props.navigationOpen) return null;
+  const [expanded, setExpanded] = useState<DestinationId | undefined>(
+    props.activeDestinationId === 'home' ? undefined : props.activeDestinationId
+  );
   return (
     <div className="pp-navigation-layer">
       <button
@@ -267,26 +265,42 @@ function MobileNavigationDrawer(props: AppBarProps) {
           {props.destinations.map((item) => {
             const Icon = destinationIcons[item.icon];
             return (
-              <Link
-                key={item.id}
-                to={props.destinationRoutes?.[item.id] ?? item.route}
-                className={`pp-navigation-link${item.id === props.activeDestinationId ? ' is-active' : ''}`}
-                aria-current={item.id === props.activeDestinationId ? 'page' : undefined}
-                activeOptions={{ exact: true }}
-                onClick={props.onCloseNavigation}
-              >
-                <Icon aria-hidden="true" />
-                <span>{item.label}</span>
-              </Link>
+              <div key={item.id} className="pp-mobile-destination">
+                <div className="pp-mobile-destination-row">
+                  <Link
+                    to={props.destinationRoutes?.[item.id] ?? item.route}
+                    className={`pp-navigation-link${item.id === props.activeDestinationId ? ' is-active' : ''}`}
+                    aria-current={item.id === props.activeDestinationId ? 'page' : undefined}
+                    activeOptions={{ exact: true }}
+                    onClick={props.onCloseNavigation}
+                  >
+                    <Icon aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </Link>
+                  {item.id !== 'home' ? (
+                    <button
+                      type="button"
+                      className="pp-navigation-link pp-mobile-browse"
+                      aria-label={'Browse ' + item.label + ' tools'}
+                      aria-expanded={expanded === item.id}
+                      aria-controls={'mobile-tools-' + item.id}
+                      onClick={() => setExpanded(expanded === item.id ? undefined : item.id)}
+                    >
+                      <ChevronDown aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </div>
+                {item.id !== 'home' ? (
+                  <div id={'mobile-tools-' + item.id} hidden={expanded !== item.id}>
+                    {expanded === item.id ? (
+                      <ToolNavigation destination={item.id} onNavigate={props.onCloseNavigation} />
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </nav>
-        {props.activeDestinationId ? (
-          <ToolNavigation
-            destination={props.activeDestinationId}
-            onNavigate={props.onCloseNavigation}
-          />
-        ) : null}
         <details className="pp-recent-workspaces">
           <summary>Recent tools</summary>
           {props.children}

@@ -84,11 +84,22 @@ func validateNotices(n assetNotices) error {
 // Snapshot only reads small local receipts and stats, never downloads notices or
 // hashes entire executables. The receipt is created after explicit verification.
 func managedAssetReady(a Asset, executable string) bool {
+	if checkExistingAncestors(filepath.Dir(executable)) != nil {
+		return false
+	}
+	info, err := os.Lstat(executable + ".verified")
+	if err != nil || !info.Mode().IsRegular() || info.Size() > 32<<10 {
+		return false
+	}
 	f, err := os.Open(executable + ".verified")
 	if err != nil {
 		return false
 	}
 	defer f.Close()
+	opened, err := f.Stat()
+	if err != nil || !os.SameFile(info, opened) {
+		return false
+	}
 	var receipt toolReceipt
 	data, err := io.ReadAll(io.LimitReader(f, (32<<10)+1))
 	if err != nil || len(data) > 32<<10 || json.Unmarshal(data, &receipt) != nil || receipt.SchemaVersion != 1 || receipt.Asset != a {

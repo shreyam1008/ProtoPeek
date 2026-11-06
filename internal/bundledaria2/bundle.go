@@ -38,7 +38,34 @@ func Path() (string, error) {
 	}
 	extractMu.Lock()
 	defer extractMu.Unlock()
-	return extract(payload, filepath.Join(cache, "protopeek", "engines", "aria2", payload.binarySHA))
+	directory, err := safeCacheDirectory(cache, payload.binarySHA)
+	if err != nil {
+		return "", err
+	}
+	return extract(payload, directory)
+}
+
+// The user-selected cache root may be a link, but app-owned descendants must
+// be real directories; never create an extraction through a substituted link.
+func safeCacheDirectory(cache, binarySHA string) (string, error) {
+	if err := os.MkdirAll(cache, 0700); err != nil {
+		return "", err
+	}
+	dir := cache
+	for _, name := range []string{"protopeek", "engines", "aria2", binarySHA} {
+		dir = filepath.Join(dir, name)
+		info, err := os.Lstat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
+				return "", err
+			}
+			info, err = os.Lstat(dir)
+		}
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return "", errors.New("aria2 cache must contain only real directories")
+		}
+	}
+	return dir, nil
 }
 
 func extract(payload bundle, directory string) (string, error) {
@@ -135,7 +162,29 @@ func extractFile(entry *zip.File, target string, executable bool, binarySHA stri
 	if err := file.Close(); err != nil {
 		return err
 	}
-	return os.Rename(file.Name(), target)
+	// Promotion never replaces an existing file. A verified identical file is
+	// accepted for retry after an interrupted extraction; all others stay intact.
+	if err := os.Link(file.Name(), target); err != nil {
+		if !errors.Is(err, os.ErrExist) {
+			return err
+		}
+		info, statErr := os.Lstat(target)
+		if statErr != nil || !info.Mode().IsRegular() || info.Size() != written {
+			return errors.New("aria2 cache entry already exists and differs")
+		}
+		existing, openErr := os.Open(target)
+		if openErr != nil {
+			return openErr
+		}
+		opened, statErr := existing.Stat()
+		actual := sha256.New()
+		count, readErr := io.Copy(actual, io.LimitReader(existing, written+1))
+		closeErr := existing.Close()
+		if statErr != nil || !os.SameFile(info, opened) || readErr != nil || closeErr != nil || count != written || !bytes.Equal(actual.Sum(nil), hash.Sum(nil)) {
+			return errors.New("aria2 cache entry already exists and differs")
+		}
+	}
+	return nil
 }
 
 func digest(value []byte) string {

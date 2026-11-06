@@ -8,7 +8,7 @@ or PATH-installed engine. Stable ProtoPeek v0.5.0 contains no bundled engine.
 The configured executable takes priority, then PATH, then this companion. Extraction happens only
 after Downloader starts, into the OS user cache. Both archive and executable are SHA-256 checked;
 notices are extracted alongside it. ProtoPeek communicates with the separate process through a
-secret-authenticated loopback JSON-RPC connection. Nothing is downloaded at application runtime.
+secret-authenticated loopback JSON-RPC connection. The standard build uses its embedded fallback without a network request.
 
 - Archive SHA-256: `67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288`
 - Executable SHA-256: `be2099c214f63a3cb4954b09a0becd6e2e34660b886d4c898d260febfe9d70c2`
@@ -47,13 +47,10 @@ with a separate archive beside the executables:
 ./scripts/build-lite-windows.ps1 -OutputDirectory .local/protopeek-lite-preview
 ```
 
+Add `-CoreOnly` to omit the offline ZIP and install the verified engine from Extensions later.
+
 Choose a new output directory: the script refuses to replace an existing one. The `protopeek_lite`
-build tag applies to Windows amd64; the script stages both commands, the pinned companion ZIP, and
-notices. The executable reads only the fixed companion filename beside itself, checks its pinned
-size and SHA-256 before extraction, and verifies the extracted executable. A missing or modified
-companion yields an actionable error; configured and PATH engines retain priority. No engine is
-downloaded by this build. The companion archive is loaded only when Downloader is requested, or
-when the user explicitly checks aria2 availability.
+build tag applies to Windows amd64. The script stages both commands and third-party notices. By default it also stages a pinned companion ZIP beside the executable for offline setup. With CoreOnly, users can select Install in Extensions to fetch that same archive into their private cache. Both paths check the compressed size, archive hash and extracted executable hash. Configured and PATH engines take priority. Opening a tool never starts an installation.
 
 This is a development preview, not an additional published release, Store package or updater format.
 Keep it separate from existing installations: the v0.7.0 updater and installers copy only the two

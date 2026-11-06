@@ -4,11 +4,54 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/shreyam1008/ProtoPeek/internal/media"
 )
+
+func TestMediaInstallExplainsUnsafeExistingFiles(t *testing.T) {
+	root := t.TempDir()
+	s, err := media.NewAt(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	var version string
+	for _, tool := range s.Snapshot().Tools {
+		if tool.Name == "deno" && tool.CanInstall {
+			version = tool.Version
+		}
+	}
+	if version == "" {
+		t.Skip("no managed Deno package on this host")
+	}
+	dir := filepath.Join(root, "tools", "deno", version)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(dir, "user-file")
+	if err := os.WriteFile(marker, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	handler := Handler(nil, "", nil, nil, WithMediaService(s))
+	cookie := handlerCSRFCookie(t, handler)
+	request := httptest.NewRequest(http.MethodPost, "/api/media/install", strings.NewReader(`{"engine":"deno"}`))
+	request.RemoteAddr = "127.0.0.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	request.AddCookie(cookie)
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "no files were replaced") {
+		t.Fatalf("status %d: %s", response.Code, response.Body.String())
+	}
+	if b, err := os.ReadFile(marker); err != nil || string(b) != "keep" {
+		t.Fatalf("user file changed: %q %v", b, err)
+	}
+}
 
 func TestMediaMutationsRemainLocalAndCSRFProtected(t *testing.T) {
 	s, err := media.NewAt(t.TempDir())
@@ -18,7 +61,7 @@ func TestMediaMutationsRemainLocalAndCSRFProtected(t *testing.T) {
 	defer s.Close()
 	handler := Handler(nil, "", nil, nil, WithMediaService(s))
 	cookie := handlerCSRFCookie(t, handler)
-	for _, route := range []string{"install", "inspect", "add", "action"} {
+	for _, route := range []string{"install", "remove", "inspect", "add", "action"} {
 		for _, tc := range []struct {
 			peer string
 			csrf bool
@@ -62,7 +105,7 @@ func TestMediaFactoryOnlyRunsAfterRequestAdmission(t *testing.T) {
 		t.Fatal("handler construction initialized media")
 	}
 	cookie := handlerCSRFCookie(t, handler)
-	for _, route := range []string{"snapshot", "install", "inspect", "add", "action"} {
+	for _, route := range []string{"snapshot", "install", "remove", "inspect", "add", "action"} {
 		for _, input := range []struct {
 			name, method, peer, forwarding string
 			csrf                           bool
@@ -96,7 +139,7 @@ func TestMediaFactoryOnlyRunsAfterRequestAdmission(t *testing.T) {
 			}
 		}
 	}
-	for _, route := range []string{"install", "inspect", "add", "action"} {
+	for _, route := range []string{"install", "remove", "inspect", "add", "action"} {
 		request := httptest.NewRequest(http.MethodPost, "/api/media/"+route, strings.NewReader("{"))
 		request.RemoteAddr = "127.0.0.1:1234"
 		request.Header.Set("Content-Type", "application/json")

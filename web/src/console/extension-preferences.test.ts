@@ -37,3 +37,8 @@ it('reports a failed write while reads remain safe without browser storage', () 
   expect(readExtensionPreferences()).toEqual({ pinned: [] });
   expect(saveExtensionPreferences({ pinned: ['docker'] })).toBe(false);
 });
+
+it('restores media companion pins alongside existing integrations', () => {
+  saveExtensionPreferences({ pinned: ['gallery-dl', 'docker'] });
+  expect(readExtensionPreferences().pinned).toEqual(['gallery-dl', 'docker']);
+});

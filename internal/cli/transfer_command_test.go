@@ -118,6 +118,12 @@ func TestRootUsageListsEveryDevelopmentSubcommand(t *testing.T) {
 	for _, expected := range []string{
 		"pp download [flags] URL",
 		"pp migrate-gobarry [flags]",
+		"pp agent search WORDS",
+		"pp agent schema NAME",
+		"pp mcp",
+		"pp extensions status [aria2|cloudflared]",
+		"pp extensions install",
+		"pp extensions remove",
 		`pp download --help`,
 		`pp migrate-gobarry --help`,
 		"opens Home",

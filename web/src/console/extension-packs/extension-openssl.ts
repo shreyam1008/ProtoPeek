@@ -5,14 +5,11 @@ const extension = {
   download: 'https://openssl-library.org/source/',
   guide: 'https://docs.openssl.org/master/man1/openssl-s_client/',
   setup: {
-    windows:
-      "Choose a trusted Windows build or follow OpenSSL's build notes; this link is not a universal binary installer.",
-    darwin:
-      "Use a supported OpenSSL package; the platform's similarly named tool can be a different TLS implementation.",
-    linux: "Use your distribution's supported OpenSSL command-line package.",
+    windows: 'Use a trusted Windows build or compile from source.',
+    darwin: 'Check whether openssl is LibreSSL or OpenSSL.',
+    linux: 'Install the OpenSSL command-line package.',
   },
-  afterSetup:
-    'Use built-in TLS diagnostics for the normal service check. Native OpenSSL offers a separate comparison with its own trust store and network context.',
+  afterSetup: 'Compare the service with TLS diagnostics. OpenSSL uses its own trust store.',
   notes: [
     'Commands are static examples to review and run yourself; ProtoPeek does not execute them.',
     'Verification stays enabled. This guide does not install certificates or change trust stores.',

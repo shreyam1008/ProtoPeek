@@ -10,7 +10,7 @@ import {
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
-import { destinations } from './app/feature-registry';
+import { destinations, type FeatureId } from './app/feature-registry';
 import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
 import { handoffDestinationRoutes } from './app/release-capabilities';
@@ -45,6 +45,7 @@ const CommandPalette = lazy(() =>
 const HelpDrawer = lazy(() =>
   import('./HelpDrawer').then((module) => ({ default: module.HelpDrawer }))
 );
+const ToolTour = lazy(() => import('./ToolTour').then((module) => ({ default: module.ToolTour })));
 
 function systemPrefersDark() {
   if (typeof window.matchMedia !== 'function') return false;
@@ -75,6 +76,7 @@ function discoveryProvenance(result: ScanResult): HandoffProvenance {
 export function ProtocolFrame() {
   const navigate = useNavigate();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [tourFeature, setTourFeature] = useState<FeatureId | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -98,6 +100,11 @@ export function ProtocolFrame() {
     normalizeRecentDiscoveries(loadStoredValue<unknown>(appStorageKeys.discoveries, []))
   );
   const closeHelp = useCallback(() => setHelpOpen(false), []);
+  const closeTour = useCallback(() => setTourFeature(null), []);
+  const startTour = useCallback((feature: FeatureId) => {
+    setHelpOpen(false);
+    setTourFeature(feature);
+  }, []);
   const modifier = modifierKeyLabel();
 
   const resolvedAppearance = useMemo(
@@ -147,6 +154,7 @@ export function ProtocolFrame() {
   }, [discoveries]);
 
   const openScan = useCallback((request: ScanDialogRequest = {}) => {
+    setTourFeature(null);
     setCommandOpen(false);
     setHelpOpen(false);
     setNavigationOpen(false);
@@ -156,6 +164,7 @@ export function ProtocolFrame() {
   }, []);
 
   const openCommand = useCallback(() => {
+    setTourFeature(null);
     setHelpOpen(false);
     setNavigationOpen(false);
     setScanOpen(false);
@@ -163,6 +172,7 @@ export function ProtocolFrame() {
   }, []);
 
   const openHelp = useCallback(() => {
+    setTourFeature(null);
     setCommandOpen(false);
     setNavigationOpen(false);
     setScanOpen(false);
@@ -170,6 +180,7 @@ export function ProtocolFrame() {
   }, []);
 
   const openNavigation = useCallback(() => {
+    setTourFeature(null);
     setCommandOpen(false);
     setHelpOpen(false);
     setScanOpen(false);
@@ -412,7 +423,12 @@ export function ProtocolFrame() {
             </span>
           }
         >
-          <HelpDrawer onClose={closeHelp} />
+          <HelpDrawer onClose={closeHelp} onStartTour={startTour} />
+        </Suspense>
+      ) : null}
+      {tourFeature ? (
+        <Suspense fallback={<span role="status">Opening guided steps…</span>}>
+          <ToolTour feature={tourFeature} onClose={closeTour} />
         </Suspense>
       ) : null}
     </ProtocolShellContext.Provider>

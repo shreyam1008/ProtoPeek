@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,8 +63,8 @@ func (inspector *Inspector) Inspect(ctx context.Context) (Observation, error) {
 	}
 	result.Service = service
 	result.Cloudflared = inspectTool(ctx, "cloudflared", service.ExecutablePath)
-	if !result.Cloudflared.Found {
-		result.Cloudflared.Note = "cloudflared was not found on PATH or in the canonical service definition."
+	if !result.Cloudflared.Found && result.Cloudflared.Note == "cloudflared was not found on PATH." {
+		result.Cloudflared.Note = "cloudflared was not found in the managed companion, PATH, or canonical service definition."
 	}
 	result.Wrangler = inspectTool(ctx, "wrangler", "")
 	result.Docker = inspectPathOnly("docker")
@@ -124,12 +125,26 @@ func configCandidatePaths(service ServiceObservation) []configPathCandidate {
 
 func inspectTool(ctx context.Context, name, preferred string) ToolObservation {
 	path := strings.TrimSpace(preferred)
+	source := ""
+	if path != "" {
+		source = "service"
+	}
+	if path == "" && name == "cloudflared" {
+		managed, err := managedtools.CloudflaredPath()
+		if err == nil {
+			path = managed
+			source = "managed"
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return ToolObservation{Source: "managed", Note: "The managed cloudflared companion could not be verified."}
+		}
+	}
 	if path == "" {
 		resolved, err := exec.LookPath(name)
 		if err != nil {
 			return ToolObservation{Note: name + " was not found on PATH."}
 		}
 		path = resolved
+		source = "path"
 	} else if filepath.IsAbs(path) {
 		info, err := os.Stat(path)
 		if err != nil || !info.Mode().IsRegular() {
@@ -143,7 +158,14 @@ func inspectTool(ctx context.Context, name, preferred string) ToolObservation {
 		path = resolved
 	}
 	path = filepath.Clean(path)
-	result := ToolObservation{Found: true, Path: path}
+	result := ToolObservation{Found: true, Path: path, Source: source}
+	if name == "cloudflared" {
+		release, err := managedtools.AcquireCloudflaredUse(path)
+		if err != nil {
+			return ToolObservation{Source: source, Note: "The managed cloudflared companion is busy or could not be verified."}
+		}
+		defer release()
+	}
 	commandCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	output, err := runBounded(commandCtx, path, "--version")
@@ -164,7 +186,7 @@ func inspectPathOnly(name string) ToolObservation {
 	if err != nil {
 		return ToolObservation{Note: name + " was not found on PATH."}
 	}
-	return ToolObservation{Found: true, Path: filepath.Clean(path)}
+	return ToolObservation{Found: true, Path: filepath.Clean(path), Source: "path"}
 }
 
 func inspectConfig(path, source string) ConfigCandidate {

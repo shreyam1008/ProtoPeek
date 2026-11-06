@@ -18,7 +18,7 @@
   grid-column: auto;
   margin-top: 0.58rem;
   color: var(--pp-text-faint);
-  font-size: 0.54rem;
+  font-size: 0.75rem;
 }
 
 .pp-download-advanced-grid input {
@@ -44,13 +44,13 @@
 
 .pp-advanced-heading strong {
   color: var(--pp-text);
-  font-size: 0.67rem;
+  font-size: 0.75rem;
 }
 
 .pp-advanced-heading small,
 .pp-advanced-note {
   color: var(--pp-text-faint);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
   line-height: 1.45;
 }
 
@@ -76,7 +76,7 @@
   padding: 0 0.58rem;
   background: var(--pp-surface-raised);
   color: var(--pp-accent-signal);
-  font-size: 0.58rem;
+  font-size: 0.75rem;
 }
 
 .pp-header-list {

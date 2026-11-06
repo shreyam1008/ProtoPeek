@@ -118,12 +118,21 @@ jobs:
         shell: pwsh
         run: |
           $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
-          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview
+          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview -CoreOnly
           if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
           foreach ($command in @('protopeek', 'pp')) {
             & (Join-Path $preview "$command.exe") --version
             if ($LASTEXITCODE -ne 0) { throw "Lightweight $command failed to start." }
           }
+
+      - name: Archive the Windows companion-store preview
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: protopeek-lite-windows-amd64
+          path: ${{ runner.temp }}/protopeek-lite-preview/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Native Linux publishing evidence
         if: runner.os == 'Linux'
@@ -183,6 +192,29 @@ jobs:
 
       - name: Compile both commands
         run: go build ./cmd/protopeek ./cmd/pp
+
+      - name: Native isolated agent and MCP smoke
+        run: go run ./scripts/agent-smoke
+
+      - name: Native Unix managed cloudflared lifecycle
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        timeout-minutes: 5
+        env:
+          PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
+        run: go test -count=1 -v ./internal/managedtools -run '^TestNativeCloudflaredLifecycle$'
+
+  managed-macos-intel:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Native Intel macOS managed cloudflared lifecycle
+        timeout-minutes: 5
+        env:
+          PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
+        run: go test -count=1 -v ./internal/managedtools -run '^TestNativeCloudflaredLifecycle$'
 
   installer-unix:
     strategy:

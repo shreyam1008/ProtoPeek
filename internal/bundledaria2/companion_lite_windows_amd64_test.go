@@ -54,6 +54,27 @@ func TestLiteCompanionThroughExecutable(t *testing.T) {
 	}
 	// The archive remains mandatory even when a verified cache already exists.
 	run("invalid")
+	if err := os.Remove(companion); err != nil {
+		t.Fatal(err)
+	}
+	managedDir := filepath.Join(dir, "cache", "protopeek", "engines", "aria2")
+	if err := os.MkdirAll(managedDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	managedArchive := filepath.Join(managedDir, CompanionFilename)
+	if err := os.WriteFile(managedArchive, archive, 0600); err != nil {
+		t.Fatal(err)
+	}
+	// A verified managed archive works offline when the adjacent archive is absent.
+	run("valid")
+	if err := os.WriteFile(managedArchive, tampered, 0600); err != nil {
+		t.Fatal(err)
+	}
+	run("invalid")
+	if err := os.Remove(managedArchive); err != nil {
+		t.Fatal(err)
+	}
+	run("missing")
 }
 
 func TestLiteCompanionChild(t *testing.T) {

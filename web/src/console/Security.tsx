@@ -28,6 +28,7 @@ import { AccessibleTabs, TabPanel } from './AccessibleTabs';
 import { preparePathTarget } from './network-path-draft';
 import { ProtocolInfo } from './ProtocolInfo';
 import { useProtocolShell } from './ProtocolShellContext';
+import { useNarrowViewport } from './use-narrow-viewport';
 import { readWebsiteTargets, rememberWebsiteTarget } from './website-draft';
 
 type SearchPhase = 'idle' | 'loading' | 'success' | 'error' | 'cancelled';
@@ -84,6 +85,7 @@ function timingLabel(value: number | null) {
 }
 
 export function Security() {
+  const narrow = useNarrowViewport();
   const [section, setSection] = useState<SecuritySection>('website');
   const inputID = useId();
   const disclosureID = useId();
@@ -194,7 +196,7 @@ export function Security() {
           label="Website tools"
           tabs={securitySections}
           value={section}
-          orientation="vertical"
+          orientation={narrow ? 'horizontal' : 'vertical'}
           className="pp-security-sections"
           onChange={(next) => {
             if (phase === 'loading') cancel();

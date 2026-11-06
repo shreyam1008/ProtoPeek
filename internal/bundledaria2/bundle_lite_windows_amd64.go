@@ -3,6 +3,7 @@
 package bundledaria2
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -23,6 +24,9 @@ func loadNativeBundle() (bundle, error) {
 	}
 	payload := nativeBundle
 	payload.archive, err = readCompanion(filepath.Join(filepath.Dir(executable), CompanionFilename), payload.archiveSHA, windowsArchiveSize)
+	if errors.Is(err, ErrCompanionMissing) {
+		payload.archive, err = readManagedArchive()
+	}
 	if err != nil {
 		return bundle{}, err
 	}

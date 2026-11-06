@@ -23,6 +23,8 @@ import (
 //go:embed tools.json
 var toolManifest []byte
 
+var ErrInstallUnsafe = errors.New("existing media tool files or unsafe directories prevent installation")
+
 type Asset struct {
 	Archive  string `json:"archive,omitempty"`
 	Engine   string `json:"engine"`
@@ -39,6 +41,7 @@ type Tool struct {
 	Version      string `json:"version"`
 	InstallBytes int64  `json:"installBytes"`
 	CanInstall   bool   `json:"canInstall"`
+	CanRemove    bool   `json:"canRemove"`
 	Help         string `json:"help"`
 }
 
@@ -63,6 +66,7 @@ func (s *Service) tool(name string) Tool {
 		p := s.assetPath(a)
 		if managedAssetReady(a, p) {
 			t.Path = p
+			_, t.CanRemove = removalFiles(a, filepath.Base(p))
 		}
 	}
 	if t.Path == "" {
@@ -109,6 +113,52 @@ func (s *Service) assetPath(a Asset) string {
 	return filepath.Join(s.root, "tools", a.Engine, a.Version, name)
 }
 
+// selectedTool resolves a path once and verifies managed bytes immediately
+// before launch. PATH tools remain explicitly external to ProtoPeek.
+func (s *Service) selectedTool(name string) (string, error) {
+	a, ok := assetFor(name)
+	if !ok {
+		path, _ := exec.LookPath(name)
+		return path, nil
+	}
+	path := s.assetPath(a)
+	if err := checkExistingAncestors(filepath.Dir(path)); err != nil {
+		return "", errors.New("managed media tool directory is unsafe")
+	}
+	_, binaryErr := os.Lstat(path)
+	_, receiptErr := os.Lstat(path + ".verified")
+	if errors.Is(binaryErr, os.ErrNotExist) && errors.Is(receiptErr, os.ErrNotExist) {
+		external, _ := exec.LookPath(name)
+		return external, nil
+	}
+	files, pinned := removalFiles(a, filepath.Base(path))
+	notices, noticeErr := noticesFor(a)
+	if !pinned || noticeErr != nil || verifyManagedAsset(s.root, a, path, files, notices) != nil {
+		return "", errors.New("managed media tool could not be verified; check its local files")
+	}
+	return path, nil
+}
+
+func checkExistingAncestors(path string) error {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	for dir := abs; ; dir = filepath.Dir(dir) {
+		info, err := os.Lstat(dir)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
+			return errors.New("unsafe directory")
+		}
+		if filepath.Dir(dir) == dir {
+			break
+		}
+	}
+	return nil
+}
+
 // Install only accepts manifest entries, never a URL or executable from a request.
 // The request context cancels a partial install; a partial file is never executed.
 func (s *Service) Install(ctx context.Context, name string) error {
@@ -153,8 +203,12 @@ func installVerifiedAsset(ctx context.Context, a Asset, notices assetNotices, p 
 	if err := validateNotices(notices); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+	if err := ensureSafeDirectory(filepath.Dir(p)); err != nil {
 		return err
+	}
+	entries, err := os.ReadDir(filepath.Dir(p))
+	if err != nil || len(entries) != 0 {
+		return ErrInstallUnsafe
 	}
 	stage, err := os.MkdirTemp(filepath.Dir(p), ".install-*")
 	if err != nil {
@@ -219,17 +273,64 @@ func installVerifiedAsset(ctx context.Context, a Asset, notices assetNotices, p 
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	// The receipt is the commit marker. Incomplete/cancelled promotions are not
-	// accepted as managed tools, and explicit retry can replace their own files.
-	if err := os.Remove(p + ".verified"); err != nil && !os.IsNotExist(err) {
+	// Promote with non-replacing links, and roll back only links to our own
+	// staged files. Existing receipts and user files are never overwritten.
+	if err := ensureSafeDirectory(filepath.Dir(p)); err != nil {
 		return err
 	}
-	for _, file := range receipt.Files {
-		if err := os.Rename(filepath.Join(stage, file.Name), filepath.Join(filepath.Dir(p), file.Name)); err != nil {
-			return err
+	type promoted struct{ source, target string }
+	var created []promoted
+	rollback := func() {
+		for _, item := range created {
+			a, ae := os.Lstat(item.source)
+			b, be := os.Lstat(item.target)
+			if ae == nil && be == nil && a.Mode().IsRegular() && b.Mode().IsRegular() && os.SameFile(a, b) {
+				_ = os.Remove(item.target)
+			}
 		}
 	}
-	return os.Rename(filepath.Join(stage, ".verified"), p+".verified")
+	for _, file := range receipt.Files {
+		source, target := filepath.Join(stage, file.Name), filepath.Join(filepath.Dir(p), file.Name)
+		if err := os.Link(source, target); err != nil {
+			rollback()
+			return ErrInstallUnsafe
+		}
+		created = append(created, promoted{source, target})
+	}
+	if err := os.Link(filepath.Join(stage, ".verified"), p+".verified"); err != nil {
+		rollback()
+		return ErrInstallUnsafe
+	}
+	return nil
+}
+
+func ensureSafeDirectory(path string) error {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return errors.New("tool directory unavailable")
+	}
+	var missing []string
+	for dir := abs; ; dir = filepath.Dir(dir) {
+		info, err := os.Lstat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			missing = append(missing, dir)
+		} else if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return ErrInstallUnsafe
+		}
+		if filepath.Dir(dir) == dir {
+			break
+		}
+	}
+	for i := len(missing) - 1; i >= 0; i-- {
+		if err := os.Mkdir(missing[i], 0700); err != nil && !errors.Is(err, os.ErrExist) {
+			return errors.New("tool directory unavailable")
+		}
+		info, err := os.Lstat(missing[i])
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return ErrInstallUnsafe
+		}
+	}
+	return nil
 }
 
 func installZip(ctx context.Context, source, executable, engine string, notices ...noticeFile) error {

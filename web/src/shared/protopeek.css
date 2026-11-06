@@ -139,7 +139,8 @@
   }
 
   .pp-button-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-pp-brand px-3.5 py-2 text-sm font-semibold text-white hover:bg-pp-brand-strong active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-pp-brand px-3.5 py-2 text-sm font-semibold hover:bg-pp-brand-strong active:scale-[0.98];
+    color: var(--pp-inverse-text);
   }
 
   .pp-button-secondary {

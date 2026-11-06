@@ -2,6 +2,18 @@ import type { FeatureId } from './app/feature-registry';
 
 type ToolHelp = { steps: readonly string[]; boundary: string };
 
+export const mediaDownloadHelp: ToolHelp = {
+  steps: [
+    'Choose the media type that fits your link.',
+    'Review Engine setup. Install a supported engine only if needed.',
+    'Enter the link, destination and options. For built-in page media, you may inspect the page first.',
+    'Queue the download when the chosen engine is available.',
+    'Review the queue, job status and available actions.',
+  ],
+  boundary:
+    'Site support varies. Built-in page media needs no separate engine; some other types need optional tools or separate setup.',
+};
+
 /** Task guidance describes existing controls; opening it performs no operation. */
 export const toolHelp: Record<FeatureId, ToolHelp> = {
   overview: {
@@ -9,12 +21,11 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Choose a task or enter a service address.',
       'Open a workbench to review the draft before sending or scanning.',
     ],
-    boundary: 'Entering an address alone does not contact it.',
+    boundary: 'Opening a draft sends nothing.',
   },
   protocols: {
     steps: [
-      'Choose the protocol used by your service.',
-      'Enter its address and review the request in that workbench.',
+      'Choose the protocol used by your service, then enter its address and review the request in that workbench.',
     ],
     boundary: 'A port number alone does not establish the application protocol.',
   },
@@ -24,13 +35,13 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Load a schema through reflection, files, or host paths; choose a method and invoke it.',
       'Inspect messages, headers, trailers and final status separately.',
     ],
-    boundary: 'Reflection is optional; a server may require supplied schemas or credentials.',
+    boundary: 'Servers without reflection need a supplied schema.',
   },
   http: {
     steps: [
       'Choose a method and enter a request URL.',
       'Add headers, authentication or a body as needed, then send.',
-      'Review status, headers, body and timing.',
+      'Read status, headers, body and timing.',
     ],
     boundary: 'Redirects are off and certificate verification is on by default.',
   },
@@ -49,12 +60,12 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Inspect the response or use a bounded capability call plan.',
     ],
     boundary:
-      'Source compilation needs a separate compiler. Plans support up to eight steps; list elements and union branches cannot be pipelined.',
+      'Source needs a compiler. Plans allow eight steps and exclude list elements and union branches.',
   },
   network: {
     steps: [
-      'Choose a network tool for the evidence you need.',
-      'Review the target and scope before starting an active check.',
+      'Choose a private network scope and review the plan.',
+      'Start discovery only for a network you are authorized to inspect.',
     ],
     boundary: 'An observation describes a point in time, not a guarantee of reachability.',
   },
@@ -79,7 +90,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Check the installed client and its local status.',
       'Review an available action and confirm before changing connection state.',
     ],
-    boundary: 'NetBird must be installed and its account remains managed by you.',
+    boundary: 'NetBird needs its client and an account.',
   },
   'network-route': {
     steps: [
@@ -110,8 +121,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Enter the destination and choose the path check.',
       'Run the check and inspect DNS, route and hop observations.',
     ],
-    boundary:
-      'Hop round trips are measured from this host; silent hops do not necessarily indicate a fault.',
+    boundary: 'Hop times start here. A silent hop may still forward traffic.',
   },
   'network-local': {
     steps: [
@@ -123,17 +133,17 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   },
   'network-map': {
     steps: [
-      'Create or open a local evidence workspace.',
+      'Save a nearby scan or path, import a map, or choose an existing workspace.',
       'Review nodes and observations, then save a snapshot or export it.',
     ],
-    boundary: 'Maps are browser-local evidence; missing links are not inferred as connections.',
+    boundary: 'Maps store observed or manual links in this browser.',
   },
   'network-history': {
     steps: [
       'Select a workspace and inspect its saved snapshots.',
       'Compare observations or preview an offline Nmap XML import before saving.',
     ],
-    boundary: 'Imported XML is evidence only; the importer does not run Nmap.',
+    boundary: 'Importing saved XML runs no scan.',
   },
   'this-pc': {
     steps: [
@@ -147,10 +157,9 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   tailnet: {
     steps: [
       'Check the installed Tailscale client and its local status.',
-      'Review peers or available diagnostics; confirm actions before changing state.',
+      'Inspect peers or diagnostics. Review changes before applying them.',
     ],
-    boundary:
-      'Tailscale or a compatible coordination service and an account are separately managed.',
+    boundary: 'Use your Tailscale or compatible coordination account.',
   },
   extensions: {
     steps: [
@@ -164,8 +173,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Inspect the local cloudflared installation and configuration.',
       'Review a route or an available service action before applying it.',
     ],
-    boundary:
-      'Local configuration and account-managed tunnels have different authorities; cloudflared is separate.',
+    boundary: 'Local config and account tunnels use separate permissions.',
   },
   publishing: {
     steps: [
@@ -173,8 +181,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Review the temporary session and explicitly confirm its audience before starting.',
       'Check the session and stop the owned process when finished.',
     ],
-    boundary:
-      'A public audience can expose your service to the Internet; a session continues if you leave the page.',
+    boundary: 'Public sessions expose your origin and continue after you leave.',
   },
   downloader: {
     steps: [
@@ -182,7 +189,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Start the job, then inspect progress, pause or resume when available.',
     ],
     boundary:
-      'Transfers use aria2. Standard Windows x64 builds include a fallback; lightweight builds need their local companion or an installed engine. Other platforms need an available engine.',
+      'Windows x64 includes aria2 in standard builds. In the lightweight build, install aria2 from Extensions or choose an existing engine. Other platforms use an installed engine.',
   },
   'local-transfer': {
     steps: [
@@ -206,14 +213,14 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Choose your appearance and interface preferences.',
       'Use the relevant section to manage local settings or data.',
     ],
-    boundary: 'Some browser-stored preferences may be session-only if storage is unavailable.',
+    boundary: 'With storage blocked, preferences last for this session.',
   },
   agents: {
     steps: [
       'Choose an agent client and review its connection instructions.',
       'Enable pairing only when needed, then inspect available tools and activity.',
     ],
-    boundary: 'Agent access is local and opt-in; a client must be configured separately.',
+    boundary: 'Pair a separately configured client to enable local access.',
   },
   updates: {
     steps: [
@@ -225,7 +232,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   roadmap: {
     steps: [
       'Browse shipped capabilities and planned work.',
-      'Open a related tool or guide to explore what is available now.',
+      'Use the status filters to compare available and planned work.',
     ],
     boundary: 'Planned items are not claims of shipped functionality.',
   },

@@ -5,16 +5,13 @@ const extension = {
   download: 'https://ollama.com/download',
   guide: 'https://docs.ollama.com/api/introduction',
   setup: {
-    windows:
-      'Use the official Windows app; review its background-server behavior and hardware requirements.',
-    darwin: 'Use the official macOS app and review hardware needs before choosing a local model.',
-    linux:
-      'Follow the official Linux installation/service instructions; start your server deliberately.',
+    windows: 'Install Ollama and check its background server and hardware requirements.',
+    darwin: 'Install Ollama for macOS and check model memory needs.',
+    linux: 'Install Ollama and explicitly start its server.',
   },
-  afterSetup:
-    'Prepare the model-list request for your own running local server. Installation, server startup and model download/loading are separate steps.',
+  afterSetup: 'Start Ollama, then open a model-list request. Models download separately.',
   notes: [
-    'Never publish the model-server port. ProtoPeek does not download models, sign in or start Ollama.',
+    'Keep the model port private. Start Ollama and install models yourself.',
     'Native streaming JSON is not SSE. Keep the actual protocol and response limits visible.',
   ],
   endpoint: {

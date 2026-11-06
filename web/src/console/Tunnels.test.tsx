@@ -362,6 +362,63 @@ afterEach(() => {
 });
 
 describe('Tunnels', () => {
+  it('points an unverifiable managed companion to status rather than install', async () => {
+    stubTunnelAPI({
+      snapshot: {
+        ...unavailableSnapshot,
+        cloudflared: {
+          found: false,
+          source: 'managed',
+          path: '',
+          version: '',
+          note: 'The managed cloudflared companion could not be verified.',
+        },
+      },
+    });
+    renderTunnels();
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect this host' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Check the managed companion' })
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open companion status' })).toHaveAttribute(
+      'href',
+      '#/extensions?extension=cloudflared'
+    );
+    expect(screen.getByText('Needs attention')).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Install cloudflared first' })
+    ).not.toBeInTheDocument();
+  });
+  it('identifies a managed connector and keeps alternative setup secondary', async () => {
+    const request = stubTunnelAPI({
+      snapshot: {
+        ...unavailableSnapshot,
+        cloudflared: {
+          found: true,
+          source: 'managed',
+          path: '/cache/cloudflared',
+          version: 'cloudflared version 2026.10.7',
+          note: '',
+        },
+      },
+    });
+    renderTunnels();
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect this host' }));
+    await screen.findByText('ProtoPeek managed companion');
+    expect(screen.getByText(/Local service, managed companion and PATH evidence/)).toBeVisible();
+    const alternative = screen.getByText('Other installation options');
+    expect(alternative.closest('details')).not.toHaveAttribute('open');
+    expect(
+      screen.getByRole('heading', { name: 'Install or update cloudflared' })
+    ).not.toBeVisible();
+    fireEvent.click(alternative);
+    expect(screen.getByRole('heading', { name: 'Install or update cloudflared' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Manage the ProtoPeek companion' })).toHaveAttribute(
+      'href',
+      '#/extensions?extension=cloudflared'
+    );
+    expect(request).toHaveBeenCalledTimes(2);
+  });
   it('keeps a listener origin as a non-executing draft until a deployment is selected', async () => {
     const request = stubTunnelAPI();
     const observedAt = new Date(Date.now() - 1_000).toISOString();
@@ -619,6 +676,10 @@ describe('Tunnels', () => {
     expect(new URL(String(releaseRequest[0])).pathname).toBe('/api/tunnels/release');
     expect(releaseRequest[1]).toMatchObject({ method: 'POST' });
     for (const link of screen.getAllByRole('link')) {
+      if (link.getAttribute('href')?.startsWith('#/')) {
+        expect(link).toHaveAttribute('href', '#/extensions?extension=cloudflared');
+        continue;
+      }
       expect(link).toHaveAttribute('target', '_blank');
       expect(link.getAttribute('rel')).toContain('noreferrer');
       expect(link.getAttribute('rel')).toContain('noopener');
