@@ -30,8 +30,6 @@ if (-not $ChecksumUrl) { $ChecksumUrl = $env:PROTOPEEK_CHECKSUM_URL }
 $SkipPathUpdate = $NoPathUpdate -or $env:PROTOPEEK_NO_PATH_UPDATE -eq "1"
 $SkipShortcuts = $NoShortcuts -or $env:PROTOPEEK_NO_SHORTCUTS -eq "1"
 $InstallDir = [IO.Path]::GetFullPath($InstallDir)
-if (-not $ShortcutDir) { $ShortcutDir = Join-Path ([Environment]::GetFolderPath('Programs')) 'ProtoPeek' }
-$ShortcutDir = [IO.Path]::GetFullPath($ShortcutDir)
 
 function Assert-Tag([string]$Tag) {
     if ($Tag -notmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$') {
@@ -223,6 +221,8 @@ try {
 
     if (-not $SkipShortcuts) {
         try {
+            if (-not $ShortcutDir) { $ShortcutDir = Join-Path ([Environment]::GetFolderPath('Programs')) 'ProtoPeek' }
+            $ShortcutDir = [IO.Path]::GetFullPath($ShortcutDir)
             New-Item -ItemType Directory -Path $ShortcutDir -Force | Out-Null
             $ShortcutPath = Join-Path $ShortcutDir 'ProtoPeek.lnk'
             $ShortcutShell = New-Object -ComObject WScript.Shell
@@ -245,11 +245,13 @@ try {
     }
     Write-Host "Open now: & `"$ProtoPeekTarget`" -open-browser=true -port $UIPort"
     Write-Host 'Keep the ProtoPeek process running while downloads are active; closing the browser is fine.'
-    $IncludesBundledAria = $ResolvedTag -in @('v0.0.0-nightly', 'v0.0.0-edge') -or
-        ($ResolvedTag -match '^v(\d+)\.(\d+)\.(\d+)$' -and
-        ([version]$ResolvedTag.TrimStart('v')) -ge [version]'0.6.0')
-    if ($ReleaseArch -eq 'x86_64' -and $IncludesBundledAria) {
-        Write-Host 'Downloader includes aria2; start it from Files. No separate engine install is needed.'
+    if ($ReleaseArch -eq 'x86_64') {
+        $HasOfflineCompanion = Select-String -LiteralPath $ChecksumsPath -Quiet -CaseSensitive -Pattern '^[a-fA-F0-9]{64}\s+\*?protopeek-aria2-[\w.-]+-win-64bit-build\d+\.zip$'
+        if ($HasOfflineCompanion) {
+            Write-Host 'For downloads, install aria2 from Extensions. For offline setup, place the verified companion ZIP beside protopeek.exe.'
+        } else {
+            Write-Host 'Open Files > Downloader to check the aria2 engine for this installation.'
+        }
     } elseif (-not (Get-Command aria2c -ErrorAction SilentlyContinue)) {
         Write-Host 'Downloader needs aria2. With Scoop: scoop install aria2. Configure its path in Settings if needed.'
     }

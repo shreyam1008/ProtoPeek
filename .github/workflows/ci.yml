@@ -400,7 +400,8 @@ jobs:
           $checksums = Join-Path $fixture 'checksums.txt'
           Set-Content -LiteralPath $checksums -Value "$hash  $([IO.Path]::GetFileName($archive))"
 
-          & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate
+          $installSummary = & ./install.ps1 -DownloadUrl $archive -ChecksumUrl $checksums -InstallDir $installDir -NoPathUpdate 6>&1 | Out-String
+          if ($installSummary -notlike '*check the aria2 engine*') { throw 'Missing engine guidance for the archive without a companion.' }
           & (Join-Path $installDir 'protopeek.exe') -version
           & (Join-Path $installDir 'pp.exe') -version
 
@@ -408,10 +409,14 @@ jobs:
           New-Item -ItemType Directory -Path $nightlyDir -Force | Out-Null
           $nightlyName = 'protopeek_0.0.0-nightly_windows_x86_64.zip'
           Copy-Item -LiteralPath $archive -Destination (Join-Path $nightlyDir $nightlyName)
-          Set-Content -LiteralPath (Join-Path $nightlyDir 'checksums.txt') -Value "$hash  $nightlyName"
+          $companion = Get-Item 'internal/bundledaria2/assets/aria2-*-win-64bit-build*.zip'
+          $companionHash = (Get-FileHash -LiteralPath $companion.FullName -Algorithm SHA256).Hash
+          Copy-Item -LiteralPath $companion.FullName -Destination (Join-Path $nightlyDir "protopeek-$($companion.Name)")
+          Set-Content -LiteralPath (Join-Path $nightlyDir 'checksums.txt') -Value "$hash  $nightlyName", "$companionHash  protopeek-$($companion.Name)"
           $env:PROTOPEEK_DOWNLOAD_BASE_URL = Join-Path $fixture 'releases'
           try {
-            & ./install.ps1 -Channel nightly -InstallDir (Join-Path $fixture 'nightly-install') -NoPathUpdate
+            $nightlySummary = & ./install.ps1 -Channel nightly -InstallDir (Join-Path $fixture 'nightly-install') -NoPathUpdate 6>&1 | Out-String
+            if ($nightlySummary -notlike '*install aria2 from Extensions*') { throw 'Missing on-demand setup guidance for the companion release.' }
             & (Join-Path $fixture 'nightly-install/protopeek.exe') -version
             & (Join-Path $fixture 'nightly-install/pp.exe') -version
           } finally {
