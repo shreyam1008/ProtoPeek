@@ -1050,10 +1050,11 @@ export function HTTPWorkbench() {
         </div>
       ) : null}
       <OperationStatus busy={requestPending} label="Sending HTTP request" />
+      <p className="sr-only pp-http-result-announcement" aria-live="polite" aria-atomic="true">
+        {response ? `HTTP response ${response.status}.` : ''}
+      </p>
       {requestPending ? (
-        <p className="pp-http-running-notice" role="status">
-          Leaving this tool cancels the request.
-        </p>
+        <p className="pp-http-running-notice">Leaving this tool cancels the request.</p>
       ) : null}
       {draftSaveError || draftNotice ? (
         <div className="pp-http-replay-notice" role="status">

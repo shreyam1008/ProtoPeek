@@ -330,6 +330,9 @@ describe('HTTPWorkbench', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Send/ }));
     const evidence = screen.getByRole('region', { name: 'HTTP response evidence' });
     await waitFor(() => expect(within(evidence).getByText(/"ok": true/)).toBeVisible());
+    const announcement = screen.getByText('HTTP response 200 OK.');
+    expect(announcement).toHaveAttribute('aria-live', 'polite');
+    expect(announcement).toHaveAttribute('aria-atomic', 'true');
 
     fireEvent.change(screen.getByLabelText('Request URL'), {
       target: { value: 'https://user:secret@example.test/' },
@@ -341,6 +344,8 @@ describe('HTTPWorkbench', () => {
     );
     expect(within(evidence).queryByText('{"ok":true}')).not.toBeInTheDocument();
     expect(within(evidence).getByText('No response yet')).toBeVisible();
+    expect(announcement).toBeInTheDocument();
+    expect(announcement).toBeEmptyDOMElement();
     expect(screen.getByRole('tab', { name: 'Response' })).toBeInTheDocument();
   });
 

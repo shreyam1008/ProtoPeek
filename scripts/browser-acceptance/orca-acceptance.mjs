@@ -36,9 +36,11 @@ async function waitForSpeech(start, pattern, label) {
 }
 
 try {
+  let requests = 0;
   fixture = createServer((_request, response) => {
-    response.writeHead(200, { 'content-type': 'text/plain' });
-    response.end('orca-loopback-fixture');
+    requests++;
+    response.writeHead(requests === 1 ? 200 : 202, { 'content-type': 'text/plain' });
+    response.end(`orca-loopback-fixture-${requests}`);
   });
   await new Promise((resolve) => fixture.listen(0, '127.0.0.1', resolve));
   const fixtureUrl = `http://127.0.0.1:${fixture.address().port}/`;
@@ -125,15 +127,23 @@ try {
   await page.keyboard.press('Tab');
   assert.ok(await send.evaluate((node) => node === document.activeElement), 'Tab did not focus Send');
   await waitForSpeech(marker, /\bSend\b/i, 'Send');
-  marker = (await debugText()).length;
-  await page.keyboard.press('Enter');
-  await page.locator('[aria-label="HTTP response evidence"]').getByText('orca-loopback-fixture')
-    .waitFor({ state: 'visible', timeout: 15000 });
   const summary = page.locator('.pp-http-response-summary');
-  assert.equal(await summary.getAttribute('aria-live'), 'polite');
-  assert.match(await summary.innerText(), /\b200\s+OK\b/);
-  await waitForSpeech(marker, /\b200\s+OK\b/i, 'HTTP response 200 OK');
-  report += 'PASS keyboard Send returned the owned loopback fixture.\n';
+  const announcement = page.locator('.pp-http-result-announcement');
+  assert.equal(await announcement.getAttribute('aria-live'), 'polite');
+  assert.equal(await announcement.getAttribute('aria-atomic'), 'true');
+  for (const [index, status] of ['200 OK', '202 Accepted'].entries()) {
+    assert.ok(await send.evaluate((node) => node === document.activeElement), 'Send lost keyboard focus');
+    marker = (await debugText()).length;
+    await page.keyboard.press('Enter');
+    await page.locator('[aria-label="HTTP response evidence"]').getByText(`orca-loopback-fixture-${index + 1}`)
+      .waitFor({ state: 'visible', timeout: 15000 });
+    assert.ok((await summary.innerText()).includes(status));
+    const result = `HTTP response ${status}`;
+    assert.equal(await announcement.textContent(), result + '.');
+    await waitForSpeech(marker, new RegExp(result, 'i'), result);
+  }
+  assert.equal(requests, 2);
+  report += 'PASS keyboard Send returned both owned loopback responses.\n';
   report += 'Scope: Orca dispatch attempts only; audio synthesis and audible output were not checked.\n';
   console.log(report);
 } catch (error) {
