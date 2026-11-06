@@ -159,10 +159,7 @@ export function NetworkDiagnostics() {
   return (
     <div className="pp-diagnostics">
       <PageHeader>
-        <div>
-          <h1>Diagnostics</h1>
-          <p>One target. Clear evidence. No background monitoring.</p>
-        </div>
+        <h1>Diagnostics</h1>
         <Link to="/network/path">Trace a path</Link>
       </PageHeader>
       <form

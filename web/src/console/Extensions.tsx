@@ -108,15 +108,11 @@ export function Extensions() {
         Number(preferences.pinned.includes(b.id)) - Number(preferences.pinned.includes(a.id))
     );
   return (
-    <div className="pp-extensions">
+    <div className="pp-extensions pp-extension-library">
       <PageHeader>
-        <div>
-          <p className="pp-eyebrow">Extensions</p>
-          <h1>Add only what you need.</h1>
-          <p>Manage local companions or find a tool for your next task.</p>
-        </div>
+        <h1>Extension library</h1>
         <Link to="/agents" preload={false}>
-          AI agent activity <ArrowRight aria-hidden="true" />
+          AI agent activity
         </Link>
       </PageHeader>
       <details className="pp-panel pp-extensions-base" aria-label="Included base tools">

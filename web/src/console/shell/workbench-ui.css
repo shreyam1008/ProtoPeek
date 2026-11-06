@@ -353,6 +353,8 @@
   :is(
     .pp-ports,
     .pp-events,
+    .pp-extension-library,
+    .pp-diagnostics,
     .pp-evidence-workbench,
     .pp-suite-page,
     .pp-security,
@@ -368,7 +370,10 @@
   gap: 16px;
   padding-bottom: 16px;
 }
-.pp-workbench-shell .pp-workbench-canvas :is(.pp-ports, .pp-events) > :not(.pp-page-header) {
+.pp-workbench-shell
+  .pp-workbench-canvas
+  :is(.pp-ports, .pp-events, .pp-extension-library, .pp-diagnostics)
+  > :not(.pp-page-header) {
   margin-inline: var(--pp-workspace-gutter);
 }
 .pp-workbench-shell .pp-workbench-canvas .pp-ports form {

@@ -43,7 +43,7 @@ it('finds a gallery companion in the library and opens its actual media setup', 
   vi.stubGlobal('fetch', fetchMock);
   const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/extensions'] }));
   render(<RouterProvider router={router} />);
-  await screen.findByRole('heading', { name: 'Add only what you need.' });
+  await screen.findByRole('heading', { name: 'Extension library', level: 1 });
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search extensions' }), {
     target: { value: 'gallery album' },
   });

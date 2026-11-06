@@ -20,7 +20,12 @@ func TestResolveTrustedRootAliasWithoutCreatingDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(real, "missing")
+	// macOS exposes its temporary directory through /var -> /private/var.
+	canonical, err := filepath.EvalSymlinks(real)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(canonical, "missing")
 	if resolved != want {
 		t.Fatalf("got %q want %q", resolved, want)
 	}

@@ -124,7 +124,7 @@ describe('optional extension library', () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     show();
-    await screen.findByRole('heading', { name: 'Add only what you need.' });
+    await screen.findByRole('heading', { name: 'Extension library', level: 1 });
     expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4);
     expect(screen.getByRole('link', { name: 'Open live capture' })).toHaveAttribute(
       'href',
@@ -158,7 +158,7 @@ describe('optional extension library', () => {
   it('recovers empty filters and shows preference failures without losing the in-memory selection', async () => {
     vi.stubGlobal('fetch', vi.fn());
     show();
-    await screen.findByRole('heading', { name: 'Add only what you need.' });
+    await screen.findByRole('heading', { name: 'Extension library', level: 1 });
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nothing-matches' } });
     expect(screen.getByRole('heading', { name: 'No matching extensions.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
@@ -253,7 +253,7 @@ describe('optional extension library', () => {
     });
     expect(signal?.aborted).toBe(true);
     await act(async () => resolve(Response.json(snapshot())));
-    await screen.findByRole('heading', { name: 'Add only what you need.' });
+    await screen.findByRole('heading', { name: 'Extension library', level: 1 });
     expect(screen.queryByText(/Last checked/)).not.toBeInTheDocument();
   });
   it('leaves unknown extensions inert and does not load a package or contact the host', async () => {

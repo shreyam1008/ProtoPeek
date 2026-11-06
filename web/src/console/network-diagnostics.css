@@ -1,7 +1,6 @@
 .pp-diagnostics {
   height: 100%;
   overflow: auto;
-  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -221,9 +220,6 @@
   font-size: 12px;
 }
 @media (max-width: 760px) {
-  .pp-diagnostics {
-    padding: 14px;
-  }
   .pp-diag-target {
     grid-template-columns: minmax(0, 1fr);
   }
