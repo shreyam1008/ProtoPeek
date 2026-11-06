@@ -64,6 +64,12 @@ derp:
 	start := func(name string, args ...string) {
 		t.Helper()
 		cmd := exec.CommandContext(t.Context(), name, args...)
+		if name == "tailscaled" {
+			// Tailscale v1.104.5 pauses its control client without a non-loopback
+			// interface (ipn/ipnlocal/local.go:shouldPauseControlClientLocked).
+			// Permit the real local control handshake inside this networkless namespace.
+			cmd.Env = append(os.Environ(), "TS_ASSUME_NETWORK_UP_FOR_TEST=1")
+		}
 		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
 		}

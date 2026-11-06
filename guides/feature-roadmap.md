@@ -1,19 +1,10 @@
 # ProtoPeek roadmap
 
 
-**8 September 2026 · Nightly update workflow:** `pp update` and `protopeek update` share a
-bounded, verified updater across Windows/macOS/Linux. Settings → Updates adds manual
-checks, stable/nightly/legacy-edge previews, availability warnings, confirmation, cancellation and restart
-guidance. Package-managed installations retain their manager. Existing v0.6.1 installations
-need an initial installer upgrade to obtain the command.
-
-Updated for v0.6.1 on 7 September 2026. The [changelog](../CHANGELOG.md) records previous releases;
-the [acceptance record](workbench-overhaul-2026-09.md) records tests, observations and remaining gaps.
-
 ## Source changes since v0.7.0
 
-- Choose **Guide** to highlight the current workbench controls. Mobile Settings, Security and Roadmap place section controls above their content.
-- Six companions support managed installation on supported hosts through the app and CLI. The Windows x64 release recipes keep aria2 separate. Existing verified v0.7.0 caches work offline. Other integrations link to vendor setup or an existing workbench. See [Extensions](extensions.md).
+- Choose **Guide** on any of the 29 registered workbenches or the Files media view. Follow the highlighted control, or read the prerequisite for an unavailable step. **Search tools** opens the command palette directly.
+- Search 24 entries in Extensions. Six companions support managed installation on supported hosts through the app and CLI. The portable Windows x64 core can fetch its pinned aria2 companion or reuse a verified v0.7.0 cache offline. The Store packaging recipe carries the offline companion beside the core. Other entries open the relevant workbench or vendor setup. See [Extensions](extensions.md).
 - Agents can search tools offline, inspect a single schema, read managed-companion availability, and request bounded DNS, TLS or subnet checks. See [agent setup](ai-agents.md).
 
 ## Published checkpoint · 23 October 2026
@@ -47,7 +38,15 @@ layouts, mobile command search and a searchable roadmap. The verified implementa
 passed 776 UI tests, cross-platform CI and production archive checks. Browser PCAP and compiled
 Cap’n Proto uploads now have real acceptance evidence; privileged live capture remains unverified.
 
-## Available in v0.6.1
+## Earlier milestones
+
+On 8 September 2026, Nightly added a verified updater for Windows, macOS and Linux. Run
+`pp update` or open **Settings → Updates** to check the installed channel and review a change.
+Package-managed installations use their manager. Existing v0.6.1 installations need an initial
+installer upgrade to obtain the updater. The [changelog](../CHANGELOG.md) records previous
+releases and the [September acceptance record](workbench-overhaul-2026-09.md) lists their tests.
+
+### Available in v0.6.1
 
 Six permanent destinations keep related tools together. Existing deep links remain compatible.
 

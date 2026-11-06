@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/shreyam1008/ProtoPeek/internal/media"
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 func TestManagedExtensionsJSONAndValidation(t *testing.T) {
@@ -113,6 +114,10 @@ func TestManagedMediaCLIReportsRecoveryPathAfterFailedVerification(t *testing.T)
 		t.Skip("no managed gallery-dl package on this host")
 	}
 	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err = userroot.Resolve(config)
 	if err != nil {
 		t.Fatal(err)
 	}

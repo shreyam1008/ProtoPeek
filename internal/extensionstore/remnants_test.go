@@ -9,6 +9,7 @@ import (
 
 	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"github.com/shreyam1008/ProtoPeek/internal/media"
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 func TestStatusReportsPreservedSetupEntriesWithoutChangingThem(t *testing.T) {
@@ -26,6 +27,14 @@ func TestStatusReportsPreservedSetupEntriesWithoutChangingThem(t *testing.T) {
 		t.Fatal(err)
 	}
 	cache, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err = userroot.Resolve(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache, err = userroot.Resolve(cache)
 	if err != nil {
 		t.Fatal(err)
 	}

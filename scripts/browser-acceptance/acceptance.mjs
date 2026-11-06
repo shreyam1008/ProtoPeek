@@ -277,6 +277,49 @@ async function operations(page, base, port) {
   console.log('PASS local managed companion inventory');
 }
 
+async function extensionHandoffs(page, base, port) {
+  const fixtureURL = `http://127.0.0.1:${port}/echo`;
+  let sends = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/http/request') sends++;
+  });
+  for (const [id, initialURL] of [
+    ['caddy', 'http://127.0.0.1:2019/reverse_proxy/upstreams'],
+    ['docker', 'http://127.0.0.1:8080/'],
+    ['podman', 'http://127.0.0.1:8080/'],
+    ['kubectl', 'http://127.0.0.1:8080/'],
+    ['openssh', 'http://127.0.0.1:8080/'],
+    ['ollama', 'http://127.0.0.1:11434/api/tags'],
+    ['lm-studio', 'http://127.0.0.1:1234/v1/models'],
+  ]) {
+    const before = sends;
+    await readyPage(page, base, `/extensions?extension=${id}`);
+    const endpoint = page.getByLabel('Endpoint URL');
+    assert.equal(await endpoint.inputValue(), initialURL);
+    await endpoint.fill(fixtureURL);
+    await press(page, page.getByRole('button', { name: 'Open HTTP draft' }));
+    assert.equal(await page.getByLabel('Request URL').inputValue(), fixtureURL);
+    assert.equal(sends, before, `${id} sent an unreviewed draft`);
+    const response = page.waitForResponse((result) => new URL(result.url()).pathname === '/api/http/request');
+    await press(page, page.locator('.pp-http-send'));
+    assert.equal((await response).status(), 200);
+    await page.getByLabel('HTTP response evidence').getByText('protopeek-loopback-fixture').waitFor();
+    assert.equal(sends, before + 1);
+    console.log(`PASS ${id} endpoint handoff and explicit fixture request`);
+  }
+
+  const before = sends;
+  await readyPage(page, base, '/extensions?extension=ngrok');
+  assert.equal(await page.getByRole('region', { name: 'Manual recipes' }).getByRole('textbox').inputValue(),
+    'ngrok http http://127.0.0.1:8080');
+  await readyPage(page, base, '/extensions?extension=chatgpt');
+  assert.equal(await page.getByRole('link', { name: 'Open ChatGPT web' }).getAttribute('href'), 'https://chatgpt.com/');
+  assert.match(await page.getByRole('region', { name: 'Manual recipes' }).getByRole('textbox').inputValue(),
+    /^Help me plan a local service check with ProtoPeek\..+Do not assume access to my computer or run any action\.$/);
+  assert.equal(sends, before);
+  console.log('PASS ngrok recipe and ChatGPT companion prompt without external activity');
+}
+
 try {
   for (const directory of Object.values(dirs)) await mkdir(directory, { recursive: true });
   const registry = await import(
@@ -421,6 +464,7 @@ try {
     console.log(`PASS ${viewport.name} media handoff guide`);
     phase = 'operations';
     await operations(page, base, port);
+    await extensionHandoffs(page, base, port);
     await context.close();
   }
   check(failures.length === 0, failures.join('\n'));

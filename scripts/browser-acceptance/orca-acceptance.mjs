@@ -82,6 +82,13 @@ try {
   const commands = page.getByRole('dialog', { name: 'ProtoPeek commands' });
   await commands.waitFor({ state: 'visible' });
   const search = commands.getByRole('combobox', { name: 'Search commands' });
+  // The dialog deliberately focuses its input on the next animation frame.
+  // Keep the focus assertion, but wait for that user-visible state to settle.
+  await page.waitForFunction(
+    () => document.activeElement?.matches('[aria-label="Search commands"]'),
+    null,
+    { timeout: 10000 }
+  );
   assert.ok(await search.evaluate((node) => node === document.activeElement), 'Find did not focus search');
   await page.keyboard.type('HTTP');
   const selected = commands.locator('[role="option"][aria-selected="true"]');
