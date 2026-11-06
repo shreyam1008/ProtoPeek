@@ -18,12 +18,13 @@ import urllib.parse
 import urllib.request
 
 
-def run(command, *, cwd, env, timeout=60):
+def run(command, *, cwd, env, timeout=60, include_stderr=False):
     result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=timeout)
     output = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', result.stdout)
+    stderr = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', result.stderr)
     if result.returncode:
-        raise RuntimeError(f'{Path(command[0]).name} exited {result.returncode}: {(output + result.stderr)[-1000:]}')
-    return output
+        raise RuntimeError(f'{Path(command[0]).name} exited {result.returncode}: {(output + stderr)[-1000:]}')
+    return output + '\n' + stderr if include_stderr else output
 
 
 def wait_for_launcher(process):
@@ -42,7 +43,7 @@ def wait_for_launcher(process):
 
 def connected(line):
     return bool(re.search(r'\bconnected\b', line, re.IGNORECASE)) and not re.search(
-        r'\b(?:not\s+connected|disconnected|failed|error|disabled|unreachable)\b', line, re.IGNORECASE
+        r'\b(?:not\s+connected|disconnected|failed|error|disabled|unreachable|pending|blocked)\b', line, re.IGNORECASE
     )
 
 
@@ -138,7 +139,22 @@ def main():
                 reported_version = run([*executable, '--version'], cwd=project, env=env)
                 if not re.search(rf'(?<!\d){re.escape(version)}(?!\d)', reported_version):
                     raise RuntimeError(f'{client}: binary did not report the pinned version {version}')
-                output = run([*executable, 'mcp', 'list'], cwd=project, env=env)
+                if client == 'gemini-cli':
+                    # Gemini's status is emitted through debugLogger, which also writes
+                    # to this fresh private log even when its console is intercepted.
+                    env['GEMINI_DEBUG_LOG_FILE'] = str(project / 'mcp-status.log')
+                output = run([*executable, 'mcp', 'list'], cwd=project, env=env, include_stderr=True)
+                if client == 'gemini-cli' and Path(env['GEMINI_DEBUG_LOG_FILE']).is_file():
+                    log = Path(env['GEMINI_DEBUG_LOG_FILE']).read_text(encoding='utf-8')
+                    # Prefer direct output when present; otherwise use the same
+                    # client's own debugLogger output. Never count both twice.
+                    if not any(
+                        'protopeek' in line.lower() and re.search(
+                            r'\b(?:connected|disconnected|failed|error|disabled|pending|blocked)\b',
+                            line, re.IGNORECASE,
+                        ) for line in output.splitlines()
+                    ):
+                        output = log or output
                 status_lines = [line for line in output.splitlines() if 'protopeek' in line.lower() and connected(line)]
                 if len(status_lines) != 1:
                     raise RuntimeError(f'{client}: expected the generated server to be connected: {output[-1000:]}')
