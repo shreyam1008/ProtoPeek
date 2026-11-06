@@ -20,8 +20,9 @@ scan, capture, sign-in flow, model download or service. Cancelling a slow check 
 an OS filesystem lookup already waiting may still finish.
 
 In current source, choose **Help → Start guided steps** to walk through the selected tool.
-The lightweight Windows x64 preview can install aria2 from Extensions or use a verified ZIP beside the executable for offline setup. Standard Windows x64 releases embed the fallback. For the local preview,
-see the [build instructions](https://github.com/shreyam1008/ProtoPeek/blob/master/internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
+Current release recipes use the lightweight Windows x64 build. Install aria2 on demand or supply its
+verified offline ZIP beside the executable. The release recipes attach the Windows aria2 ZIP separately under its expected name. A previously prepared v0.7.0 engine can be reused after verification. Published v0.7.0 embeds the fallback. See the
+[offline build instructions](https://github.com/shreyam1008/ProtoPeek/blob/master/internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
 
 Setup applies to the **machine running ProtoPeek**, which may differ from the machine displaying
 your browser. A remote server or container needs its own accessible tools. Guidance uses the host
@@ -31,7 +32,7 @@ operating system and points to official installation instructions.
 
 The current library has 24 entries. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Each entry lists the hosts with pinned builds. In Files you can install the selected tool, use it, and remove its verified managed copy. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
 
-Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop any active use before choosing **Remove companion**.
+Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop active use before choosing **Remove companion**. If a cached aria2 archive changes, **Repair companion** preserves it in quarantine and downloads a verified replacement. Files offers **Repair setup** for a partial media installation when its remaining files can be verified.
 
 The terminal uses the same local installation and returns JSON:
 

@@ -176,6 +176,9 @@ export default function ExtensionDetails({
         <p role="status">Loading this extension’s setup…</p>
       ) : (
         <>
+          {entry.id === 'cloudflared' || entry.id === 'aria2' ? (
+            <ManagedExtension id={entry.id} />
+          ) : null}
           <div className="pp-extension-detail-actions">
             {route ? (
               <Link
@@ -211,9 +214,7 @@ export default function ExtensionDetails({
               Official guide <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
-          {entry.id === 'cloudflared' || entry.id === 'aria2' ? (
-            <ManagedExtension id={entry.id} />
-          ) : null}
+
           {pack.endpoint ? (
             <section className="pp-panel" aria-label="Prepare endpoint request">
               <h2>Inspect your endpoint</h2>
@@ -241,29 +242,33 @@ export default function ExtensionDetails({
                 <button type="submit">Open HTTP draft</button>
               </form>
               {handoffError ? <p role="alert">{handoffError}</p> : null}
-              <p>No probe runs here. Review the prepared request and choose Send in HTTP.</p>
+              <p>Review the HTTP draft before sending.</p>
             </section>
           ) : null}
           <section className="pp-panel" aria-label="Setup and requirements">
             <h2>Set up on the ProtoPeek host</h2>
-            <label>
-              Setup instructions for
-              <select
-                aria-label="Setup instructions for"
-                value={platform ?? ''}
-                onChange={(event) => onPlatform((event.target.value as SetupPlatform) || undefined)}
-              >
-                {!platform ? <option value="">Choose a system</option> : null}
-                <option value="windows">Windows</option>
-                <option value="darwin">macOS</option>
-                <option value="linux">Linux</option>
-              </select>
-            </label>
-            <p>
-              {platform
-                ? pack.setup[platform]
-                : 'Choose the system running ProtoPeek. Its system can differ from the browser or your agent’s environment.'}
-            </p>
+            {typeof pack.setup === 'string' ? (
+              <p>{pack.setup}</p>
+            ) : (
+              <>
+                <label>
+                  Setup instructions for
+                  <select
+                    aria-label="Setup instructions for"
+                    value={platform ?? ''}
+                    onChange={(event) =>
+                      onPlatform((event.target.value as SetupPlatform) || undefined)
+                    }
+                  >
+                    {!platform ? <option value="">Choose a system</option> : null}
+                    <option value="windows">Windows</option>
+                    <option value="darwin">macOS</option>
+                    <option value="linux">Linux</option>
+                  </select>
+                </label>
+                <p>{platform ? pack.setup[platform] : 'Choose the system running ProtoPeek.'}</p>
+              </>
+            )}
             <p>{pack.afterSetup}</p>
             {pack.notes.map((note) => (
               <p className="pp-extension-note" key={note}>
@@ -291,14 +296,8 @@ export default function ExtensionDetails({
                   </button>
                 )}
               </header>
-              <p>
-                Locates {pack.tool} on this process’s PATH and supported install locations. It does
-                not run the tool, sign in, start a service or prove readiness. aria2 may verify an
-                available companion’s checksum.
-              </p>
-              {busy ? (
-                <p role="status">Checking the host. No external tool is being executed.</p>
-              ) : null}
+              <p>Looks for {pack.tool} on the host. This check only inspects local files.</p>
+              {busy ? <p role="status">Checking local files…</p> : null}
               {notice ? <p role="status">{notice}</p> : null}
               {checkError ? <p role="alert">{checkError}</p> : null}
               {observation ? (
@@ -319,10 +318,7 @@ export default function ExtensionDetails({
                   ) : null}
                 </div>
               ) : (
-                <p>
-                  Not checked. Install separately if needed, then check this host. Restart ProtoPeek
-                  after a PATH change.
-                </p>
+                <p>Restart ProtoPeek after changing PATH.</p>
               )}
             </section>
           ) : null}

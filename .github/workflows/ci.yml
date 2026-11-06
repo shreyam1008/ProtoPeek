@@ -64,6 +64,45 @@ jobs:
             exit 1
           fi
 
+  browser-acceptance:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: 24.19.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.10
+      - name: Build current embedded application
+        run: |
+          bun install --frozen-lockfile
+          bun run build:app
+      - name: Install locked browser test dependency
+        run: npm ci --prefix scripts/browser-acceptance --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium and Linux dependencies
+        if: runner.os == 'Linux'
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Install Chromium on Windows
+        if: runner.os == 'Windows'
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install chromium
+      - name: Run native launcher browser acceptance
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/acceptance.mjs
+
   web-build-windows:
     runs-on: windows-latest
     steps:
@@ -120,10 +159,9 @@ jobs:
           $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
           ./scripts/build-lite-windows.ps1 -OutputDirectory $preview -CoreOnly
           if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
-          foreach ($command in @('protopeek', 'pp')) {
-            & (Join-Path $preview "$command.exe") --version
-            if ($LASTEXITCODE -ne 0) { throw "Lightweight $command failed to start." }
-          }
+          $env:PROTOPEEK_STAGED_CORE = $preview
+          go test -tags protopeek_lite ./scripts/releasecheck -run '^TestStagedCoreDownloadsWithManagedAria2$' -count=1 -v
+          if ($LASTEXITCODE -ne 0) { throw 'Staged CoreOnly companion lifecycle failed.' }
 
       - name: Archive the Windows companion-store preview
         if: runner.os == 'Windows'
@@ -196,8 +234,7 @@ jobs:
       - name: Native isolated agent and MCP smoke
         run: go run ./scripts/agent-smoke
 
-      - name: Native Unix managed cloudflared lifecycle
-        if: runner.os == 'Linux' || runner.os == 'macOS'
+      - name: Native managed cloudflared lifecycle
         timeout-minutes: 5
         env:
           PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
@@ -482,6 +519,9 @@ jobs:
           version: v2.17.1
           args: release --snapshot --clean --config .goreleaser.yml
 
+      - name: Verify Windows lightweight release binaries
+        run: go run ./scripts/releasecheck dist
+
       - name: Verify archive, checksum, and SBOM contract
         shell: bash
         run: |
@@ -534,7 +574,8 @@ jobs:
           for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
             cp "$extra" "dist/$(basename "$extra")"
           done
-          test "$(wc -l < dist/checksums.txt)" -eq 22
+          cp internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip dist/protopeek-aria2-1.37.0-win-64bit-build1.zip
+          test "$(wc -l < dist/checksums.txt)" -eq 23
           (cd dist && sha256sum --check checksums.txt)
           test -s .local/aria2-1.37.0-companion-sources.tar.gz
           source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"

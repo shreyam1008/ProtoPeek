@@ -17,14 +17,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
 	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
 
 var (
-	ErrUnknown     = errors.New("unknown managed extension")
-	ErrBusy        = errors.New("managed extension is in use or another operation is running")
-	ErrInvalid     = errors.New("managed extension files could not be verified")
-	ErrUnavailable = errors.New("managed extension is unavailable on this platform")
+	ErrUnknown            = errors.New("unknown managed extension")
+	ErrBusy               = errors.New("managed extension is in use or another operation is running")
+	ErrInvalid            = errors.New("managed extension files could not be verified")
+	ErrUnavailable        = errors.New("managed extension is unavailable on this platform")
+	ErrStorageUnsupported = errors.New("filesystem does not support safe atomic companion installation")
 )
 
 // Asset hashes and sizes are from Cloudflare's official 2026.10.7 release.
@@ -309,9 +311,11 @@ func (m *Manager) Install(ctx context.Context, id string) (Tool, error) {
 	if err = ctx.Err(); err != nil {
 		return Tool{}, err
 	}
-	// Linking is atomic and cannot replace an existing file, including a file
-	// created between the initial verification and promotion.
-	if err = os.Link(promote, path); err != nil {
+	// Non-replacing atomic rename works without requiring hard-link support.
+	if err = safepromote.Rename(promote, path); err != nil {
+		if errors.Is(err, safepromote.ErrUnsupported) {
+			return Tool{}, ErrStorageUnsupported
+		}
 		return Tool{}, ErrInvalid
 	}
 	return m.Status(id)
@@ -363,7 +367,7 @@ func CloudflaredPath() (string, error) {
 	return path, nil
 }
 
-// AcquireCloudflaredUse holds the mutation lock for an owned foreground
+// AcquireCloudflaredUse holds a shared use lease for an owned foreground
 // process. Non-managed executables are unaffected.
 func AcquireCloudflaredUse(path string) (func(), error) {
 	m, err := New()
@@ -374,7 +378,7 @@ func AcquireCloudflaredUse(path string) (func(), error) {
 	if !ok || !strings.EqualFold(filepath.Clean(path), filepath.Clean(m.binary(a))) {
 		return func() {}, nil
 	}
-	lease, err := m.lock(a)
+	lease, err := m.shared(a)
 	if err != nil {
 		return nil, err
 	}

@@ -158,9 +158,6 @@
   gap: 6px;
   min-height: 44px;
 }
-.pp-extensions-footnote {
-  margin-top: 24px;
-}
 .pp-extensions :is(a, button, select, input, pre):focus-visible {
   outline: 2px solid var(--pp-brand);
   outline-offset: 3px;

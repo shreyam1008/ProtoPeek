@@ -85,7 +85,8 @@ describe('extension observations', () => {
       const pack = await loadExtensionPack(entry.id);
       expect(new URL(pack.download).protocol).toBe('https:');
       expect(new URL(pack.guide).protocol).toBe('https:');
-      expect(Object.keys(pack.setup).sort()).toEqual(['darwin', 'linux', 'windows']);
+      if (typeof pack.setup === 'string') expect(pack.setup.trim().length).toBeGreaterThan(8);
+      else expect(Object.keys(pack.setup).sort()).toEqual(['darwin', 'linux', 'windows']);
       expect(pack.afterSetup).toBeTruthy();
       if (pack.endpoint) {
         const prepared = prepareServiceEntry(pack.endpoint.url, 'http');
@@ -117,7 +118,8 @@ describe('extension observations', () => {
     expect(chatgpt.client).toBeUndefined();
     expect(chatgpt.endpoint).toBeUndefined();
     expect(chatgpt.commands?.[0].text).not.toMatch(/127\.0\.0\.1|Bearer|access_token/);
-    expect((await loadExtensionPack('lm-studio')).setup.darwin).toContain('Apple Silicon');
+    const studio = (await loadExtensionPack('lm-studio')).setup;
+    expect(typeof studio === 'object' && studio.darwin).toContain('Apple Silicon');
   });
   it('checks the connected hostname as well as the trust chain in the OpenSSL comparison', async () => {
     const openssl = await loadExtensionPack('openssl');

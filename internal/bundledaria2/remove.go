@@ -1,100 +1,76 @@
 package bundledaria2
 
 import (
-	"archive/zip"
-	"bytes"
-	"crypto/sha256"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 )
 
-// RemoveCached removes only the exact verified cache created by this package.
-// The caller must hold the downloader's process lock throughout the operation.
+// RemoveCached removes independently pinned files while holding the downloader lease.
+// The same pins apply to an embedded install, a managed ZIP, or a verified v0.7 cache.
 func RemoveCached() error {
-	payload, err := loadNativeBundle()
-	if err != nil {
+	_, err := loadNativeBundle()
+	if err != nil && !errors.Is(err, ErrCompanionMissing) {
 		return err
 	}
-	if len(payload.archive) == 0 || digest(payload.archive) != payload.archiveSHA {
-		return errors.New("aria2 companion unavailable")
+	if nativeBundle.binarySHA != windowsBinarySHA {
+		return ErrCompanionMissing
 	}
 	if err := checkManagedArchive(); err != nil {
 		return err
 	}
 	cache, err := os.UserCacheDir()
 	if err != nil {
-		return errors.New("aria2 cache unavailable")
+		return ErrCacheInvalid
 	}
-	parts := []string{filepath.Join(cache, "protopeek"), filepath.Join(cache, "protopeek", "engines"), filepath.Join(cache, "protopeek", "engines", "aria2"), filepath.Join(cache, "protopeek", "engines", "aria2", payload.binarySHA)}
-	for _, dir := range parts {
-		info, err := os.Lstat(dir)
-		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return errors.New("aria2 cache is not a safe directory")
-		}
+	dir, err := cacheDirectory(cache, windowsBinarySHA, false)
+	if errors.Is(err, os.ErrNotExist) {
+		return removeManagedArchive()
 	}
-	directory := parts[len(parts)-1]
-	names := []string{"COPYING", "AUTHORS", "README.mingw", "LICENSE.OpenSSL", payload.binary}
-	entries, err := os.ReadDir(directory)
-	if err != nil || len(entries) != len(names) {
-		return errors.New("aria2 cache contains unexpected files")
-	}
-	archive, err := zip.NewReader(bytes.NewReader(payload.archive), int64(len(payload.archive)))
 	if err != nil {
-		return errors.New("aria2 archive invalid")
+		return ErrCacheInvalid
 	}
-	for _, name := range names {
-		var source *zip.File
-		for _, entry := range archive.File {
-			if entry.Name == payload.prefix+name {
-				if source != nil {
-					return errors.New("duplicate archive entry")
-				}
-				source = entry
-			}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return ErrCacheInvalid
+	}
+	// Never delete abandoned extraction data or unknown files. Other unexpected
+	// entries (including links) block removal before any managed file is touched.
+	var retainedTemp bool
+	known := make(map[string]memberPin, len(windowsCacheMembers))
+	for _, pin := range windowsCacheMembers {
+		known[pin.name] = pin
+	}
+	for _, entry := range entries {
+		if _, ok := known[entry.Name()]; ok {
+			continue
 		}
-		if source == nil || source.UncompressedSize64 > 16<<20 {
-			return errors.New("aria2 archive entry invalid")
+		if !isExtractionTemp(entry) {
+			return ErrCacheInvalid
 		}
-		reader, err := source.Open()
-		if err != nil {
-			return errors.New("aria2 archive entry unavailable")
+		retainedTemp = true
+	}
+	var verified []string
+	for _, pin := range windowsCacheMembers {
+		member := filepath.Join(dir, pin.name)
+		if err := verifyCacheMember(member, pin); errors.Is(err, os.ErrNotExist) {
+			continue
+		} else if err != nil {
+			return ErrCacheInvalid
 		}
-		expected := sha256.New()
-		count, readErr := io.Copy(expected, io.LimitReader(reader, 16<<20+1))
-		closeErr := reader.Close()
-		if readErr != nil || closeErr != nil || uint64(count) != source.UncompressedSize64 {
-			return errors.New("aria2 archive entry invalid")
-		}
-		path := filepath.Join(directory, name)
-		info, err := os.Lstat(path)
-		if err != nil || !info.Mode().IsRegular() || info.Size() != count {
-			return errors.New("aria2 cache changed")
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			return errors.New("aria2 cache unavailable")
-		}
-		opened, err := file.Stat()
-		if err != nil || !os.SameFile(info, opened) {
-			file.Close()
-			return errors.New("aria2 cache changed")
-		}
-		actual := sha256.New()
-		copied, readErr := io.Copy(actual, io.LimitReader(file, count+1))
-		closeErr = file.Close()
-		if readErr != nil || closeErr != nil || copied != count || !bytes.Equal(actual.Sum(nil), expected.Sum(nil)) {
-			return errors.New("aria2 cache changed")
+		verified = append(verified, member)
+	}
+	// The executable is first. A busy executable leaves every notice in place.
+	// A subsequent call verifies any remaining subset after an interrupted remove.
+	for _, member := range verified {
+		if err := os.Remove(member); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return ErrCacheInvalid
 		}
 	}
-	for _, name := range names {
-		if err := os.Remove(filepath.Join(directory, name)); err != nil {
-			return errors.New("aria2 cache could not be fully removed")
+	if !retainedTemp {
+		if err := os.Remove(dir); err != nil {
+			return ErrCacheInvalid
 		}
-	}
-	if err := os.Remove(directory); err != nil {
-		return errors.New("aria2 cache directory could not be removed")
 	}
 	return removeManagedArchive()
 }

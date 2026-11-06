@@ -9,10 +9,11 @@ import (
 )
 
 // The optional lightweight build retains the same trust anchor as the default
-// embedded build. The archive is read only from beside the running executable.
+// embedded build. A missing archive still permits reuse of the pinned v0.7 cache.
 var nativeBundle = bundle{
 	archiveSHA: windowsArchiveSHA,
 	binarySHA:  windowsBinarySHA,
+	members:    windowsCacheMembers[:],
 	prefix:     "aria2-1.37.0-win-64bit-build1/",
 	binary:     "aria2c.exe",
 }
@@ -28,7 +29,7 @@ func loadNativeBundle() (bundle, error) {
 		payload.archive, err = readManagedArchive()
 	}
 	if err != nil {
-		return bundle{}, err
+		return payload, err
 	}
 	return payload, nil
 }

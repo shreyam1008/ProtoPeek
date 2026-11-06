@@ -110,7 +110,9 @@ func TestAgentRejectsRemoteOriginsAndMethods(t *testing.T) {
 	}
 }
 func TestAgentRealHTTPAndWritePolicy(t *testing.T) {
+	methods := make(chan string, 3)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		methods <- r.Method
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)
 		body, _ := io.ReadAll(r.Body)
@@ -130,11 +132,24 @@ func TestAgentRealHTTPAndWritePolicy(t *testing.T) {
 	if m.snapshot().Records == nil || len(m.snapshot().Records) != 0 {
 		t.Fatal("denied call executed")
 	}
+	select {
+	case method := <-methods:
+		t.Fatalf("denied %s reached upstream", method)
+	default:
+	}
 	r := call("GET")
 	var result agentlink.Result
 	_ = json.Unmarshal(r.Body.Bytes(), &result)
 	if r.Code != 200 || result.State != "completed" || !bytes.Contains(result.Data, []byte(`"statusCode":404`)) {
 		t.Fatal(r.Body.String())
+	}
+	select {
+	case method := <-methods:
+		if method != "GET" {
+			t.Fatalf("unexpected upstream method: %s", method)
+		}
+	default:
+		t.Fatal("read-only GET did not reach upstream")
 	}
 	if r := agentRequest(mux, "/api/agent/state", "", "", true); strings.Contains(r.Body.String(), "private-input") || strings.Contains(r.Body.String(), upstream.URL) {
 		t.Fatal("state leaked request/result body")
@@ -142,6 +157,54 @@ func TestAgentRealHTTPAndWritePolicy(t *testing.T) {
 	token = agentEnable(t, mux, m, true)
 	if r := call("POST"); r.Code != 200 {
 		t.Fatal(r.Body.String())
+	}
+}
+
+func TestReadOnlyAgentDiagnosticBoundsBeforeDispatch(t *testing.T) {
+	mux, m := agentHarness(t)
+	dispatched := make(chan string, 8)
+	m.mux = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		dispatched <- string(body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	})
+	token := agentEnable(t, mux, m, false)
+	call := func(args string) *httptest.ResponseRecorder {
+		return agentRequest(mux, "/api/agent/call", `{"name":"network_diagnose","arguments":`+args+`}`, token, false)
+	}
+	for _, args := range []string{
+		`{"mode":"udp","target":"127.0.0.1:1"}`,
+		`{"mode":"tcp","target":"127.0.0.1:1"}`,
+		`{"mode":"http3","target":"127.0.0.1:1"}`,
+		`{"mode":"subnet","target":"192.0.2.0/24","timeoutMs":3001}`,
+		`{"mode":"dns","target":"localhost","payload":"unexpected"}`,
+	} {
+		if r := call(args); r.Code != http.StatusBadRequest {
+			t.Fatalf("accepted %s: %d %s", args, r.Code, r.Body.String())
+		}
+	}
+	select {
+	case body := <-dispatched:
+		t.Fatalf("invalid request reached backend: %s", body)
+	default:
+	}
+	for _, mode := range []string{"subnet", "dns", "tls"} {
+		args := fmt.Sprintf(`{"mode":%q,"target":"localhost","timeoutMs":3000}`, mode)
+		if r := call(args); r.Code != http.StatusOK {
+			t.Fatalf("rejected %s: %d %s", args, r.Code, r.Body.String())
+		}
+		select {
+		case body := <-dispatched:
+			if !strings.Contains(body, `"timeoutMs":3000`) {
+				t.Fatalf("lost timeout bound: %s", body)
+			}
+		default:
+			t.Fatalf("%s was not dispatched", mode)
+		}
 	}
 }
 func TestAgentCancellationAdmissionAndRetention(t *testing.T) {

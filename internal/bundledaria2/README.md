@@ -40,8 +40,9 @@ notices, digests, platform tests, and upstream limitations together.
 
 ## Optional Windows x64 lightweight local preview
 
-The normal release continues to embed the archive. Maintainers can build an **opt-in local preview**
-with a separate archive beside the executables:
+The stable and nightly release recipes in current source build both Windows x64 CLI names
+with the engine on demand. Published v0.7.0 and an untagged developer build embed the engine.
+To build an offline-capable local package with a verified ZIP beside the executables:
 
 ```powershell
 ./scripts/build-lite-windows.ps1 -OutputDirectory .local/protopeek-lite-preview
@@ -52,8 +53,5 @@ Add `-CoreOnly` to omit the offline ZIP and install the verified engine from Ext
 Choose a new output directory: the script refuses to replace an existing one. The `protopeek_lite`
 build tag applies to Windows amd64. The script stages both commands and third-party notices. By default it also stages a pinned companion ZIP beside the executable for offline setup. With CoreOnly, users can select Install in Extensions to fetch that same archive into their private cache. Both paths check the compressed size, archive hash and extracted executable hash. Configured and PATH engines take priority. Opening a tool never starts an installation.
 
-This is a development preview, not an additional published release, Store package or updater format.
-Keep it separate from existing installations: the v0.7.0 updater and installers copy only the two
-executables and do not install a sidecar. Other optional providers, capture drivers, sign-in and
-platform-specific engines still have their own prerequisites. Distribution of the companion also
-requires the corresponding GPL source bundle and notices described above.
+GoReleaser attaches the optional offline ZIP as a separate download and records its digest in checksums.txt. Copy it beside the commands for offline setup. On upgrade, a v0.7.0 cache with the pinned executable and notices also works offline. The Store follows its own submission process. Re-distributions that include
+aria2 must carry the corresponding source and notices described above.

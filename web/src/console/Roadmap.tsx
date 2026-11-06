@@ -1,4 +1,3 @@
-import { Beaker, CheckCircle2, Compass, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { EmptyState } from '@/console/shell/EmptyState';
 
@@ -8,7 +7,6 @@ const roadmap = [
   {
     state: 'Available in this build',
     slug: 'available',
-    icon: CheckCircle2,
     items: [
       [
         'Workbench + themes',
@@ -135,7 +133,6 @@ const roadmap = [
   {
     state: 'Next',
     slug: 'next',
-    icon: Compass,
     items: [
       [
         'Native installed-tool acceptance',
@@ -158,7 +155,6 @@ const roadmap = [
   {
     state: 'Exploring',
     slug: 'exploring',
-    icon: Beaker,
     items: [
       [
         'Persistent capability sessions',
@@ -173,7 +169,6 @@ const roadmap = [
   {
     state: 'Gated',
     slug: 'gated',
-    icon: ShieldAlert,
     items: [
       [
         'Bundled Nmap execution',
@@ -220,10 +215,7 @@ export function Roadmap() {
       <PageHeader className="pp-evidence-hero">
         <div>
           <h1>Product roadmap</h1>
-          <p>
-            Capabilities in this build and their acceptance gates. Earlier releases may have a
-            different feature set.
-          </p>
+          <p>Capabilities in this build and the work ahead.</p>
         </div>
         <input
           aria-label="Search roadmap"
@@ -259,7 +251,6 @@ export function Roadmap() {
           {visible.map((group) => (
             <section key={group.slug} className={`pp-roadmap-group is-${group.slug}`}>
               <header>
-                <group.icon aria-hidden="true" />
                 <h2>{group.state}</h2>
                 <span>{group.items.length}</span>
               </header>

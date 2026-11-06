@@ -56,3 +56,15 @@
 .pp-tour-actions {
   justify-content: flex-end;
 }
+
+.pp-tool-tour[data-dock] {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: auto;
+  padding: 6px;
+}
+.pp-tool-tour[data-dock="top"] {
+  top: 8px;
+  bottom: auto;
+}

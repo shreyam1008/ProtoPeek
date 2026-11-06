@@ -1,0 +1,39 @@
+name: Native Linux network acceptance
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+permissions:
+  contents: read
+jobs:
+  owned-loopback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Install native packet and scan tools
+        run: |
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nmap tshark libcap2-bin
+          command -v nmap
+          test -f /usr/bin/dumpcap
+          ls -l /usr/bin/dumpcap
+          sudo chmod o+rx /usr/bin/dumpcap
+          sudo setcap cap_net_raw,cap_net_admin+ep /usr/bin/dumpcap
+          test -x /usr/bin/dumpcap
+          getcap /usr/bin/dumpcap
+          nmap --version
+          dumpcap --version
+          dumpcap -D >/dev/null
+      - name: Exercise owned loopback scan and capture through ProtoPeek
+        env:
+          PROTOPEEK_NATIVE_NETWORK_INTEGRATION: '1'
+          GOFLAGS: -mod=readonly
+        shell: bash
+        run: |
+          set -o pipefail
+          go test -count=1 -timeout 90s ./standalone -run '^TestNativeLinuxNmapAndCaptureLoopback$' -v | tee "$RUNNER_TEMP/native-network.log"
+          grep -Eq '^--- PASS: TestNativeLinuxNmapAndCaptureLoopback' "$RUNNER_TEMP/native-network.log"

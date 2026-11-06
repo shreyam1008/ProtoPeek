@@ -8,11 +8,11 @@ export const mediaTourTargets = [
   '[aria-label="Media queue"]',
 ] as const;
 export const mediaTourHints = [
-  'Wait for the media view to load.',
-  'Wait for the engine setup to load.',
-  'Wait for the media view to load.',
+  '',
+  '',
+  '',
   'Choose and set up an available engine first, then enter the link and destination.',
-  'Wait for the media view to load its queue.',
+  '',
 ] as const;
 
 // One fixed selector per guide step. Selectors identify existing controls or
@@ -128,7 +128,7 @@ export const tourHints: Partial<Record<FeatureId, readonly string[]>> = {
     'Choose an audience and origin, then Review session.',
     'Start or check a session first.',
   ],
-  downloader: ['Select Files under Download type.', 'Select Files under Download type.'],
+  downloader: ['Select Files.', 'Select Files.'],
   'local-transfer': [
     'Wait for sharing to load or retry.',
     'Enable sharing, then select a device and files.',
@@ -138,6 +138,5 @@ export const tourHints: Partial<Record<FeatureId, readonly string[]>> = {
     'Select Website response under Website tools.',
     'Select Website response and enter a site.',
   ],
-  agents: ['Wait for agent settings to load.', 'Wait for agent settings to load.'],
   updates: ['Wait for the installation check.', 'Complete the installation check.'],
 };

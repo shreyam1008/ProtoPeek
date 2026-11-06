@@ -8,3 +8,5 @@ func ManagedDownload() (string, int64, bool) { return "", 0, false }
 func InstallManaged(context.Context) error   { return ErrCompanionMissing }
 func checkManagedArchive() error             { return nil }
 func removeManagedArchive() error            { return nil }
+func CanRepairManagedArchive() bool          { return false }
+func QuarantineManagedArchive() error        { return ErrCompanionInvalid }

@@ -198,16 +198,22 @@ func (d detector) aria2(options Options) Extension {
 		result.Message = boundedCacheError(info.Unavailable)
 		return result
 	}
-	if info.Included {
+	switch {
+	case info.CacheError != "":
+		result.Status = "unavailable"
+		result.Message = boundedCacheError(info.CacheError)
+		return result
+	case info.CachedPath != "" && validPath(info.CachedPath):
+		result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
+		result.Message = "The verified aria2 companion is already cached. Downloader starts when requested."
+		return result
+	case info.Partial:
+		result.Status = "unavailable"
+		result.Message = "The cached aria2 installation is incomplete. Open Extensions to repair or remove it."
+		return result
+	case info.Included:
 		result.Status, result.Source = "included", "bundled"
 		result.Message = "A verified aria2 companion is available. It is prepared only when you start Downloader."
-		if info.CacheError != "" {
-			result.Status = "unavailable"
-			result.Message = boundedCacheError(info.CacheError)
-		} else if info.CachedPath != "" && validPath(info.CachedPath) {
-			result.Status, result.Source, result.Path = "detected", "cached-bundle", info.CachedPath
-			result.Message = "The verified aria2 companion is already cached and its checksum matches. Downloader is not started by this check."
-		}
 		return result
 	}
 	result.Message = "Install aria2 or set its executable path in Files. This build has no bundled download engine."

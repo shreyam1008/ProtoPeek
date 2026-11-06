@@ -413,7 +413,8 @@
         "changefreq": "weekly",
         "priority": "0.9"
       },
-      "lastModified": "2026-10-23"
+      "lastModified": "2026-10-23",
+      "keywords": ["wireshark", "dumpcap", "pcap", "pcapng"]
     },
     {
       "id": "network-diagnostics",
@@ -469,7 +470,8 @@
         "changefreq": "monthly",
         "priority": "0.8"
       },
-      "lastModified": "2026-10-23"
+      "lastModified": "2026-10-23",
+      "keywords": ["nmap", "XML"]
     },
     {
       "id": "this-pc",
@@ -570,7 +572,31 @@
       "sitemap": {
         "changefreq": "monthly",
         "priority": "0.8"
-      }
+      },
+      "keywords": [
+        "Tailscale",
+        "Cloudflare Tunnel",
+        "NetBird",
+        "Wireshark capture",
+        "Nmap",
+        "aria2",
+        "Caddy",
+        "ngrok",
+        "OpenSSH",
+        "Docker",
+        "Podman",
+        "kubectl",
+        "OpenSSL",
+        "Codex CLI",
+        "Claude Code",
+        "Gemini CLI",
+        "OpenCode",
+        "Ollama",
+        "LM Studio",
+        "ChatGPT web",
+        "Headscale",
+        "WireGuard"
+      ]
     },
     {
       "id": "cloudflare-tunnels",
@@ -593,7 +619,10 @@
         "cloudflared config",
         "systemd cloudflared",
         "launchd cloudflared",
-        "Windows cloudflared service"
+        "Windows cloudflared service",
+        "cloudflared",
+        "ingress",
+        "quick tunnel"
       ],
       "status": {
         "label": "Stable · v0.7.0",
@@ -673,7 +702,8 @@
         "changefreq": "weekly",
         "priority": "0.9"
       },
-      "lastModified": "2026-10-23"
+      "lastModified": "2026-10-23",
+      "keywords": ["aria2", "aria2c", "resumable"]
     },
     {
       "id": "media-downloads",
@@ -699,7 +729,22 @@
       "sitemap": {
         "changefreq": "weekly",
         "priority": "0.8"
-      }
+      },
+      "keywords": [
+        "gallery",
+        "gallery-dl",
+        "yt-dlp",
+        "ytdlp",
+        "ffmpeg",
+        "ffprobe",
+        "deno",
+        "playlist",
+        "video",
+        "audio",
+        "youtube",
+        "photos",
+        "album"
+      ]
     },
     {
       "id": "local-transfer",
@@ -759,7 +804,8 @@
         "changefreq": "monthly",
         "priority": "0.8"
       },
-      "lastModified": "2026-10-23"
+      "lastModified": "2026-10-23",
+      "keywords": ["ChatGPT", "Codex", "Claude", "Gemini", "MCP", "CLI", "stdio", "pairing"]
     },
     {
       "id": "settings",

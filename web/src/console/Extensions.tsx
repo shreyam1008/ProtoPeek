@@ -188,7 +188,11 @@ export function Extensions() {
                 <PinExtension name={entry.name} pinned={pinned} onPin={() => pin(entry.id)} />
               </div>
               <span className="pp-extension-level">
-                {managed(entry.id) ? 'Managed companion' : capabilityLabels[entry.capability]}
+                {entry.id === 'aria2'
+                  ? 'Managed on Windows x64'
+                  : managed(entry.id)
+                    ? 'Managed companion'
+                    : capabilityLabels[entry.capability]}
               </span>
               <p>{entry.summary}</p>
               {observed ? (

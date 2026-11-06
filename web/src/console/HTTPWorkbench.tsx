@@ -133,6 +133,7 @@ export function HTTPWorkbench() {
   const [openAPIRailVisible, setOpenAPIRailVisible] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [curlImportOpen, setCurlImportOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [curlImportNotice, setCurlImportNotice] = useState<string | null>(null);
   const [curlImportInput, setCurlImportInput] = useState({ command: '', revision: 0 });
   const [environment, setEnvironment] = useState<HTTPEnvironment | null>(null);
@@ -147,11 +148,44 @@ export function HTTPWorkbench() {
   const sentExecutionRef = useRef<string | null>(null);
   const curlCopyGenerationRef = useRef(0);
   const historyRef = useRef<HTMLDetailsElement | null>(null);
+  const toolsRef = useRef<HTMLDivElement | null>(null);
+  const toolsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const requestLineRef = useRef<HTMLDivElement | null>(null);
   const requestEditorRef = useRef<HTMLElement | null>(null);
   const openAPICollectionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const modifier = modifierKeyLabel();
+
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && !toolsRef.current?.contains(event.target)) {
+        setToolsOpen(false);
+      }
+    };
+    const leave = (event: FocusEvent) => {
+      if (event.target instanceof Node && !toolsRef.current?.contains(event.target)) {
+        setToolsOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !(event.target instanceof Node)) return;
+      if (!toolsRef.current?.contains(event.target)) return;
+      event.stopPropagation();
+      setToolsOpen(false);
+      toolsTriggerRef.current?.focus();
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('focusin', leave);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('focusin', leave);
+      document.removeEventListener('keydown', handleEscape);
+      if (historyRef.current) historyRef.current.open = false;
+      toolsRef.current?.querySelector('.pp-protocol-info')?.removeAttribute('open');
+    };
+  }, [toolsOpen]);
 
   const draftRef = useRef<HTTPDraft>(restored.draft);
   useEffect(() => {
@@ -196,6 +230,10 @@ export function HTTPWorkbench() {
   function closeCurlImport() {
     setCurlImportOpen(false);
     setCurlImportInput((current) => ({ command: '', revision: current.revision + 1 }));
+  }
+
+  function restoreToolsFocus() {
+    if (toolsTriggerRef.current?.getClientRects().length) toolsTriggerRef.current.focus();
   }
 
   function openCurlImport(command = '') {
@@ -429,7 +467,10 @@ export function HTTPWorkbench() {
     []
   );
 
-  const closeImportFromEscape = useEffectEvent(closeOpenAPIImport);
+  const closeImportFromEscape = useEffectEvent(() => {
+    closeOpenAPIImport();
+    restoreToolsFocus();
+  });
   useEffect(() => {
     if (!openAPIImportOpen) return;
     function closeImport(event: KeyboardEvent) {
@@ -705,6 +746,7 @@ export function HTTPWorkbench() {
     setRequestTab('params');
     setMobilePane('request');
     if (historyRef.current) historyRef.current.open = false;
+    setToolsOpen(false);
     urlInputRef.current?.focus();
   }
 
@@ -796,73 +838,133 @@ export function HTTPWorkbench() {
         <span className="pp-connection-fact">
           <LockKeyhole aria-hidden="true" /> Local relay
         </span>
-        <ProtocolInfo protocol="http" />
-        <button type="button" className="pp-http-new-request" onClick={() => resetRequest()}>
-          <Plus aria-hidden="true" /> New request
-        </button>
-        <button
-          type="button"
-          className="pp-http-new-request"
-          aria-expanded={libraryOpen}
-          onClick={() => {
-            setLibraryOpen((open) => !open);
-            setOpenAPIRailVisible(false);
-            setMobilePane('request');
-          }}
-        >
-          Saved requests
-        </button>
-        <button
-          type="button"
-          className="pp-openapi-import-trigger"
-          aria-expanded={openAPIImportOpen}
-          onClick={() => {
-            setOpenAPIImportError(null);
-            if (openAPIImportOpen) closeOpenAPIImport();
-            else setOpenAPIImportOpen(true);
-            closeCurlImport();
-          }}
-        >
-          <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="pp-openapi-import-trigger"
-          aria-expanded={curlImportOpen}
-          onClick={() => {
-            if (curlImportOpen) closeCurlImport();
-            else openCurlImport();
-          }}
-        >
-          Import cURL
-        </button>
+        <div className="pp-http-tool-group" ref={toolsRef} data-open={toolsOpen}>
+          <button
+            ref={toolsTriggerRef}
+            type="button"
+            className="pp-http-tool-toggle"
+            aria-expanded={toolsOpen}
+            aria-controls="pp-http-tool-menu"
+            onClick={() => setToolsOpen((open) => !open)}
+          >
+            Request tools <ChevronDown aria-hidden="true" />
+          </button>
+          <div className="pp-http-tool-menu" id="pp-http-tool-menu" data-open={toolsOpen}>
+            <ProtocolInfo protocol="http" />
+            <button
+              type="button"
+              className="pp-http-new-request"
+              onClick={() => {
+                setToolsOpen(false);
+                resetRequest();
+              }}
+            >
+              <Plus aria-hidden="true" /> New request
+            </button>
+            <button
+              type="button"
+              className="pp-http-new-request"
+              aria-expanded={libraryOpen}
+              onClick={() => {
+                setToolsOpen(false);
+                setLibraryOpen((open) => !open);
+                setOpenAPIRailVisible(false);
+                setMobilePane('request');
+              }}
+            >
+              Saved requests
+            </button>
+            <button
+              type="button"
+              className="pp-openapi-import-trigger"
+              aria-expanded={openAPIImportOpen}
+              onClick={() => {
+                setToolsOpen(false);
+                setOpenAPIImportError(null);
+                if (openAPIImportOpen) closeOpenAPIImport();
+                else setOpenAPIImportOpen(true);
+                closeCurlImport();
+              }}
+            >
+              <FileJson2 aria-hidden="true" /> Import OpenAPI <ChevronDown aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="pp-openapi-import-trigger"
+              aria-expanded={curlImportOpen}
+              onClick={() => {
+                setToolsOpen(false);
+                if (curlImportOpen) closeCurlImport();
+                else openCurlImport();
+              }}
+            >
+              Import cURL
+            </button>
+            {openAPICollection ? (
+              <button
+                ref={openAPICollectionTriggerRef}
+                type="button"
+                className="pp-openapi-collection-trigger"
+                aria-label={`${openAPICollection.title} operations`}
+                aria-controls={openAPIRailVisible ? 'http-openapi-operations' : undefined}
+                aria-expanded={openAPIRailVisible}
+                title="Show or hide API operations"
+                onClick={() => {
+                  setToolsOpen(false);
+                  setLibraryOpen(false);
+                  setOpenAPIRailVisible((visible) => !visible);
+                }}
+              >
+                <FileJson2 aria-hidden="true" /> {openAPICollection.title}{' '}
+                <span>{openAPICollection.operations.length}</span>
+              </button>
+            ) : null}
+            <details ref={historyRef} className="pp-http-history">
+              <summary>
+                <History aria-hidden="true" /> History <span>{history.length}</span>
+              </summary>
+              <div>
+                <header>
+                  <strong>
+                    Secret-safe local history
+                    {history.length > 12 ? ` · 12 newest of ${history.length}` : ''}
+                  </strong>
+                  {history.length ? (
+                    <button type="button" onClick={() => setHistory([])}>
+                      Clear
+                    </button>
+                  ) : null}
+                </header>
+                {history.length ? (
+                  history.slice(0, 12).map((entry) => (
+                    <button key={entry.id} type="button" onClick={() => loadHistory(entry)}>
+                      <span>{entry.method}</span>
+                      <strong>{entry.status || 'Failed'}</strong>
+                      <code>{entry.url}</code>
+                      <small>
+                        {compactDate(entry.createdAt)} · {entry.totalMs.toFixed(1)} ms total
+                      </small>
+                    </button>
+                  ))
+                ) : (
+                  <p>Send a request to build local history. Auth values are never retained.</p>
+                )}
+              </div>
+            </details>
+          </div>
+        </div>
         {curlImportOpen ? (
           <Suspense fallback={null}>
             <HTTPImportPanel
               key={curlImportInput.revision}
               initialCommand={curlImportInput.command}
               onLoad={loadCurl}
-              onClose={closeCurlImport}
+              onClose={() => {
+                closeCurlImport();
+                restoreToolsFocus();
+              }}
             />
           </Suspense>
-        ) : null}
-        {openAPICollection ? (
-          <button
-            ref={openAPICollectionTriggerRef}
-            type="button"
-            className="pp-openapi-collection-trigger"
-            aria-label={`${openAPICollection.title} operations`}
-            aria-controls={openAPIRailVisible ? 'http-openapi-operations' : undefined}
-            aria-expanded={openAPIRailVisible}
-            title="Show or hide API operations"
-            onClick={() => {
-              setLibraryOpen(false);
-              setOpenAPIRailVisible((visible) => !visible);
-            }}
-          >
-            <FileJson2 aria-hidden="true" /> {openAPICollection.title}{' '}
-            <span>{openAPICollection.operations.length}</span>
-          </button>
         ) : null}
         {openAPIImportOpen ? (
           <Suspense fallback={null}>
@@ -873,42 +975,13 @@ export function HTTPWorkbench() {
               onURLChange={setOpenAPIImportURL}
               onImportURL={() => void importOpenAPIURL()}
               onImportFile={(file) => void importOpenAPIFile(file)}
-              onClose={closeOpenAPIImport}
+              onClose={() => {
+                closeOpenAPIImport();
+                restoreToolsFocus();
+              }}
             />
           </Suspense>
         ) : null}
-        <details ref={historyRef} className="pp-http-history">
-          <summary>
-            <History aria-hidden="true" /> History <span>{history.length}</span>
-          </summary>
-          <div>
-            <header>
-              <strong>
-                Secret-safe local history
-                {history.length > 12 ? ` · 12 newest of ${history.length}` : ''}
-              </strong>
-              {history.length ? (
-                <button type="button" onClick={() => setHistory([])}>
-                  Clear
-                </button>
-              ) : null}
-            </header>
-            {history.length ? (
-              history.slice(0, 12).map((entry) => (
-                <button key={entry.id} type="button" onClick={() => loadHistory(entry)}>
-                  <span>{entry.method}</span>
-                  <strong>{entry.status || 'Failed'}</strong>
-                  <code>{entry.url}</code>
-                  <small>
-                    {compactDate(entry.createdAt)} · {entry.totalMs.toFixed(1)} ms total
-                  </small>
-                </button>
-              ))
-            ) : (
-              <p>Send a request to build local history. Auth values are never retained.</p>
-            )}
-          </div>
-        </details>
       </PageHeader>
 
       <div ref={requestLineRef} className="pp-http-request-line">
@@ -1084,7 +1157,10 @@ export function HTTPWorkbench() {
                 followRedirects,
               })}
               onLoad={loadRecipe}
-              onClose={() => setLibraryOpen(false)}
+              onClose={() => {
+                setLibraryOpen(false);
+                restoreToolsFocus();
+              }}
             />
           </Suspense>
         ) : null}
@@ -1096,7 +1172,10 @@ export function HTTPWorkbench() {
               onSelect={applyOpenAPIOperation}
               onClose={() => {
                 setOpenAPIRailVisible(false);
-                requestAnimationFrame(() => openAPICollectionTriggerRef.current?.focus());
+                requestAnimationFrame(() => {
+                  if (toolsTriggerRef.current?.getClientRects().length) restoreToolsFocus();
+                  else openAPICollectionTriggerRef.current?.focus();
+                });
               }}
             />
           </Suspense>

@@ -278,9 +278,9 @@ function Hero() {
           </a>
           <a
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white px-5 text-sm font-semibold text-black transition-colors hover:bg-neutral-100 motion-reduce:transition-none"
-            href="#product"
+            href="#find-tool"
           >
-            See how it works
+            Find a tool or guide
             <ArrowRight className="size-4" aria-hidden="true" />
           </a>
         </div>
@@ -339,6 +339,7 @@ const searchableGuides = [
     title: journey.label,
     description: journey.detail,
     keywords: journey.title,
+    aliases: [] as string[],
   })),
   ...publicPagesRegistry.pages
     .filter((page) => page.kind === 'feature' || page.kind === 'guide')
@@ -346,7 +347,8 @@ const searchableGuides = [
       path: page.path,
       title: page.title,
       description: page.description,
-      keywords: (page.highlights ?? []).join(' '),
+      keywords: [...(page.highlights ?? []), ...(page.keywords ?? [])].join(' '),
+      aliases: page.keywords ?? [],
     })),
 ];
 
@@ -359,6 +361,7 @@ function findGuides(terms: string[]) {
       const details = words(guide.description);
       const scores = terms.map<number>((term) => {
         if (title.includes(term)) return 8;
+        if (guide.aliases.some((phrase) => phrase.toLowerCase() === term)) return 6;
         if (title.some((word) => word.startsWith(term))) return 5;
         if (keywords.some((word) => word.startsWith(term))) return 3;
         return details.some((word) => word.startsWith(term)) ? 1 : 0;
@@ -394,7 +397,7 @@ function ProductQuestions() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Try DNS, packet capture, or gRPC"
-              className="min-h-11 rounded-lg border border-neutral-300 bg-white px-3 font-normal text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="min-h-11 scroll-mt-20 rounded-lg border border-neutral-300 bg-white px-3 font-normal text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             />
           </label>
         </div>

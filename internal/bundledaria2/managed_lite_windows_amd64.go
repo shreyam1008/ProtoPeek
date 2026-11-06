@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
 )
 
 const managedURL = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
@@ -51,6 +53,58 @@ func readManagedArchive() ([]byte, error) {
 		return nil, err
 	}
 	return readCompanion(path, windowsArchiveSHA, windowsArchiveSize)
+}
+
+// CanRepairManagedArchive only covers a fixed-name local cache file. An
+// invalid adjacent sidecar is user-supplied and is never moved automatically.
+func CanRepairManagedArchive() bool {
+	exe, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	if _, err := os.Lstat(filepath.Join(filepath.Dir(exe), CompanionFilename)); !errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	path, err := managedArchivePath(false)
+	if err != nil {
+		return false
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() {
+		return false
+	}
+	_, err = readCompanion(path, windowsArchiveSHA, windowsArchiveSize)
+	return errors.Is(err, ErrCompanionInvalid)
+}
+
+// Quarantine preserves changed data rather than deleting an unverified file.
+// The caller holds the downloader process lock and requires explicit consent.
+func QuarantineManagedArchive() error {
+	if !CanRepairManagedArchive() {
+		return ErrCompanionInvalid
+	}
+	path, err := managedArchivePath(false)
+	if err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), ".aria2-quarantine-*")
+	if err != nil {
+		return ErrCompanionInvalid
+	}
+	name := f.Name()
+	if err := f.Close(); err != nil {
+		return ErrCompanionInvalid
+	}
+	if err := os.Remove(name); err != nil {
+		return ErrCompanionInvalid
+	}
+	if err := safepromote.Rename(path, name); err != nil {
+		if errors.Is(err, safepromote.ErrUnsupported) {
+			return ErrPromotionUnsupported
+		}
+		return ErrCompanionInvalid
+	}
+	return nil
 }
 func checkManagedArchive() error {
 	_, err := readManagedArchive()
@@ -130,7 +184,10 @@ func InstallManaged(ctx context.Context) error {
 	if err = f.Close(); err != nil {
 		return err
 	}
-	if err = os.Link(f.Name(), path); err != nil {
+	if err = safepromote.Rename(f.Name(), path); err != nil {
+		if errors.Is(err, safepromote.ErrUnsupported) {
+			return ErrPromotionUnsupported
+		}
 		return ErrCompanionInvalid
 	}
 	return nil

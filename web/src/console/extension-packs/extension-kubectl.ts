@@ -4,11 +4,7 @@ const extension = {
   tool: 'kubectl',
   download: 'https://kubernetes.io/docs/tasks/tools/',
   guide: 'https://kubernetes.io/docs/reference/kubectl/generated/kubectl_port-forward/',
-  setup: {
-    windows: 'Install kubectl and select an authorized cluster context.',
-    darwin: 'Install kubectl and select an authorized cluster context.',
-    linux: 'Install kubectl and select an authorized cluster context.',
-  },
+  setup: 'Install kubectl and select an authorized cluster context.',
   afterSetup:
     'Choose the cluster, namespace and service. Forward its port locally, then inspect that port.',
   notes: [

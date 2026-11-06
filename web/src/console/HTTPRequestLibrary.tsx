@@ -28,6 +28,8 @@ export function HTTPRequestLibrary({
   onSaved?: (recipe: HTTPRecipe) => void;
 }) {
   const [initial] = useState(readHTTPLibrary);
+  const panelRef = useRef<HTMLElement>(null);
+  useEffect(() => panelRef.current?.focus(), []);
   const [requests, setRequests] = useState(initial.requests);
   const [error, setError] = useState(initial.error);
   const [notice, setNotice] = useState('');
@@ -110,7 +112,13 @@ export function HTTPRequestLibrary({
     });
   }
   return (
-    <aside className="pp-http-library" aria-label="Saved HTTP requests" data-pp-shortcut-scope>
+    <aside
+      ref={panelRef}
+      tabIndex={-1}
+      className="pp-http-library"
+      aria-label="Saved HTTP requests"
+      data-pp-shortcut-scope
+    >
       <header>
         <strong>
           Saved requests <small>{requests.length}/50</small>

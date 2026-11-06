@@ -14,11 +14,14 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
 )
 
 var extractMu sync.Mutex
 
 type bundle struct {
+	members                               []memberPin
 	archive                               []byte
 	archiveSHA, binarySHA, prefix, binary string
 }
@@ -26,11 +29,11 @@ type bundle struct {
 // Path returns an empty path without error on builds with no bundled engine.
 func Path() (string, error) {
 	payload, err := loadNativeBundle()
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrCompanionMissing) {
 		return "", err
 	}
-	if len(payload.archive) == 0 {
-		return "", nil
+	if payload.binary == "" {
+		return "", err
 	}
 	cache, err := os.UserCacheDir()
 	if err != nil {
@@ -38,31 +41,59 @@ func Path() (string, error) {
 	}
 	extractMu.Lock()
 	defer extractMu.Unlock()
-	directory, err := safeCacheDirectory(cache, payload.binarySHA)
-	if err != nil {
-		return "", err
+	hasArchive := len(payload.archive) > 0
+	directory, err := cacheDirectory(cache, payload.binarySHA, hasArchive)
+	if errors.Is(err, os.ErrNotExist) && !hasArchive {
+		return "", ErrCompanionMissing
 	}
-	return extract(payload, directory)
+	if err != nil {
+		return "", ErrCacheInvalid
+	}
+	switch inspectCacheDirectory(directory, payload.members) {
+	case cacheComplete:
+		return filepath.Join(directory, payload.binary), nil
+	case cacheChanged, cacheUnsafe:
+		return "", ErrCacheInvalid
+	}
+	if !hasArchive {
+		return "", ErrCompanionMissing
+	}
+	path, err := extract(payload, directory)
+	if err != nil {
+		if errors.Is(err, safepromote.ErrUnsupported) {
+			return "", ErrPromotionUnsupported
+		}
+		return "", ErrCacheInvalid
+	}
+	return path, nil
 }
 
 // The user-selected cache root may be a link, but app-owned descendants must
 // be real directories; never create an extraction through a substituted link.
-func safeCacheDirectory(cache, binarySHA string) (string, error) {
-	if err := os.MkdirAll(cache, 0700); err != nil {
-		return "", err
+func cacheDirectory(cache, binarySHA string, create bool) (string, error) {
+	if !filepath.IsAbs(cache) {
+		return "", ErrCacheInvalid
+	}
+	if create {
+		if err := os.MkdirAll(cache, 0700); err != nil {
+			return "", err
+		}
 	}
 	dir := cache
 	for _, name := range []string{"protopeek", "engines", "aria2", binarySHA} {
 		dir = filepath.Join(dir, name)
 		info, err := os.Lstat(dir)
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) && create {
 			if err = os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
 				return "", err
 			}
 			info, err = os.Lstat(dir)
 		}
-		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-			return "", errors.New("aria2 cache must contain only real directories")
+		if err != nil {
+			return "", err
+		}
+		if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return "", ErrCacheInvalid
 		}
 	}
 	return dir, nil
@@ -83,27 +114,6 @@ func extract(payload bundle, directory string) (string, error) {
 		return "", errors.New("aria2 extraction directory must be a real directory")
 	}
 	target := filepath.Join(directory, payload.binary)
-	if info, err := os.Lstat(target); err == nil {
-		if !info.Mode().IsRegular() || info.Size() > 16<<20 {
-			return "", errors.New("cached aria2 is not a regular executable")
-		}
-		file, err := os.Open(target)
-		if err != nil {
-			return "", err
-		}
-		hash := sha256.New()
-		_, readErr := io.Copy(hash, io.LimitReader(file, (16<<20)+1))
-		closeErr := file.Close()
-		if err := errors.Join(readErr, closeErr); err != nil {
-			return "", err
-		}
-		if hex.EncodeToString(hash.Sum(nil)) != payload.binarySHA {
-			return "", fmt.Errorf("cached aria2 checksum mismatch; remove %s and start Downloader again", directory)
-		}
-		return target, nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return "", err
-	}
 	reader, err := zip.NewReader(bytes.NewReader(payload.archive), int64(len(payload.archive)))
 	if err != nil {
 		return "", err
@@ -164,8 +174,8 @@ func extractFile(entry *zip.File, target string, executable bool, binarySHA stri
 	}
 	// Promotion never replaces an existing file. A verified identical file is
 	// accepted for retry after an interrupted extraction; all others stay intact.
-	if err := os.Link(file.Name(), target); err != nil {
-		if !errors.Is(err, os.ErrExist) {
+	if err := safepromote.Rename(file.Name(), target); err != nil {
+		if _, statErr := os.Lstat(target); statErr != nil {
 			return err
 		}
 		info, statErr := os.Lstat(target)

@@ -5,7 +5,7 @@ import { fetchJSON } from './api';
 type ManagedID = 'cloudflared' | 'aria2';
 type Tool = {
   id: ManagedID;
-  status: 'available' | 'installed' | 'external' | 'unavailable' | 'invalid';
+  status: 'available' | 'installed' | 'external' | 'unavailable' | 'invalid' | 'incomplete';
   version: string;
   installBytes: number;
   canInstall: boolean;
@@ -18,9 +18,12 @@ function parseTool(value: unknown, id: ManagedID): Tool {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Invalid companion status.');
   const v = value as Record<string, unknown>;
+  const repairable = id === 'aria2' && (v.status === 'invalid' || v.status === 'incomplete');
   if (
     v.id !== id ||
-    !['available', 'installed', 'external', 'unavailable', 'invalid'].includes(String(v.status)) ||
+    !['available', 'installed', 'external', 'unavailable', 'invalid', 'incomplete'].includes(
+      String(v.status)
+    ) ||
     typeof v.version !== 'string' ||
     v.version.length > 128 ||
     !Number.isSafeInteger(v.installBytes) ||
@@ -37,8 +40,10 @@ function parseTool(value: unknown, id: ManagedID): Tool {
             ? 'https://github.com/cloudflare/cloudflared/releases/download/'
             : 'https://github.com/aria2/aria2/releases/download/'
         ))) ||
-    (v.canRemove && v.status !== 'installed') ||
-    (v.canInstall && v.status !== 'available' && v.status !== 'external')
+    (v.status === 'incomplete' && id !== 'aria2') ||
+    (v.canInstall && (v.installBytes as number) > 0 && !v.sourceUrl) ||
+    (v.canRemove && v.status !== 'installed' && v.status !== 'incomplete') ||
+    (v.canInstall && v.status !== 'available' && v.status !== 'external' && !repairable)
   )
     throw new Error('Invalid companion status.');
   return v as Tool;
@@ -47,7 +52,7 @@ function parseTool(value: unknown, id: ManagedID): Tool {
 export function ManagedExtension({ id }: { id: ManagedID }) {
   const [tool, setTool] = useState<Tool | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState<'install' | 'remove' | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [notice, setNotice] = useState('');
   const [removalFailed, setRemovalFailed] = useState(false);
   const controller = useRef<AbortController | null>(null);
@@ -59,7 +64,7 @@ export function ManagedExtension({ id }: { id: ManagedID }) {
     setBusy(true);
     setNotice('');
     setRemovalFailed(false);
-    setConfirm(null);
+    setConfirmRemove(false);
     try {
       const result = await fetchJSON<unknown>(
         action ? `api/extensions/managed/${action}` : `api/extensions/managed?id=${id}`,
@@ -107,7 +112,7 @@ export function ManagedExtension({ id }: { id: ManagedID }) {
         </>
       ) : (
         <button type="button" onClick={() => void request()}>
-          Check companion status
+          {tool ? 'Refresh status' : 'Check companion status'}
         </button>
       )}
       {notice ? <p role="status">{notice}</p> : null}
@@ -131,41 +136,54 @@ export function ManagedExtension({ id }: { id: ManagedID }) {
                   external: 'External tool found',
                   unavailable: 'Unavailable',
                   invalid: 'Needs attention',
+                  incomplete: 'Incomplete setup',
                 }[tool.status]
               }
             </strong>
             {tool.version ? ` · ${tool.version}` : ''}
           </p>
-          {confirm === 'install' && tool.sourceUrl ? (
+          {tool.canInstall && tool.sourceUrl ? (
             <p>
-              Source: <code>{tool.sourceUrl}</code>
+              Source:{' '}
+              <a href={tool.sourceUrl} target="_blank" rel="noreferrer">
+                {tool.sourceUrl}
+              </a>
             </p>
           ) : null}
           <p>{tool.message}</p>
-          {!busy && !confirm && tool.canInstall ? (
-            <button type="button" onClick={() => setConfirm('install')}>
-              Install companion
-            </button>
+          {!busy && tool.canInstall ? (
+            <>
+              <p>
+                {tool.installBytes
+                  ? 'Download ' +
+                    (tool.installBytes / 1024 / 1024).toFixed(1) +
+                    ' MiB. ProtoPeek verifies the pinned file before use.'
+                  : 'Uses the verified local archive. No download is needed.'}
+              </p>
+              <button type="button" onClick={() => void request('install')}>
+                {tool.status === 'invalid' || tool.status === 'incomplete'
+                  ? 'Repair companion'
+                  : tool.installBytes
+                    ? 'Confirm install'
+                    : 'Prepare local engine'}
+              </button>
+            </>
           ) : null}
-          {!busy && !confirm && tool.canRemove ? (
-            <button type="button" onClick={() => setConfirm('remove')}>
+          {!busy && !confirmRemove && tool.canRemove ? (
+            <button type="button" onClick={() => setConfirmRemove(true)}>
               Remove companion
             </button>
           ) : null}
         </div>
       ) : null}
-      {confirm && tool && !busy ? (
+      {confirmRemove && tool && !busy ? (
         <fieldset className="pp-managed-confirm">
-          <legend>Confirm {confirm}</legend>
-          <p>
-            {confirm === 'install'
-              ? `Install ${id}${tool.version ? ` ${tool.version}` : ''}? ${tool.installBytes ? `Download ${(tool.installBytes / 1024 / 1024).toFixed(1)} MiB from the source shown.` : 'Prepare the available local companion; no download is needed.'} The pinned companion will be verified before use.`
-              : `Remove the ProtoPeek-managed ${id} companion? Other installations and user files are left alone.`}
-          </p>
-          <button type="button" onClick={() => void request(confirm)}>
-            Confirm {confirm}
+          <legend>Remove companion?</legend>
+          <p>Remove the verified {id} files from the ProtoPeek cache?</p>
+          <button type="button" onClick={() => void request('remove')}>
+            Confirm remove
           </button>{' '}
-          <button type="button" onClick={() => setConfirm(null)}>
+          <button type="button" onClick={() => setConfirmRemove(false)}>
             Cancel
           </button>
         </fieldset>

@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 func fixtureRemoval(t *testing.T) (string, Asset, string, []installedFile, assetNotices) {
@@ -68,6 +70,94 @@ func TestRemoveVerifiedRejectsChangedAndUnexpectedFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Dir(path)); !os.IsNotExist(err) {
 		t.Fatalf("directory remains: %v", err)
+	}
+}
+
+func TestInterruptedRemovalCanRetryOnlyPinnedRemainder(t *testing.T) {
+	root, a, path, files, notices := fixtureRemoval(t)
+	if err := os.Remove(path + ".verified"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyPartialManagedAsset(root, a, path, files, notices); err != nil {
+		t.Fatalf("verified remainder rejected: %v", err)
+	}
+	if err := verifyManagedAsset(root, a, path, files, notices); err == nil {
+		t.Fatal("incomplete tool accepted for execution")
+	}
+	if err := removeVerifiedAsset(root, a, path, files, notices); err != nil {
+		t.Fatalf("retry removal: %v", err)
+	}
+	if _, err := os.Stat(filepath.Dir(path)); !os.IsNotExist(err) {
+		t.Fatalf("remainder left: %v", err)
+	}
+}
+
+func TestReceiptOrderFromOlderInstallIsAccepted(t *testing.T) {
+	root, a, path, files, notices := fixtureRemoval(t)
+	reversed := append([]installedFile(nil), files...)
+	reversed[0], reversed[1] = reversed[1], reversed[0]
+	body, err := json.Marshal(toolReceipt{SchemaVersion: 1, Asset: a, Notices: notices, Files: reversed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path+".verified", body, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyManagedAsset(root, a, path, files, notices); err != nil {
+		t.Fatalf("equivalent prior receipt rejected: %v", err)
+	}
+}
+
+func TestInterruptedInstallRejectsUnknownOrChangedRemainder(t *testing.T) {
+	root, a, path, files, notices := fixtureRemoval(t)
+	if err := os.Remove(path + ".verified"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("fixture binarY"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyPartialManagedAsset(root, a, path, files, notices); !errors.Is(err, ErrRemoveInvalid) {
+		t.Fatalf("changed remainder accepted: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("fixture binary"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	extra := filepath.Join(filepath.Dir(path), "unknown")
+	if err := os.WriteFile(extra, []byte("preserve"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeVerifiedAsset(root, a, path, files, notices); !errors.Is(err, ErrRemoveInvalid) {
+		t.Fatalf("unknown file accepted: %v", err)
+	}
+	if b, err := os.ReadFile(extra); err != nil || string(b) != "preserve" {
+		t.Fatalf("unknown file changed: %q %v", b, err)
+	}
+}
+
+func TestLegacyInterruptedStagingIsPreservedDuringRepair(t *testing.T) {
+	root, a, path, files, notices := fixtureRemoval(t)
+	if err := os.Remove(path + ".verified"); err != nil {
+		t.Fatal(err)
+	}
+	stage := filepath.Join(filepath.Dir(path), ".install-legacy")
+	if err := os.Mkdir(stage, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(stage, "unverified"), []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := removeVerifiedAsset(root, a, path, files, notices); err != nil {
+		t.Fatal(err)
+	}
+	preserved, err := filepath.Glob(filepath.Join(filepath.Dir(filepath.Dir(path)), ".preserved-install-*"))
+	if err != nil || len(preserved) != 1 {
+		t.Fatalf("preserved stage: %v %v", preserved, err)
+	}
+	if b, err := os.ReadFile(filepath.Join(preserved[0], "unverified")); err != nil || string(b) != "keep" {
+		t.Fatalf("stage contents changed: %q %v", b, err)
 	}
 }
 
@@ -151,6 +241,58 @@ func TestInstallRejectsExistingFileAndSymlinkBeforeNetwork(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "new")); !os.IsNotExist(err) || called {
 		t.Fatalf("created files outside safe tree: %v", err)
+	}
+}
+
+func TestMediaAcceptsOSConfigAliasButRejectsAppOwnedSymlink(t *testing.T) {
+	base := t.TempDir()
+	real := filepath.Join(base, "actual")
+	if err := os.Mkdir(real, 0700); err != nil {
+		t.Fatal(err)
+	}
+	alias := filepath.Join(base, "config-alias")
+	if err := os.Symlink(real, alias); err != nil {
+		t.Skipf("host cannot create symlinks: %v", err)
+	}
+	t.Setenv("APPDATA", alias)
+	t.Setenv("XDG_CONFIG_HOME", alias)
+	t.Setenv("HOME", alias)
+	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := userroot.Resolve(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New()
+	if err != nil {
+		t.Fatalf("OS config alias rejected: %v", err)
+	}
+	s.Close()
+	if _, err := os.Stat(filepath.Join(resolved, "protopeek", "media")); err != nil {
+		t.Fatal(err)
+	}
+	other := filepath.Join(base, "second-config")
+	if err := os.Mkdir(other, 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("APPDATA", other)
+	t.Setenv("XDG_CONFIG_HOME", other)
+	t.Setenv("HOME", other)
+	config, err = os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(config, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, filepath.Join(config, "protopeek")); err != nil {
+		t.Fatal(err)
+	}
+	if s, err := New(); err == nil {
+		s.Close()
+		t.Fatal("app-owned symlink accepted")
 	}
 }
 

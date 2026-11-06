@@ -4,7 +4,7 @@ export type ExtensionPack = {
   tool: string;
   download: string;
   guide: string;
-  setup: Record<SetupPlatform, string>;
+  setup: string | Record<SetupPlatform, string>;
   afterSetup: string;
   notes: string[];
   commands?: { label: string; text: string }[];

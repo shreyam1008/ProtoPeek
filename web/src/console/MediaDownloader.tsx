@@ -13,6 +13,8 @@ type Tool = {
   installBytes: number;
   canInstall: boolean;
   canRemove?: boolean;
+  incomplete?: boolean;
+  invalid?: boolean;
   help: string;
 };
 type Job = {
@@ -20,6 +22,7 @@ type Job = {
   request: { url: string; engine: string };
   status: string;
   message: string;
+  warning?: string;
   directory: string;
   bytes: number;
   total: number;
@@ -221,12 +224,20 @@ export default function MediaDownloader({ initialTool }: { initialTool?: MediaTo
           <strong>
             {setupName}{' '}
             {setupTool
-              ? setupTool.path
-                ? '· Found on this host'
-                : '· Setup needed'
+              ? setupTool.invalid
+                ? '· Needs attention'
+                : setupTool.path
+                  ? '· Found on this host'
+                  : '· Setup needed'
               : '· Not observed'}
           </strong>
-          <p>{setupTool?.help ?? 'Reading local capabilities…'}</p>
+          <p>
+            {setupTool?.invalid
+              ? 'Review unexpected or changed files in the managed tool directory.'
+              : setupTool?.incomplete
+                ? 'A previous setup stopped. Repair verifies the remaining files before reinstalling.'
+                : (setupTool?.help ?? 'Reading local capabilities…')}
+          </p>
           {(setupName === 'deno' || setupName === 'ffmpeg') && (
             <p>
               This supports Video &amp; audio downloads; it is not a standalone download engine.
@@ -246,8 +257,12 @@ export default function MediaDownloader({ initialTool }: { initialTool?: MediaTo
                 )
               }
             >
-              {setupTool.path ? 'Complete setup' : `Install ${setupName}`} ·{' '}
-              {size(setupTool.installBytes)}
+              {setupTool.incomplete
+                ? 'Repair setup'
+                : setupTool.path
+                  ? 'Complete setup'
+                  : `Install ${setupName}`}{' '}
+              · {size(setupTool.installBytes)}
             </button>
           )}
         {setupTool?.canRemove && !confirmRemove && (
@@ -268,18 +283,23 @@ export default function MediaDownloader({ initialTool }: { initialTool?: MediaTo
             ArchiveBox setup
           </a>
         )}
-        {setupName === 'gallery-dl' && setupTool && !setupTool.path && !setupTool.canInstall && (
-          <a
-            href="https://github.com/mikf/gallery-dl#installation"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Installation instructions
-          </a>
-        )}
+        {setupName === 'gallery-dl' &&
+          setupTool &&
+          !setupTool.invalid &&
+          !setupTool.path &&
+          !setupTool.canInstall && (
+            <a
+              href="https://github.com/mikf/gallery-dl#installation"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Installation instructions
+            </a>
+          )}
         {(setupName === 'deno' || setupName === 'ffmpeg') &&
           setupTool &&
           !setupTool.path &&
+          !setupTool.invalid &&
           !setupTool.canInstall && (
             <a
               href={
@@ -552,6 +572,7 @@ export default function MediaDownloader({ initialTool }: { initialTool?: MediaTo
                 {job.files > 0 ? ` · ${job.files} files saved` : ''}
               </small>
               {job.message && <p>{safeDownloadMessage(job.message)}</p>}
+              {job.warning && <p>{safeDownloadMessage(job.warning)}</p>}
               <code>{job.directory}</code>
               <div className="pp-media-job-actions">
                 {active(job) ? (

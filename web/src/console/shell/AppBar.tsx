@@ -57,6 +57,7 @@ export type AppBarProps = {
   onInspect: () => void;
   onOpenCommand: () => void;
   onOpenHelp: () => void;
+  onOpenTour: () => void;
   onToggleTheme: () => void;
 };
 
@@ -128,28 +129,39 @@ export function AppBar(props: AppBarProps) {
                 <PanelLeftClose aria-hidden="true" />
               )}
             </button>
-            {props.sidebarCollapsed && !props.navigationOpen ? (
+            {!props.navigationOpen ? (
               <div className="pp-rail-quick-actions">
                 <button
                   type="button"
                   className="pp-app-icon-action"
-                  aria-label="Find anything"
+                  aria-label="Search tools"
                   title={`Find anything (${props.modifier} K)`}
                   onClick={props.onOpenCommand}
                 >
                   <Search aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  className="pp-app-icon-action"
-                  aria-label="Inspect target"
-                  title="Inspect target"
-                  onClick={props.onInspect}
-                >
-                  <Radar aria-hidden="true" />
-                </button>
+                {props.sidebarCollapsed ? (
+                  <button
+                    type="button"
+                    className="pp-app-icon-action pp-quick-inspect"
+                    aria-label="Inspect target"
+                    title="Inspect target"
+                    onClick={props.onInspect}
+                  >
+                    <Radar aria-hidden="true" />
+                  </button>
+                ) : null}
               </div>
             ) : null}
+            <button
+              type="button"
+              className="pp-app-icon-action pp-app-tour"
+              aria-label="Start guide for this tool"
+              title="Start guide for this tool"
+              onClick={props.onOpenTour}
+            >
+              Guide
+            </button>
             <button
               type="button"
               className="pp-app-icon-action pp-app-help"

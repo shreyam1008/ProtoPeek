@@ -41,9 +41,14 @@ if (-not $file.PSIsContainer -and $file.Length -eq $size -and (Get-FileHash -Lit
 }
 
 Push-Location $root
+$previousCgo = $env:CGO_ENABLED
 try {
+    $revision = & git describe --always --long --dirty
+    if ($LASTEXITCODE -ne 0 -or $revision -notmatch '^[A-Za-z0-9._-]+$') { throw 'Could not identify this source revision.' }
+    $buildVersion = "source-$revision"
+    $env:CGO_ENABLED = '0'
     foreach ($command in @('protopeek', 'pp')) {
-        & go build -trimpath -ldflags '-s -w' -tags protopeek_lite -o (Join-Path $destination "$command.exe") "./cmd/$command"
+        & go build -trimpath -ldflags "-s -w -X main.version=$buildVersion" -tags protopeek_lite -o (Join-Path $destination "$command.exe") "./cmd/$command"
         if ($LASTEXITCODE -ne 0) { throw "Building $command failed; inspect the preserved output directory." }
     }
     if (-not $CoreOnly) { Copy-Item -LiteralPath $asset -Destination (Join-Path $destination $name) }
@@ -56,5 +61,6 @@ try {
     if ($CoreOnly) { Write-Host 'Install aria2 from Extensions when you need it.' }
     else { Write-Host 'Keep the companion ZIP beside the executables for offline setup.' }
 } finally {
+    $env:CGO_ENABLED = $previousCgo
     Pop-Location
 }

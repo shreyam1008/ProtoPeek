@@ -21,13 +21,26 @@ protopeek \- open the local ProtoPeek gRPC and HTTP workbench
 .br
 .B protopeek migrate-gobarry
 .BI --rollback " RECEIPT_ID"
+.br
+.B protopeek extensions status
+.RI [ ID ]
+.br
+.B protopeek extensions install|remove
+.I ID
+.br
+.B protopeek agent search
+.I words
+.br
+.B protopeek agent schema
+.I name
+.br
+.B protopeek mcp
 .SH DESCRIPTION
 ProtoPeek starts an unauthenticated local web workbench. With no target it opens
 the Protocol Peek dashboard. An exact host:port connects directly to that gRPC
 target. A bare host opens the dashboard's visible scan and checks only port
 50051 with plaintext and port 443 with verified TLS. An HTTP(S) authority checks
-its stated or default port. Overview, Protocols, Network, Downloader, Security,
-and Settings are the six primary local browser areas.
+its stated or default port. Home, Inspect, Network, Extensions, Files, and Settings are the primary destinations.
 .PP
 The listener binds to 127.0.0.1 by default. Do not expose it to an untrusted
 network. For a container published only on host loopback,

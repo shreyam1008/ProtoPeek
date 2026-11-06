@@ -6,6 +6,8 @@ builds:
   - id: protopeek
     binary: protopeek
     main: ./cmd/protopeek
+    tags:
+      - protopeek_lite
     env:
       - CGO_ENABLED=0
     goos:
@@ -24,6 +26,8 @@ builds:
   - id: pp
     binary: pp
     main: ./cmd/pp
+    tags:
+      - protopeek_lite
     env:
       - CGO_ENABLED=0
     goos:
@@ -111,6 +115,8 @@ checksum:
     - glob: ./install.sh
     - glob: ./install.ps1
     - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
+    - glob: ./internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip
+      name_template: protopeek-aria2-1.37.0-win-64bit-build1.zip
 
 sboms:
   - id: archives
@@ -123,5 +129,7 @@ release:
   replace_existing_artifacts: true
   extra_files:
     - glob: ./.local/aria2-1.37.0-companion-sources.tar.gz
+    - glob: ./internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip
+      name_template: protopeek-aria2-1.37.0-win-64bit-build1.zip
     - glob: ./install.sh
     - glob: ./install.ps1

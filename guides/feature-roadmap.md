@@ -12,8 +12,8 @@ the [acceptance record](workbench-overhaul-2026-09.md) records tests, observatio
 
 ## Source changes since v0.7.0
 
-- Contextual Help offers guided steps inside workbenches. Mobile Settings, Security and Roadmap place section controls above their content.
-- Extensions manages Cloudflare Tunnel and the Windows aria2 companion from the app and CLI. Four additional media companions install and remove through Files. Other integrations link to vendor setup or an existing workbench. See [Extensions](extensions.md).
+- Choose **Guide** to highlight the current workbench controls. Mobile Settings, Security and Roadmap place section controls above their content.
+- Six companions support managed installation on supported hosts through the app and CLI. The Windows x64 release recipes keep aria2 separate. Existing verified v0.7.0 caches work offline. Other integrations link to vendor setup or an existing workbench. See [Extensions](extensions.md).
 - Agents can search tools offline, inspect a single schema, read managed-companion availability, and request bounded DNS, TLS or subnet checks. See [agent setup](ai-agents.md).
 
 ## Published checkpoint · 23 October 2026

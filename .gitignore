@@ -10,6 +10,7 @@ VERSION
 output/
 node_modules/
 package-lock.json
+!/scripts/browser-acceptance/package-lock.json
 .DS_Store
 /protopeek
 /pp

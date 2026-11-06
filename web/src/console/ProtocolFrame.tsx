@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from '@tanstack/react-router';
+import { Outlet, useLocation, useNavigate } from '@tanstack/react-router';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { appStorageKeys, loadStoredValue, modifierKeyLabel, storeValue } from '@/shared/runtime';
 import {
@@ -10,7 +10,7 @@ import {
 } from '@/shared/theme';
 
 import type { ScanResult } from './api';
-import { destinations, type FeatureId } from './app/feature-registry';
+import { destinations, type FeatureId, featureForPath } from './app/feature-registry';
 import { clearPendingHandoff, storePendingHandoff } from './app/handoff-store';
 import type { HandoffProvenance, PendingHandoffInput } from './app/handoff-types';
 import { handoffDestinationRoutes } from './app/release-capabilities';
@@ -75,6 +75,7 @@ function discoveryProvenance(result: ScanResult): HandoffProvenance {
 
 export function ProtocolFrame() {
   const navigate = useNavigate();
+  const pathname = useLocation({ select: (location) => location.pathname });
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourFeature, setTourFeature] = useState<FeatureId | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -102,6 +103,9 @@ export function ProtocolFrame() {
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const closeTour = useCallback(() => setTourFeature(null), []);
   const startTour = useCallback((feature: FeatureId) => {
+    setCommandOpen(false);
+    setNavigationOpen(false);
+    setScanOpen(false);
     setHelpOpen(false);
     setTourFeature(feature);
   }, []);
@@ -297,6 +301,7 @@ export function ProtocolFrame() {
       event.preventDefault();
       event.stopImmediatePropagation();
       setHelpOpen(false);
+      setTourFeature(null);
       setNavigationOpen(false);
       setScanOpen(false);
       setCommandOpen((open) => !open);
@@ -348,6 +353,7 @@ export function ProtocolFrame() {
         onCloseNavigation={() => setNavigationOpen(false)}
         onOpenCommand={openCommand}
         onOpenHelp={openHelp}
+        onOpenTour={() => startTour(featureForPath(pathname)?.id ?? 'overview')}
         onToggleTheme={() =>
           setAppearance({
             ...appearance,

@@ -86,6 +86,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
 
+      - name: Verify draft Windows lightweight binaries
+        run: go run ./scripts/releasecheck dist
+
       - name: Verify all release checksums
         # Verify every manifest entry, including extras GoReleaser hashes
         # without copying them into dist, before attesting the digests.
@@ -94,7 +97,8 @@ jobs:
           for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
             cp "$extra" "dist/$(basename "$extra")"
           done
-          test "$(wc -l < dist/checksums.txt)" -eq 22
+          cp internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip dist/protopeek-aria2-1.37.0-win-64bit-build1.zip
+          test "$(wc -l < dist/checksums.txt)" -eq 23
           (cd dist && sha256sum --check checksums.txt)
 
       - name: Attest verified release files

@@ -54,3 +54,31 @@ func TestRemoveCachedRequiresExactVerifiedFiles(t *testing.T) {
 		t.Fatalf("cache remains: %v", err)
 	}
 }
+
+func TestRemoveCachedRetriesAfterInterruptionAndPreservesAbandonedBytes(t *testing.T) {
+	t.Setenv("LOCALAPPDATA", t.TempDir())
+	path, err := Path()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Dir(path)
+	for _, name := range []string{filepath.Base(path), "AUTHORS"} {
+		if err := os.Remove(filepath.Join(dir, name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	temp := filepath.Join(dir, ".extract-1729")
+	if err := os.WriteFile(temp, []byte("preserve orphan"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := RemoveCached(); err != nil {
+		t.Fatal(err)
+	}
+	left, err := os.ReadDir(dir)
+	if err != nil || len(left) != 1 || left[0].Name() != filepath.Base(temp) {
+		t.Fatalf("unexpected remainder %v: %v", left, err)
+	}
+	if data, err := os.ReadFile(temp); err != nil || string(data) != "preserve orphan" {
+		t.Fatalf("changed abandoned file: %q, %v", data, err)
+	}
+}

@@ -11,7 +11,7 @@ const extension = {
   },
   afterSetup: 'Downloader checks your configured engine, PATH, then its companion.',
   notes: [
-    'Windows x64 includes aria2 in standard builds. Install it here on demand in the lightweight preview, or supply its offline ZIP.',
+    'On Windows x64, install here on demand or supply the offline ZIP. v0.7.0 embeds its fallback.',
     'Checking status reads the cache. Installation and transfers are separate actions.',
   ],
 } satisfies ExtensionPack;

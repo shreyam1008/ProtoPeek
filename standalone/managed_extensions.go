@@ -84,6 +84,8 @@ func registerManagedExtensions(mux *http.ServeMux) {
 					http.Error(w, message, http.StatusConflict)
 				case errors.Is(err, managedtools.ErrUnavailable):
 					http.Error(w, "This companion is unavailable on this platform", http.StatusServiceUnavailable)
+				case errors.Is(err, managedtools.ErrStorageUnsupported):
+					http.Error(w, "This filesystem cannot safely install the companion. Use a local cache on a filesystem that supports atomic rename.", http.StatusConflict)
 				case errors.Is(err, managedtools.ErrInvalid):
 					http.Error(w, "Local companion files failed verification; nothing was replaced", http.StatusConflict)
 				case errors.Is(err, bundledaria2.ErrCompanionMissing), errors.Is(err, bundledaria2.ErrCompanionInvalid):

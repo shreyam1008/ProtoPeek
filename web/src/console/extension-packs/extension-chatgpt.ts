@@ -4,11 +4,7 @@ const extension = {
   tool: 'ChatGPT web (external)',
   download: 'https://chatgpt.com/',
   guide: 'https://help.openai.com/en/articles/11487775-connected-apps-in-chatgpt',
-  setup: {
-    windows: 'Open ChatGPT in your browser.',
-    darwin: 'Open ChatGPT in your browser.',
-    linux: 'Open ChatGPT in your browser.',
-  },
+  setup: 'Open ChatGPT in your browser.',
   afterSetup: 'Copy the prompt and review any evidence before sharing it in ChatGPT.',
   notes: [
     'ChatGPT web does not read local Codex config. ProtoPeek supplies no hosted account, public MCP relay or web stdio connector.',

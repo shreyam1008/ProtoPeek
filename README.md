@@ -67,11 +67,10 @@ They remain optional: opening the workbench does not download them or start thei
 
 Current source adds interactive tours in Help and a library of 24 optional tools. Six have managed installation on supported hosts: cloudflared, aria2, yt-dlp, gallery-dl, Deno and FFmpeg.
 Run `pp extensions status --json` to inspect versions or `pp agent search subnet` to discover an agent workflow.
-See the [extension guide](guides/extensions.md) for supported hosts and the
-experimental
-[Windows x64 lightweight build](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview)
-that can fetch the verified Downloader engine on demand or load its offline ZIP. This is a local
-development preview; existing releases, installers and updaters retain their standard packaging.
+See the [extension guide](guides/extensions.md) for supported hosts. The current release recipes
+build Windows x64 without the Downloader engine. Install aria2 when needed from Extensions, or
+bring the [verified offline ZIP](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
+Published v0.7.0 includes the engine.
 
 ## Stable, Nightly and source
 

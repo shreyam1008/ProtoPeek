@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 // ManagedTool is a cheap, read-only observation. It does not open the media
@@ -26,6 +28,12 @@ func InspectManaged(name string) (ManagedTool, error) {
 		out.Message = "The media tool directory is unavailable."
 		return out, nil
 	}
+	root, err = userroot.Resolve(root)
+	if err != nil {
+		out.Status = "unavailable"
+		out.Message = "The media tool directory is unavailable."
+		return out, nil
+	}
 	s := &Service{root: filepath.Join(root, "protopeek", "media")}
 	a, supported := assetFor(name)
 	if supported && checkExistingAncestors(filepath.Dir(s.assetPath(a))) != nil {
@@ -38,6 +46,16 @@ func InspectManaged(name string) (ManagedTool, error) {
 	if supported {
 		out.SourceURL = a.URL
 		path := s.assetPath(a)
+		if t.Invalid {
+			out.Status = "invalid"
+			out.Message = "Local media tool files are incomplete or changed; no automatic replacement was attempted."
+			return out, nil
+		}
+		if t.Incomplete {
+			out.Status, out.CanInstall, out.CanRemove = "incomplete", true, true
+			out.Message = "A previous operation stopped; remaining files will be verified before repair or removal."
+			return out, nil
+		}
 		if t.CanRemove && strings.EqualFold(filepath.Clean(t.Path), filepath.Clean(path)) {
 			out.Status, out.CanRemove = "installed", true
 			out.CanInstall = name == "yt-dlp" && t.InstallBytes > 0

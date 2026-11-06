@@ -1028,7 +1028,7 @@ const rootUsageFormat = `Usage:
 	%[1]s agent search WORDS
 	%[1]s agent schema NAME
 	%[1]s mcp
-	%[1]s extensions status [aria2|cloudflared]
+	%[1]s extensions status [ID]
 
 Starts the ProtoPeek web console.
 
@@ -1045,7 +1045,8 @@ for setup and cancellation details.
 
 Manage optional companions with "%[1]s extensions status", then use
 "%[1]s extensions install ID" or "%[1]s extensions remove ID". Installation is
-explicit; PATH tools are not removed. Add --json for machine-readable output.
+explicit. Status and operation results are JSON. IDs: aria2, cloudflared,
+yt-dlp, gallery-dl, deno, ffmpeg.
 
 The download command performs one local HTTP(S) transfer through the configured
 or system aria2c binary. Run "%[1]s download --help" for its bounded output-name

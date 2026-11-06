@@ -13,6 +13,7 @@ var nativeBundle = bundle{
 	archive:    windowsAMD64Archive,
 	archiveSHA: windowsArchiveSHA,
 	binarySHA:  windowsBinarySHA,
+	members:    windowsCacheMembers[:],
 	prefix:     "aria2-1.37.0-win-64bit-build1/",
 	binary:     "aria2c.exe",
 }

@@ -18,12 +18,18 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 //go:embed tools.json
 var toolManifest []byte
 
 var ErrInstallUnsafe = errors.New("existing media tool files or unsafe directories prevent installation")
+var ErrInstallUnsupported = errors.New("filesystem does not support safe atomic tool installation")
+var ErrExternalToolPresent = errors.New("an external tool is already on PATH")
+var ErrLocalUnavailable = errors.New("the local media tool directory is unavailable")
 
 type Asset struct {
 	Archive  string `json:"archive,omitempty"`
@@ -42,6 +48,8 @@ type Tool struct {
 	InstallBytes int64  `json:"installBytes"`
 	CanInstall   bool   `json:"canInstall"`
 	CanRemove    bool   `json:"canRemove"`
+	Incomplete   bool   `json:"incomplete,omitempty"`
+	Invalid      bool   `json:"invalid,omitempty"`
 	Help         string `json:"help"`
 }
 
@@ -58,18 +66,37 @@ func assetFor(name string) (Asset, bool) {
 
 func (s *Service) tool(name string) Tool {
 	t := Tool{Name: name}
+	invalidLocal := false
 	if name == "native-go" {
 		return Tool{Name: name, Path: "Built into ProtoPeek", Help: "Direct files, HTML media links, page images and original HTML snapshots. No installation needed."}
 	}
 	if a, ok := assetFor(name); ok {
 		t.CanInstall, t.InstallBytes, t.Version = true, a.Size, a.Version
 		p := s.assetPath(a)
-		if managedAssetReady(a, p) {
-			t.Path = p
-			_, t.CanRemove = removalFiles(a, filepath.Base(p))
+		if checkExistingAncestors(filepath.Dir(p)) != nil {
+			invalidLocal = true
+		} else if managedAssetReady(a, p) {
+			files, pinned := removalFiles(a, filepath.Base(p))
+			entries, err := os.ReadDir(filepath.Dir(p))
+			if pinned && err == nil && len(entries) == len(files)+1 {
+				t.Path, t.CanRemove = p, true
+			} else if s.recoverable(a, p) {
+				t.Incomplete, t.CanRemove = true, true
+			} else {
+				invalidLocal = true
+			}
+		} else if s.recoverable(a, p) {
+			t.Incomplete = true
+			t.CanRemove = true
+		} else if entries, err := os.ReadDir(filepath.Dir(p)); (err == nil && len(entries) > 0) || (err != nil && !errors.Is(err, os.ErrNotExist)) {
+			invalidLocal = true
 		}
 	}
-	if t.Path == "" {
+	if invalidLocal {
+		t.Invalid = true
+		t.CanInstall = false
+	}
+	if t.Path == "" && !t.Incomplete && !invalidLocal {
 		t.Path, _ = exec.LookPath(name)
 	}
 	if t.Path != "" {
@@ -140,7 +167,7 @@ func (s *Service) selectedTool(name string) (string, error) {
 }
 
 func checkExistingAncestors(path string) error {
-	abs, err := filepath.Abs(path)
+	abs, err := filepath.Abs(userroot.CanonicalTemp(path))
 	if err != nil {
 		return err
 	}
@@ -166,6 +193,13 @@ func (s *Service) Install(ctx context.Context, name string) error {
 		return errors.New("another engine installation is already running")
 	}
 	defer s.installMu.Unlock()
+	current := s.tool(name)
+	if current.Invalid {
+		return ErrInstallUnsafe
+	}
+	if current.Path != "" && !current.CanRemove && (name != "yt-dlp" || current.InstallBytes == 0) {
+		return ErrExternalToolPresent
+	}
 	if name == "yt-dlp" {
 		for _, dependency := range []string{"deno", "ffmpeg"} {
 			if dependency == "deno" && s.tool("node").Path != "" {
@@ -184,9 +218,6 @@ func (s *Service) Install(ctx context.Context, name string) error {
 }
 
 func (s *Service) installAsset(ctx context.Context, name string) error {
-	if s.tool(name).Path != "" {
-		return nil
-	}
 	a, ok := assetFor(name)
 	if !ok {
 		return errors.New("no managed build for this engine and platform")
@@ -196,21 +227,63 @@ func (s *Service) installAsset(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
+	current := s.tool(name)
+	if current.Incomplete {
+		files, _ := removalFiles(a, filepath.Base(p))
+		if err := removeVerifiedAsset(s.root, a, p, files, notices); err != nil {
+			return ErrInstallUnsafe
+		}
+	} else if current.Path != "" {
+		return nil
+	}
 	return installVerifiedAsset(ctx, a, notices, p, http.DefaultClient)
 }
 
+func (s *Service) recoverable(a Asset, path string) bool {
+	files, ok := removalFiles(a, filepath.Base(path))
+	if !ok {
+		return false
+	}
+	notices, err := noticesFor(a)
+	if err != nil {
+		return false
+	}
+	_ = notices
+	return partialCandidate(path, files)
+}
+
 func installVerifiedAsset(ctx context.Context, a Asset, notices assetNotices, p string, client *http.Client) error {
+	return installVerifiedAssetWithPromotion(ctx, a, notices, p, client, safepromote.Rename)
+}
+
+func installVerifiedAssetWithPromotion(ctx context.Context, a Asset, notices assetNotices, p string, client *http.Client, promote func(string, string) error) error {
 	if err := validateNotices(notices); err != nil {
 		return err
 	}
-	if err := ensureSafeDirectory(filepath.Dir(p)); err != nil {
+	destination := filepath.Dir(p)
+	parent := filepath.Dir(destination)
+	if err := ensureSafeDirectory(parent); err != nil {
 		return err
 	}
-	entries, err := os.ReadDir(filepath.Dir(p))
-	if err != nil || len(entries) != 0 {
+	info, statErr := os.Lstat(destination)
+	if statErr == nil && (!info.IsDir() || info.Mode()&os.ModeSymlink != 0) {
 		return ErrInstallUnsafe
 	}
-	stage, err := os.MkdirTemp(filepath.Dir(p), ".install-*")
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return ErrInstallUnsafe
+	}
+	entries, err := os.ReadDir(destination)
+	if err == nil {
+		if len(entries) != 0 {
+			return ErrInstallUnsafe
+		}
+		if err := os.Remove(destination); err != nil {
+			return ErrInstallUnsafe
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return ErrInstallUnsafe
+	}
+	stage, err := os.MkdirTemp(parent, ".install-*")
 	if err != nil {
 		return err
 	}
@@ -248,6 +321,9 @@ func installVerifiedAsset(ctx context.Context, a Asset, notices assetNotices, p 
 		if err := installZip(ctx, f.Name(), stagedExecutable, a.Engine, notices.Files...); err != nil {
 			return err
 		}
+		if err := os.Remove(f.Name()); err != nil {
+			return err
+		}
 	} else {
 		if err = os.Chmod(f.Name(), 0700); err != nil {
 			return err
@@ -267,47 +343,33 @@ func installVerifiedAsset(ctx context.Context, a Asset, notices assetNotices, p 
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(stage, ".verified"), encoded, 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(stage, filepath.Base(p)+".verified"), encoded, 0600); err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	// Promote with non-replacing links, and roll back only links to our own
-	// staged files. Existing receipts and user files are never overwritten.
-	if err := ensureSafeDirectory(filepath.Dir(p)); err != nil {
+	// The complete directory is promoted atomically without replacing any
+	// existing path. Interrupted staging remains outside the active version.
+	if err := ensureSafeDirectory(parent); err != nil {
 		return err
 	}
-	type promoted struct{ source, target string }
-	var created []promoted
-	rollback := func() {
-		for _, item := range created {
-			a, ae := os.Lstat(item.source)
-			b, be := os.Lstat(item.target)
-			if ae == nil && be == nil && a.Mode().IsRegular() && b.Mode().IsRegular() && os.SameFile(a, b) {
-				_ = os.Remove(item.target)
-			}
+	if err := promote(stage, destination); err != nil {
+		if errors.Is(err, safepromote.ErrUnsupported) {
+			return ErrInstallUnsupported
 		}
-	}
-	for _, file := range receipt.Files {
-		source, target := filepath.Join(stage, file.Name), filepath.Join(filepath.Dir(p), file.Name)
-		if err := os.Link(source, target); err != nil {
-			rollback()
+		if _, statErr := os.Lstat(destination); statErr == nil {
 			return ErrInstallUnsafe
 		}
-		created = append(created, promoted{source, target})
-	}
-	if err := os.Link(filepath.Join(stage, ".verified"), p+".verified"); err != nil {
-		rollback()
-		return ErrInstallUnsafe
+		return ErrLocalUnavailable
 	}
 	return nil
 }
 
 func ensureSafeDirectory(path string) error {
-	abs, err := filepath.Abs(path)
+	abs, err := filepath.Abs(userroot.CanonicalTemp(path))
 	if err != nil {
-		return errors.New("tool directory unavailable")
+		return ErrLocalUnavailable
 	}
 	var missing []string
 	for dir := abs; ; dir = filepath.Dir(dir) {
@@ -323,7 +385,7 @@ func ensureSafeDirectory(path string) error {
 	}
 	for i := len(missing) - 1; i >= 0; i-- {
 		if err := os.Mkdir(missing[i], 0700); err != nil && !errors.Is(err, os.ErrExist) {
-			return errors.New("tool directory unavailable")
+			return ErrLocalUnavailable
 		}
 		info, err := os.Lstat(missing[i])
 		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {

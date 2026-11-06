@@ -4,14 +4,14 @@ type ToolHelp = { steps: readonly string[]; boundary: string };
 
 export const mediaDownloadHelp: ToolHelp = {
   steps: [
-    'Choose the media type that fits your link.',
-    'Review Engine setup. Install a supported engine only if needed.',
-    'Enter the link, destination and options. For built-in page media, you may inspect the page first.',
-    'Queue the download when the chosen engine is available.',
-    'Review the queue, job status and available actions.',
+    'Choose the media type for your link.',
+    'Review Engine setup; install an engine if needed.',
+    'Enter the link, destination and options. For page media, you can inspect first.',
+    'Queue the download when its engine is available.',
+    'Review queue status and actions.',
   ],
   boundary:
-    'Site support varies. Built-in page media needs no separate engine; some other types need optional tools or separate setup.',
+    'Site support varies. Page media needs no separate engine; other types may need optional tools or setup.',
 };
 
 /** Task guidance describes existing controls; opening it performs no operation. */
@@ -24,15 +24,13 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
     boundary: 'Opening a draft sends nothing.',
   },
   protocols: {
-    steps: [
-      'Choose the protocol used by your service, then enter its address and review the request in that workbench.',
-    ],
+    steps: ['Choose your service protocol, then enter its address and review the request.'],
     boundary: 'A port number alone does not establish the application protocol.',
   },
   grpc: {
     steps: [
       'Enter the server address and choose plaintext or verified TLS.',
-      'Load a schema through reflection, files, or host paths; choose a method and invoke it.',
+      'Load a schema from reflection, files or host paths; choose a method and invoke.',
       'Inspect messages, headers, trailers and final status separately.',
     ],
     boundary: 'Servers without reflection need a supplied schema.',
@@ -48,7 +46,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   events: {
     steps: [
       'Choose WebSocket or server-sent events and enter the endpoint.',
-      'Review connection options and connect; inspect messages or events as they arrive.',
+      'Review options and connect; inspect messages or events.',
       'Disconnect when finished.',
     ],
     boundary: 'SSE uses one connection and does not automatically reconnect.',
@@ -80,29 +78,29 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   'network-diagnostics': {
     steps: [
       'Select a diagnostic mode and provide its target.',
-      'Review the inputs and run the check.',
-      'Read the result and any limitations for that mode.',
+      'Review inputs and run the check.',
+      'Read the result and mode limitations.',
     ],
     boundary: 'Active modes contact the chosen destination; subnet planning is offline.',
   },
   netbird: {
     steps: [
       'Check the installed client and its local status.',
-      'Review an available action and confirm before changing connection state.',
+      'Review and confirm an action before changing connection state.',
     ],
     boundary: 'NetBird needs its client and an account.',
   },
   'network-route': {
     steps: [
       'Enter an address and inspect the local route.',
-      'Review the chosen interface, gateway and route evidence.',
+      'Review the interface, gateway and route evidence.',
     ],
     boundary: 'A local routing decision does not prove the destination is reachable.',
   },
   'network-nmap': {
     steps: [
       'Check availability of an installed Nmap executable.',
-      'Choose a literal target, ports and optional service detection; review the plan before scanning.',
+      'Choose a literal target, ports and optional service detection; review before scanning.',
       'Inspect results or export the evidence.',
     ],
     boundary:
@@ -110,7 +108,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   },
   'network-packets': {
     steps: [
-      'Open a capture file or select an available live-capture option.',
+      'Open a capture file or choose live capture.',
       'Filter packets and inspect conversations and bounded TCP evidence.',
     ],
     boundary:
@@ -119,7 +117,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   'network-path': {
     steps: [
       'Enter the destination and choose the path check.',
-      'Run the check and inspect DNS, route and hop observations.',
+      'Run the check; inspect DNS, route and hops.',
     ],
     boundary: 'Hop times start here. A silent hop may still forward traffic.',
   },
@@ -133,14 +131,14 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   },
   'network-map': {
     steps: [
-      'Save a nearby scan or path, import a map, or choose an existing workspace.',
-      'Review nodes and observations, then save a snapshot or export it.',
+      'Save a scan or path, import a map, or choose a workspace.',
+      'Review nodes and observations; save a snapshot or export.',
     ],
     boundary: 'Maps store observed or manual links in this browser.',
   },
   'network-history': {
     steps: [
-      'Select a workspace and inspect its saved snapshots.',
+      'Choose a workspace and inspect its snapshots.',
       'Compare observations or preview an offline Nmap XML import before saving.',
     ],
     boundary: 'Importing saved XML runs no scan.',
@@ -149,7 +147,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
     steps: [
       'Refresh the local device view.',
       'Inspect interfaces, sockets, processes and available counters.',
-      'Open a related tool when you need a separate active check.',
+      'Open a related tool for an active check.',
     ],
     boundary:
       'Observations describe the host or container running ProtoPeek, not Internet reachability.',
@@ -163,22 +161,22 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   },
   extensions: {
     steps: [
-      'Search or filter the library and choose a tool.',
-      'Review its integration level and setup before opening the workspace or external guide.',
+      'Search or filter the library; choose a tool.',
+      'Review integration and setup before opening its workspace or guide.',
     ],
     boundary: 'Browsing and pinning do not install tools or connect accounts.',
   },
   tunnels: {
     steps: [
       'Inspect the local cloudflared installation and configuration.',
-      'Review a route or an available service action before applying it.',
+      'Review a route or service action before applying it.',
     ],
     boundary: 'Local config and account tunnels use separate permissions.',
   },
   publishing: {
     steps: [
       'Choose an audience and local origin.',
-      'Review the temporary session and explicitly confirm its audience before starting.',
+      'Review the session and confirm its audience before starting.',
       'Check the session and stop the owned process when finished.',
     ],
     boundary: 'Public sessions expose your origin and continue after you leave.',
@@ -186,16 +184,16 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
   downloader: {
     steps: [
       'Enter a download URL and choose the destination and options.',
-      'Start the job, then inspect progress, pause or resume when available.',
+      'Start the job; inspect progress, pause or resume.',
     ],
     boundary:
-      'Windows x64 includes aria2 in standard builds. In the lightweight build, install aria2 from Extensions or choose an existing engine. Other platforms use an installed engine.',
+      'Windows x64 can install aria2 in Extensions. Other platforms use an installed aria2c.',
   },
   'local-transfer': {
     steps: [
-      'Start sharing and connect the other device using the shown connection details.',
-      'Select files, review the request on the receiver, and approve the transfer.',
-      'Check the result and stop sharing when finished.',
+      'Start sharing and connect the other device using the shown details.',
+      'Select files, review on the receiver and approve.',
+      'Check the result and stop sharing.',
     ],
     boundary:
       'Receiver approval is required. Network reachability and firewall rules depend on your devices.',
@@ -205,8 +203,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Enter a public website and choose the evidence to collect.',
       'Run the selected checks and inspect DNS, TLS and HTTP observations.',
     ],
-    boundary:
-      'Observed responses are evidence for the selected target, not a certification of overall security.',
+    boundary: 'Responses are target evidence, not a certification of overall security.',
   },
   settings: {
     steps: [

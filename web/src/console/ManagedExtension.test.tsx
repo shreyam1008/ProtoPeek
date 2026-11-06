@@ -38,7 +38,7 @@ describe('managed companion', () => {
     render(<ManagedExtension id="cloudflared" />);
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Check companion status' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Install companion' }));
+    await screen.findByRole('button', { name: 'Confirm install' });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/52.8 MiB/)).toBeInTheDocument();
     expect(screen.getByText(/github.com\/cloudflare\/cloudflared/)).toBeInTheDocument();
@@ -86,13 +86,47 @@ describe('managed companion', () => {
     vi.stubGlobal('fetch', fetch);
     render(<ManagedExtension id="aria2" />);
     fireEvent.click(screen.getByRole('button', { name: 'Check companion status' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Install companion' }));
+    await screen.findByRole('button', { name: 'Confirm install' });
     expect(screen.getByText(/Download 2.4 MiB/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Check companion status' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh status' }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    fireEvent.click(await screen.findByRole('button', { name: 'Install companion' }));
-    expect(screen.getByText(/no download is needed/)).toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Prepare local engine' });
+    expect(screen.getByText(/no download is needed/i)).toBeInTheDocument();
+  });
+  it('offers explicit repair only for the recoverable managed aria2 archive', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(
+      Response.json({
+        ...available,
+        id: 'aria2',
+        status: 'invalid',
+        sourceUrl: 'https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2.zip',
+      })
+    );
+    vi.stubGlobal('fetch', fetch);
+    render(<ManagedExtension id="aria2" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Check companion status' }));
+    expect(await screen.findByRole('button', { name: 'Repair companion' })).toBeEnabled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Remove companion' })).not.toBeInTheDocument();
+  });
+  it('can repair a verified partial Windows cache without a download', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(
+      Response.json({
+        ...available,
+        id: 'aria2',
+        status: 'incomplete',
+        installBytes: 0,
+        canRemove: true,
+        sourceUrl: undefined,
+      })
+    );
+    vi.stubGlobal('fetch', fetch);
+    render(<ManagedExtension id="aria2" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Check companion status' }));
+    expect(await screen.findByRole('button', { name: 'Repair companion' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Remove companion' })).toBeEnabled();
+    expect(screen.getByText(/no download is needed/i)).toBeVisible();
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
   it('ignores a result arriving after cancellation', async () => {
     let resolve: (response: Response) => void = () => {};
@@ -110,6 +144,6 @@ describe('managed companion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Stop waiting' }));
     resolve(Response.json(available));
     await waitFor(() => expect(screen.getByText(/Stopped waiting/)).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: 'Install companion' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm install' })).not.toBeInTheDocument();
   });
 });

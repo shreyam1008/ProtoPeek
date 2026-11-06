@@ -20,7 +20,9 @@ func TestManagedExtensionsJSONAndValidation(t *testing.T) {
 		{[]string{"status", "cloudflared"}, 0},
 		{[]string{"install", "unknown"}, 2},
 		{[]string{"remove"}, 2},
-		{[]string{"--json"}, 2},
+		{[]string{"--json"}, 0},
+		{[]string{"--json", "status", "cloudflared"}, 0},
+		{[]string{"status", "--json", "gallery-dl"}, 0},
 	} {
 		var out, stderr bytes.Buffer
 		got := runManagedExtensions(context.Background(), tc.args, &out, &stderr)
@@ -39,6 +41,7 @@ func TestManagedExtensionsJSONAndValidation(t *testing.T) {
 
 func TestManagedInventorySixToolsDoesNotCreateQueue(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("HOME", root)
 	t.Setenv("APPDATA", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
 	t.Setenv("LOCALAPPDATA", root)
@@ -65,13 +68,18 @@ func TestManagedInventorySixToolsDoesNotCreateQueue(t *testing.T) {
 			t.Errorf("missing %s", id)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, "protopeek", "media")); !os.IsNotExist(err) {
+	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(config, "protopeek", "media")); !os.IsNotExist(err) {
 		t.Fatalf("status created queue: %v", err)
 	}
 }
 
 func TestManagedMediaMutationHonorsQueueOwner(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("HOME", root)
 	t.Setenv("APPDATA", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
 	t.Setenv("LOCALAPPDATA", root)
@@ -86,4 +94,37 @@ func TestManagedMediaMutationHonorsQueueOwner(t *testing.T) {
 	if code != 1 || !bytes.Contains(stderr.Bytes(), []byte("media session")) || out.Len() != 0 {
 		t.Fatalf("lock not honored: %d out=%s err=%s", code, out.String(), stderr.String())
 	}
+}
+
+func TestCompanionChangeLeavesQueueHistoryAlone(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("APPDATA", root)
+	t.Setenv("XDG_CONFIG_HOME", root)
+	t.Setenv("HOME", root)
+	t.Setenv("PATH", t.TempDir())
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir = filepath.Join(dir, "protopeek", "media")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	history := filepath.Join(dir, "jobs.json")
+	saved := []byte(`[{"id":"workbench-download","status":"queued","request":{"engine":"gallery-dl"}}]`)
+	if err := os.WriteFile(history, saved, 0600); err != nil {
+		t.Fatal(err)
+	}
+	// An absent tool may produce a removal error. Either outcome must leave
+	// the queue intact and release the same lease used by a real workbench.
+	_ = media.ChangeCompanion(context.Background(), "remove", "gallery-dl")
+	got, err := os.ReadFile(history)
+	if err != nil || !bytes.Equal(got, saved) {
+		t.Fatalf("companion operation changed history: %q, %v", got, err)
+	}
+	service, err := media.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.Close()
 }

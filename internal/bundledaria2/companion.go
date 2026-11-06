@@ -10,8 +10,10 @@ import (
 // are safe to surface to the user when the optional local companion is absent
 // or cannot be verified.
 var (
-	ErrCompanionMissing = errors.New("aria2 companion is missing")
-	ErrCompanionInvalid = errors.New("aria2 companion failed verification")
+	ErrCompanionMissing     = errors.New("aria2 companion is missing")
+	ErrCompanionInvalid     = errors.New("aria2 companion failed verification")
+	ErrCacheInvalid         = errors.New("aria2 cache cannot be verified safely")
+	ErrPromotionUnsupported = errors.New("filesystem does not support safe aria2 promotion")
 )
 
 const (
@@ -25,9 +27,13 @@ const (
 func CompanionMessage(err error) string {
 	switch {
 	case errors.Is(err, ErrCompanionMissing):
-		return "The lightweight build needs " + CompanionFilename + " beside ProtoPeek. Install it from the extension library, copy it from the matching local package, or configure an installed aria2c."
+		return "Install aria2 from Extensions or configure an installed aria2c. For offline setup, place " + CompanionFilename + " beside ProtoPeek."
 	case errors.Is(err, ErrCompanionInvalid):
-		return "The local aria2 companion could not be verified. Replace it with the unchanged file from the matching local package."
+		return "The aria2 archive could not be verified. Repair a changed cached archive in Extensions; replace an invalid sidecar with the unchanged local package."
+	case errors.Is(err, ErrCacheInvalid):
+		return "The local aria2 cache could not be verified; check its files before retrying."
+	case errors.Is(err, ErrPromotionUnsupported):
+		return "This filesystem cannot safely install the aria2 companion. Choose a supported local cache location."
 	default:
 		return "The local aria2 companion is unavailable."
 	}

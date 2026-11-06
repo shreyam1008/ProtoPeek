@@ -9,10 +9,15 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
+
+	"github.com/shreyam1008/ProtoPeek/internal/safepromote"
+	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
 
 var ErrRemoveBusy = errors.New("stop active media downloads before removing this tool")
 var ErrRemoveInvalid = errors.New("managed tool files could not be verified; nothing was removed")
+var ErrNotInstalled = errors.New("no managed copy of this media tool is installed")
 
 // These hashes are derived from members of the exact SHA-256 pinned archives
 // in tools.json. A new archive requires explicit member pins before removal.
@@ -68,9 +73,12 @@ func (s *Service) Remove(name string) error {
 	}
 	a, ok := assetFor(name)
 	if !ok {
-		return ErrRemoveInvalid
+		return ErrNotInstalled
 	}
 	path := s.assetPath(a)
+	if _, err := os.Lstat(filepath.Dir(path)); errors.Is(err, os.ErrNotExist) {
+		return ErrNotInstalled
+	}
 	files, ok := removalFiles(a, filepath.Base(path))
 	if !ok {
 		return ErrRemoveInvalid
@@ -83,22 +91,123 @@ func (s *Service) Remove(name string) error {
 }
 
 func removeVerifiedAsset(root string, a Asset, path string, files []installedFile, notices assetNotices) error {
-	if err := verifyManagedAsset(root, a, path, files, notices); err != nil {
+	if err := verifyPartialManagedAsset(root, a, path, files, notices); err != nil {
 		return err
 	}
+	// Older builds staged inside the active version. Preserve, rather than
+	// delete, any abandoned stage contents when the user explicitly repairs.
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if err != nil {
+		return ErrRemoveInvalid
+	}
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), ".install-") {
+			continue
+		}
+		parent := filepath.Dir(filepath.Dir(path))
+		quarantine, err := os.MkdirTemp(parent, ".preserved-install-*")
+		if err != nil {
+			return ErrRemoveInvalid
+		}
+		if err := os.Remove(quarantine); err != nil {
+			return ErrRemoveInvalid
+		}
+		if err := safepromote.Rename(filepath.Join(filepath.Dir(path), entry.Name()), quarantine); err != nil {
+			return ErrRemoveInvalid
+		}
+	}
+	// Receipt removal is the commit point; every remaining pinned file can be
+	// safely retried if the process exits midway through deletion.
+	if err := os.Remove(path + ".verified"); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return errors.New("the tool could not be fully removed")
+	}
 	for _, expected := range files {
-		if os.Remove(filepath.Join(filepath.Dir(path), expected.Name)) != nil {
+		if err := os.Remove(filepath.Join(filepath.Dir(path), expected.Name)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return errors.New("some verified files could not be removed; check the local tool directory")
 		}
 	}
-	if os.Remove(path+".verified") != nil || os.Remove(filepath.Dir(path)) != nil {
+	if os.Remove(filepath.Dir(path)) != nil {
 		return errors.New("the verified tool could not be fully removed")
 	}
 	return nil
 }
 
 func verifyManagedAsset(root string, a Asset, path string, files []installedFile, notices assetNotices) error {
-	absRoot, err := filepath.Abs(root)
+	if err := verifyPartialManagedAsset(root, a, path, files, notices); err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(filepath.Dir(path))
+	if err != nil || len(entries) != len(files)+1 {
+		return ErrRemoveInvalid
+	}
+	for _, expected := range files {
+		if _, err := os.Lstat(filepath.Join(filepath.Dir(path), expected.Name)); err != nil {
+			return ErrRemoveInvalid
+		}
+	}
+	if _, err := os.Lstat(path + ".verified"); err != nil {
+		return ErrRemoveInvalid
+	}
+	return nil
+}
+
+func sameReceiptFiles(actual, expected []installedFile) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+	want := make(map[string]installedFile, len(expected))
+	for _, file := range expected {
+		want[file.Name] = file
+	}
+	for _, file := range actual {
+		if want[file.Name] != file {
+			return false
+		}
+		delete(want, file.Name)
+	}
+	return len(want) == 0
+}
+
+// Status only classifies a candidate by structure and size. It is not a
+// verification result; mutation and execution still hash every pinned file.
+func partialCandidate(path string, files []installedFile) bool {
+	dir := filepath.Dir(path)
+	if checkExistingAncestors(dir) != nil {
+		return false
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	want := make(map[string]installedFile, len(files))
+	for _, file := range files {
+		want[file.Name] = file
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		info, err := os.Lstat(filepath.Join(dir, name))
+		if err != nil {
+			return false
+		}
+		if strings.HasPrefix(name, ".install-") && info.IsDir() && info.Mode()&os.ModeSymlink == 0 {
+			continue
+		}
+		if name == filepath.Base(path)+".verified" {
+			if !info.Mode().IsRegular() || info.Size() > 32<<10 {
+				return false
+			}
+			continue
+		}
+		file, ok := want[name]
+		if !ok || !info.Mode().IsRegular() || info.Size() != file.Size {
+			return false
+		}
+	}
+	return true
+}
+
+func verifyPartialManagedAsset(root string, a Asset, path string, files []installedFile, notices assetNotices) error {
+	absRoot, err := filepath.Abs(userroot.CanonicalTemp(root))
 	if err != nil {
 		return ErrRemoveInvalid
 	}
@@ -118,34 +227,56 @@ func verifyManagedAsset(root string, a Asset, path string, files []installedFile
 		}
 	}
 	entries, err := os.ReadDir(filepath.Dir(path))
-	if err != nil || len(entries) != len(files)+1 {
-		return ErrRemoveInvalid
-	}
-	receiptPath := path + ".verified"
-	info, err := os.Lstat(receiptPath)
-	if err != nil || !info.Mode().IsRegular() || info.Size() > 32<<10 {
-		return ErrRemoveInvalid
-	}
-	f, err := os.Open(receiptPath)
 	if err != nil {
 		return ErrRemoveInvalid
 	}
-	opened, statErr := f.Stat()
-	data, readErr := io.ReadAll(io.LimitReader(f, (32<<10)+1))
-	closeErr := f.Close()
-	if statErr != nil || !os.SameFile(info, opened) || readErr != nil || closeErr != nil || len(data) > 32<<10 {
+	want := make(map[string]installedFile, len(files))
+	for _, file := range files {
+		want[file.Name] = file
+	}
+	for _, entry := range entries {
+		if entry.Name() != filepath.Base(path)+".verified" {
+			if strings.HasPrefix(entry.Name(), ".install-") && entry.IsDir() && entry.Type()&os.ModeSymlink == 0 {
+				continue
+			}
+			if _, ok := want[entry.Name()]; !ok {
+				return ErrRemoveInvalid
+			}
+		}
+	}
+	receiptPath := path + ".verified"
+	info, err := os.Lstat(receiptPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return ErrRemoveInvalid
 	}
-	var receipt toolReceipt
-	if json.Unmarshal(data, &receipt) != nil || receipt.SchemaVersion != 1 || receipt.Asset != a {
+	if err == nil && (!info.Mode().IsRegular() || info.Size() > 32<<10) {
 		return ErrRemoveInvalid
 	}
-	if !reflect.DeepEqual(receipt.Notices, notices) || !reflect.DeepEqual(receipt.Files, files) {
-		return ErrRemoveInvalid
+	if err == nil {
+		f, err := os.Open(receiptPath)
+		if err != nil {
+			return ErrRemoveInvalid
+		}
+		opened, statErr := f.Stat()
+		data, readErr := io.ReadAll(io.LimitReader(f, (32<<10)+1))
+		closeErr := f.Close()
+		if statErr != nil || !os.SameFile(info, opened) || readErr != nil || closeErr != nil || len(data) > 32<<10 {
+			return ErrRemoveInvalid
+		}
+		var receipt toolReceipt
+		if json.Unmarshal(data, &receipt) != nil || receipt.SchemaVersion != 1 || receipt.Asset != a {
+			return ErrRemoveInvalid
+		}
+		if !reflect.DeepEqual(receipt.Notices, notices) || !sameReceiptFiles(receipt.Files, files) {
+			return ErrRemoveInvalid
+		}
 	}
 	for _, expected := range files {
 		file := filepath.Join(filepath.Dir(path), expected.Name)
 		info, err := os.Lstat(file)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
 		if err != nil || !info.Mode().IsRegular() || info.Size() != expected.Size {
 			return ErrRemoveInvalid
 		}

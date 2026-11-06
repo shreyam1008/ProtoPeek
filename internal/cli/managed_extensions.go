@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"slices"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
 	"github.com/shreyam1008/ProtoPeek/internal/extensionstore"
 	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
+	"github.com/shreyam1008/ProtoPeek/internal/media"
 )
 
 // Every successful result is JSON, including a full inventory when no ID is
@@ -19,11 +21,9 @@ func runManagedExtensions(ctx context.Context, args []string, stdout, stderr io.
 		_ = json.NewEncoder(stderr).Encode(map[string]string{"error": message})
 		return code
 	}
+	args = slices.DeleteFunc(slices.Clone(args), func(arg string) bool { return arg == "--json" })
 	if len(args) == 0 {
 		args = []string{"status"}
-	}
-	if args[len(args)-1] == "--json" {
-		args = args[:len(args)-1]
 	}
 	if len(args) < 1 || len(args) > 2 || (args[0] != "status" && args[0] != "install" && args[0] != "remove") || (args[0] != "status" && len(args) != 2) {
 		return writeError("Use: pp extensions status [ID], install ID, or remove ID", 2)
@@ -56,6 +56,14 @@ func runManagedExtensions(ctx context.Context, args []string, stdout, stderr io.
 			return writeError("Operation cancelled", 130)
 		case errors.Is(err, managedtools.ErrBusy):
 			return writeError("Stop the running tool or ProtoPeek media session and try again", 1)
+		case errors.Is(err, managedtools.ErrStorageUnsupported):
+			return writeError("This filesystem cannot safely install the companion. Use a local cache on a filesystem that supports atomic rename.", 1)
+		case errors.Is(err, media.ErrExternalToolPresent):
+			return writeError("The tool is available on PATH. Use the external installation or remove it from PATH before installing a managed copy.", 1)
+		case errors.Is(err, media.ErrNotInstalled):
+			return writeError("There is no managed copy to remove", 1)
+		case errors.Is(err, media.ErrLocalUnavailable):
+			return writeError("The media configuration directory is unavailable. Check its location and access permissions.", 1)
 		case errors.Is(err, managedtools.ErrInvalid):
 			return writeError("Local companion files failed verification; nothing was replaced", 1)
 		case errors.Is(err, managedtools.ErrUnavailable):

@@ -19,6 +19,36 @@ afterEach(() => {
 });
 
 describe('ProtocolFrame', () => {
+  it('opens the current guide in one action and restores focus without executing a tool', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    const trigger = screen.getByRole('button', { name: 'Start guide for this tool' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const guide = await screen.findByRole('region', { name: 'Inspect guided steps' });
+    expect(screen.queryByRole('dialog', { name: 'Help for this tool' })).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+    fireEvent.keyDown(guide, { key: 'Escape' });
+    await waitFor(() => expect(guide).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('replaces a current tour with command search using the keyboard shortcut', async () => {
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/protocols'] }));
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { name: 'Choose an inspection workbench.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Start guide for this tool' }));
+    await screen.findByRole('region', { name: 'Inspect guided steps' });
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: /guided steps/i })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Search commands' })).toHaveFocus()
+    );
+  });
   it('anchors disconnected gRPC guidance to the address and schema controls', async () => {
     const rects = vi
       .spyOn(HTMLElement.prototype, 'getClientRects')
@@ -49,6 +79,11 @@ describe('ProtocolFrame', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open ProtoPeek help' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Start guided steps' }));
     const guide = await screen.findByRole('region', { name: 'gRPC guided steps' });
+    await waitFor(() => expect(address).toHaveClass('pp-tour-target'));
+    address.setAttribute('disabled', '');
+    await within(guide).findByRole('button', { name: 'Find this step' });
+    expect(address).not.toHaveClass('pp-tour-target');
+    address.removeAttribute('disabled');
     await waitFor(() => expect(address).toHaveClass('pp-tour-target'));
     fireEvent.click(within(guide).getByRole('button', { name: 'Next' }));
     await waitFor(() =>
@@ -433,7 +468,7 @@ describe('ProtocolFrame', () => {
       within(screen.getByRole('navigation', { name: 'Destinations' })).getAllByRole('link')
     ).toHaveLength(6);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Find anything/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search tools' }));
     expect(await screen.findByRole('dialog', { name: 'ProtoPeek commands' })).toBeVisible();
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'Inspect target' }));

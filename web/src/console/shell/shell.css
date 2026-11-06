@@ -601,7 +601,9 @@ body:has(.pp-workbench-shell) {
 
   .pp-app-command,
   .pp-app-theme,
-  .pp-app-help {
+  .pp-app-help,
+  .pp-app-tour,
+  .pp-rail-quick-actions .pp-app-icon-action {
     width: var(--pp-narrow-touch-height);
     height: var(--pp-narrow-touch-height);
   }

@@ -12,7 +12,9 @@ func fixtureBundle(t *testing.T) bundle {
 	t.Helper()
 	var output bytes.Buffer
 	writer := zip.NewWriter(&output)
+	var members []memberPin
 	for _, name := range []string{"aria2c", "COPYING", "AUTHORS", "README.mingw", "LICENSE.OpenSSL"} {
+		members = append(members, memberPin{name, int64(len(name)), digest([]byte(name))})
 		file, err := writer.Create("fixture/" + name)
 		if err != nil {
 			t.Fatal(err)
@@ -24,7 +26,7 @@ func fixtureBundle(t *testing.T) bundle {
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
-	return bundle{archive: output.Bytes(), archiveSHA: digest(output.Bytes()), binarySHA: digest([]byte("aria2c")), prefix: "fixture/", binary: "aria2c"}
+	return bundle{members: members, archive: output.Bytes(), archiveSHA: digest(output.Bytes()), binarySHA: digest([]byte("aria2c")), prefix: "fixture/", binary: "aria2c"}
 }
 
 func TestExtractionVerifiesCacheAndIncludesNotices(t *testing.T) {
@@ -81,7 +83,7 @@ func TestSafeCacheDirectoryRejectsLinkedAncestor(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(cache, "protopeek")); err != nil {
 		t.Skipf("symlink unavailable: %v", err)
 	}
-	if _, err := safeCacheDirectory(cache, "fixture"); err == nil {
+	if _, err := cacheDirectory(cache, "fixture", true); err == nil {
 		t.Fatal("accepted linked cache ancestor")
 	}
 	entries, err := os.ReadDir(outside)

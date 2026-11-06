@@ -66,6 +66,50 @@ func TestCloudflaredExplicitLifecycleAndOwnership(t *testing.T) {
 	}
 }
 
+func TestConcurrentUsesShareLeaseAndBlockMutation(t *testing.T) {
+	payload := []byte("verified network companion")
+	m, a, _ := fixtureManager(t, payload, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(payload) }))
+	if _, err := m.Install(context.Background(), "cloudflared"); err != nil {
+		t.Fatal(err)
+	}
+	exclusive, err := m.lock(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if use, err := m.shared(a); !errors.Is(err, ErrBusy) {
+		if use != nil {
+			_ = use.Release()
+		}
+		t.Fatalf("use during install: %v", err)
+	}
+	if err := exclusive.Release(); err != nil {
+		t.Fatal(err)
+	}
+	first, err := m.shared(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := m.shared(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Remove("cloudflared"); !errors.Is(err, ErrBusy) {
+		t.Fatalf("mutation while in use: %v", err)
+	}
+	if err := first.Release(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Remove("cloudflared"); !errors.Is(err, ErrBusy) {
+		t.Fatalf("mutation while second use active: %v", err)
+	}
+	if err := second.Release(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Remove("cloudflared"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestCloudflaredRejectsBadDownloadAndChangedOwnedFile(t *testing.T) {
 	payload := []byte("verified fixture")
 	m, a, _ := fixtureManager(t, payload, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("different bytes!")) }))

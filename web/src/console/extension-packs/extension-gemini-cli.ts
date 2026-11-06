@@ -4,11 +4,7 @@ const extension = {
   tool: 'Gemini CLI',
   download: 'https://geminicli.com/docs/get-started/installation/',
   guide: 'https://geminicli.com/docs/tools/mcp-server/',
-  setup: {
-    windows: 'Install Gemini CLI with Node.js 20+ and sign in.',
-    darwin: 'Install Gemini CLI with Node.js 20+ and sign in.',
-    linux: 'Install Gemini CLI with Node.js 20+ and sign in.',
-  },
+  setup: 'Install Gemini CLI with Node.js 20+ and sign in.',
   afterSetup:
     'Pair in AI agent setup and merge the Gemini CLI mcpServers snippet into settings.json.',
   notes: [

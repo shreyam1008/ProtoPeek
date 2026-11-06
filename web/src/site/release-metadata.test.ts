@@ -83,6 +83,7 @@ describe('release metadata', () => {
       './install.sh',
       './install.ps1',
       './.local/aria2-1.37.0-companion-sources.tar.gz',
+      './internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip',
     ]) {
       expect(checksumSection).toContain(`glob: ${file}`);
     }

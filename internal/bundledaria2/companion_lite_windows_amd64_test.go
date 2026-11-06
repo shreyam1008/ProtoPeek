@@ -52,7 +52,7 @@ func TestLiteCompanionThroughExecutable(t *testing.T) {
 	if err := os.WriteFile(companion, tampered, 0600); err != nil {
 		t.Fatal(err)
 	}
-	// The archive remains mandatory even when a verified cache already exists.
+	// An invalid supplied archive fails closed even when the cache is intact.
 	run("invalid")
 	if err := os.Remove(companion); err != nil {
 		t.Fatal(err)
@@ -71,10 +71,34 @@ func TestLiteCompanionThroughExecutable(t *testing.T) {
 		t.Fatal(err)
 	}
 	run("invalid")
-	if err := os.Remove(managedArchive); err != nil {
+	run("repair")
+	if _, err := os.Stat(managedArchive); !os.IsNotExist(err) {
+		t.Fatalf("changed archive still active: %v", err)
+	}
+	quarantine, err := filepath.Glob(filepath.Join(managedDir, ".aria2-quarantine-*"))
+	if err != nil || len(quarantine) != 1 {
+		t.Fatalf("quarantine: %v %v", quarantine, err)
+	}
+	retained, err := os.ReadFile(quarantine[0])
+	if err != nil || !bytes.Equal(retained, tampered) {
+		t.Fatal("changed archive not preserved", err)
+	}
+	run("legacy")
+	cacheDir := filepath.Join(managedDir, windowsBinarySHA)
+	license := filepath.Join(cacheDir, "COPYING")
+	original, err := os.ReadFile(license)
+	if err != nil {
 		t.Fatal(err)
 	}
-	run("missing")
+	original[0] ^= 1
+	if err := os.WriteFile(license, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	run("changed-cache")
+	if err := os.Remove(license); err != nil {
+		t.Fatal(err)
+	}
+	run("partial-cache")
 }
 
 func TestLiteCompanionChild(t *testing.T) {
@@ -92,6 +116,18 @@ func TestLiteCompanionChild(t *testing.T) {
 		if !errors.Is(err, ErrCompanionInvalid) || path != "" {
 			t.Fatalf("invalid: %q %v", path, err)
 		}
+	case "legacy":
+		if err != nil || Inspect().CachedPath != path || Inspect().Included {
+			t.Fatalf("legacy cache: %q %v %+v", path, err, Inspect())
+		}
+	case "changed-cache":
+		if !errors.Is(err, ErrCacheInvalid) || path != "" || !Inspect().Repairable {
+			t.Fatalf("changed legacy cache: %q %v %+v", path, err, Inspect())
+		}
+	case "partial-cache":
+		if !errors.Is(err, ErrCompanionMissing) || path != "" || !Inspect().Partial {
+			t.Fatalf("partial legacy cache: %q %v %+v", path, err, Inspect())
+		}
 	case "valid":
 		if err != nil || filepath.Base(path) != "aria2c.exe" {
 			t.Fatalf("valid: %q %v", path, err)
@@ -104,6 +140,13 @@ func TestLiteCompanionChild(t *testing.T) {
 			if _, err := os.Stat(filepath.Join(filepath.Dir(path), name)); err != nil {
 				t.Fatalf("notice %s: %v", name, err)
 			}
+		}
+	case "repair":
+		if !errors.Is(err, ErrCompanionInvalid) || !CanRepairManagedArchive() {
+			t.Fatalf("repair unavailable: %v", err)
+		}
+		if err := QuarantineManagedArchive(); err != nil {
+			t.Fatal(err)
 		}
 	default:
 		t.Fatalf("unknown child mode %q", mode)

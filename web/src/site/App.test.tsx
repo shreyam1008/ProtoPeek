@@ -39,6 +39,10 @@ describe('public site', () => {
       screen.getByRole('heading', { level: 1, name: 'Find, reach, and inspect services locally.' })
     ).toBeVisible();
     expect(screen.getByText('Local-first. No account.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Find a tool or guide' })).toHaveAttribute(
+      'href',
+      '#find-tool'
+    );
 
     const product = screen.getByRole('region', { name: 'Start with a question.' });
     expect(
@@ -92,6 +96,20 @@ describe('public site', () => {
       'href',
       '/docs/'
     );
+  });
+
+  it.each([
+    ['Tailscale', '/extensions/'],
+    ['NetBird', '/extensions/'],
+    ['gallery-dl', '/media-downloads/'],
+    ['FFmpeg', '/media-downloads/'],
+    ['cloudflared', '/cloudflare-tunnels/'],
+    ['Codex', '/ai-agents/'],
+  ])('finds %s by tool name', (term, destination) => {
+    render(<App />);
+    const product = screen.getByRole('region', { name: 'Start with a question.' });
+    fireEvent.change(within(product).getByRole('searchbox'), { target: { value: term } });
+    expect(within(product).getAllByRole('link')[0]).toHaveAttribute('href', destination);
   });
 
   it('finds protocol workbenches and recovers from an empty search', () => {

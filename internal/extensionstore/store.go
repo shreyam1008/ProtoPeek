@@ -45,6 +45,9 @@ func Mutate(ctx context.Context, manager *managedtools.Manager, action, id strin
 	if err := ctx.Err(); err != nil {
 		return managedtools.Tool{}, err
 	}
+	if action != "install" && action != "remove" {
+		return managedtools.Tool{}, errors.New("unknown companion action")
+	}
 	if !IsMedia(id) {
 		if action == "install" {
 			return manager.Install(ctx, id)
@@ -58,18 +61,12 @@ func Mutate(ctx context.Context, manager *managedtools.Manager, action, id strin
 	if observed.Status == "invalid" {
 		return managedtools.Tool{}, managedtools.ErrInvalid
 	}
-	s, err := media.New()
+	err = media.ChangeCompanion(ctx, action, id)
 	if errors.Is(err, transfer.ErrLockHeld) {
 		return managedtools.Tool{}, managedtools.ErrBusy
 	}
-	if err != nil {
-		return managedtools.Tool{}, managedtools.ErrUnavailable
-	}
-	defer s.Close()
-	if action == "install" {
-		err = s.Install(ctx, id)
-	} else {
-		err = s.Remove(id)
+	if errors.Is(err, media.ErrInstallUnsupported) {
+		return managedtools.Tool{}, managedtools.ErrStorageUnsupported
 	}
 	if errors.Is(err, media.ErrRemoveBusy) {
 		return managedtools.Tool{}, managedtools.ErrBusy

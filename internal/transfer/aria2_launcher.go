@@ -22,10 +22,10 @@ import (
 
 var ErrAria2NotFound = errors.New("aria2c executable not found")
 
-// CompanionErrorMessage returns only fixed, safe guidance for the two known
+// CompanionErrorMessage returns only fixed, safe guidance for known
 // local companion failures. Unrelated errors remain sanitized by callers.
 func CompanionErrorMessage(err error) string {
-	if errors.Is(err, bundledaria2.ErrCompanionMissing) || errors.Is(err, bundledaria2.ErrCompanionInvalid) {
+	if errors.Is(err, bundledaria2.ErrCompanionMissing) || errors.Is(err, bundledaria2.ErrCompanionInvalid) || errors.Is(err, bundledaria2.ErrCacheInvalid) || errors.Is(err, bundledaria2.ErrPromotionUnsupported) {
 		return bundledaria2.CompanionMessage(err)
 	}
 	return ""

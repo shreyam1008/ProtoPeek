@@ -55,4 +55,11 @@ it('guides a gallery handoff through media setup, link, queue and results withou
   );
   expect(fetch).toHaveBeenCalledTimes(calls);
   expect(router.state.location.search).toMatchObject({ mediaTool: 'gallery-dl' });
+  fireEvent.keyDown(guide, { key: 'Escape' });
+  await waitFor(() => expect(guide).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: 'Start guide for this tool' }));
+  expect(
+    await screen.findByRole('region', { name: 'Media downloader guided steps' })
+  ).toBeVisible();
+  expect(fetch).toHaveBeenCalledTimes(calls);
 });

@@ -22,6 +22,10 @@
   padding: 10px 6px;
   background: var(--pp-color-surface-sunken);
 }
+.pp-app-tour {
+  font-size: 10px;
+  font-weight: 600;
+}
 .pp-workbench-shell .pp-app-brand {
   justify-content: center;
   flex: none;
@@ -611,6 +615,12 @@
   .pp-rail-actions {
     margin: 0 0 0 auto;
     padding: 0;
+  }
+  .pp-workbench-shell .pp-rail-actions .pp-rail-quick-actions {
+    display: flex;
+  }
+  .pp-workbench-shell .pp-quick-inspect {
+    display: none;
   }
   .pp-navigation-drawer .pp-navigation-link,
   .pp-navigation-drawer .pp-tool-link {
@@ -1346,7 +1356,7 @@
     gap: 8px;
   }
   .pp-workbench-shell .pp-sidebar-toggle,
-  .pp-workbench-shell .pp-rail-quick-actions {
+  .pp-workbench-shell[data-sidebar-collapsed="true"] .pp-rail-quick-actions {
     display: flex;
   }
   .pp-workbench-shell .pp-rail-actions .pp-app-icon-action {

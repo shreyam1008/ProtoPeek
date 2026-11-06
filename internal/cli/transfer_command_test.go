@@ -121,7 +121,7 @@ func TestRootUsageListsEveryDevelopmentSubcommand(t *testing.T) {
 		"pp agent search WORDS",
 		"pp agent schema NAME",
 		"pp mcp",
-		"pp extensions status [aria2|cloudflared]",
+		"pp extensions status [ID]",
 		"pp extensions install",
 		"pp extensions remove",
 		`pp download --help`,

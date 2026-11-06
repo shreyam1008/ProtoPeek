@@ -170,10 +170,10 @@
   }
 
   .pp-local-indicator {
-    @apply ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.67rem] font-semibold uppercase tracking-wider;
-    border: 1px solid rgba(79, 209, 197, 0.25);
-    background: rgba(20, 184, 166, 0.08);
-    color: #75ddd0;
+    @apply ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.75rem] font-semibold uppercase tracking-wider;
+    border: 1px solid var(--pp-color-success-border);
+    background: var(--pp-color-success-soft);
+    color: var(--pp-color-success);
   }
 
   .pp-local-indicator svg {
@@ -2251,7 +2251,7 @@
     border-radius: 0.3rem;
     padding: 0.25rem 0.55rem;
     background: var(--pp-surface-raised);
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
     font-weight: 750;
     white-space: nowrap;
   }
@@ -3448,7 +3448,7 @@
   }
 
   .pp-kicker {
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
   }
 
   .pp-scan-actions button {
@@ -3948,7 +3948,7 @@
   .pp-http-key-values header button,
   .pp-http-evidence-toolbar button,
   .pp-http-header-table dt {
-    color: var(--pp-accent-signal);
+    color: var(--pp-color-accent-strong);
   }
 
   .pp-http-header > div h1,
