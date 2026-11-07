@@ -1,51 +1,186 @@
-name: Verify release downloads and installation
+name: Candidate community native lifecycle
 
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        description: Draft native acceptance before publication, or anonymous public installation
-        required: true
-        default: draft
-        type: choice
-        options: [draft, public]
-      tag:
-        description: Exact draft or published stable vMAJOR.MINOR.PATCH tag
-        required: true
-        type: string
-      expected_sha:
-        description: Exact full commit the published tag must resolve to
-        required: true
-        type: string
-      previous_tag:
-        description: Published stable version used for real upgrade acceptance
-        default: v0.6.1
+      source_sha:
+        description: Full candidate commit SHA (must already be pushed)
         required: true
         type: string
 
 permissions:
   contents: read
 
-# Only the selected draft invocation grants push visibility for unpublished
-# assets. Both invocations execute the same three-OS acceptance implementation.
 jobs:
-  draft:
-    if: inputs.mode == 'draft'
-    permissions:
-      contents: write
-    uses: ./.github/workflows/release-native-acceptance.yml
-    with:
-      mode: draft
-      tag: ${{ inputs.tag }}
-      expected_sha: ${{ inputs.expected_sha }}
-      previous_tag: ${{ inputs.previous_tag }}
-  public:
-    if: inputs.mode == 'public'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/release-native-acceptance.yml
-    with:
-      mode: public
-      tag: ${{ inputs.tag }}
-      expected_sha: ${{ inputs.expected_sha }}
-      previous_tag: ${{ inputs.previous_tag }}
+  community-lifecycle:
+    name: Community companions (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+          - runner: macos-latest
+            platform: darwin/arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          persist-credentials: false
+      - name: Verify exact candidate commit
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$REQUESTED_SHA"
+          git show --no-patch --format='commit %H%ntree %T%nsubject %s' HEAD
+          uname -a
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Compile the checked-out native lightweight CLI
+        env:
+          CGO_ENABLED: '0'
+          GOFLAGS: -mod=readonly
+          GOWORK: 'off'
+        run: go build -trimpath -tags protopeek_lite -o "$RUNNER_TEMP/pp-community" ./cmd/pp
+      - name: Exercise built-in downloader without aria2
+        run: python3 scripts/native-downloader-smoke.py "$RUNNER_TEMP/pp-community"
+      - name: Race-check downloader on native Linux
+        if: matrix.platform == 'linux/amd64'
+        env:
+          CGO_ENABLED: '1'
+          GOFLAGS: -mod=readonly
+          GOWORK: 'off'
+        run: go test -race ./internal/transfer -count=1
+      - name: Install, verify, execute, and remove community companions
+        env:
+          PROTOPEEK_QA_BINARY: ${{ runner.temp }}/pp-community
+          PROTOPEEK_QA_REPORT: ${{ runner.temp }}/community-lifecycle.json
+          PROTOPEEK_QA_PLATFORM: ${{ matrix.platform }}
+          PROTOPEEK_QA_SHA: ${{ inputs.source_sha }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import platform
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+          
+          repo = Path.cwd()
+          pp = Path(os.environ['PROTOPEEK_QA_BINARY']).resolve(strict=True)
+          platform_key = os.environ['PROTOPEEK_QA_PLATFORM']
+          source_sha = os.environ['PROTOPEEK_QA_SHA']
+          report_path = Path(os.environ['PROTOPEEK_QA_REPORT'])
+          if not re.fullmatch(r'[0-9a-f]{40}', source_sha):
+              raise SystemExit('source SHA must be a full lowercase commit hash')
+          actual_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if actual_sha != source_sha:
+              raise SystemExit(f'checkout {actual_sha} differs from requested commit {source_sha}')
+          expected_machine = {'linux/amd64': 'x86_64', 'darwin/arm64': 'arm64'}[platform_key]
+          if platform.machine().lower() != expected_machine:
+              raise SystemExit(f'expected native {expected_machine}, got {platform.machine()}')
+          if (sys.platform == 'linux') != platform_key.startswith('linux/'):
+              raise SystemExit(f'operating system does not match {platform_key}')
+          
+          catalog = json.loads((repo / 'internal/communitytools/catalog.json').read_text(encoding='utf-8'))
+          if len(catalog) != 14 or len({entry['id'] for entry in catalog}) != 14:
+              raise SystemExit('expected 14 distinct community catalog entries')
+          root = Path(os.environ['RUNNER_TEMP']) / 'community-lifecycle-profile'
+          root.mkdir(mode=0o700)
+          home, cache, config = (root / name for name in ('home', 'cache', 'config'))
+          for directory in (home, cache, config):
+              directory.mkdir(mode=0o700)
+          env = {key: value for key, value in os.environ.items() if not key.upper().startswith('PROTOPEEK_')}
+          env.update(HOME=str(home), XDG_CACHE_HOME=str(cache), XDG_CONFIG_HOME=str(config),
+                     PATH='/usr/bin:/bin:/usr/sbin:/sbin')
+          # Go uses $HOME/Library/Caches on macOS and XDG_CACHE_HOME on Linux.
+          cache_dir = (home / 'Library' / 'Caches') if platform_key.startswith('darwin/') else cache
+          sentinel = cache_dir / 'protopeek' / 'unrelated.txt'
+          sentinel.parent.mkdir(parents=True, mode=0o700)
+          sentinel.write_text('preserve me', encoding='utf-8')
+          
+          report = {'sourceSHA': actual_sha, 'platform': platform_key, 'machine': platform.machine(),
+                    'os': platform.platform(), 'cliSHA256': hashlib.sha256(pp.read_bytes()).hexdigest(),
+                    'results': []}
+          def save_report():
+              report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          def invoke(*args, timeout=300):
+              result = subprocess.run([str(pp), 'extensions', *args], cwd=root, env=env,
+                                      capture_output=True, text=True, errors='replace', timeout=timeout)
+              if result.returncode:
+                  raise RuntimeError(f'{args}: exit {result.returncode}: {result.stderr[-1000:]} {result.stdout[-1000:]}')
+              # Some tools, including grpcurl, print --version on stderr.
+              return (result.stdout + result.stderr) if args[0] == 'run' else result.stdout
+          
+          def file_hash(path):
+              digest = hashlib.sha256()
+              with path.open('rb') as stream:
+                  for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                      digest.update(chunk)
+              return digest.hexdigest()
+          
+          for entry in catalog:
+              ident = entry['id']
+              record = {'id': ident}
+              try:
+                  matches = [asset for asset in entry['assets'] if asset['platform'] == platform_key]
+                  if len(matches) > 1:
+                      raise RuntimeError('duplicate platform assets')
+                  before = json.loads(invoke('status', ident))
+                  if not matches:
+                      if before['status'] != 'unavailable' or before['canInstall']:
+                          raise RuntimeError(f'unsupported tool did not report unavailable: {before}')
+                      record['result'] = 'unsupported'
+                  else:
+                      asset = matches[0]
+                      if before['status'] != 'available' or not before['canInstall']:
+                          raise RuntimeError(f'fresh tool was not available: {before}')
+                      installed = json.loads(invoke('install', ident))
+                      if installed['status'] != 'installed' or not installed['canRemove']:
+                          raise RuntimeError(f'install did not produce installed status: {installed}')
+                      path = cache_dir / 'protopeek' / 'community-tools' / ident / asset['version'] / ident
+                      expected_digest = asset.get('binarySha256', asset['sha256'])
+                      expected_size = asset.get('binarySize', asset['size'])
+                      digest = file_hash(path)
+                      if path.stat().st_size != expected_size or digest != expected_digest:
+                          raise RuntimeError('installed executable size or SHA-256 does not match catalog')
+                      detail = json.loads(invoke('status', ident))
+                      if detail.get('path') != str(path) or detail['status'] != 'installed':
+                          raise RuntimeError('verified detail path does not match installed executable')
+                      version = invoke('run', ident, '--version', timeout=60).strip()
+                      if not version:
+                          raise RuntimeError('tool emitted no version information')
+                      removed = json.loads(invoke('remove', ident))
+                      if removed['status'] != 'available' or path.exists():
+                          raise RuntimeError('remove did not remove the owned executable')
+                      record.update(result='pass', version=asset['version'], executableSHA256=digest,
+                                    versionOutput=version[:500])
+                  if sentinel.read_text(encoding='utf-8') != 'preserve me':
+                      raise RuntimeError('unrelated sentinel was changed')
+              except Exception as error:
+                  record.update(result='fail', error=str(error)[:2000])
+              report['results'].append(record)
+              save_report()
+              print(record['result'].upper(), ident, record.get('error', ''), flush=True)
+          
+          failures = [item for item in report['results'] if item['result'] == 'fail']
+          if len(report['results']) != len(catalog) or failures:
+              raise SystemExit(f'{len(failures)} companion lifecycle checks failed')
+          PY
+      - name: Preserve lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: community-lifecycle-${{ matrix.runner }}
+          path: ${{ runner.temp }}/community-lifecycle.json
+          if-no-files-found: warn
+          retention-days: 7
