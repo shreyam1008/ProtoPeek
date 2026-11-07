@@ -1,6 +1,7 @@
 package standalone
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -529,8 +531,13 @@ func TestTransferErrorStatusMapping(t *testing.T) {
 		{name: "lock", err: transfer.ErrLockHeld, want: http.StatusLocked},
 		{name: "binary", err: transfer.ErrAria2NotFound, want: http.StatusServiceUnavailable},
 		{name: "invalid add", err: transfer.ErrInvalidAddRequest, want: http.StatusBadRequest},
+		{name: "native managed header", err: transfer.ErrNativeManagedHeader, want: http.StatusBadRequest},
 		{name: "not running", err: transfer.ErrEngineNotRunning, want: http.StatusConflict},
 		{name: "retry metadata", err: transfer.ErrRetryMetadataMissing, want: http.StatusConflict},
+		{name: "preserved partials full", err: transfer.ErrPreservedLimit, want: http.StatusConflict},
+		{name: "native queue pending", err: transfer.ErrNativeQueuePending, want: http.StatusConflict},
+		{name: "native history full", err: transfer.ErrNativeHistoryFull, want: http.StatusConflict},
+		{name: "native config unsupported", err: transfer.ErrNativeUnsupportedConfig, want: http.StatusConflict},
 		{name: "disk", err: transfer.ErrInsufficientDisk, want: http.StatusInsufficientStorage},
 		{name: "deadline", err: context.DeadlineExceeded, want: http.StatusGatewayTimeout},
 	} {
@@ -856,6 +863,57 @@ type failOnReadBody struct {
 }
 
 type fakeTransferHistoryService struct{ *fakeTransferService }
+
+type fakeTransferPreservedService struct {
+	*fakeTransferService
+	forgotten string
+}
+
+func (service *fakeTransferPreservedService) ForgetPreserved(_ context.Context, path string) error {
+	service.forgotten = path
+	return nil
+}
+
+func TestForgetPreservedRecordRequiresStrictRequestAndCSRF(t *testing.T) {
+	service := &fakeTransferPreservedService{fakeTransferService: &fakeTransferService{}}
+	handler := Handler(nil, "", nil, nil, WithTransferService(service))
+	path := filepath.Join(t.TempDir(), "preserved.part")
+	body, err := json.Marshal(map[string]string{"path": path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/api/transfers/preserved/forget", bytes.NewReader(body))
+	request.RemoteAddr = "127.0.0.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code < 400 || service.forgotten != "" {
+		t.Fatalf("unauthenticated request accepted: %d", response.Code)
+	}
+	cookie := handlerCSRFCookie(t, handler)
+	for _, invalid := range []string{`{"path":"relative"}`, `{"path":"relative","extra":true}`} {
+		request = httptest.NewRequest(http.MethodPost, "/api/transfers/preserved/forget", strings.NewReader(invalid))
+		request.RemoteAddr = "127.0.0.1:1234"
+		request.Header.Set("Content-Type", "application/json")
+		request.AddCookie(cookie)
+		request.Header.Set(csrfHeaderName, cookie.Value)
+		response = httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusBadRequest || service.forgotten != "" {
+			t.Fatalf("invalid request accepted: %d, %s", response.Code, response.Body.String())
+		}
+	}
+	request = httptest.NewRequest(http.MethodPost, "/api/transfers/preserved/forget", bytes.NewReader(body))
+	request.RemoteAddr = "127.0.0.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	request.AddCookie(cookie)
+	request.Header.Set(csrfHeaderName, cookie.Value)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent || service.forgotten != path {
+		t.Fatalf("status %d, forgotten %q: %s", response.Code, service.forgotten, response.Body.String())
+	}
+}
 
 func (service *fakeTransferHistoryService) ForgetCompleted(_ context.Context, id string) error {
 	service.record("forget")

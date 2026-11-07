@@ -22,6 +22,36 @@ afterEach(() => {
 });
 
 describe('transfer API', () => {
+  it('recognizes only the reported downloader engines', () => {
+    for (const engine of ['native', 'aria2'] as const) {
+      expect(normalizeTransferSnapshot({ health: { engine } }).health.engine).toBe(engine);
+    }
+    expect(
+      normalizeTransferSnapshot({ health: { engine: 'unknown' } }).health.engine
+    ).toBeUndefined();
+    expect(normalizeTransferSnapshot({ health: {} }).health.engine).toBeUndefined();
+  });
+
+  it('bounds preserved partial evidence without truncating paths', () => {
+    const valid = {
+      path: '/downloads/.protopeek-deadbeef-kept.part',
+      sizeBytes: 1024,
+      jobId: 'deadbeef',
+    };
+    const maximum = { ...valid, path: 'x'.repeat(4 * 1024 + 128) };
+    const snapshot = normalizeTransferSnapshot({
+      preservedPartials: [
+        valid,
+        maximum,
+        { ...valid, path: 'x'.repeat(4 * 1024 + 129) },
+        { ...valid, path: '/downloads/invalid\npath' },
+        { ...valid, sizeBytes: -1 },
+        { ...valid, jobId: 'bad id' },
+      ],
+    });
+    expect(snapshot.preservedPartials).toEqual([valid, maximum]);
+  });
+
   it('bounds and normalizes an untrusted snapshot', () => {
     const snapshot = normalizeTransferSnapshot({
       observedAt: '2026-08-23T00:00:00Z',
@@ -213,6 +243,14 @@ describe('transfer API', () => {
     expect(result.results[1]?.failureCode).toBe('');
     expect(result.results[1]?.persistenceWarning).toBe('');
     expect(result.persistenceWarning).toHaveLength(2_048);
+  });
+
+  it('retains the actionable built-in managed-header rejection', () => {
+    const result = normalizeTransferBatchResult({
+      requestedCount: 1,
+      results: [{ index: 0, queued: false, failureCode: 'managed_header' }],
+    });
+    expect(result.results[0]?.failureCode).toBe('managed_header');
   });
 
   it.each([

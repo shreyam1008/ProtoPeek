@@ -1,0 +1,114 @@
+[
+  {
+    "id": "grpcurl",
+    "name": "grpcurl",
+    "group": "Inspect traffic & services",
+    "description": "Inspect gRPC services from the command line.",
+    "license": "MIT",
+    "source": "https://github.com/fullstorydev/grpcurl"
+  },
+  {
+    "id": "caddy",
+    "name": "Caddy",
+    "group": "Connect & publish",
+    "description": "Run a local reverse proxy or web server.",
+    "license": "Apache-2.0",
+    "source": "https://github.com/caddyserver/caddy"
+  },
+  {
+    "id": "jq",
+    "name": "jq",
+    "group": "Inspect traffic & services",
+    "description": "Filter and transform JSON.",
+    "license": "MIT AND LicenseRef-jq-third-party",
+    "source": "https://github.com/jqlang/jq"
+  },
+  {
+    "id": "yq",
+    "name": "yq",
+    "group": "Inspect traffic & services",
+    "description": "Filter and transform YAML, JSON and XML.",
+    "license": "MIT",
+    "source": "https://github.com/mikefarah/yq"
+  },
+  {
+    "id": "doggo",
+    "name": "doggo",
+    "group": "Inspect traffic & services",
+    "description": "Inspect DNS records with a CLI.",
+    "license": "GPL-3.0",
+    "source": "https://github.com/mr-karan/doggo"
+  },
+  {
+    "id": "k6",
+    "name": "k6",
+    "group": "Inspect traffic & services",
+    "description": "Run scriptable HTTP and protocol load tests.",
+    "license": "AGPL-3.0-only",
+    "source": "https://github.com/grafana/k6"
+  },
+  {
+    "id": "xh",
+    "name": "xh",
+    "group": "Inspect traffic & services",
+    "description": "Send HTTP requests from the command line.",
+    "license": "MIT",
+    "source": "https://github.com/ducaale/xh"
+  },
+  {
+    "id": "rclone",
+    "name": "rclone",
+    "group": "Transfer files",
+    "description": "Transfer files between local and remote storage.",
+    "license": "MIT",
+    "source": "https://github.com/rclone/rclone"
+  },
+  {
+    "id": "vegeta",
+    "name": "Vegeta",
+    "group": "Inspect traffic & services",
+    "description": "Run explicit HTTP load tests.",
+    "license": "MIT",
+    "source": "https://github.com/tsenart/vegeta"
+  },
+  {
+    "id": "nats",
+    "name": "NATS CLI",
+    "group": "Connect & publish",
+    "description": "Inspect and interact with a NATS server.",
+    "license": "Apache-2.0",
+    "source": "https://github.com/nats-io/natscli"
+  },
+  {
+    "id": "websocat",
+    "name": "websocat",
+    "group": "Inspect traffic & services",
+    "description": "Connect to a WebSocket service.",
+    "license": "MIT",
+    "source": "https://github.com/vi/websocat"
+  },
+  {
+    "id": "oha",
+    "name": "oha",
+    "group": "Inspect traffic & services",
+    "description": "Run explicit HTTP load tests.",
+    "license": "MIT",
+    "source": "https://github.com/hatoo/oha"
+  },
+  {
+    "id": "dnslookup",
+    "name": "dnslookup",
+    "group": "Inspect traffic & services",
+    "description": "Query DNS servers and inspect responses.",
+    "license": "MIT",
+    "source": "https://github.com/ameshkov/dnslookup"
+  },
+  {
+    "id": "grpc-health-probe",
+    "name": "gRPC health probe",
+    "group": "Inspect traffic & services",
+    "description": "Check a gRPC service health endpoint.",
+    "license": "Apache-2.0",
+    "source": "https://github.com/grpc-ecosystem/grpc-health-probe"
+  }
+]

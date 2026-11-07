@@ -536,11 +536,11 @@
       "group": "publish",
       "title": "Extensions and setup",
       "documentTitle": "Extensions: Optional Tools & Setup | ProtoPeek",
-      "description": "Choose from 20 optional native workbenches, command and MCP setup guides, local endpoint drafts and companion links. Check only the tool you select.",
+      "description": "Explore optional networking tools and AI setup guides. The source preview adds verified CLI companions you can install when needed.",
       "question": "Which optional tool does this task need?",
       "section": "Released workbench",
       "sourcePath": "guides/extensions.md",
-      "lastModified": "2026-10-23",
+      "lastModified": "2026-11-07",
       "status": {
         "label": "Stable · v0.7.0",
         "tone": "stable",
@@ -549,7 +549,8 @@
       "highlights": [
         "20 optional entries",
         "Clear integration levels",
-        "No automatic checks or installs"
+        "No automatic checks or installs",
+        "Source preview: 14 managed CLI companions"
       ],
       "visual": "extensions",
       "flow": [
@@ -567,6 +568,11 @@
           "verb": "Open",
           "title": "Continue at the stated integration level",
           "detail": "Open a native workbench, merge a client fragment or prepare an unsent draft. Guided entries do not execute vendors."
+        },
+        {
+          "verb": "Preview",
+          "title": "On-demand CLI companions in current source",
+          "detail": "The unreleased source adds grpcurl, Caddy, jq, yq, doggo, xh, rclone, Vegeta, NATS CLI, websocat, oha, dnslookup, grpc-health-probe and k6. Install supported builds when needed for API and DNS inspection, file transfer, servers, messaging and load testing. Availability varies by platform; these are standalone command-line tools."
         }
       ],
       "sitemap": {

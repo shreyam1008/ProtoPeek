@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router';
 import { ArrowUpRight, Copy, Pin, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { fetchJSON } from './api';
+import { CommunityExtensionSetup } from './CommunityExtension';
+import { communityExtension } from './community-catalog';
 import {
   capabilityLabels,
   type ExtensionDefinition,
@@ -144,6 +146,7 @@ export default function ExtensionDetails({
   }
   const observation = snapshot?.extensions[0];
   const route = entry.route ?? pack?.route;
+  const companion = communityExtension(entry.id);
   return (
     <article className="pp-extension-detail">
       <PageHeader>
@@ -179,6 +182,7 @@ export default function ExtensionDetails({
           {entry.id === 'cloudflared' || entry.id === 'aria2' ? (
             <ManagedExtension id={entry.id} />
           ) : null}
+          {companion ? <CommunityExtensionSetup entry={companion} /> : null}
           <div className="pp-extension-detail-actions">
             {route ? (
               <Link
@@ -284,7 +288,7 @@ export default function ExtensionDetails({
           {entry.id !== 'chatgpt' ? (
             <section className="pp-panel" aria-label="Local installation observation">
               <header>
-                <h2>Check the local CLI</h2>
+                <h2>{companion ? 'Check an external CLI' : 'Check the local CLI'}</h2>
                 {busy ? (
                   <button type="button" onClick={cancelCheck}>
                     Cancel check
@@ -292,17 +296,25 @@ export default function ExtensionDetails({
                 ) : (
                   <button type="button" onClick={() => void check()}>
                     <RefreshCw aria-hidden="true" />
-                    Check this host
+                    {companion ? 'Check PATH' : 'Check this host'}
                   </button>
                 )}
               </header>
-              <p>Looks for {pack.tool} on the host. This check only inspects local files.</p>
+              <p>
+                {companion
+                  ? `Looks for ${pack.tool} on PATH. Managed companion status appears above.`
+                  : `Looks for ${pack.tool} on the host. This check only inspects local files.`}
+              </p>
               {busy ? <p role="status">Checking local files…</p> : null}
               {notice ? <p role="status">{notice}</p> : null}
               {checkError ? <p role="alert">{checkError}</p> : null}
               {observation ? (
                 <div className="pp-extension-observation">
-                  <strong>{statusLabels[observation.status]}</strong>
+                  <strong>
+                    {companion && observation.status === 'missing'
+                      ? 'Not found on PATH'
+                      : statusLabels[observation.status]}
+                  </strong>
                   <p>
                     Observed {new Date(snapshot?.observedAt ?? '').toLocaleString()} ·{' '}
                     {snapshot?.platform} / {snapshot?.architecture}

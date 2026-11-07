@@ -6,18 +6,49 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"slices"
 
 	"github.com/shreyam1008/ProtoPeek/internal/bundledaria2"
+	"github.com/shreyam1008/ProtoPeek/internal/communitytools"
 	"github.com/shreyam1008/ProtoPeek/internal/extensionstore"
 	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"github.com/shreyam1008/ProtoPeek/internal/media"
 )
 
-// Every successful result is JSON, including a full inventory when no ID is
-// supplied. Names are an allowlist; flags, URLs and executable paths are not
-// accepted as tool identities.
+// Status and mutations return JSON, including a full inventory when no ID is
+// supplied. Running a standalone companion forwards its streams and exit code.
+// Names are an allowlist; flags, URLs and executable paths are not accepted as
+// tool identities.
 func runManagedExtensions(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+	if len(args) >= 2 && args[0] == "run" {
+		if !communitytools.IsKnown(args[1]) {
+			_, _ = io.WriteString(stderr, "Choose a known standalone companion.\n")
+			return 2
+		}
+		manager, err := communitytools.New()
+		if err != nil {
+			_, _ = io.WriteString(stderr, "Managed extensions unavailable.\n")
+			return 1
+		}
+		path, release, err := manager.Acquire(args[1])
+		if err != nil {
+			_, _ = io.WriteString(stderr, "The companion is unavailable, busy or failed verification. Check its status and install it if needed.\n")
+			return 1
+		}
+		defer release()
+		command := exec.CommandContext(ctx, path, args[2:]...)
+		command.Stdin, command.Stdout, command.Stderr = os.Stdin, stdout, stderr
+		if err = command.Run(); err != nil {
+			var exitError *exec.ExitError
+			if errors.As(err, &exitError) && exitError.ExitCode() >= 0 {
+				return exitError.ExitCode()
+			}
+			_, _ = io.WriteString(stderr, "Could not run the companion.\n")
+			return 1
+		}
+		return 0
+	}
 	writeError := func(message string, code int) int {
 		_ = json.NewEncoder(stderr).Encode(map[string]string{"error": message})
 		return code
@@ -29,8 +60,8 @@ func runManagedExtensions(ctx context.Context, args []string, stdout, stderr io.
 	if len(args) < 1 || len(args) > 2 || (args[0] != "status" && args[0] != "install" && args[0] != "remove") || (args[0] != "status" && len(args) != 2) {
 		return writeError("Use: pp extensions status [ID], install ID, or remove ID", 2)
 	}
-	if len(args) == 2 && args[1] != "aria2" && args[1] != "cloudflared" && !extensionstore.IsMedia(args[1]) {
-		return writeError("Choose aria2, cloudflared, yt-dlp, gallery-dl, deno or ffmpeg", 2)
+	if len(args) == 2 && !extensionstore.IsKnown(args[1]) {
+		return writeError("Choose a known extension; run 'pp extensions status' to list them", 2)
 	}
 	manager, err := managedtools.New()
 	if err != nil {

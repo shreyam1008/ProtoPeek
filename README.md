@@ -60,19 +60,24 @@ with reflection or your schema. **Find a service instead** is available when you
 | Download an artifact | [Downloader](https://protopeek.shreyam1008.com.np/downloader/) | Resumable local queue and SHA-256 evidence |
 | Save media or a page | [Media downloads](guides/media-downloads.md) | v0.7.0: native direct files and HTML media; optional verified site engines and webpage archives |
 
-Windows x64 includes an aria2 fallback for Downloader; other platforms use installed aria2.
+In published v0.7.0, Windows x64 includes an aria2 fallback for Downloader; other platforms use installed aria2.
 TCP port scans and bounded private-network discovery are built in. Nmap, live capture through
 dumpcap, and provider access/publishing integrations use separately installed tools.
 They remain optional: opening the workbench does not download them or start their work.
 
-Choose **Guide** for an interactive tour of the active workbench. In current source, **Extensions → Managed** shows six installable companions among 24 optional tools: cloudflared, aria2, yt-dlp, gallery-dl, Deno and FFmpeg.
+In current source and Nightly, choose **Guide** for an interactive tour of the active workbench. Current source offers 20 managed companions in **Extensions**, including standalone networking and diagnostics tools. Available packages depend on the host platform. The published Nightly contains the earlier six companions.
 Run `pp extensions status --json` to inspect versions or `pp agent search subnet` to discover an agent workflow.
-See the [extension guide](guides/extensions.md) for supported hosts. The current release recipes
-build Windows x64 without the Downloader engine. Install aria2 when needed from Extensions, or
-bring the [verified offline ZIP](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
-Published v0.7.0 includes the engine.
+See the [extension guide](guides/extensions.md) for supported hosts. The published Nightly's
+lightweight Windows x64 package can install aria2 from Extensions or use a
+[verified offline ZIP](internal/bundledaria2/README.md#optional-windows-x64-lightweight-local-preview).
+Published v0.7.0 embeds aria2 on Windows x64.
 
-![Windows source preview showing the six managed tools in Extensions](web/site/public/assets/protopeek-managed-tools-20261106.png)
+Current source also includes a built-in HTTP(S) downloader for fresh profiles without aria2.
+It uses one connection per download, supports bounded concurrent jobs and safe resume when the
+server provides a strong ETag, and preserves partial files when safe resume is unavailable.
+Configured or installed aria2 remains available for its advanced connection and allocation options.
+
+![November 2026 Windows preview showing the original six managed tools in Extensions](web/site/public/assets/protopeek-managed-tools-20261106.png)
 
 ## Stable, Nightly and source
 
@@ -115,13 +120,13 @@ These actual Windows browser captures were taken before v0.7.0 publication, sepa
 v0.6.1 and the dated legacy Edge image above. They document the captured build, not release
 publication or vendor setup.
 
-![Current-source Home with an unsent HTTP draft entry](web/site/public/assets/protopeek-source-home-20261023.png)
+![October 2026 Home preview with an unsent HTTP draft entry](web/site/public/assets/protopeek-source-home-20261023.png)
 
 Home opens an unsent HTTP or gRPC draft; discovery remains a separate action.
 
-![Current-source Extensions overview showing 20 optional entries](web/site/public/assets/protopeek-source-extensions-20261023.png)
+![October 2026 Extensions overview showing 20 optional entries](web/site/public/assets/protopeek-source-extensions-20261023.png)
 
-The library reports 20 optional entries. Availability checks run only when requested.
+The captured library reported 20 optional entries. Availability checks ran only when requested.
 
 </details>
 
@@ -406,10 +411,11 @@ The CLI contract remains deliberately smaller:
 pp download [--output NAME] [--sha256 64_HEX] URL
 ```
 
-It accepts exactly one absolute HTTP(S) URL and uses configured or PATH `aria2c`; stable
-v0.6.1 also has a bundled Windows x64 fallback. The command owns its local engine session, writes progress
-to stderr, prints only the completed path to stdout, and preserves partial data plus the aria2
-session when interrupted. It does not attach to an already-running ProtoPeek process. The command
+It accepts exactly one absolute HTTP(S) URL. Published v0.7.0 uses configured or PATH `aria2c`,
+with a bundled Windows x64 fallback; current source can also use the built-in HTTP engine.
+The command owns its local engine session, writes progress to stderr, prints only the completed
+path to stdout, and preserves partial data and resumable state when interrupted. It does not attach
+to an already-running ProtoPeek process. The command
 ships in v0.5.0 and is available through the release installers, Homebrew, and Scoop.
 
 v0.5.0 also includes a read-first, non-destructive GoBarryGo state bridge:

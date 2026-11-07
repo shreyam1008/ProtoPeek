@@ -36,11 +36,15 @@ describe('bundle budget contract', () => {
     );
     expect(all?.requiredMembers).toHaveLength(24);
     const fixture = (all?.requiredMembers ?? []).map((pattern) => ({
-      name: pattern.source.replace('^', '').replace('-.+\\.js$', '-fixture.js'),
+      name: pattern.source.includes('(?:community|extension)-catalog')
+        ? 'extension-catalog-fixture.js'
+        : pattern.source.replace('^', '').replace('-.+\\.js$', '-fixture.js'),
       rawBytes: 1,
       gzipBytes: 1,
     }));
     expect(evaluateBundleBudgets(fixture, [all as BundleBudget])).toEqual([]);
+    expect(all?.pattern.test('community-catalog-hash.js')).toBe(true);
+    expect(all?.pattern.test('extension-catalog-hash.js')).toBe(true);
     const missing = fixture.filter(({ name }) => !name.startsWith('extension-kubectl-'));
     expect(
       evaluateBundleBudgets(missing, [all as BundleBudget]).some((error) =>

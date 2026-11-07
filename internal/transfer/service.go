@@ -52,7 +52,7 @@ type Service struct {
 }
 
 func NewService(config HostConfig, paths Paths) (*Service, error) {
-	return NewServiceWithDependencies(config, paths, NewAria2Launcher(), FileLocker{})
+	return NewServiceWithDependencies(config, paths, newAdaptiveLauncher(), FileLocker{})
 }
 
 func NewServiceWithDependencies(config HostConfig, paths Paths, launcher Launcher, locker Locker) (*Service, error) {
@@ -249,9 +249,20 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 		ConfigRevision: configRevision,
 		Jobs:           []Job{},
 	}
+	if runtime == nil || runtime.EngineName != "native" {
+		partials, partialErr := readPreservedPartials(config, service.paths)
+		if partialErr != nil {
+			snapshot.PersistenceWarning = "Preserved download partials could not be read. Existing files are untouched."
+		} else {
+			snapshot.PreservedPartials = partials
+		}
+	}
 	if runtime == nil {
 		if err := service.loadHistory(true); err != nil {
-			snapshot.PersistenceWarning = "Completed download history could not be read. Existing files and resumable sessions are preserved."
+			if snapshot.PersistenceWarning != "" {
+				snapshot.PersistenceWarning += " "
+			}
+			snapshot.PersistenceWarning += "Completed download history could not be read. Existing files and resumable sessions are preserved."
 		} else {
 			service.appendHistory(&snapshot)
 		}
@@ -262,10 +273,13 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 	if err != nil {
 		snapshot.Health.Ready = false
 		snapshot.Health.Status = "unavailable"
-		snapshot.Health.Message = fmt.Sprintf("aria2c is running but its local RPC is unavailable: %v", err)
+		snapshot.Health.Message = fmt.Sprintf("Downloader is running but its status is unavailable: %v", err)
 		return snapshot, err
 	}
 	snapshot.Jobs = engineSnapshot.Jobs
+	if runtime.EngineName == "native" {
+		snapshot.PreservedPartials = engineSnapshot.PreservedPartials
+	}
 	service.mu.Lock()
 	retryRequestsBefore := cloneRetryRequests(service.retryRequests)
 	retryStateChanged := service.reconcileStateLocked(engineSnapshot)
@@ -290,10 +304,10 @@ func (service *Service) Snapshot(ctx context.Context) (Snapshot, error) {
 		default:
 			if snapshot.Jobs[index].Status == JobCompleted {
 				snapshot.Jobs[index].Verification = "verified"
-				snapshot.Jobs[index].VerifyMessage = "aria2c completed the transfer after enforcing the expected SHA-256; it does not expose the computed digest."
+				snapshot.Jobs[index].VerifyMessage = "The downloader completed the transfer after enforcing the expected SHA-256."
 			} else {
 				snapshot.Jobs[index].Verification = "pending"
-				snapshot.Jobs[index].VerifyMessage = "aria2c will verify the expected SHA-256 after the download completes."
+				snapshot.Jobs[index].VerifyMessage = "The downloader will verify the expected SHA-256 after the download completes."
 			}
 		}
 	}
@@ -332,7 +346,7 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 	paths := service.paths
 	store := service.configStore
 	service.starting = true
-	service.health = Health{Status: "starting", Message: "Starting the configured aria2c engine."}
+	service.health = Health{Status: "starting", Message: "Starting the downloader."}
 	service.mu.Unlock()
 
 	fail := func(status, message string, err error) (Health, error) {
@@ -386,10 +400,16 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 	if err != nil {
 		_ = lease.Release()
 		status := "failed"
-		message := "aria2c could not be started."
+		message := "The downloader could not be started."
 		if companionMessage := CompanionErrorMessage(err); companionMessage != "" {
 			status = "binary_missing"
 			message = companionMessage
+		} else if errors.Is(err, ErrNativeUnsupportedConfig) {
+			message = ErrNativeUnsupportedConfig.Error()
+		} else if errors.Is(err, ErrNativeQueuePending) {
+			message = ErrNativeQueuePending.Error()
+		} else if errors.Is(err, ErrNativeHistoryFull) {
+			message = ErrNativeHistoryFull.Error()
 		} else if errors.Is(err, ErrAria2NotFound) {
 			status = "binary_missing"
 			message = "aria2c was not found. Install it or configure its executable path."
@@ -414,6 +434,10 @@ func (service *Service) Start(ctx context.Context) (Health, error) {
 		Message:       "Downloader is ready.",
 		BinaryPath:    runtime.BinaryPath,
 		EngineVersion: runtime.EngineVersion,
+		Engine:        runtime.EngineName,
+	}
+	if runtime.EngineNote != "" {
+		health.Message = runtime.EngineNote
 	}
 	service.mu.Lock()
 	service.starting = false
@@ -656,7 +680,7 @@ func (service *Service) Shutdown(ctx context.Context) error {
 		return nil
 	}
 	service.stopping = true
-	service.health = Health{Status: "stopping", Message: "Saving the transfer session and stopping aria2c."}
+	service.health = Health{Status: "stopping", Message: "Saving the transfer session and stopping the downloader."}
 	config := service.config
 	service.mu.Unlock()
 
@@ -759,6 +783,16 @@ func (service *Service) monitor(runtime *Runtime) {
 		return
 	}
 	<-runtime.Done
+	service.finishObservedRuntime(runtime)
+}
+
+// Monitor cleanup must wait for any operation using the active engine lease.
+// Shutdown already holds these locks and calls finishRuntime directly.
+func (service *Service) finishObservedRuntime(runtime *Runtime) {
+	service.operationMu.Lock()
+	defer service.operationMu.Unlock()
+	service.queueMu.Lock()
+	defer service.queueMu.Unlock()
 	service.finishRuntime(runtime, false)
 }
 
@@ -777,7 +811,7 @@ func (service *Service) finishRuntime(runtime *Runtime, requested bool) {
 	if wasStopping || err == nil {
 		service.health = Health{Status: "stopped", Message: "Downloader is stopped."}
 	} else {
-		service.health = Health{Status: "failed", Message: fmt.Sprintf("aria2c exited unexpectedly: %v", err)}
+		service.health = Health{Status: "failed", Message: fmt.Sprintf("The downloader exited unexpectedly: %v", err)}
 	}
 	service.mu.Unlock()
 	if lease != nil {

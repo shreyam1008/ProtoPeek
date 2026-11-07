@@ -303,7 +303,7 @@ function Hero() {
           <summary className="w-fit cursor-pointer py-2 font-medium text-neutral-700">
             Nightly builds and workspace guides
           </summary>
-          <p className="mt-2">Nightly follows the latest changes on the default branch.</p>
+          <p className="mt-2">Nightly is a manually refreshed preview from the default branch.</p>
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 font-semibold text-[#0b5cff]">
             <a href={publicPagePath('workspace-ui')}>Workspace guide</a>
             <a href={publicPagePath('ai-agents')}>Connect an agent</a>

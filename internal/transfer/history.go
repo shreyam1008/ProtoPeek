@@ -216,6 +216,21 @@ func (service *Service) ForgetCompleted(ctx context.Context, id string) error {
 	service.mu.RLock()
 	runtime, config := service.runtime, service.config
 	service.mu.RUnlock()
+	// When stopped, another ProtoPeek process may own the same session. Hold
+	// the same cross-process lease used by Start before changing native state.
+	if runtime == nil {
+		if err := os.MkdirAll(service.paths.StateDirectory, 0o700); err != nil {
+			return err
+		}
+		lease, err := service.locker.TryLock(service.paths.LockFile)
+		if err != nil {
+			return err
+		}
+		if lease == nil {
+			return errors.New("transfer locker returned no lease")
+		}
+		defer lease.Release()
+	}
 	if err := service.loadHistory(runtime == nil); err != nil {
 		return err
 	}
@@ -235,6 +250,10 @@ func (service *Service) ForgetCompleted(ctx context.Context, id string) error {
 				return err
 			}
 		}
+	} else {
+		if err := forgetStoppedNativeCompletion(config, service.paths, id); err != nil {
+			return err
+		}
 	}
 	updated := make([]Job, 0, len(service.completed))
 	for _, job := range service.completed {
@@ -246,5 +265,24 @@ func (service *Service) ForgetCompleted(ctx context.Context, id string) error {
 		return err
 	}
 	service.completed = updated
+	return nil
+}
+
+func forgetStoppedNativeCompletion(config HostConfig, paths Paths, id string) error {
+	e := &nativeEngine{path: filepath.Join(paths.StateDirectory, "session.native.json"), config: config, state: nativeState{Version: 1}}
+	// Inspect without replaying another job's interrupted promotion.
+	if err := e.loadState(false); err != nil {
+		return err
+	}
+	for i, record := range e.state.Jobs {
+		if record.Job.ID != id {
+			continue
+		}
+		if record.Job.Status != JobCompleted || record.CommitSHA256 != "" {
+			return errors.New("only completed history can be forgotten")
+		}
+		e.state.Jobs = append(e.state.Jobs[:i], e.state.Jobs[i+1:]...)
+		return e.saveLocked()
+	}
 	return nil
 }

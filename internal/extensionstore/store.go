@@ -6,12 +6,21 @@ import (
 	"context"
 	"errors"
 
+	"github.com/shreyam1008/ProtoPeek/internal/communitytools"
 	"github.com/shreyam1008/ProtoPeek/internal/managedtools"
 	"github.com/shreyam1008/ProtoPeek/internal/media"
 	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
 
 var mediaIDs = []string{"yt-dlp", "gallery-dl", "deno", "ffmpeg"}
+
+func IsKnown(id string) bool {
+	return id == "aria2" || id == "cloudflared" || IsMedia(id) || communitytools.IsKnown(id)
+}
+
+func communityTool(tool communitytools.Tool) managedtools.Tool {
+	return managedtools.Tool{ID: tool.ID, Status: tool.Status, Version: tool.Version, InstallBytes: tool.InstallBytes, CanInstall: tool.CanInstall, CanRemove: tool.CanRemove, Message: tool.Message, SourceURL: tool.SourceURL, Path: tool.Path, RecoveryPath: tool.RecoveryPath}
+}
 
 func IsMedia(id string) bool {
 	for _, known := range mediaIDs {
@@ -23,6 +32,14 @@ func IsMedia(id string) bool {
 }
 
 func Status(manager *managedtools.Manager, id string) (managedtools.Tool, error) {
+	if communitytools.IsKnown(id) {
+		community, err := communitytools.New()
+		if err != nil {
+			return managedtools.Tool{}, err
+		}
+		tool, err := community.Status(id)
+		return communityTool(tool), err
+	}
 	if !IsMedia(id) {
 		tool, err := manager.Status(id)
 		if err == nil {
@@ -47,6 +64,16 @@ func Inventory(manager *managedtools.Manager) managedtools.Inventory {
 		tool, _ := Status(manager, id)
 		inventory.Tools = append(inventory.Tools, tool)
 	}
+	community, err := communitytools.New()
+	if err != nil {
+		for _, id := range communitytools.IDs() {
+			inventory.Tools = append(inventory.Tools, managedtools.Tool{ID: id, Status: "unavailable", Message: "Managed tool storage is unavailable."})
+		}
+	} else {
+		for _, tool := range community.Inventory() {
+			inventory.Tools = append(inventory.Tools, communityTool(tool))
+		}
+	}
 	return inventory
 }
 
@@ -58,6 +85,19 @@ func Mutate(ctx context.Context, manager *managedtools.Manager, action, id strin
 	}
 	if action != "install" && action != "remove" {
 		return managedtools.Tool{}, errors.New("unknown companion action")
+	}
+	if communitytools.IsKnown(id) {
+		community, err := communitytools.New()
+		if err != nil {
+			return managedtools.Tool{}, err
+		}
+		var tool communitytools.Tool
+		if action == "install" {
+			tool, err = community.Install(ctx, id)
+		} else {
+			tool, err = community.Remove(id)
+		}
+		return communityTool(tool), err
 	}
 	if !IsMedia(id) {
 		if action == "install" {

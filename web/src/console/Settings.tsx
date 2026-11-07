@@ -700,9 +700,7 @@ function HostSettingsPanel({
                   value={draft.aria2Path}
                   onChange={(event) => onChange('aria2Path', event.target.value)}
                 />
-                <small>
-                  Blank checks PATH, then the bundled engine when included for this platform.
-                </small>
+                <small>Leave blank to choose the available local engine automatically.</small>
               </label>
 
               <div className="pp-host-settings-wide">
@@ -742,6 +740,7 @@ function HostSettingsPanel({
                 <input
                   id="host-connections-per-host"
                   type="number"
+                  disabled={snapshot?.health.engine === 'native'}
                   min={1}
                   max={16}
                   step={1}
@@ -750,10 +749,7 @@ function HostSettingsPanel({
                     onChange('maxConnectionsPerHost', numberValue(event.target.value))
                   }
                 />
-                <small>
-                  Up to 16 connections and segments per download. Speed depends on range support and
-                  the server.
-                </small>
+                <small>aria2 only. The built-in engine uses one connection per transfer.</small>
               </label>
 
               <label htmlFor="host-bandwidth-cap">
@@ -790,9 +786,14 @@ function HostSettingsPanel({
 
               <fieldset className="pp-host-settings-fieldset">
                 <legend>Resume behavior</legend>
+                <small>
+                  aria2 only. The built-in engine resumes only when the server supports byte ranges
+                  and a strong ETag.
+                </small>
                 <label>
                   <input
                     type="checkbox"
+                    disabled={snapshot?.health.engine === 'native'}
                     checked={draft.continuePartialDownloads}
                     onChange={(event) => onChange('continuePartialDownloads', event.target.checked)}
                   />
@@ -801,6 +802,7 @@ function HostSettingsPanel({
                 <label>
                   <input
                     type="checkbox"
+                    disabled={snapshot?.health.engine === 'native'}
                     checked={draft.alwaysResume}
                     onChange={(event) => onChange('alwaysResume', event.target.checked)}
                   />
@@ -812,6 +814,7 @@ function HostSettingsPanel({
                 File allocation
                 <select
                   id="host-file-allocation"
+                  disabled={snapshot?.health.engine === 'native'}
                   value={draft.fileAllocation}
                   onChange={(event) => onChange('fileAllocation', event.target.value)}
                 >
@@ -820,7 +823,7 @@ function HostSettingsPanel({
                   <option value="trunc">Truncate</option>
                   <option value="falloc">falloc</option>
                 </select>
-                <small>Passed through to the external aria2c engine.</small>
+                <small>aria2 only; the built-in engine does not preallocate files.</small>
               </label>
 
               <label htmlFor="host-overwrite-policy">
@@ -835,10 +838,14 @@ function HostSettingsPanel({
                   }}
                 >
                   <option value="rename">Auto-rename conflicting files</option>
-                  <option value="overwrite">Allow overwrite existing files</option>
+                  <option value="overwrite" disabled={snapshot?.health.engine === 'native'}>
+                    Allow overwrite existing files
+                  </option>
                   <option value="refuse">Refuse conflicting files</option>
                 </select>
-                <small>Choose one explicit conflict policy.</small>
+                <small>
+                  Overwrite requires aria2; the built-in engine preserves existing files.
+                </small>
               </label>
 
               <label className="pp-host-settings-toggle" htmlFor="host-tls-verification">

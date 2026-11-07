@@ -3,6 +3,8 @@
 FROM oven/bun:1.3.10-alpine AS web-builder
 WORKDIR /src
 COPY package.json bun.lock biome.json ./
+COPY internal/communitytools/catalog.json ./internal/communitytools/catalog.json
+COPY scripts/generate-community-catalog.mjs ./scripts/generate-community-catalog.mjs
 COPY web/console ./web/console
 COPY web/src/console ./web/src/console
 COPY web/src/design ./web/src/design

@@ -48,6 +48,18 @@ func TestDownloadCompanionErrorIsActionableAndSafe(t *testing.T) {
 	}
 }
 
+func TestDownloadNativeStartErrorsAreActionableAndSafe(t *testing.T) {
+	for _, sentinel := range []error{transfer.ErrNativeQueuePending, transfer.ErrNativeHistoryFull, transfer.ErrNativeUnsupportedConfig} {
+		var stdout, stderr bytes.Buffer
+		service := &fakeDownloadService{startErr: errors.Join(sentinel, errors.New("private-path"))}
+		code := runDownloadCommand(context.Background(), []string{"https://example.com/file"}, &stdout, &stderr,
+			func() (downloadCommandService, error) { return service, nil }, false)
+		if code != 1 || !strings.Contains(stderr.String(), sentinel.Error()) || strings.Contains(stderr.String(), "private-path") {
+			t.Fatalf("code=%d stderr=%q", code, stderr.String())
+		}
+	}
+}
+
 func (service *fakeDownloadService) Start(context.Context) (transfer.Health, error) {
 	service.record("start")
 	return service.startHealth, service.startErr
@@ -222,6 +234,23 @@ func TestDownloadCommandCompletesAndReportsVerifiedOutput(t *testing.T) {
 	}
 	if got := service.lastAdd.Sources; len(got) != 1 || got[0] != "https://example.com/artifact.bin" {
 		t.Fatalf("sources = %#v", got)
+	}
+}
+
+func TestDownloadCommandReportsNativeEngine(t *testing.T) {
+	t.Parallel()
+	service := &fakeDownloadService{
+		startHealth: transfer.Health{Ready: true, Status: "running", Engine: "native", EngineVersion: "built-in"},
+		addResult:   transfer.AddResult{ID: "aabbccdd"},
+		snapshots: []transfer.Snapshot{{Jobs: []transfer.Job{{
+			ID: "aabbccdd", Name: "artifact.bin", Status: transfer.JobCompleted, OutputPath: "/tmp/artifact.bin",
+		}}}},
+	}
+	var stdout, stderr bytes.Buffer
+	code := runDownloadCommand(context.Background(), []string{"https://example.com/artifact.bin"}, &stdout, &stderr,
+		func() (downloadCommandService, error) { return service, nil }, false)
+	if code != 0 || stdout.String() != "/tmp/artifact.bin\n" || !strings.Contains(stderr.String(), "with the built-in HTTP engine") || strings.Contains(stderr.String(), "aria2c") {
+		t.Fatalf("code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
 }
 

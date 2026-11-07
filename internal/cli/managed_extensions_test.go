@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/shreyam1008/ProtoPeek/internal/communitytools"
 	"github.com/shreyam1008/ProtoPeek/internal/media"
 	"github.com/shreyam1008/ProtoPeek/internal/userroot"
 )
@@ -42,7 +43,7 @@ func TestManagedExtensionsJSONAndValidation(t *testing.T) {
 	}
 }
 
-func TestManagedInventorySixToolsDoesNotCreateQueue(t *testing.T) {
+func TestManagedInventoryDoesNotCreateQueue(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", root)
 	t.Setenv("APPDATA", root)
@@ -59,7 +60,7 @@ func TestManagedInventorySixToolsDoesNotCreateQueue(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"tools"`
 	}
-	if err := json.Unmarshal(out.Bytes(), &snapshot); err != nil || snapshot.SchemaVersion != 1 || len(snapshot.Tools) != 6 {
+	if err := json.Unmarshal(out.Bytes(), &snapshot); err != nil || snapshot.SchemaVersion != 1 || len(snapshot.Tools) != 6+len(communitytools.IDs()) {
 		t.Fatalf("inventory: %s %v", out.String(), err)
 	}
 	seen := map[string]bool{}
@@ -67,6 +68,11 @@ func TestManagedInventorySixToolsDoesNotCreateQueue(t *testing.T) {
 		seen[tool.ID] = true
 	}
 	for _, id := range []string{"aria2", "cloudflared", "yt-dlp", "gallery-dl", "deno", "ffmpeg"} {
+		if !seen[id] {
+			t.Errorf("missing %s", id)
+		}
+	}
+	for _, id := range communitytools.IDs() {
 		if !seen[id] {
 			t.Errorf("missing %s", id)
 		}

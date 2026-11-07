@@ -24,7 +24,7 @@ func registerManagedExtensions(mux *http.ServeMux) {
 			return
 		}
 		query, err := url.ParseQuery(r.URL.RawQuery)
-		if err != nil || strings.HasPrefix(r.URL.RawQuery, "&") || strings.HasSuffix(r.URL.RawQuery, "&") || strings.Contains(r.URL.RawQuery, "&&") || (r.URL.RawQuery != "" && (len(query) != 1 || len(query["id"]) != 1 || (query.Get("id") != "aria2" && query.Get("id") != "cloudflared" && !extensionstore.IsMedia(query.Get("id"))))) {
+		if err != nil || strings.HasPrefix(r.URL.RawQuery, "&") || strings.HasSuffix(r.URL.RawQuery, "&") || strings.Contains(r.URL.RawQuery, "&&") || (r.URL.RawQuery != "" && (len(query) != 1 || len(query["id"]) != 1 || !extensionstore.IsKnown(query.Get("id")))) {
 			http.Error(w, "Choose one known managed extension", http.StatusBadRequest)
 			return
 		}
@@ -54,11 +54,11 @@ func registerManagedExtensions(mux *http.ServeMux) {
 			if !decodeStrictTransferJSON(w, r, 1024, &input) {
 				return
 			}
-			if input.ID != "aria2" && input.ID != "cloudflared" {
-				if extensionstore.IsMedia(input.ID) {
-					http.Error(w, "Manage media tools in Files using the media service", http.StatusBadRequest)
-					return
-				}
+			if extensionstore.IsMedia(input.ID) {
+				http.Error(w, "Manage media tools in Files using the media service", http.StatusBadRequest)
+				return
+			}
+			if !extensionstore.IsKnown(input.ID) {
 				http.Error(w, "Choose one known managed extension", http.StatusBadRequest)
 				return
 			}
@@ -67,20 +67,17 @@ func registerManagedExtensions(mux *http.ServeMux) {
 				http.Error(w, "Managed extensions unavailable", http.StatusServiceUnavailable)
 				return
 			}
-			var tool managedtools.Tool
-			if action == "install" {
-				tool, err = manager.Install(r.Context(), input.ID)
-			} else {
-				tool, err = manager.Remove(input.ID)
-			}
+			tool, err := extensionstore.Mutate(r.Context(), manager, action, input.ID)
 			if err != nil {
 				switch {
 				case errors.Is(err, context.Canceled):
 					http.Error(w, "Operation cancelled", 499)
 				case errors.Is(err, managedtools.ErrBusy):
-					message := "Wait for the current operation or stop the owned Quick Tunnel in Share a local service, then try again."
+					message := "Stop the running companion or wait for the current operation, then try again."
 					if input.ID == "aria2" {
 						message = "Wait for the current operation or save the queue and stop Downloader in Settings, then try again."
+					} else if input.ID == "cloudflared" {
+						message = "Wait for the current operation or stop the owned Quick Tunnel in Share a local service, then try again."
 					}
 					http.Error(w, message, http.StatusConflict)
 				case errors.Is(err, os.ErrPermission):

@@ -203,14 +203,14 @@ describe('connected public feature guides', () => {
     expect(text).toContain('only catalog and platform IDs in this browser');
     expect(text).toContain('Check this host');
     expect(text).toContain('Never publish the Caddy admin port');
-    expect(text).toContain('Published v0.7.0 includes a Windows x64 fallback');
+    expect(text).toContain('Published v0.7.0 uses aria2 and includes a Windows x64 fallback');
     expect(text).toContain(
-      'current lightweight Windows x64 package can install a verified companion'
+      'lightweight Nightly Windows x64 package can install a verified companion'
     );
     expect(text).toContain(
       'Store package builder pairs a lightweight Windows release with its verified offline ZIP'
     );
-    expect(text).toContain('Headscale administration, integrated sign-in/elevation');
+    expect(text).toContain('Headscale administration and integrated sign-in/elevation');
     expect(text).not.toContain(
       'NetBird, Tailscale Serve/Funnel, integrated sign-in and automatic tool installation remain outside'
     );

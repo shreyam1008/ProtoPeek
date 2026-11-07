@@ -13,7 +13,8 @@ entries you use to keep them close in this library. Pins and manual setup-platfo
 only catalog and platform IDs in this browser, without addresses, credentials, pairing data or results.
 
 Opening the catalog does not inspect tools or load every detail pack. The selected entry’s
-details load when you open it. Choose **Check this host** for one local availability observation.
+details load when you open it. Managed standalone entries check their own local installation status
+on opening; this does not contact the network. Choose **Check this host** on a guided entry for one local availability observation.
 It checks this process’s PATH and reviewed fixed locations without executing the selected tool.
 aria2 may also read and verify an existing cached bundle checksum. Detection does not start a process,
 scan, capture, sign-in flow, model download or service. Cancelling a slow check detaches the browser;
@@ -30,13 +31,13 @@ operating system and points to official installation instructions.
 
 ## Manage a local companion (current source)
 
-![The Windows source preview showing the six managed tools in Extensions](../web/site/public/assets/protopeek-managed-tools-20261106.png)
+![The November 2026 Windows preview showing the original six managed tools in Extensions](../web/site/public/assets/protopeek-managed-tools-20261106.png)
 
-The current library has 24 entries. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Each entry lists the hosts with pinned builds. In Files you can install the selected tool, use it, and remove its verified managed copy. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
+Current source has 37 library entries, including 20 managed companions. The **Media** filter opens yt-dlp, gallery-dl, Deno or FFmpeg directly in its Files setup. Standalone companions open their own setup, where you can review the source and download size, install, and copy a command to run them. Availability varies by operating system and architecture. Video setup shows its selected helpers and combined download size. Stop active media jobs before removal.
 
 Open **Cloudflare Tunnel** or **aria2** in Extensions and check the companion status. Review the version and install size, then confirm installation. Cloudflared downloads on request from its pinned release on Windows x64, Linux amd64/arm64 and macOS amd64/arm64. Its local binary can inspect a connector; on Windows and Linux it can also power an explicitly started Quick Tunnel. Temporary publishing remains unavailable on macOS. Publishing a service is a separate action. On Windows x64, aria2 prepares the archive for Downloader. Lightweight builds can download the pinned archive on request or use a sidecar supplied for offline setup. Once installed, open the associated workbench. Stop active use before choosing **Remove companion**. If a cached aria2 archive changes, **Repair companion** preserves it in quarantine and downloads a verified replacement. Files offers **Repair setup** for a partial media installation when its remaining files can be verified.
 
-The terminal uses the same local installation and returns JSON:
+The terminal uses the same local installation; status, install and remove return JSON:
 
 ```sh
 pp extensions status --json
@@ -45,7 +46,9 @@ pp extensions install cloudflared
 pp extensions remove cloudflared
 ```
 
-Inventory covers all six managed companions. Media installs can add missing supported helpers for yt-dlp. CLI media changes require the Files queue to be free. If the workbench owns the queue, use Files there or close the workbench before the CLI operation. A paired agent can inspect this inventory with `managed_tools`. Use the published release instructions above when running v0.7.0.
+Inventory covers all managed companions. Run a standalone tool with `pp extensions run grpcurl --help`, replacing `grpcurl` with its ID. This forwards the companion's input, output and exit status. Media installs can add missing supported helpers for yt-dlp. CLI media changes require the Files queue to be free. If the workbench owns the queue, use Files there or close the workbench before the CLI operation. A paired agent can inspect this inventory with `managed_tools`. These additions are in current source; use the published release instructions above when running v0.7.0.
+
+To contribute a standalone companion, submit a pull request to the [community catalog](https://github.com/shreyam1008/ProtoPeek/tree/master/internal/communitytools). Its JSON Schema defines the entry format, and the contribution guide explains pinned packages, licensing and platform verification.
 
 ## Six native workbenches
 
@@ -59,15 +62,16 @@ controls. It does not prove that your installed tool, account, permissions or en
 | Optional services | NetBird | Native installed-client evidence and bounded reviewed actions; account setup stays in NetBird | `/extensions/netbird` |
 | Network tools | Wireshark capture | A bounded live capture through the installed `dumpcap` executable | `/network/packets?mode=live` |
 | Network tools | Nmap | Bounded TCP connect or light service detection with explicit scope | `/network/nmap` |
-| Transfers | aria2 | The local engine used by resumable HTTP(S) downloads | `/downloader` |
+| Transfers | aria2 | An optional engine for resumable HTTP(S) downloads and advanced connection settings | `/downloader` |
 
 Open a card to see its requirements and supported actions. Install a managed companion through its setup controls. For a VPN client, capture driver or externally managed CLI, use the listed vendor installer or host package manager, then return to the entry and check the host.
 
 ## Fourteen guided entries
 
-These entries are useful setup and handoff paths, **not fourteen additional native adapters**.
-Command examples are static text to review, copy and run yourself. ProtoPeek does not execute
-them, install packages, start services or authenticate with vendors.
+These v0.7.0 entries are setup and handoff paths, **not fourteen additional native adapters**.
+Command examples are static text to review, copy and run yourself; opening a guide does not start
+services or authenticate with vendors. Current source additionally offers an explicitly installed
+managed Caddy CLI; its guide still works with an external installation on PATH.
 
 | Entry | Integration level | Useful next step |
 | --- | --- | --- |
@@ -178,7 +182,9 @@ its workbench and review the target and ports. ProtoPeek supports bounded TCP co
 service detection. These modes use ordinary TCP sockets; executable detection does not run a scan.
 See [Nmap scope and evidence limits](network-workbench.md#installed-nmap-in-current-source).
 
-The Downloader uses [aria2](https://aria2.github.io/). Check the engine in **Files → Downloader** to see which executable the host selected. A configured executable or one on PATH can serve the workbench. Published v0.7.0 includes a Windows x64 fallback. The current lightweight Windows x64 package can install a verified companion from Extensions, use an adjacent offline ZIP, or reuse a verified cache prepared by v0.7.0. [Official aria2 releases](https://github.com/aria2/aria2/releases).
+Published v0.7.0 uses [aria2](https://aria2.github.io/) and includes a Windows x64 fallback. A configured executable or one on PATH can serve the workbench; the lightweight Nightly Windows x64 package can install a verified companion, use an adjacent offline ZIP, or reuse a verified v0.7.0 cache. [Official aria2 releases](https://github.com/aria2/aria2/releases).
+
+Current source also includes a built-in HTTP(S) engine for fresh profiles without aria2. Check **Files → Downloader** for the selected engine. The built-in engine uses one connection per download and cannot overwrite existing files. Safe resume requires a strong ETag; when that is unavailable, partial data is preserved for inspection. Existing aria2 sessions remain separate, and aria2 provides its own advanced connection and allocation options. This source change is not yet in a published release.
 
 ### Recovering interrupted or changed files
 
@@ -191,6 +197,6 @@ supported native hop tracing, saved network maps and bounded capture-file readin
 these optional tools. Opening a PCAP/PCAPNG file stays under **Network → Packets** and does not
 require Wireshark, dumpcap or Npcap.
 
-Headscale administration, integrated sign-in/elevation and automatic tool installation remain
-outside these adapters. Existing [AI agent setup](ai-agents.md) remains under Settings; a setup
+Headscale administration and integrated sign-in/elevation remain outside these adapters. Managed
+companions are installed only when requested. Existing [AI agent setup](ai-agents.md) remains under Settings; a setup
 entry does not require a new ProtoPeek plugin or background service.

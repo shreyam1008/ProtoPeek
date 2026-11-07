@@ -26,6 +26,7 @@ export function transferHealthLabel(status: TransferHealthStatus | 'loading') {
 export type TransferHealth = {
   ready: boolean;
   status: TransferHealthStatus;
+  engine?: 'native' | 'aria2';
   message: string;
   binaryPath: string;
   engineVersion: string;
@@ -127,6 +128,7 @@ export type TransferSnapshot = {
   configRevision: string;
   metrics: TransferMetrics;
   jobs: TransferJob[];
+  preservedPartials: { path: string; sizeBytes: number; jobId: string }[];
 };
 
 export type TransferMutationResult = {
@@ -150,6 +152,7 @@ export type TransferBatchJob = {
 
 export type TransferBatchFailureCode =
   | 'invalid_request'
+  | 'managed_header'
   | 'engine_stopped'
   | 'queue_full'
   | 'insufficient_disk'
@@ -240,6 +243,7 @@ const jobStatuses = new Set<TransferJobStatus>([
 
 const batchFailureCodes = new Set<TransferBatchFailureCode>([
   'invalid_request',
+  'managed_header',
   'engine_stopped',
   'queue_full',
   'insufficient_disk',
@@ -338,6 +342,7 @@ function normalizeHealth(input: unknown): TransferHealth {
   return {
     ready: boundedBoolean(value.ready),
     status: healthStatuses.has(status) ? status : 'unavailable',
+    engine: value.engine === 'native' || value.engine === 'aria2' ? value.engine : undefined,
     message: boundedString(value.message, 2 * 1024) || 'Downloader state is unavailable.',
     binaryPath: boundedString(value.binaryPath, 4 * 1024),
     engineVersion: boundedString(value.engineVersion, 128),
@@ -563,6 +568,25 @@ export function normalizeTransferSnapshot(input: unknown): TransferSnapshot {
   const rawJobs = Array.isArray(value.jobs) ? value.jobs.slice(0, 4096) : [];
   const jobs = rawJobs.map(normalizeJob).filter((job): job is TransferJob => job !== null);
   const rawObservedAt = boundedString(value.observedAt, 128);
+  const preservedPartials = Array.isArray(value.preservedPartials)
+    ? value.preservedPartials.slice(0, 64).flatMap((item) => {
+        const entry = record(item);
+        if (
+          typeof entry.path !== 'string' ||
+          !entry.path ||
+          entry.path.length > 4 * 1024 + 128 ||
+          [...entry.path].some(
+            (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+          ) ||
+          typeof entry.jobId !== 'string' ||
+          !/^[0-9a-fA-F]{1,64}$/.test(entry.jobId) ||
+          !Number.isSafeInteger(entry.sizeBytes) ||
+          (entry.sizeBytes as number) < 0
+        )
+          return [];
+        return [{ path: entry.path, sizeBytes: entry.sizeBytes as number, jobId: entry.jobId }];
+      })
+    : [];
   return {
     persistenceWarning: boundedString(value.persistenceWarning, 2048),
     observedAt:
@@ -574,6 +598,7 @@ export function normalizeTransferSnapshot(input: unknown): TransferSnapshot {
     configRevision: boundedString(value.configRevision, 64),
     metrics: normalizeMetrics(value.metrics),
     jobs,
+    preservedPartials,
   };
 }
 
@@ -609,6 +634,10 @@ export async function startTransferEngine(signal?: AbortSignal) {
 
 export async function stopTransferEngine(signal?: AbortSignal) {
   await mutateTransfer('api/transfers/stop', undefined, signal);
+}
+
+export async function forgetPreservedPartial(path: string, signal?: AbortSignal) {
+  await mutateTransfer('api/transfers/preserved/forget', { path }, signal);
 }
 
 export async function addTransfer(

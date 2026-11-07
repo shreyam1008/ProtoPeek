@@ -18,7 +18,7 @@ const roadmap = [
       ],
       [
         'Optional extension library',
-        '24 tools, including six managed companions. Review the package before installing. Pin a tool or open its setup from the library.',
+        '20 managed companions on supported hosts. Review the package before installing, then open its workbench or run its standalone command.',
       ],
       [
         'Host port scanner',

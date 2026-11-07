@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,12 +16,13 @@ import (
 )
 
 const (
-	maxTransferAddBodyBytes    = 144 << 10
-	maxTransferBatchBodyBytes  = 1 << 20
-	maxTransferActionBodyBytes = 1 << 10
-	maxTransferImportBodyBytes = 2 << 10
-	maxTransferConfigBodyBytes = 16 << 10
-	maxConcurrentTransferOps   = 2
+	maxTransferAddBodyBytes       = 144 << 10
+	maxTransferBatchBodyBytes     = 1 << 20
+	maxTransferActionBodyBytes    = 1 << 10
+	maxTransferImportBodyBytes    = 2 << 10
+	maxTransferConfigBodyBytes    = 16 << 10
+	maxTransferPreservedBodyBytes = 32 << 10
+	maxConcurrentTransferOps      = 2
 )
 
 // TransferService is the process-scoped downloader contract injected into the
@@ -69,6 +71,10 @@ type transferHistoryService interface {
 	ForgetCompleted(context.Context, string) error
 }
 
+type transferPreservedService interface {
+	ForgetPreserved(context.Context, string) error
+}
+
 func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 	admission := newAdmissionLimiter(maxConcurrentTransferOps)
 	// Taildrop and settings share the folder picker, including in embedders
@@ -90,6 +96,25 @@ func registerTransferHandlers(mux *http.ServeMux, service TransferService) {
 				return
 			}
 			if err := history.ForgetCompleted(r.Context(), input.ID); err != nil {
+				writeTransferError(w, err, http.StatusConflict)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		})
+	}
+	if preserved, ok := service.(transferPreservedService); ok {
+		registerTransferPOST(mux, admission, "/api/transfers/preserved/forget", "forget preserved partial record", func(w http.ResponseWriter, r *http.Request) {
+			var input struct {
+				Path string `json:"path"`
+			}
+			if !decodeStrictTransferJSON(w, r, maxTransferPreservedBodyBytes, &input) {
+				return
+			}
+			if len(input.Path) > 4224 || !filepath.IsAbs(input.Path) || strings.ContainsAny(input.Path, "\x00\r\n") {
+				http.Error(w, "Invalid preserved partial path", http.StatusBadRequest)
+				return
+			}
+			if err := preserved.ForgetPreserved(r.Context(), input.Path); err != nil {
 				writeTransferError(w, err, http.StatusConflict)
 				return
 			}
@@ -504,6 +529,9 @@ func writeTransferError(writer http.ResponseWriter, err error, fallbackStatus in
 	case errors.Is(err, transfer.ErrInvalidAddRequest), errors.Is(err, transfer.ErrInvalidBatchRequest):
 		status = http.StatusBadRequest
 		message = "Invalid transfer request"
+	case errors.Is(err, transfer.ErrNativeManagedHeader):
+		status = http.StatusBadRequest
+		message = transfer.ErrNativeManagedHeader.Error()
 	case errors.Is(err, transfer.ErrInvalidHostConfig):
 		status = http.StatusBadRequest
 		message = "Invalid transfer host configuration"
@@ -522,6 +550,24 @@ func writeTransferError(writer http.ResponseWriter, err error, fallbackStatus in
 	case errors.Is(err, transfer.ErrRetryMetadataMissing):
 		status = http.StatusConflict
 		message = "Exact retry options are unavailable; queue a new job and re-enter any required headers"
+	case errors.Is(err, transfer.ErrPreservedLimit):
+		status = http.StatusConflict
+		message = "Too many preserved partial files; inspect the listed files and remove any unneeded ones before retrying"
+	case errors.Is(err, transfer.ErrPreservedInvalid):
+		status = http.StatusBadRequest
+		message = "Invalid preserved partial path"
+	case errors.Is(err, transfer.ErrPreservedNotFound):
+		status = http.StatusConflict
+		message = "This preserved partial is no longer listed; refresh the downloader"
+	case errors.Is(err, transfer.ErrNativeQueuePending):
+		status = http.StatusConflict
+		message = transfer.ErrNativeQueuePending.Error()
+	case errors.Is(err, transfer.ErrNativeHistoryFull):
+		status = http.StatusConflict
+		message = transfer.ErrNativeHistoryFull.Error()
+	case errors.Is(err, transfer.ErrNativeUnsupportedConfig):
+		status = http.StatusConflict
+		message = transfer.ErrNativeUnsupportedConfig.Error()
 	case errors.Is(err, transfer.ErrQueueStateNotPersisted):
 		status = http.StatusConflict
 		message = "The transfer action may have changed state; refresh before retrying"

@@ -101,7 +101,7 @@ func runDownloadCommand(
 		fmt.Fprintf(stderr, `Usage:
 	%s download [flags] URL
 
-Downloads one HTTP(S) URL through ProtoPeek's local aria2c transfer engine.
+Downloads one HTTP(S) URL through ProtoPeek's local transfer engine.
 The command uses the same host configuration and session as the browser UI,
 but does not attach to an already-running ProtoPeek process.
 
@@ -147,14 +147,20 @@ Flags:
 		if errors.Is(err, transfer.ErrLockHeld) {
 			fmt.Fprintln(stderr, "Downloader is already owned by another ProtoPeek process. This command does not connect to an already-running browser session; stop that process and retry.")
 		} else if errors.Is(err, context.Canceled) {
-			fmt.Fprintln(stderr, "Download interrupted before aria2c started; no queue item was added.")
+			fmt.Fprintln(stderr, "Download interrupted before the engine started; no queue item was added.")
 			return 130
 		} else if message := transfer.CompanionErrorMessage(err); message != "" {
 			fmt.Fprintln(stderr, message)
+		} else if errors.Is(err, transfer.ErrNativeQueuePending) {
+			fmt.Fprintln(stderr, transfer.ErrNativeQueuePending.Error())
+		} else if errors.Is(err, transfer.ErrNativeHistoryFull) {
+			fmt.Fprintln(stderr, transfer.ErrNativeHistoryFull.Error())
+		} else if errors.Is(err, transfer.ErrNativeUnsupportedConfig) {
+			fmt.Fprintln(stderr, transfer.ErrNativeUnsupportedConfig.Error())
 		} else if errors.Is(err, transfer.ErrAria2NotFound) {
 			fmt.Fprintln(stderr, "aria2c was not found. Install it or configure its executable path in ProtoPeek's transfer settings.")
 		} else {
-			fmt.Fprintln(stderr, "Could not start the local downloader. Check the configured aria2c binary and local transfer state.")
+			fmt.Fprintln(stderr, "Could not start the local downloader. Check its configuration and local transfer state.")
 		}
 		return 1
 	}
@@ -177,16 +183,20 @@ Flags:
 		case errors.Is(err, transfer.ErrInvalidAddRequest):
 			fmt.Fprintln(stderr, "Could not add download: the transfer request was invalid.")
 		default:
-			fmt.Fprintln(stderr, "Could not add download: local aria2c rejected the transfer operation.")
+			fmt.Fprintln(stderr, "Could not add download: the local engine rejected the transfer operation.")
 		}
 		return 1
 	}
-	fmt.Fprintf(stderr, "Queued %s with aria2c %s.\n", result.ID, health.EngineVersion)
+	engineName := "aria2c " + health.EngineVersion
+	if health.Engine == "native" {
+		engineName = "the built-in HTTP engine"
+	}
+	fmt.Fprintf(stderr, "Queued %s with %s.\n", result.ID, engineName)
 	if result.PersistenceWarning != "" {
 		fmt.Fprintf(stderr, "Warning: %s\n", result.PersistenceWarning)
 	}
 
-	return waitForDownload(ctx, service, result.ID, stdout, stderr, interactive)
+	return waitForDownload(ctx, service, result.ID, stdout, stderr, interactive, health.Engine == "native")
 }
 
 func waitForDownload(
@@ -196,7 +206,12 @@ func waitForDownload(
 	stdout io.Writer,
 	stderr io.Writer,
 	interactive bool,
+	native bool,
 ) int {
+	interrupted := "Download interrupted. Partial data and the aria2 session were preserved for resumption."
+	if native {
+		interrupted = "Download interrupted. Partial data and local queue state were preserved for resumption."
+	}
 	ticker := time.NewTicker(downloadCommandPollInterval)
 	defer ticker.Stop()
 	missingSince := time.Now()
@@ -209,11 +224,11 @@ func waitForDownload(
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				finishInteractiveProgress(stderr, interactive, lastLine)
-				fmt.Fprintln(stderr, "Download interrupted. Partial data and the aria2 session were preserved for resumption.")
+				fmt.Fprintln(stderr, interrupted)
 				return 130
 			}
 			finishInteractiveProgress(stderr, interactive, lastLine)
-			fmt.Fprintln(stderr, "Could not read transfer progress from local aria2c.")
+			fmt.Fprintln(stderr, "Could not read progress from the local transfer engine.")
 			return 1
 		}
 		job, found := findDownloadJob(snapshot.Jobs, id)
@@ -241,7 +256,7 @@ func waitForDownload(
 				return 0
 			case transfer.JobFailed:
 				finishInteractiveProgress(stderr, interactive, lastLine)
-				fmt.Fprintf(stderr, "Download failed: %s\n", fallback(job.ErrorMessage, "aria2c error "+job.ErrorCode))
+				fmt.Fprintf(stderr, "Download failed: %s\n", fallback(job.ErrorMessage, "transfer error "+job.ErrorCode))
 				return 1
 			case transfer.JobCancelled:
 				finishInteractiveProgress(stderr, interactive, lastLine)
@@ -250,14 +265,14 @@ func waitForDownload(
 			}
 		} else if time.Since(missingSince) > downloadCommandAppearLimit {
 			finishInteractiveProgress(stderr, interactive, lastLine)
-			fmt.Fprintln(stderr, "The queued transfer did not appear in aria2c before the observation deadline.")
+			fmt.Fprintln(stderr, "The queued transfer did not appear in the local engine before the observation deadline.")
 			return 1
 		}
 
 		select {
 		case <-ctx.Done():
 			finishInteractiveProgress(stderr, interactive, lastLine)
-			fmt.Fprintln(stderr, "Download interrupted. Partial data and the aria2 session were preserved for resumption.")
+			fmt.Fprintln(stderr, interrupted)
 			return 130
 		case <-ticker.C:
 		}

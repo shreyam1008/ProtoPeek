@@ -1,13 +1,13 @@
-import {
-  type ExtensionId,
-  isExtensionId,
-  type SetupPlatform,
-  setupPlatform,
-} from './extension-catalog';
-import { type MediaPack, mediaPacks } from './MediaPacks';
-export type PinnedToolId = ExtensionId | MediaPack['id'];
+import { communityExtension } from './community-catalog';
+import { isExtensionId, type SetupPlatform, setupPlatform } from './extension-catalog';
+import { mediaPacks } from './MediaPacks';
+export type PinnedToolId = string;
 function isPinnedToolId(value: unknown): value is PinnedToolId {
-  return isExtensionId(value) || mediaPacks.some((tool) => tool.id === value);
+  return (
+    isExtensionId(value) ||
+    mediaPacks.some((tool) => tool.id === value) ||
+    (typeof value === 'string' && !!communityExtension(value))
+  );
 }
 export const extensionPreferencesKey = 'protopeek.extensions.preferences.v1';
 export type ExtensionPreferences = { pinned: PinnedToolId[]; platform?: SetupPlatform };
