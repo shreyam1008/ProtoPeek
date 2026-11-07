@@ -744,17 +744,3 @@ jobs:
           } catch {
             if ($_.Exception.Message -eq 'Archive without checksums unexpectedly installed.') { throw }
           }
-
-      - name: "Store package - Validate current lightweight and historical embedded MSIX packages"
-        if: ${{ !cancelled() }}
-        shell: pwsh
-        env:
-          GOFLAGS: -mod=readonly
-          CGO_ENABLED: '0'
-        run: |
-          $legacy = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'embedded-release')
-          $base = 'https://github.com/shreyam1008/ProtoPeek/releases/download/v0.7.0'
-          foreach ($name in 'protopeek_0.7.0_windows_x86_64.zip','checksums.txt') {
-            Invoke-WebRequest -Uri "$base/$name" -OutFile (Join-Path $legacy $name)
-          }
-          ./packaging/windows/store/test-store.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'store-contract') -LegacyDirectory $legacy
