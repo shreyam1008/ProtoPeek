@@ -85,6 +85,41 @@ func TestEveryManagedAssetHasPinnedBoundedNotices(t *testing.T) {
 	}
 }
 
+func TestYTDLPWindowsArchitecturesAreInstallable(t *testing.T) {
+	var assets []Asset
+	if err := json.Unmarshal(toolManifest, &assets); err != nil {
+		t.Fatal(err)
+	}
+	for _, platform := range []string{"windows/386", "windows/arm64"} {
+		t.Run(platform, func(t *testing.T) {
+			matches := 0
+			for _, asset := range assets {
+				if asset.Engine != "yt-dlp" || asset.Platform != platform {
+					continue
+				}
+				matches++
+				if asset.Archive != "" || asset.Size <= 0 || len(asset.SHA256) != 64 {
+					t.Fatalf("invalid direct executable asset: %+v", asset)
+				}
+				if _, err := noticesFor(asset); err != nil {
+					t.Fatalf("missing installation notices: %v", err)
+				}
+				if _, ok := removalFiles(asset, "yt-dlp.exe"); !ok {
+					t.Fatal("managed executable cannot be removed")
+				}
+			}
+			if matches != 1 {
+				t.Fatalf("found %d yt-dlp assets for %s, want 1", matches, platform)
+			}
+			if runtime.GOOS+"/"+runtime.GOARCH == platform {
+				if _, ok := assetFor("yt-dlp"); !ok {
+					t.Fatal("current platform cannot select yt-dlp")
+				}
+			}
+		})
+	}
+}
+
 func TestManagedInstallRetainsNoticeAndProvenanceBeforeReady(t *testing.T) {
 	license, err := os.ReadFile(filepath.Join("testdata", "deno-LICENSE.txt"))
 	if err != nil {

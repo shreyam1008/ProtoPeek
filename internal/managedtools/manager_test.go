@@ -15,6 +15,22 @@ import (
 	"time"
 )
 
+func TestCloudflared386IsAvailable(t *testing.T) {
+	for _, platform := range []string{"windows/386", "linux/386"} {
+		t.Run(platform, func(t *testing.T) {
+			manager := &Manager{
+				root:     filepath.Join(t.TempDir(), "managed"),
+				platform: platform,
+				assets:   cloudflareAssets,
+			}
+			tool, err := manager.Status("cloudflared")
+			if err != nil || tool.Status != "available" || !tool.CanInstall || tool.InstallBytes <= 0 || tool.SourceURL == "" {
+				t.Fatalf("cloudflared status for %s: %+v, %v", platform, tool, err)
+			}
+		})
+	}
+}
+
 func fixtureManager(t *testing.T, payload []byte, handler http.Handler) (*Manager, asset, *atomic.Int64) {
 	t.Helper()
 	count := new(atomic.Int64)

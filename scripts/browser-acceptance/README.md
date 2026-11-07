@@ -18,8 +18,8 @@ The launcher, configuration, pairing path and temporary files are created in a u
 
 ## Isolated Linux checks
 
-The [screen-reader job](../../.github/workflows/linux-screen-reader.yml) starts Orca and headed Chromium in a private display and D-Bus session. It tabs through the HTTP workbench, records the dispatch of the Request URL and Send labels, and submits a loopback request. Its evidence covers the speech dispatcher and keyboard focus. Audio playback and other screen readers require their own checks.
+The [screen-reader job](../../.github/workflows/ci.yml) starts Orca and headed Chromium in a private display and D-Bus session. It tabs through the HTTP workbench, records the dispatch of the Request URL and Send labels, and submits a loopback request. Its evidence covers the speech dispatcher and keyboard focus. Audio playback and other screen readers require their own checks.
 
-The [native network jobs](../../.github/workflows/native-linux-network.yml) run Nmap and a bounded live packet capture against an owned HTTP listener. A separate job connects two Linux network namespaces with one private link. It checks the observed service port, the receiving peer's approval, and the transferred bytes and SHA-256. The namespaces have no default route.
+The [native network checks](../../.github/workflows/ci.yml) run Nmap and a bounded live packet capture against an owned HTTP listener. Another check connects two Linux network namespaces with one private link. It checks the observed service port, the receiving peer's approval, and the transferred bytes and SHA-256. The namespaces have no default route.
 
-The [private network job](../../.github/workflows/linux-private-network.yml) checks how the launcher reports a pinned Tailscale client with a local userspace daemon. The job isolates the daemon from external networks and host VPN state.
+The [private network job](../../.github/workflows/ci.yml) checks how the launcher reports a pinned Tailscale client with a local userspace daemon. The job isolates the daemon from external networks and host VPN state.

@@ -12,7 +12,8 @@ export type MediaPack = {
 export const mediaPacks: MediaPack[] = [
   {
     id: 'yt-dlp',
-    platforms: 'Windows x64, Linux x64, Linux ARM64, macOS x64, macOS ARM64',
+    platforms:
+      'Windows x64, Windows 32-bit, Windows ARM64, Linux x64, Linux ARM64, macOS x64, macOS ARM64',
     name: 'yt-dlp',
     description: 'Save supported video, audio and playlists.',
     keywords: 'video audio youtube playlist extractor',

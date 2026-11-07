@@ -22,7 +22,8 @@ describe('media companion discovery', () => {
         .filter((asset) => asset.engine === pack.id)
         .map((asset) => {
           const [os, arch] = asset.platform.split('/');
-          return `${systems[os]} ${arch === 'amd64' ? 'x64' : arch.toUpperCase()}`;
+          const label = arch === 'amd64' ? 'x64' : arch === '386' ? '32-bit' : arch.toUpperCase();
+          return `${systems[os]} ${label}`;
         });
       expect(pack.platforms.split(', ')).toEqual(platforms);
     }
