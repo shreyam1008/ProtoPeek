@@ -296,8 +296,8 @@ export function Updates() {
                   <TriangleAlert size={18} />
                   <p>
                     {channel === 'nightly'
-                      ? 'Nightly follows successful main/master builds. It may be less stable and updates do not change the stable release.'
-                      : 'Edge is a legacy prerelease channel, refreshed manually. Choose Nightly for new branch builds.'}
+                      ? 'Nightly is a manually refreshed preview from main or master. It may be less stable than the stable release.'
+                      : 'Edge is a legacy prerelease channel, refreshed manually. Nightly is the current preview channel.'}
                   </p>
                 </div>
               )}

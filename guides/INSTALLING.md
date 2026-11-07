@@ -91,11 +91,10 @@ irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 |
 
 ## Nightly builds
 
-Every successful push build from `main` or `master` refreshes the single
-[Nightly prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly).
-It carries the latest development work without changing GitHub Latest, a numbered stable
-release, Homebrew or Scoop. Nightly is opt-in and may contain regressions.
-No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.
+Maintainers refresh the single [Nightly prerelease](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly)
+manually from `main` or `master`. The release page identifies the source included in the preview.
+Nightly is opt-in and may contain regressions. GitHub Latest, numbered stable releases,
+Homebrew and Scoop are promoted separately.
 
 Windows PowerShell (also works from System32):
 

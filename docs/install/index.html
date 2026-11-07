@@ -167,7 +167,7 @@ Get-Content .\install.ps1
 <pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="install-a-pinned-release"><code data-lang="powershell">$env:PROTOPEEK_VERSION = &#39;v0.6.1&#39;
 irm https://raw.githubusercontent.com/shreyam1008/ProtoPeek/master/install.ps1 | iex</code></pre>
 <h2 id="nightly-builds">Nightly builds</h2>
-<p>Every successful push build from <code>main</code> or <code>master</code> refreshes the single <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly prerelease</a>. It carries the latest development work without changing GitHub Latest, a numbered stable release, Homebrew or Scoop. Nightly is opt-in and may contain regressions. No scheduled build runs when the source has not changed. Failed builds do not promote a new binary.</p>
+<p>Maintainers refresh the single <a href="https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly" rel="noreferrer" target="_blank">Nightly prerelease</a> manually from <code>main</code> or <code>master</code>. The release page identifies the source included in the preview. Nightly is opt-in and may contain regressions. GitHub Latest, numbered stable releases, Homebrew and Scoop are promoted separately.</p>
 <p>Windows PowerShell (also works from System32):</p>
 <pre class="pp-doc-code" tabindex="0" role="group" aria-labelledby="nightly-builds"><code data-lang="powershell">$env:PROTOPEEK_CHANNEL = &#39;nightly&#39;
 Remove-Item Env:PROTOPEEK_VERSION -ErrorAction SilentlyContinue

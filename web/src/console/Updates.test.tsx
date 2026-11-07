@@ -97,7 +97,7 @@ describe('Updates', () => {
     expect(
       screen.getByText(
         channel === 'nightly'
-          ? /Nightly follows successful main\/master builds/
+          ? /Nightly is a manually refreshed preview/
           : /Edge is a legacy prerelease/
       )
     ).toBeInTheDocument();
