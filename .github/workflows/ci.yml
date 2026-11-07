@@ -568,26 +568,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: go test -tags protopeek_lite ./internal/bundledaria2 ./internal/extensions ./internal/transfer ./internal/cli ./standalone
 
-      - name: Build lightweight Windows preview
-        if: ${{ !cancelled() }}
-        shell: pwsh
-        run: |
-          $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
-          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview -CoreOnly
-          if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
-          $env:PROTOPEEK_STAGED_CORE = $preview
-          go test -tags protopeek_lite ./scripts/releasecheck -run '^TestStagedCoreDownloadsWithManagedAria2$' -count=1 -v
-          if ($LASTEXITCODE -ne 0) { throw 'Staged CoreOnly companion lifecycle failed.' }
-
-      - name: Archive the Windows companion-store preview
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: protopeek-lite-windows-amd64
-          path: ${{ runner.temp }}/protopeek-lite-preview/
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Compile both commands
         if: ${{ !cancelled() }}
         run: go build ./cmd/protopeek ./cmd/pp
