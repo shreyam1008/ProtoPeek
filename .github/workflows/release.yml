@@ -76,6 +76,12 @@ jobs:
           bun scripts/package-aria2-sources.ts .local/aria2-sources
           tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
 
+      - name: Verify the release is unpublished before uploading
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: bash scripts/guard-release-draft.sh allow-absent
+
       - name: Build draft release
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
@@ -89,17 +95,64 @@ jobs:
       - name: Verify draft Windows lightweight binaries
         run: go run ./scripts/releasecheck dist
 
-      - name: Verify all release checksums
-        # Verify every manifest entry, including extras GoReleaser hashes
-        # without copying them into dist, before attesting the digests.
+      - name: Verify archive, checksum, and SBOM contract
+        shell: bash
         run: |
           set -euo pipefail
+          archive_count=0
+          for archive in dist/protopeek_*.tar.gz; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(tar -tzf "$archive")"
+            grep -Eq '(^|/)protopeek$' <<<"$contents"
+            grep -Eq '(^|/)pp$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          for archive in dist/protopeek_*.zip; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(unzip -Z1 "$archive")"
+            grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
+            grep -Eq '(^|/)pp\.exe$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/COPYING$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/README.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/go-capnp-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          test "$archive_count" -eq 8
+          deb_count=0
+          for package in dist/*.deb; do
+            test -f "$package" || continue
+            deb_count=$((deb_count + 1))
+            contents="$(dpkg-deb --contents "$package")"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/quic-go-MIT\.txt$' <<<"$contents"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/qpack-MIT\.txt$' <<<"$contents"
+            grep -Fq "$(basename "$package")" dist/checksums.txt
+          done
+          test "$deb_count" -eq 3
+          # GoReleaser hashes checksum.extra_files at their source paths; it
+          # does not stage them in dist. Keep the full checksum check strict.
           for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
             cp "$extra" "dist/$(basename "$extra")"
           done
           cp internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip dist/protopeek-aria2-1.37.0-win-64bit-build1.zip
           test "$(wc -l < dist/checksums.txt)" -eq 23
           (cd dist && sha256sum --check checksums.txt)
+          test -s .local/aria2-1.37.0-companion-sources.tar.gz
+          source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"
+          grep -Eq '(^|/)SOURCES.json$' <<<"$source_contents"
 
       - name: Attest verified release files
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -139,6 +192,7 @@ jobs:
           bash scripts/verify-snap.sh "$TAG" "${{ steps.snapcraft.outputs.snap }}"
           asset="protopeek_${TAG#v}_amd64.snap"
           bash scripts/test-snap-install.sh "$TAG" "dist/$asset"
+          bash scripts/guard-release-draft.sh require-draft
           gh release upload "$TAG" "dist/$asset" "dist/${asset}.sha256" \
             --repo "$GITHUB_REPOSITORY" --clobber
 

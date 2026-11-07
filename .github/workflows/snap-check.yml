@@ -2,16 +2,6 @@ name: Check native Snap candidate
 
 on:
   workflow_dispatch:
-  push:
-    branches: [master]
-    paths:
-      - 'snap/**'
-      - 'scripts/*snap*'
-      - '.github/workflows/snap*.yml'
-      - '.github/workflows/release.yml'
-      - 'web/site/public/man/*.1'
-      - 'go.mod'
-      - 'go.sum'
 
 permissions:
   contents: read

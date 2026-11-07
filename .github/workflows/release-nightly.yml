@@ -1,10 +1,6 @@
 name: Nightly Release
 
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 concurrency:
@@ -23,6 +19,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      - name: Check preview source
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/heads/main|refs/heads/master) ;;
+            *) echo 'Choose main or master for the Nightly preview.' >&2; exit 1 ;;
+          esac
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -68,6 +74,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+          branch_head="$(git ls-remote --exit-code origin "$GITHUB_REF" | awk '{print $1}')"
+          if [[ "$branch_head" != "$GITHUB_SHA" ]]; then
+            echo 'The source branch advanced during the build; run Nightly again.' >&2
+            exit 1
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           gh release delete v0.0.0-nightly --yes --cleanup-tag || true
@@ -108,7 +120,7 @@ jobs:
         shell: bash
         run: |
           cat > .local/nightly-notes.md <<'NOTES'
-          Rolling development preview from main/master. This replaces the previous Nightly; it does not promote a stable release or update package-manager manifests.
+          Manually refreshed development preview from main/master. This replaces the previous Nightly; it does not promote a stable release or update package-manager manifests.
 
           Install with `PROTOPEEK_CHANNEL=nightly` using the verified installer. Once installed, run `pp update` or `protopeek update`, or open Settings → Updates. Both commands follow the installed channel by default. Updates verify SHA-256 and require restarting existing servers after active work finishes.
 

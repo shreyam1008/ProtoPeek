@@ -89,12 +89,16 @@ describe('release metadata', () => {
     }
   });
 
-  it('publishes branch builds only to Nightly and keeps stable promotion explicit', () => {
+  it('publishes preview builds manually and keeps stable promotion explicit', () => {
     const nightly = readRepositoryFile('.github/workflows/release-nightly.yml');
     const edge = readRepositoryFile('.github/workflows/release-edge.yml');
     const stable = readRepositoryFile('.github/workflows/release.yml');
     const packaging = readRepositoryFile('.goreleaser.edge.yml');
-    expect(nightly).toContain('    branches:\n      - main\n      - master');
+    expect(nightly).toContain('  workflow_dispatch:');
+    expect(nightly).not.toContain('  push:');
+    expect(nightly).toContain('refs/heads/main|refs/heads/master');
+    expect(nightly).toContain('git ls-remote --exit-code origin "$GITHUB_REF"');
+    expect(nightly).toContain('"$branch_head" != "$GITHUB_SHA"');
     expect(nightly).toContain('GORELEASER_CURRENT_TAG: v0.0.0-nightly');
     expect(nightly).toContain('subject-checksums: ./dist/checksums.txt');
     expect(nightly).not.toContain('config .goreleaser.yml');

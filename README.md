@@ -80,7 +80,7 @@ Published v0.7.0 includes the engine.
 | --- | --- |
 | **Stable** | Default installers select the [latest published stable archive](https://github.com/shreyam1008/ProtoPeek/releases/latest), never a draft or prerelease. |
 | **Package channels** | Homebrew, Scoop and APT pin independently promoted versions. Check the installed version and the channel's current manifest. |
-| **Nightly** | Opt-in rolling builds from main/master; read the [release page](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) for the archive’s source. Stable/package promotion is separate. |
+| **Nightly** | Manually refreshed opt-in preview from main/master; read the [release page](https://github.com/shreyam1008/ProtoPeek/releases/tag/v0.0.0-nightly) for the archive’s source. Stable/package promotion is separate. |
 | **v0.7.0 build** | The published stable build includes 20 optional extension entries, 23 local agent tools and 13 diagnostics. Publication, native/provider acceptance and package promotion are separate gates. |
 | **Legacy Edge** | Older manual preview archives and dated screenshots, retained as historical evidence. It is not the recommended rolling channel. |
 
@@ -177,8 +177,8 @@ explicit install confirmation, cancellation and restart guidance. Direct install
 SHA-256 and update both owned commands; managed installs show the manager's commands.
 The v0.6.1 binary lacks this command and needs one installer upgrade to a published build
 containing it. To choose a preview deliberately, see [Nightly setup](guides/INSTALLING.md#nightly-builds).
-Pushes to `main`/`master` refresh one rolling Nightly prerelease. Stable releases and package
-updates require explicit, independent promotion. Legacy Edge is manual-only.
+Nightly is refreshed manually from `main` or `master`. Stable releases and package updates
+require explicit, independent promotion. Legacy Edge is also refreshed manually.
 
 
 Go fallback:
