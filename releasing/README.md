@@ -16,7 +16,8 @@ Microsoft Store packaging follows published stable releases, not rolling builds.
    documentation, checksums, and SBOMs.
 4. Create and push an exact stable SemVer tag such as `v0.2.0`.
 5. The release workflow creates a **draft** GitHub release and provenance
-   attestations. Inspect and test the draft assets on Linux, macOS, and Windows.
+   attestations. Wait for all its jobs, including Windows Store package validation,
+   and inspect and test the draft assets on Linux, macOS, and Windows.
 6. Publish the draft manually only after the website, installers, changelog, and
    artifacts all describe the same version.
 
