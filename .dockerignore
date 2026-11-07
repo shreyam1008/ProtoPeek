@@ -13,6 +13,7 @@
 !cmd/**
 !internal/**
 !standalone/**
+!scripts/generate-community-catalog.mjs
 !web/console/**
 !web/src/console/**
 !web/src/design/**
