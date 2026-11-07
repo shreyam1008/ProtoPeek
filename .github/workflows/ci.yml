@@ -6,55 +6,60 @@ on:
       - main
       - master
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  go-vulnerabilities:
+  ubuntu:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: ${{ !cancelled() }}
         with:
           go-version-file: go.mod
+
       - name: Check reachable Go vulnerabilities
+        if: ${{ !cancelled() }}
         env:
           GOFLAGS: -mod=readonly
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
-  docker-smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Build and probe non-root scratch image
+        if: ${{ !cancelled() }}
         run: make docker-smoke
 
-  web:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: ${{ !cancelled() }}
         with:
           bun-version: 1.3.10
 
       - name: Install web dependencies
+        if: ${{ !cancelled() }}
         run: bun install --frozen-lockfile
 
       - name: Frontend quality gate
+        if: ${{ !cancelled() }}
         run: bun run test
 
       - name: Verify Windows manifest preparation boundaries
+        if: ${{ !cancelled() }}
         run: bun test scripts/prepare-winget.test.ts
 
       - name: Build site and embedded app
+        if: ${{ !cancelled() }}
         run: bun run build
 
       - name: Verify generated assets and prerender
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           test -z "$(git status --porcelain -- docs internal/resources/app/dist)"
@@ -64,116 +69,12 @@ jobs:
             exit 1
           fi
 
-  browser-acceptance:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
-        with:
-          node-version: 24.19.0
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.10
-      - name: Build current embedded application
-        run: |
-          bun install --frozen-lockfile
-          bun run build:app
-      - name: Install locked browser test dependency
-        run: npm ci --prefix scripts/browser-acceptance --ignore-scripts --no-audit --no-fund
-      - name: Install Chromium and Linux dependencies
-        if: runner.os == 'Linux'
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
-        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install --with-deps chromium
-      - name: Install Chromium on Windows
-        if: runner.os == 'Windows'
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
-        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install chromium
-      - name: Run native launcher browser acceptance
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
-        run: node scripts/browser-acceptance/acceptance.mjs
-
-  web-build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.10
-
-      - name: Install web dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build site and embedded app on Windows
-        run: |
-          bun run build:app
-          bun run build:site
-
-      - name: Verify cross-platform generated assets
-        shell: pwsh
-        run: |
-          $generatedChanges = git status --porcelain -- docs internal/resources/app/dist
-          if ($generatedChanges) {
-            $generatedChanges | Write-Error
-            throw 'Windows generated assets differ from the committed build.'
-          }
-
-  go:
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
       - name: Go test
+        if: ${{ !cancelled() }}
         run: go test ./...
 
-      - name: Verify Windows lightweight companion
-        if: runner.os == 'Windows'
-        run: go test -tags protopeek_lite ./internal/bundledaria2 ./internal/extensions ./internal/transfer ./internal/cli ./standalone
-
-      - name: Build lightweight Windows preview
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
-          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview -CoreOnly
-          if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
-          $env:PROTOPEEK_STAGED_CORE = $preview
-          go test -tags protopeek_lite ./scripts/releasecheck -run '^TestStagedCoreDownloadsWithManagedAria2$' -count=1 -v
-          if ($LASTEXITCODE -ne 0) { throw 'Staged CoreOnly companion lifecycle failed.' }
-
-      - name: Archive the Windows companion-store preview
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: protopeek-lite-windows-amd64
-          path: ${{ runner.temp }}/protopeek-lite-preview/
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Native Linux publishing evidence
-        if: runner.os == 'Linux'
+        if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: '0'
           GOFLAGS: -mod=readonly
@@ -200,8 +101,481 @@ jobs:
           PY
           exit "$status"
 
+      - name: Local transfer and media concurrency checks
+        if: ${{ !cancelled() }}
+        run: go test -race ./internal/localshare ./internal/media -count=1
+
+      - name: Compile both commands
+        if: ${{ !cancelled() }}
+        run: go build ./cmd/protopeek ./cmd/pp
+
+      - name: Native isolated agent and MCP smoke
+        if: ${{ !cancelled() }}
+        run: go run ./scripts/agent-smoke
+
+      - name: Native managed cloudflared lifecycle
+        if: ${{ !cancelled() }}
+        timeout-minutes: 5
+        env:
+          PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
+        run: go test -count=1 -v ./internal/managedtools -run '^TestNativeCloudflaredLifecycle$'
+
+      - name: Exercise verified installer and failure paths
+        if: ${{ !cancelled() }}
+        run: bash scripts/test-install-pipeline.sh
+
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        if: ${{ !cancelled() }}
+        with:
+          node-version: 24.19.0
+
+      - name: Build current embedded application
+        if: ${{ !cancelled() }}
+        run: |
+          bun install --frozen-lockfile
+          bun run build:app
+
+      - name: Install locked browser test dependency
+        if: ${{ !cancelled() }}
+        run: npm ci --prefix scripts/browser-acceptance --ignore-scripts --no-audit --no-fund
+
+      - name: Install Chromium and Linux dependencies
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install --with-deps chromium
+
+      - name: Run native launcher browser acceptance
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/acceptance.mjs
+
+      - name: Test release verification trust and isolation boundaries
+        if: ${{ !cancelled() }}
+        run: python3 scripts/verify-published-release.test.py
+
+      - name: Test isolated Snap version handoff
+        if: ${{ !cancelled() }}
+        run: bash scripts/test-snap-version.sh
+
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        if: ${{ !cancelled() }}
+        with:
+          syft-version: v1.51.0
+
+      - name: Check stable GoReleaser configuration
+        if: ${{ !cancelled() }}
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: check --config .goreleaser.yml
+
+      - name: Check edge GoReleaser configuration
+        if: ${{ !cancelled() }}
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: check --config .goreleaser.edge.yml
+
+      - name: Prepare bundled aria2 source companion
+        if: ${{ !cancelled() }}
+        run: |
+          bun test scripts/package-aria2-sources.test.ts
+          bun scripts/package-aria2-sources.ts .local/aria2-sources
+          tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
+
+      - name: Build release snapshot
+        if: ${{ !cancelled() }}
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: release --snapshot --clean --config .goreleaser.yml
+
+      - name: Verify Windows lightweight release binaries
+        if: ${{ !cancelled() }}
+        run: go run ./scripts/releasecheck dist
+
+      - name: Verify archive, checksum, and SBOM contract
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_count=0
+          for archive in dist/protopeek_*.tar.gz; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(tar -tzf "$archive")"
+            grep -Eq '(^|/)protopeek$' <<<"$contents"
+            grep -Eq '(^|/)pp$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          for archive in dist/protopeek_*.zip; do
+            test -f "$archive" || continue
+            archive_count=$((archive_count + 1))
+            contents="$(unzip -Z1 "$archive")"
+            grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
+            grep -Eq '(^|/)pp\.exe$' <<<"$contents"
+            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/COPYING$' <<<"$contents"
+            grep -Eq '(^|/)aria2-notices/README.md$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/go-capnp-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
+            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
+            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
+            grep -Fq "$(basename "$archive")" dist/checksums.txt
+            test -f "$archive.sbom.json"
+          done
+          test "$archive_count" -eq 8
+          deb_count=0
+          for package in dist/*.deb; do
+            test -f "$package" || continue
+            deb_count=$((deb_count + 1))
+            contents="$(dpkg-deb --contents "$package")"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/quic-go-MIT\.txt$' <<<"$contents"
+            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/qpack-MIT\.txt$' <<<"$contents"
+            grep -Fq "$(basename "$package")" dist/checksums.txt
+          done
+          test "$deb_count" -eq 3
+          # GoReleaser hashes checksum.extra_files at their source paths; it
+          # does not stage them in dist. Keep the full checksum check strict.
+          for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
+            cp "$extra" "dist/$(basename "$extra")"
+          done
+          cp internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip dist/protopeek-aria2-1.37.0-win-64bit-build1.zip
+          test "$(wc -l < dist/checksums.txt)" -eq 23
+          (cd dist && sha256sum --check checksums.txt)
+          test -s .local/aria2-1.37.0-companion-sources.tar.gz
+          source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"
+          grep -Eq '(^|/)SOURCES.json$' <<<"$source_contents"
+
+      - name: Select optional native acceptance suites
+        id: native_scope
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+
+          agent_paths = (
+              '.github/workflows/ci.yml',
+              'scripts/native-agent-clients.py',
+              'web/src/console/agent-client-config.ts',
+              'web/src/console/AgentClientSetup.tsx',
+              'internal/agentlink/**', 'internal/cli/**', 'standalone/**',
+              'cmd/pp/**', 'go.mod', 'go.sum',
+          )
+          container_paths = (
+              '.github/workflows/ci.yml',
+              'scripts/native-container-acceptance.py',
+              'scripts/native-kind-acceptance.py',
+              'scripts/container_acceptance.py',
+              'scripts/test_container_acceptance.py',
+              'scripts/container-fixture/**', 'cmd/pp/**',
+              'internal/cli/cli.go', 'internal/extensions/**',
+              'standalone/standalone.go', 'standalone/http_request.go',
+              'standalone/admission.go',
+              'web/src/console/extension-manifest.json',
+              'web/src/console/extension-packs/extension-docker.ts',
+              'web/src/console/extension-packs/extension-podman.ts',
+              'web/src/console/extension-packs/extension-kubectl.ts',
+              'go.mod', 'go.sum',
+          )
+
+          def matches(path, patterns):
+              return any(path.startswith(pattern[:-2]) if pattern.endswith('/**') else path == pattern
+                         for pattern in patterns)
+
+          selected = {'agents': True, 'containers': True}
+          with open(os.environ['GITHUB_EVENT_PATH'], encoding='utf-8') as stream:
+              event = json.load(stream)
+          if os.environ['GITHUB_EVENT_NAME'] == 'pull_request':
+              base = event['pull_request']['base']['sha']
+          elif os.environ['GITHUB_EVENT_NAME'] == 'push':
+              base = event['before']
+          else:
+              base = ''
+          if re.fullmatch(r'[0-9a-f]{40}', base) and set(base) != {'0'}:
+              try:
+                  present = subprocess.run(['git', 'cat-file', '-e', base + '^{commit}'],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                  if present.returncode:
+                      subprocess.run(['git', 'fetch', '--no-tags', '--depth=1', 'origin', base],
+                                     check=True, stdout=subprocess.DEVNULL, timeout=90)
+                  output = subprocess.check_output(['git', 'diff', '--name-only', '-z',
+                                                    '--no-renames', base, 'HEAD'], timeout=30)
+                  changed = output.decode('utf-8').split('\0')
+                  selected = {'agents': any(matches(path, agent_paths) for path in changed),
+                              'containers': any(matches(path, container_paths) for path in changed)}
+              except (subprocess.SubprocessError, OSError, UnicodeError):
+                  print('Could not determine changed files; running both native suites.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as stream:
+              for suite, enabled in selected.items():
+                  print(f'{suite}={str(enabled).lower()}', file=stream)
+          print('Native acceptance selection:', selected)
+          PY
+      - name: "Packets and Nmap - Install native packet and scan tools"
+        if: ${{ !cancelled() }}
+        run: |
+          sudo apt-get update
+          sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends nmap tshark libcap2-bin
+          command -v nmap
+          test -f /usr/bin/dumpcap
+          ls -l /usr/bin/dumpcap
+          sudo chmod o+rx /usr/bin/dumpcap
+          sudo setcap cap_net_raw,cap_net_admin+ep /usr/bin/dumpcap
+          test -x /usr/bin/dumpcap
+          getcap /usr/bin/dumpcap
+          nmap --version
+          dumpcap --version
+          dumpcap -D >/dev/null
+      - name: "Packets and Nmap - Exercise owned loopback scan and capture through ProtoPeek"
+        if: ${{ !cancelled() }}
+        env:
+          PROTOPEEK_NATIVE_NETWORK_INTEGRATION: '1'
+          GOFLAGS: -mod=readonly
+        shell: bash
+        run: |
+          set -o pipefail
+          go test -count=1 -timeout 90s ./standalone -run '^TestNativeLinuxNmapAndCaptureLoopback$' -v | tee "$RUNNER_TEMP/native-network.log"
+          grep -Eq '^--- PASS: TestNativeLinuxNmapAndCaptureLoopback' "$RUNNER_TEMP/native-network.log"
+
+      - name: "Isolated peers - Build native launcher"
+        if: ${{ !cancelled() }}
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          go build -mod=readonly -tags protopeek_lite -o "$RUNNER_TEMP/protopeek-netns-pp" ./cmd/pp
+          sha256sum "$RUNNER_TEMP/protopeek-netns-pp"
+      - name: "Isolated peers - Exercise discovery and approved transfer between isolated peers"
+        if: ${{ !cancelled() }}
+        run: sudo --preserve-env=RUNNER_TEMP python3 scripts/native-network-namespaces.py "$RUNNER_TEMP/protopeek-netns-pp"
+      - name: "Tailscale and Headscale - Stage the pinned official Linux client and daemon"
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: '0'
+          VERSION: 1.104.5
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/isolated-tailnet"
+          mkdir -p "$stage/bin"
+          # https://pkgs.tailscale.com/stable/tailscale_1.104.5_amd64.tgz.sha256
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            "https://pkgs.tailscale.com/stable/tailscale_${VERSION}_amd64.tgz" -o "$RUNNER_TEMP/tailscale.tgz"
+          echo "720cbbccbfc03d8b55df72afc19e5a72e31b0f65934700aa6fa38074d4ad7bf7  $RUNNER_TEMP/tailscale.tgz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/tailscale.tgz" --strip-components=1 -C "$stage/bin" \
+            "tailscale_${VERSION}_amd64/tailscale" "tailscale_${VERSION}_amd64/tailscaled"
+          go test -c -o "$stage/bin/acceptance" ./standalone
+          printf 'FROM scratch\nCOPY bin/ /bin/\n' | docker build --network=none -t protopeek-private-network -f - "$stage"
+      - name: "Tailscale and Headscale - Inspect the private daemon through ProtoPeek with all external networking disabled"
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run/tailscale:rw,nosuid,nodev,mode=0700 \
+            --pids-limit=128 --memory=384m \
+            -e PATH=/bin -e HOME=/tmp -e PROTOPEEK_ISOLATED_TAILNET=1 \
+            protopeek-private-network /bin/acceptance -test.v -test.timeout=75s -test.run='^TestIsolatedTailscaleLifecycle$' \
+            | tee "$RUNNER_TEMP/isolated-tailnet.log"
+          grep -Eq '^--- PASS: TestIsolatedTailscaleLifecycle' "$RUNNER_TEMP/isolated-tailnet.log"
+      - name: "Tailscale and Headscale - Register two userspace peers with private Headscale"
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra="$RUNNER_TEMP/isolated-headscale"
+          mkdir -p "$extra"
+          # SHA-256 from the official https://github.com/juanfont/headscale/releases/tag/v0.29.7 asset.
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            'https://github.com/juanfont/headscale/releases/download/v0.29.7/headscale_0.29.7_linux_amd64' -o "$extra/headscale"
+          echo "e827fc9b12d958bc95b081c4401dd63f8e0471d025b45b508535a920532150a8  $extra/headscale" | sha256sum --check --strict
+          chmod 0755 "$extra/headscale"
+          printf 'FROM protopeek-private-network\nCOPY headscale /bin/headscale\n' | docker build --network=none -t protopeek-private-peers -f - "$extra"
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run/tailscale:rw,nosuid,nodev,mode=0700 \
+            --pids-limit=160 --memory=768m \
+            -e PATH=/bin -e HOME=/tmp -e PROTOPEEK_ISOLATED_HEADSCALE=1 \
+            protopeek-private-peers /bin/acceptance -test.v -test.timeout=90s -test.run='^TestIsolatedHeadscalePeers$' \
+            | tee "$RUNNER_TEMP/isolated-headscale.log"
+          grep -Eq '^--- PASS: TestIsolatedHeadscalePeers' "$RUNNER_TEMP/isolated-headscale.log"
+      - name: "NetBird - Stage the pinned official Linux client"
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: '0'
+          VERSION: 0.82.0
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/isolated-netbird"
+          mkdir -p "$stage/bin"
+          # SHA-256 is from the official GitHub release asset metadata.
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            "https://github.com/netbirdio/netbird/releases/download/v${VERSION}/netbird_${VERSION}_linux_amd64.tar.gz" -o "$RUNNER_TEMP/netbird.tgz"
+          echo "b569f65de303d21317bc716f3116002e2cf175ae22a9f6d2bed91200a2f5000b  $RUNNER_TEMP/netbird.tgz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/netbird.tgz" -C "$stage/bin" netbird
+          go test -c -o "$stage/bin/acceptance" ./standalone
+          printf 'FROM scratch\nCOPY bin/ /bin/\n' | docker build --network=none -t protopeek-isolated-netbird -f - "$stage"
+      - name: "NetBird - Inspect the genuine signed-out daemon without network access"
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network=none --cap-drop=ALL --read-only --security-opt=no-new-privileges --user 65532:65532 \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /var/run:rw,nosuid,nodev,mode=1777 \
+            --tmpfs /var/lib/netbird:rw,nosuid,nodev,mode=0700,uid=65532,gid=65532 \
+            --pids-limit=128 --memory=384m \
+            -e PATH=/bin -e HOME=/tmp -e USER=netbird -e PROTOPEEK_ISOLATED_NETBIRD=1 \
+            protopeek-isolated-netbird /bin/acceptance -test.v -test.timeout=75s -test.run='^TestIsolatedNetBirdLifecycle$' \
+            | tee "$RUNNER_TEMP/isolated-netbird.log"
+          grep -Eq '^--- PASS: TestIsolatedNetBirdLifecycle' "$RUNNER_TEMP/isolated-netbird.log"
+      - name: "Orca - Install isolated test tools"
+        if: ${{ !cancelled() }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends orca speech-dispatcher speech-dispatcher-espeak-ng at-spi2-core dbus-x11 xvfb xauth openbox pulseaudio gsettings-desktop-schemas
+          dpkg-query -W orca speech-dispatcher at-spi2-core
+          if [ ! -f scripts/browser-acceptance/node_modules/playwright/cli.js ]; then
+            npm ci --prefix scripts/browser-acceptance --ignore-scripts --no-audit --no-fund
+          fi
+          node scripts/browser-acceptance/node_modules/playwright/cli.js install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+      - name: "Orca - Build native launcher with committed embedded assets"
+        if: ${{ !cancelled() }}
+        run: go build -mod=readonly -tags protopeek_lite -o "$RUNNER_TEMP/protopeek-orca" ./cmd/pp
+      - name: "Orca - Verify Orca dispatch attempts during keyboard navigation"
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+          PROTOPEEK_ORCA_BINARY: ${{ runner.temp }}/protopeek-orca
+          PROTOPEEK_ORCA_LOG: ${{ runner.temp }}/orca-debug.log
+          PROTOPEEK_ORCA_REPORT: ${{ runner.temp }}/orca-acceptance.txt
+          NO_AT_BRIDGE: '0'
+          GTK_A11Y: 'always'
+          LANG: C.UTF-8
+        run: timeout 180s dbus-run-session -- xvfb-run -a -s '-screen 0 1280x720x24' bash scripts/browser-acceptance/orca-session.sh
+      - name: "Orca - Preserve bounded diagnostic report"
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: orca-acceptance-diagnostics
+          path: ${{ runner.temp }}/orca-acceptance.txt
+          if-no-files-found: warn
+          retention-days: 7
+      - name: "Agent clients - Build the actual native launcher"
+        if: ${{ !cancelled() && steps.native_scope.outputs.agents != 'false' }}
+        run: |
+          go build -mod=readonly -tags protopeek_lite -o "$RUNNER_TEMP/pp-agent-clients" ./cmd/pp
+          sha256sum "$RUNNER_TEMP/pp-agent-clients"
+      - name: "Agent clients - Download and verify pinned official client releases"
+        if: ${{ !cancelled() && steps.native_scope.outputs.agents != 'false' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          assets="$RUNNER_TEMP/agent-client-assets"
+          mkdir -p "$assets/opencode" "$assets/claude" "$assets/gemini"
+          fetch() {
+            local repo="$1" tag="$2" name="$3" expected="$4" destination="$5"
+            local metadata
+            metadata="$(gh api "repos/$repo/releases/tags/$tag" --jq ".assets[] | select(.name == \"$name\") | .digest")"
+            test "$metadata" = "sha256:$expected"
+            gh release download "$tag" --repo "$repo" --pattern "$name" --dir "$assets"
+            printf '%s  %s\n' "$expected" "$assets/$name" | sha256sum --check --status
+            case "$name" in
+              *.tar.gz) tar -xzf "$assets/$name" -C "$destination" ;;
+              *.zip) unzip -q "$assets/$name" -d "$destination" ;;
+            esac
+            rm "$assets/$name"
+          }
+          fetch anomalyco/opencode v1.19.5 opencode-linux-x64.tar.gz 588310a336fa3b9df36b3f0225b26f679d453efaad0cf3d66c3651ef3ec1647a "$assets/opencode"
+          fetch anthropics/claude-code v2.1.318 claude-linux-x64.tar.gz e6d426ca0c123f61fad58a361da0329f2a93cd206bc87040ed8d9576dd9eb583 "$assets/claude"
+          fetch google-gemini/gemini-cli v0.67.0 gemini-cli-bundle.zip 53371261bc56ebd5b3d1d6c400e07854e8d674f4e06365bae38443c1dc1312d3 "$assets/gemini"
+          test -f "$assets/opencode/opencode"
+          test -f "$assets/claude/claude"
+          test -f "$assets/gemini/gemini.js"
+          chmod u+x "$assets/opencode/opencode" "$assets/claude/claude"
+      - name: "Agent clients - Verify local client connections without external network"
+        if: ${{ !cancelled() && steps.native_scope.outputs.agents != 'false' }}
+        run: |
+          sudo unshare --net -- bash -c 'set -e; ip link set lo up; exec runuser -u "$1" -- python3 "$2" "$3" "$4" "$5" "$6" "$7"' _ \
+            "$(id -un)" "$GITHUB_WORKSPACE/scripts/native-agent-clients.py" "$GITHUB_WORKSPACE" \
+            "$RUNNER_TEMP/pp-agent-clients" "$RUNNER_TEMP/agent-client-assets" "$(command -v node)" "$RUNNER_TEMP"
+      - name: "Containers and Kubernetes - Install native CLI dependencies"
+        if: ${{ !cancelled() && steps.native_scope.outputs.containers != 'false' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v podman >/dev/null; then
+            sudo apt-get update
+            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends podman
+          fi
+          docker --version
+          podman --version
+          mkdir -p "$RUNNER_TEMP/protopeek-cluster-bin"
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64 -o "$RUNNER_TEMP/protopeek-cluster-bin/kind"
+          echo "aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  $RUNNER_TEMP/protopeek-cluster-bin/kind" | sha256sum --check --strict
+          curl --fail --show-error --silent --location --retry 3 --max-time 90 \
+            https://dl.k8s.io/release/v1.37.0/bin/linux/amd64/kubectl -o "$RUNNER_TEMP/protopeek-cluster-bin/kubectl"
+          echo "6129359f4e1f3848a5572ccb0b26cf28b8ca08cef38c95a765b2f64a2c961a2f  $RUNNER_TEMP/protopeek-cluster-bin/kubectl" | sha256sum --check --strict
+          chmod 0755 "$RUNNER_TEMP/protopeek-cluster-bin/kind" "$RUNNER_TEMP/protopeek-cluster-bin/kubectl"
+          echo "$RUNNER_TEMP/protopeek-cluster-bin" >> "$GITHUB_PATH"
+      - name: "Containers and Kubernetes - Build the native launcher"
+        if: ${{ !cancelled() && steps.native_scope.outputs.containers != 'false' }}
+        env:
+          CGO_ENABLED: '0'
+        run: go build -mod=readonly -tags protopeek_lite -o "$RUNNER_TEMP/protopeek-container-pp" ./cmd/pp
+      - name: "Containers and Kubernetes - Verify fixture ownership and cleanup guards"
+        if: ${{ !cancelled() && steps.native_scope.outputs.containers != 'false' }}
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -m unittest discover -s scripts -p 'test_container_acceptance.py'
+      - name: "Containers and Kubernetes - Inspect real Docker and Podman loopback mappings"
+        if: ${{ !cancelled() && steps.native_scope.outputs.containers != 'false' }}
+        run: python3 scripts/native-container-acceptance.py "$RUNNER_TEMP/protopeek-container-pp" --sudo-podman
+      - name: "Containers and Kubernetes - Inspect a genuine kubectl service port-forward"
+        if: ${{ !cancelled() && steps.native_scope.outputs.containers != 'false' }}
+        run: python3 scripts/native-kind-acceptance.py "$RUNNER_TEMP/protopeek-container-pp"
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: ${{ !cancelled() }}
+        with:
+          go-version-file: go.mod
+
+      - name: Go test
+        if: ${{ !cancelled() }}
+        run: go test ./...
+
       - name: Native macOS network evidence
-        if: runner.os == 'macOS'
+        if: ${{ !cancelled() }}
         env:
           CGO_ENABLED: '0'
         shell: bash
@@ -224,66 +598,141 @@ jobs:
           PY
           exit "$status"
 
-      - name: Local transfer and media concurrency checks
-        if: runner.os == 'Linux'
-        run: go test -race ./internal/localshare ./internal/media -count=1
-
       - name: Compile both commands
+        if: ${{ !cancelled() }}
         run: go build ./cmd/protopeek ./cmd/pp
 
       - name: Native isolated agent and MCP smoke
+        if: ${{ !cancelled() }}
         run: go run ./scripts/agent-smoke
 
       - name: Native managed cloudflared lifecycle
+        if: ${{ !cancelled() }}
         timeout-minutes: 5
         env:
           PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
         run: go test -count=1 -v ./internal/managedtools -run '^TestNativeCloudflaredLifecycle$'
 
       - name: Verify installer and failure paths on Apple Silicon
-        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           test "$(uname -m)" = arm64
           sw_vers
           bash scripts/test-install-pipeline.sh
 
-  managed-macos-intel:
-    runs-on: macos-15-intel
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: ${{ !cancelled() }}
         with:
           go-version-file: go.mod
-      - name: Native Intel macOS managed cloudflared lifecycle
+
+      - name: Go test
+        if: ${{ !cancelled() }}
+        run: go test ./...
+
+      - name: Verify Windows lightweight companion
+        if: ${{ !cancelled() }}
+        run: go test -tags protopeek_lite ./internal/bundledaria2 ./internal/extensions ./internal/transfer ./internal/cli ./standalone
+
+      - name: Build lightweight Windows preview
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $preview = Join-Path $env:RUNNER_TEMP 'protopeek-lite-preview'
+          ./scripts/build-lite-windows.ps1 -OutputDirectory $preview -CoreOnly
+          if ($LASTEXITCODE -ne 0) { throw 'Lightweight preview build failed.' }
+          $env:PROTOPEEK_STAGED_CORE = $preview
+          go test -tags protopeek_lite ./scripts/releasecheck -run '^TestStagedCoreDownloadsWithManagedAria2$' -count=1 -v
+          if ($LASTEXITCODE -ne 0) { throw 'Staged CoreOnly companion lifecycle failed.' }
+
+      - name: Archive the Windows companion-store preview
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: protopeek-lite-windows-amd64
+          path: ${{ runner.temp }}/protopeek-lite-preview/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compile both commands
+        if: ${{ !cancelled() }}
+        run: go build ./cmd/protopeek ./cmd/pp
+
+      - name: Native isolated agent and MCP smoke
+        if: ${{ !cancelled() }}
+        run: go run ./scripts/agent-smoke
+
+      - name: Native managed cloudflared lifecycle
+        if: ${{ !cancelled() }}
         timeout-minutes: 5
         env:
           PROTOPEEK_CLOUDFLARED_INTEGRATION: '1'
         run: go test -count=1 -v ./internal/managedtools -run '^TestNativeCloudflaredLifecycle$'
 
-  installer-unix:
-    name: installer-unix (ubuntu-latest)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        if: ${{ !cancelled() }}
         with:
-          go-version-file: go.mod
+          node-version: 24.19.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        if: ${{ !cancelled() }}
+        with:
+          bun-version: 1.3.10
+
+      - name: Build current embedded application
+        if: ${{ !cancelled() }}
+        run: |
+          bun install --frozen-lockfile
+          bun run build:app
+
+      - name: Install locked browser test dependency
+        if: ${{ !cancelled() }}
+        run: npm ci --prefix scripts/browser-acceptance --ignore-scripts --no-audit --no-fund
+
+      - name: Install Chromium on Windows
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/node_modules/playwright/cli.js install chromium
+
+      - name: Run native launcher browser acceptance
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/protopeek-playwright
+        run: node scripts/browser-acceptance/acceptance.mjs
+
+      - name: Install web dependencies
+        if: ${{ !cancelled() }}
+        run: bun install --frozen-lockfile
+
+      - name: Build site and embedded app on Windows
+        if: ${{ !cancelled() }}
+        run: |
+          bun run build:app
+          bun run build:site
+
+      - name: Verify cross-platform generated assets
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $generatedChanges = git status --porcelain -- docs internal/resources/app/dist
+          if ($generatedChanges) {
+            $generatedChanges | Write-Error
+            throw 'Windows generated assets differ from the committed build.'
+          }
 
       - name: Exercise verified installer and failure paths
-        run: bash scripts/test-install-pipeline.sh
-
-  installer-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - name: Exercise verified installer and failure paths
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -372,116 +821,16 @@ jobs:
             if ($_.Exception.Message -eq 'Archive without checksums unexpectedly installed.') { throw }
           }
 
-  release-contract:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-
-      - name: Test release verification trust and isolation boundaries
-        run: python3 scripts/verify-published-release.test.py
-
-      - name: Test isolated Snap version handoff
-        run: bash scripts/test-snap-version.sh
-
-      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          syft-version: v1.51.0
-
-      - name: Check stable GoReleaser configuration
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          distribution: goreleaser
-          version: v2.17.1
-          args: check --config .goreleaser.yml
-
-      - name: Check edge GoReleaser configuration
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          distribution: goreleaser
-          version: v2.17.1
-          args: check --config .goreleaser.edge.yml
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.10
-
-      - name: Prepare bundled aria2 source companion
+      - name: "Store package - Validate current lightweight and historical embedded MSIX packages"
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          GOFLAGS: -mod=readonly
+          CGO_ENABLED: '0'
         run: |
-          bun test scripts/package-aria2-sources.test.ts
-          bun scripts/package-aria2-sources.ts .local/aria2-sources
-          tar -czf .local/aria2-1.37.0-companion-sources.tar.gz -C .local aria2-sources
-
-      - name: Build release snapshot
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          distribution: goreleaser
-          version: v2.17.1
-          args: release --snapshot --clean --config .goreleaser.yml
-
-      - name: Verify Windows lightweight release binaries
-        run: go run ./scripts/releasecheck dist
-
-      - name: Verify archive, checksum, and SBOM contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive_count=0
-          for archive in dist/protopeek_*.tar.gz; do
-            test -f "$archive" || continue
-            archive_count=$((archive_count + 1))
-            contents="$(tar -tzf "$archive")"
-            grep -Eq '(^|/)protopeek$' <<<"$contents"
-            grep -Eq '(^|/)pp$' <<<"$contents"
-            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
-            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
-            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
-            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
-            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
-            grep -Fq "$(basename "$archive")" dist/checksums.txt
-            test -f "$archive.sbom.json"
-          done
-          for archive in dist/protopeek_*.zip; do
-            test -f "$archive" || continue
-            archive_count=$((archive_count + 1))
-            contents="$(unzip -Z1 "$archive")"
-            grep -Eq '(^|/)protopeek\.exe$' <<<"$contents"
-            grep -Eq '(^|/)pp\.exe$' <<<"$contents"
-            grep -Eq '(^|/)THIRD_PARTY_NOTICES\.md$' <<<"$contents"
-            grep -Eq '(^|/)aria2-notices/COPYING$' <<<"$contents"
-            grep -Eq '(^|/)aria2-notices/README.md$' <<<"$contents"
-            grep -Eq '(^|/)third_party/licenses/go-capnp-MIT.txt$' <<<"$contents"
-            grep -Eq '(^|/)third_party/licenses/quic-go-MIT.txt$' <<<"$contents"
-            grep -Eq '(^|/)third_party/licenses/qpack-MIT.txt$' <<<"$contents"
-            grep -Eq '(^|/)man/protopeek\.1$' <<<"$contents"
-            grep -Eq '(^|/)man/pp\.1$' <<<"$contents"
-            grep -Fq "$(basename "$archive")" dist/checksums.txt
-            test -f "$archive.sbom.json"
-          done
-          test "$archive_count" -eq 8
-          deb_count=0
-          for package in dist/*.deb; do
-            test -f "$package" || continue
-            deb_count=$((deb_count + 1))
-            contents="$(dpkg-deb --contents "$package")"
-            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/quic-go-MIT\.txt$' <<<"$contents"
-            grep -Eq '[[:space:]](\./|/)?usr/share/doc/protopeek/licenses/qpack-MIT\.txt$' <<<"$contents"
-            grep -Fq "$(basename "$package")" dist/checksums.txt
-          done
-          test "$deb_count" -eq 3
-          # GoReleaser hashes checksum.extra_files at their source paths; it
-          # does not stage them in dist. Keep the full checksum check strict.
-          for extra in install.sh install.ps1 .local/aria2-1.37.0-companion-sources.tar.gz; do
-            cp "$extra" "dist/$(basename "$extra")"
-          done
-          cp internal/bundledaria2/assets/aria2-1.37.0-win-64bit-build1.zip dist/protopeek-aria2-1.37.0-win-64bit-build1.zip
-          test "$(wc -l < dist/checksums.txt)" -eq 23
-          (cd dist && sha256sum --check checksums.txt)
-          test -s .local/aria2-1.37.0-companion-sources.tar.gz
-          source_contents="$(tar -tzf .local/aria2-1.37.0-companion-sources.tar.gz)"
-          grep -Eq '(^|/)SOURCES.json$' <<<"$source_contents"
+          $legacy = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP 'embedded-release')
+          $base = 'https://github.com/shreyam1008/ProtoPeek/releases/download/v0.7.0'
+          foreach ($name in 'protopeek_0.7.0_windows_x86_64.zip','checksums.txt') {
+            Invoke-WebRequest -Uri "$base/$name" -OutFile (Join-Path $legacy $name)
+          }
+          ./packaging/windows/store/test-store.ps1 -WorkDirectory (Join-Path $env:RUNNER_TEMP 'store-contract') -LegacyDirectory $legacy

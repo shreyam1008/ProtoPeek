@@ -46,7 +46,7 @@ For Claude Code, run `claude` in the project, trust the folder if you recognize 
 the `protopeek` server when prompted. If `claude mcp get protopeek` reports **Pending approval**,
 complete that review before reconnecting. If Gemini CLI folder trust is enabled, trust the project,
 then run `gemini mcp list`. In OpenCode, run `opencode mcp list`. Look for `protopeek` and its
-connection status. The [native client check](https://github.com/shreyam1008/ProtoPeek/actions/workflows/native-agent-clients.yml)
+connection status. The [native client check](https://github.com/shreyam1008/ProtoPeek/actions/workflows/ci.yml)
 exercises these three clients with a local, read-only pairing.
 
 The surrounding configuration format and reload step belong to your MCP client. This is a

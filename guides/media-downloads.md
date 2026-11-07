@@ -54,8 +54,8 @@ Video setup includes missing managed FFmpeg and a JavaScript runtime when a loca
 Node installation is not available. The UI displays their combined download size.
 The executable bundle is larger on disk after unpacking. No automatic update or
 idle network check runs. `internal/media/tools.json` is the authoritative pinned
-asset manifest. Linux ARM64 yt-dlp and Deno, plus both macOS architectures, are
-also included. Other configurations show actual capability and installation help.
+asset manifest. yt-dlp is also available on Windows ARM64 and 32-bit Windows.
+Linux ARM64 yt-dlp and Deno, plus both macOS architectures, are also included. Other configurations show actual capability and installation help.
 
 The Windows FFmpeg package is Gyan's versioned essentials build, linked from
 [FFmpeg's download page](https://ffmpeg.org/download.html). Its archive license and
