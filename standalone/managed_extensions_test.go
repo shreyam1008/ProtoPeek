@@ -4,8 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/shreyam1008/ProtoPeek/internal/communitytools"
+	"github.com/shreyam1008/ProtoPeek/internal/transfer"
 )
 
 func TestManagedExtensionInventoryReadAndGuards(t *testing.T) {
@@ -21,6 +26,7 @@ func TestManagedExtensionInventoryReadAndGuards(t *testing.T) {
 		{"?id=gallery-dl", "127.0.0.1:1234", "", 200},
 		{"?id=deno", "127.0.0.1:1234", "", 200},
 		{"?id=ffmpeg", "127.0.0.1:1234", "", 200},
+		{"?id=grpcurl", "127.0.0.1:1234", "", 200},
 		{"?id=cloudflared&id=aria2", "127.0.0.1:1234", "", 400},
 		{"?id=cloudflared&", "127.0.0.1:1234", "", 400},
 		{"?id=unknown", "127.0.0.1:1234", "", 400},
@@ -45,6 +51,49 @@ func TestManagedExtensionInventoryReadAndGuards(t *testing.T) {
 	mux.ServeHTTP(response, req)
 	if response.Code < 400 {
 		t.Fatalf("unauthenticated install accepted: %d", response.Code)
+	}
+}
+
+func TestManagedCommunityBusyAdvice(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", root)
+	t.Setenv("LOCALAPPDATA", root)
+	t.Setenv("XDG_CACHE_HOME", root)
+	manager, err := communitytools.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tool, err := manager.Status("grpcurl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tool.Status == "unavailable" {
+		t.Skip("grpcurl is unavailable on this host")
+	}
+	cache, err := os.UserCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(cache, "protopeek", "community-tools", "grpcurl")
+	if err := os.MkdirAll(filepath.Join(dir, tool.Version), 0700); err != nil {
+		t.Fatal(err)
+	}
+	lease, err := (transfer.FileLocker{}).TryLock(filepath.Join(dir, "operation.lock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lease.Release()
+	handler := Handler(nil, "", nil, nil)
+	cookie := handlerCSRFCookie(t, handler)
+	req := httptest.NewRequest(http.MethodPost, "/api/extensions/managed/remove", strings.NewReader(`{"id":"grpcurl"}`))
+	req.RemoteAddr = "127.0.0.1:1234"
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookie)
+	req.Header.Set(csrfHeaderName, cookie.Value)
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "running companion") || strings.Contains(response.Body.String(), "Quick Tunnel") {
+		t.Fatalf("status %d: %s", response.Code, response.Body.String())
 	}
 }
 

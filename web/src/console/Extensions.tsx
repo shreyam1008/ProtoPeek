@@ -1,6 +1,8 @@
 import { Link, useSearch } from '@tanstack/react-router';
 import { ArrowRight, Puzzle, Search } from 'lucide-react';
 import { lazy, Suspense, useState } from 'react';
+import { CommunityExtensionDetail } from './CommunityExtension';
+import { communityCatalog, communityExtension } from './community-catalog';
 import {
   capabilityLabels,
   type ExtensionId,
@@ -54,6 +56,7 @@ export function Extensions() {
     });
   }
   const selected = extensionCatalog.find((entry) => entry.id === extension);
+  const selectedCommunity = extension ? communityExtension(extension) : undefined;
   if (extension)
     return (
       <div className="pp-extensions">
@@ -77,6 +80,13 @@ export function Extensions() {
               }}
             />
           </Suspense>
+        ) : selectedCommunity ? (
+          <CommunityExtensionDetail
+            key={selectedCommunity.id}
+            entry={selectedCommunity}
+            pinned={preferences.pinned.includes(selectedCommunity.id)}
+            onPin={() => pin(selectedCommunity.id)}
+          />
         ) : (
           <section className="pp-panel">
             <h1>Extension not found.</h1>
@@ -85,7 +95,8 @@ export function Extensions() {
         )}
       </div>
     );
-  const managed = (id: string) => id === 'cloudflared' || id === 'aria2';
+  const managed = (id: string) =>
+    id === 'cloudflared' || id === 'aria2' || !!communityExtension(id);
   const tokens = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const media = ['All', 'Managed', 'Media'].includes(group)
     ? matchingMediaPacks(query).filter(
@@ -107,6 +118,24 @@ export function Extensions() {
       (a, b) =>
         Number(preferences.pinned.includes(b.id)) - Number(preferences.pinned.includes(a.id))
     );
+  const community = communityCatalog
+    .filter((entry) => ['All', 'Managed'].includes(group) || entry.group === group)
+    .filter((entry) => !extensionCatalog.some((existing) => existing.id === entry.id))
+    .filter((entry) => !pinnedOnly || preferences.pinned.includes(entry.id))
+    .filter((entry) =>
+      tokens.every((token) =>
+        `${entry.id} ${entry.name} ${entry.description} ${entry.group}`
+          .toLowerCase()
+          .includes(token)
+      )
+    )
+    .sort(
+      (a, b) =>
+        Number(preferences.pinned.includes(b.id)) - Number(preferences.pinned.includes(a.id))
+    );
+  const uniqueCommunityCount = communityCatalog.filter(
+    (entry) => !extensionCatalog.some((existing) => existing.id === entry.id)
+  ).length;
   return (
     <div className="pp-extensions pp-extension-library">
       <PageHeader>
@@ -127,19 +156,29 @@ export function Extensions() {
         </div>
       </details>
       <div className="pp-extension-controls">
-        <label className="pp-extension-search">
+        <label className="pp-ext-search">
           <Search aria-hidden="true" />
           <input
             type="search"
             aria-label="Search extensions"
             value={query}
             maxLength={128}
-            placeholder="Search tools, tasks or agents"
+            placeholder="Search tools"
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
         <div className="pp-extension-filter-row">
-          <fieldset className="pp-extension-filters" aria-label="Extension categories">
+          <label className="pp-ext-pinned-filter pp-mobile-category">
+            Category
+            <select value={group} onChange={(event) => setGroup(event.target.value)}>
+              {groups.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="pp-ext-filters" aria-label="Extension categories">
             {groups.map((name) => (
               <button
                 type="button"
@@ -151,7 +190,7 @@ export function Extensions() {
               </button>
             ))}
           </fieldset>
-          <label className="pp-extension-pinned-filter">
+          <label className="pp-ext-pinned-filter">
             <input
               type="checkbox"
               checked={pinnedOnly}
@@ -163,7 +202,8 @@ export function Extensions() {
       </div>
       {preferenceError ? <p role="alert">{preferenceError}</p> : null}
       <p role="status">
-        {visible.length + media.length} of {extensionCatalog.length + mediaPacks.length} tools
+        {visible.length + media.length + community.length} of{' '}
+        {extensionCatalog.length + mediaPacks.length + uniqueCommunityCount} tools
       </p>
       <section className="pp-extension-grid" aria-label="Extension library">
         {visible.map((entry) => {
@@ -225,9 +265,36 @@ export function Extensions() {
             </article>
           );
         })}
+        {community.map((entry) => (
+          <article
+            key={entry.id}
+            className="pp-panel pp-extension-card"
+            aria-labelledby={`extension-${entry.id}`}
+          >
+            <div className="pp-extension-card-heading">
+              <Puzzle aria-hidden="true" />
+              <div>
+                <h2 id={`extension-${entry.id}`}>{entry.name}</h2>
+                <span>{entry.group}</span>
+              </div>
+              <PinExtension
+                name={entry.name}
+                pinned={preferences.pinned.includes(entry.id)}
+                onPin={() => pin(entry.id)}
+              />
+            </div>
+            <span className="pp-extension-level">Managed CLI companion</span>
+            <p>{entry.description}</p>
+            <div className="pp-extension-actions">
+              <Link to="/extensions" search={{ extension: entry.id }} preload={false}>
+                Open setup <ArrowRight aria-hidden="true" />
+              </Link>
+            </div>
+          </article>
+        ))}
         <MediaPacks packs={media} pinned={preferences.pinned} onPin={pin} />
       </section>
-      {!visible.length && !media.length ? (
+      {!visible.length && !media.length && !community.length ? (
         <div className="pp-panel">
           <h2>No matching extensions.</h2>
           <p>Try another name, task or category.</p>

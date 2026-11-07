@@ -28,7 +28,7 @@ func (service *Service) observeCompletedHistory(runtime *Runtime) {
 	for {
 		select {
 		case <-runtime.Done:
-			service.finishRuntime(runtime, false)
+			service.finishObservedRuntime(runtime)
 			return
 		case <-runtime.observationWake:
 			if tick == nil {

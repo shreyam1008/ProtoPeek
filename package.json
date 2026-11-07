@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "bun run build:app && bun run build:site && bun run check:bundle-budget",
-    "build:app": "vite build --config web/vite.console.config.ts",
+    "build:app": "bun scripts/generate-community-catalog.mjs && vite build --config web/vite.console.config.ts",
     "build:site": "vite build --config web/vite.site.config.ts && bun scripts/prerender-site.tsx && bun scripts/generate-site-docs.mjs && bun scripts/prepare-pages-assets.mjs",
     "check:bundle-budget": "bun scripts/bundle-budget.ts",
     "dev": "vite --config web/vite.console.config.ts",

@@ -25,6 +25,7 @@ import { ProtocolInfo } from './ProtocolInfo';
 import {
   addTransferBatch,
   fetchTransferSnapshot,
+  forgetPreservedPartial,
   mutateTransferJob,
   mutateTransferQueue,
   startTransferEngine,
@@ -66,6 +67,9 @@ export function FileDownloader() {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
+  const [queuedNotice, setQueuedNotice] = useState('');
+  const [preservedCopyStatus, setPreservedCopyStatus] = useState('');
+  const [forgetPreservedPath, setForgetPreservedPath] = useState('');
   const [liveProgress, setLiveProgress] = useState(true);
   const mountedRef = useRef(true);
   const snapshotRevision = useRef(0);
@@ -168,6 +172,7 @@ export function FileDownloader() {
     setBusy('add');
     setError('');
     setWarning('');
+    setQueuedNotice('');
     let receiptQueued: number | undefined;
     try {
       if (!snapshot?.health.ready) await startTransferEngine();
@@ -184,6 +189,9 @@ export function FileDownloader() {
       );
       receiptQueued = result.queuedCount;
       if (result.queuedCount > 0) {
+        setQueuedNotice(
+          `Queued ${result.queuedCount} ${result.queuedCount === 1 ? 'download' : 'downloads'}.`
+        );
         const failedSources = result.results
           .filter((item) => !item.queued)
           .map((item) => batchSources[item.index])
@@ -252,7 +260,25 @@ export function FileDownloader() {
       await startTransferEngine();
       await refresh();
     } catch (cause) {
+      await refresh();
       setError(cause instanceof Error ? cause.message : 'The saved queue could not be restored.');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function forgetPreservedRecord(path: string) {
+    if (busy) return;
+    setBusy('forget-preserved');
+    setError('');
+    try {
+      await forgetPreservedPartial(path);
+      await refresh();
+      setForgetPreservedPath('');
+      setWarning('Record forgotten. The file remains on disk.');
+    } catch (cause) {
+      await refresh();
+      setError(cause instanceof Error ? cause.message : 'The record could not be forgotten.');
     } finally {
       setBusy('');
     }
@@ -313,6 +339,68 @@ export function FileDownloader() {
         </small>
       </div>
 
+      {snapshot?.preservedPartials.length ? (
+        <details className="pp-panel pp-preserved-partials">
+          <summary>Preserved partial files ({snapshot.preservedPartials.length})</summary>
+          <p>
+            Retry kept these files in your download folders. They may be hidden by your operating
+            system. Reconnect the original volume if a file is unavailable. Remove only files you no
+            longer need, then refresh; ProtoPeek does not delete them. Up to 64 files can be
+            preserved this way.
+          </p>
+          <ul>
+            {snapshot.preservedPartials.map((partial, index) => (
+              <li key={partial.path}>
+                <code>{partial.path}</code> · {formatBytes(partial.sizeBytes)}
+                <button
+                  type="button"
+                  aria-label={`Copy preserved file ${index + 1} path`}
+                  onClick={() =>
+                    void copyText(partial.path).then((copied) =>
+                      setPreservedCopyStatus(
+                        copied ? 'Path copied.' : 'Clipboard unavailable; select the path.'
+                      )
+                    )
+                  }
+                >
+                  Copy path
+                </button>
+                {forgetPreservedPath === partial.path ? (
+                  <fieldset>
+                    <legend>Forget this record?</legend>
+                    <p>The file stays on disk and may still occupy storage.</p>
+                    <button
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() => void forgetPreservedRecord(partial.path)}
+                    >
+                      Forget record only
+                    </button>
+                    <button
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() => setForgetPreservedPath('')}
+                    >
+                      Cancel
+                    </button>
+                  </fieldset>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={Boolean(busy)}
+                    aria-label={`Forget preserved file ${index + 1} record`}
+                    onClick={() => setForgetPreservedPath(partial.path)}
+                  >
+                    Forget record
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+          {preservedCopyStatus ? <small role="status">{preservedCopyStatus}</small> : null}
+        </details>
+      ) : null}
+
       <form className="pp-download-composer" onSubmit={submit}>
         <label htmlFor="download-source">URLs · one independent job per line</label>
         <textarea
@@ -325,7 +413,10 @@ export function FileDownloader() {
           aria-describedby="download-batch-hint"
           placeholder={'https://example.com/artifact.tar.gz\nhttps://example.com/checksums.txt'}
           value={source}
-          onChange={(event) => setSource(event.target.value)}
+          onChange={(event) => {
+            setSource(event.target.value);
+            setQueuedNotice('');
+          }}
         />
         <button
           type="submit"
@@ -344,6 +435,7 @@ export function FileDownloader() {
               ? `Start Downloader + ${batchCount} jobs`
               : 'Start Downloader'}
         </button>
+        {queuedNotice ? <span role="status">{queuedNotice}</span> : null}
         <span id="download-batch-hint" className="pp-batch-hint">
           <strong>{batchCount}</strong>/{maxBatchJobs} jobs · each line is queued separately, never
           treated as a mirror.
@@ -610,6 +702,7 @@ export function FileDownloader() {
                 job={job}
                 selected={job.id === selectedID}
                 busy={busy.endsWith(`:${job.id}`)}
+                native={snapshot?.health.engine === 'native'}
                 onSelect={() => setSelectedID(job.id)}
                 onAction={(action) => void runJobAction(action, job.id)}
               />
@@ -646,6 +739,7 @@ export function FileDownloader() {
           key={selected?.id ?? 'no-selection'}
           job={selected}
           busy={busy}
+          native={snapshot?.health.engine === 'native'}
           onAction={runJobAction}
         />
       </div>
@@ -655,7 +749,13 @@ export function FileDownloader() {
           <i className="pp-engine-dot" aria-hidden="true" />{' '}
           {snapshot?.health.ready ? 'Engine ready' : 'Engine stopped'}
         </span>
-        <span>aria2c {snapshot?.health.engineVersion || 'local engine'}</span>
+        <span>
+          {snapshot?.health.engine === 'native'
+            ? 'Built-in engine · one connection per transfer'
+            : snapshot?.health.engine === 'aria2'
+              ? `aria2${snapshot.health.engineVersion ? ` ${snapshot.health.engineVersion}` : ''}`
+              : 'Engine not reported'}
+        </span>
         <span>Storage {snapshot?.config.downloadDirectory || 'not loaded'}</span>
         <span>
           Active {snapshot?.metrics.activeCount ?? 0}/{snapshot?.config.maxActiveJobs || '—'}
@@ -698,12 +798,14 @@ function TransferRow({
   job,
   selected,
   busy,
+  native,
   onSelect,
   onAction,
 }: {
   job: TransferJob;
   selected: boolean;
   busy: boolean;
+  native: boolean;
   onSelect: () => void;
   onAction: (action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget') => void;
 }) {
@@ -745,7 +847,13 @@ function TransferRow({
           <button
             type="button"
             disabled={!job.retryAvailable}
-            title={job.retryAvailable ? undefined : job.retryUnavailableReason}
+            title={
+              job.retryAvailable
+                ? native
+                  ? 'Resumes when safe; otherwise preserves the partial and starts over.'
+                  : undefined
+                : job.retryUnavailableReason
+            }
             onClick={() => onAction('retry')}
             aria-label={`Retry ${job.name}`}
           >
@@ -769,10 +877,12 @@ function TransferRow({
 function TransferInspector({
   job,
   busy,
+  native,
   onAction,
 }: {
   job: TransferJob | null;
   busy: string;
+  native: boolean;
   onAction: (
     action: 'pause' | 'resume' | 'retry' | 'cancel' | 'forget',
     id: string
@@ -942,6 +1052,12 @@ function TransferInspector({
               'Exact retry options are unavailable. Queue a new job and re-enter any required headers.'}
           </small>
         ) : null}
+        {job.status === 'failed' && job.retryAvailable && native ? (
+          <small>
+            Retry resumes when safe; otherwise it preserves the partial in the download folder and
+            starts over.
+          </small>
+        ) : null}
       </section>
     </aside>
   );
@@ -964,7 +1080,7 @@ function QueueNotice({ kind }: { kind: 'loading' | 'empty' | 'stopped' }) {
         {kind === 'empty'
           ? 'Paste one or more HTTP(S) URLs above; every line becomes its own queue item.'
           : kind === 'stopped'
-            ? 'Queue URLs to start the local aria2 engine. Configured and PATH engines take precedence over a bundled companion.'
+            ? 'Queue URLs to start the local downloader.'
             : 'Nothing is contacted while this state is loading.'}
       </p>
     </div>
@@ -1017,11 +1133,13 @@ export function batchResultMessage(result: TransferBatchResult) {
 
 function batchFailureLabel(code: TransferBatchFailureCode | '') {
   if (code === 'invalid_request') return 'invalid job options';
+  if (code === 'managed_header')
+    return 'remove Range, If-Range and Accept-Encoding headers for the built-in engine';
   if (code === 'engine_stopped') return 'engine stopped';
   if (code === 'queue_full') return 'queue capacity reached';
   if (code === 'insufficient_disk') return 'free-space reserve reached';
   if (code === 'cancelled') return 'request cancelled';
-  return 'aria2c rejected the job';
+  return 'The downloader rejected the job';
 }
 
 export { safeSourceLabel };
@@ -1054,9 +1172,9 @@ function formatETA(seconds: number, status: TransferJobStatus) {
 
 function integrityLabel(job: TransferJob) {
   if (job.verificationStatus === 'verified') {
-    return job.verificationMessage || 'Verified by aria2c.';
+    return job.verificationMessage || 'Checksum verified.';
   }
-  if (job.verificationStatus === 'verifying') return 'aria2c is verifying the downloaded bytes.';
+  if (job.verificationStatus === 'verifying') return 'Verifying the downloaded bytes.';
   if (job.verificationStatus === 'failed') return 'Checksum verification failed.';
   if (job.verificationStatus === 'mismatch') return 'Mismatch — do not trust this artifact.';
   if (job.verificationStatus === 'pending') return 'Verification pending.';

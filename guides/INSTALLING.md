@@ -42,9 +42,11 @@ command unless an unrelated `pp` already occupies the install directory; that
 file is never overwritten. Older verified archives that contain only
 `protopeek` are supported by deriving the alias from that verified binary.
 
-Windows x64 archives from v0.6.1 onward bundle pinned aria2 1.37.0 inside the executable. It is extracted
-only when Downloader starts and no configured or PATH engine exists. Linux, macOS, Windows ARM64
-and Windows 32-bit need installed aria2. Other workspaces do not start the transfer engine.
+The published v0.6.1 and v0.7.0 Windows x64 archives embed pinned aria2 1.37.0. It is extracted
+only when Downloader starts and no configured or PATH engine exists. The current Nightly Windows x64
+archive is lightweight and offers aria2 separately; other published platforms use installed aria2.
+Other workspaces do not start the transfer engine. Current source also includes a built-in HTTP(S)
+fallback for fresh profiles; it has not been released and has fewer advanced transfer options.
 
 Windows PowerShell installs per user and updates the user PATH without requiring
 administrator access:

@@ -124,6 +124,7 @@ func (launcher *Aria2Launcher) Start(ctx context.Context, config HostConfig, pat
 	return &Runtime{
 		observeCompletions: true,
 		Engine:             &aria2Engine{rpc: rpc, sessionRewritePending: true},
+		EngineName:         "aria2",
 		BinaryPath:         binary,
 		EngineVersion:      version,
 		Done:               process.Done(),

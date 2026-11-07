@@ -355,12 +355,14 @@ describe('release metadata', () => {
       '../web/site/public/assets/protopeek-managed-tools-20261106.png',
     ]);
     for (const capture of sourceCaptures) {
-      expect(capture.capturedVersion).toContain('unreleased current-source preview');
-      expect(capture.alt).toMatch(/^Current-source ProtoPeek (Home|Extensions)\b/);
       if (capture.captureStage === 'local-build') {
+        expect(capture.capturedVersion).toBe('unreleased source preview, 6 November 2026');
+        expect(capture.alt).toMatch(/^6 November ProtoPeek Extensions preview\b/);
         expect(capture.artifactSha256).toMatch(/^[a-f0-9]{64}$/);
         expect(capture.workflow).toContain('fresh profile and selected Managed');
       } else {
+        expect(capture.capturedVersion).toBe('unreleased source preview, 23 October 2026');
+        expect(capture.alt).toMatch(/^23 October ProtoPeek (Home|Extensions) preview\b/);
         expect(capture.workflow).toContain('This is UI evidence, not');
       }
       expect(capture.sha256).toMatch(/^[a-f0-9]{64}$/);

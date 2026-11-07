@@ -14,6 +14,7 @@ type BatchFailureCode string
 
 const (
 	BatchFailureInvalidRequest   BatchFailureCode = "invalid_request"
+	BatchFailureManagedHeader    BatchFailureCode = "managed_header"
 	BatchFailureEngineStopped    BatchFailureCode = "engine_stopped"
 	BatchFailureQueueFull        BatchFailureCode = "queue_full"
 	BatchFailureInsufficientDisk BatchFailureCode = "insufficient_disk"
@@ -101,6 +102,8 @@ func (service *Service) AddBatch(ctx context.Context, request BatchAddRequest) (
 
 func classifyBatchFailure(err error) BatchFailureCode {
 	switch {
+	case errors.Is(err, ErrNativeManagedHeader):
+		return BatchFailureManagedHeader
 	case errors.Is(err, ErrInvalidAddRequest):
 		return BatchFailureInvalidRequest
 	case errors.Is(err, ErrEngineNotRunning), errors.Is(err, ErrAlreadyStarting):

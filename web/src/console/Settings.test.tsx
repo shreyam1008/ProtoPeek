@@ -55,6 +55,46 @@ afterEach(() => {
 });
 
 describe('Settings', () => {
+  it.each([
+    ['native', true],
+    ['aria2', false],
+    [undefined, false],
+  ] as const)('labels aria2 settings and disables them for the %s engine', async (engine, disabled) => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...hostSnapshot,
+          health: { ...hostSnapshot.health, ready: true, status: 'running', engine },
+        })
+      )
+    );
+    const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: ['/settings'] }));
+    render(<RouterProvider router={router} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Downloads' }));
+    const connections = await screen.findByRole('spinbutton', { name: /^Connections per host/ });
+    const allocation = screen.getByRole('combobox', { name: /^File allocation/ });
+    expect(connections.hasAttribute('disabled')).toBe(disabled);
+    expect(allocation.hasAttribute('disabled')).toBe(disabled);
+    expect(
+      screen.getByRole('checkbox', { name: 'Continue partial downloads' }).hasAttribute('disabled')
+    ).toBe(disabled);
+    expect(
+      screen.getByRole('checkbox', { name: 'Always resume when possible' }).hasAttribute('disabled')
+    ).toBe(disabled);
+    expect(
+      screen
+        .getByRole('option', { name: 'Allow overwrite existing files' })
+        .hasAttribute('disabled')
+    ).toBe(disabled);
+    expect(
+      screen.getByText('aria2 only. The built-in engine uses one connection per transfer.')
+    ).toBeVisible();
+    expect(
+      screen.getByText('aria2 only; the built-in engine does not preallocate files.')
+    ).toBeVisible();
+  });
+
   it('reports unsaved interface choices until each failed preference is retried', async () => {
     vi.stubGlobal(
       'fetch',

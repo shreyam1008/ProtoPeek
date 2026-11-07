@@ -1,7 +1,8 @@
 # Media, gallery and webpage downloads
 
 Open **Files → Downloader → Media, galleries & webpages** in published v0.7.0.
-Ordinary file downloads retain their existing aria2 queue and CLI. Direct exchange
+In the published release, ordinary file downloads use the aria2 queue and CLI. Current source also
+includes a built-in HTTP(S) fallback. Direct exchange
 between ProtoPeek devices has its own [Local transfer](local-transfer.md) workspace.
 
 ## What each option saves

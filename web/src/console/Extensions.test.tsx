@@ -2,6 +2,7 @@ import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearPendingHandoff } from './app/handoff-store';
+import { communityCatalog } from './community-catalog';
 import { catalogIds, type ExtensionId, type SingleExtensionSnapshot } from './extension-catalog';
 import type { ExtensionPack } from './extension-pack';
 import { extensionPreferencesKey } from './extension-preferences';
@@ -46,6 +47,29 @@ function show(path = '/extensions') {
   const router = createProtoPeekRouter(createMemoryHistory({ initialEntries: [path] }));
   return { ...render(<RouterProvider router={router} />), router };
 }
+const communityCount = communityCatalog.filter(
+  (entry) => !(catalogIds as readonly string[]).includes(entry.id)
+).length;
+
+function stubLegacyFetch(legacy: (url: string, init: RequestInit) => unknown) {
+  const managed = vi.fn(async () =>
+    Response.json({
+      id: 'caddy',
+      status: 'available',
+      version: '1.0',
+      installBytes: 42,
+      canInstall: true,
+      canRemove: false,
+      message: 'Available.',
+      sourceUrl: 'https://github.com/example/project/releases/download/v1/file',
+    })
+  );
+  vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+    if (String(url).includes('/api/extensions/managed?id=caddy')) return managed();
+    return legacy(url, init ?? {});
+  });
+  return managed;
+}
 beforeEach(() => {
   mocks.loadPack.mockReset().mockResolvedValue(pack);
 });
@@ -59,12 +83,84 @@ afterEach(() => {
 });
 
 describe('optional extension library', () => {
+  it('keeps the compact category selector and category buttons in sync', async () => {
+    show();
+    const category = await screen.findByRole('combobox', { name: 'Category' });
+    fireEvent.change(category, { target: { value: 'Managed' } });
+    expect(screen.getByRole('button', { name: 'Managed' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('article')).toHaveLength(communityCatalog.length + 6);
+    fireEvent.click(screen.getByRole('button', { name: 'Media' }));
+    expect(category).toHaveValue('Media');
+    expect(screen.getByRole('heading', { name: 'yt-dlp' })).toBeInTheDocument();
+  });
+
+  it('distinguishes an installed managed Caddy from a missing PATH installation', async () => {
+    const external = snapshot();
+    external.extensions[0].status = 'missing';
+    external.extensions[0].source = 'none';
+    external.extensions[0].path = '';
+    external.extensions[0].message = 'Caddy was not located on PATH.';
+    vi.stubGlobal('fetch', async (url: string) =>
+      String(url).includes('/api/extensions/managed?id=caddy')
+        ? Response.json({
+            id: 'caddy',
+            status: 'installed',
+            version: '1.0',
+            installBytes: 42,
+            canInstall: false,
+            canRemove: true,
+            message: 'Installed.',
+            path: 'C:/isolated/caddy.exe',
+          })
+        : Response.json(external)
+    );
+    show('/extensions?extension=caddy');
+    expect(await screen.findByText('C:/isolated/caddy.exe')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Check PATH' }));
+    expect(await screen.findByText('Not found on PATH')).toBeInTheDocument();
+    expect(screen.getByText('Installed')).toBeInTheDocument();
+  });
+
+  it('finds each managed companion once and opens a local install path', async () => {
+    const fetch = vi.fn(async () =>
+      Response.json({
+        id: 'grpcurl',
+        status: 'available',
+        version: '1.0',
+        installBytes: 42,
+        canInstall: true,
+        canRemove: false,
+        message: 'Available.',
+        sourceUrl: 'https://github.com/example/project/releases/download/v1/file',
+      })
+    );
+    vi.stubGlobal('fetch', fetch);
+    show();
+    fireEvent.click(await screen.findByRole('button', { name: 'Managed' }));
+    expect(screen.getAllByRole('article')).toHaveLength(communityCatalog.length + 6);
+    expect(screen.getAllByRole('heading', { name: 'Caddy' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Inspect traffic & services' }));
+    expect(screen.getByRole('heading', { name: 'grpcurl' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search extensions' }), {
+      target: { value: 'grpcurl' },
+    });
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    expect(screen.getByText('Managed CLI companion')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Open setup' }));
+    expect(await screen.findByRole('heading', { name: 'grpcurl', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Install grpcurl' })).toHaveClass(
+      'pp-button-primary'
+    );
+    expect(screen.getByRole('button', { name: 'Install grpcurl' })).toBeEnabled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it('prepares the full endpoint as an unsent memory-only HTTP draft', async () => {
     const fetch = vi.fn();
-    vi.stubGlobal('fetch', fetch);
+    const managed = stubLegacyFetch(fetch);
     const draftWrites = vi.spyOn(Storage.prototype, 'setItem');
     const rendered = show('/extensions?extension=caddy');
     await screen.findByRole('button', { name: 'Open HTTP draft' });
+    await waitFor(() => expect(managed).toHaveBeenCalledTimes(1));
     fireEvent.change(screen.getByLabelText('Endpoint URL'), {
       target: { value: 'http://127.0.0.1:8080/private?access_token=sentinel' },
     });
@@ -101,8 +197,7 @@ describe('optional extension library', () => {
   it('cancels waiting without accepting a late result as a current observation', async () => {
     let resolve: (value: Response) => void = () => {};
     let signal: AbortSignal | undefined;
-    vi.stubGlobal(
-      'fetch',
+    stubLegacyFetch(
       vi.fn((_url: string, init: RequestInit) => {
         signal = init.signal as AbortSignal;
         return new Promise<Response>((done) => {
@@ -111,21 +206,22 @@ describe('optional extension library', () => {
       })
     );
     show('/extensions?extension=caddy');
-    await screen.findByRole('button', { name: 'Check this host' });
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    await screen.findByRole('button', { name: 'Check PATH' });
+    await screen.findByRole('button', { name: 'Install Caddy' });
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel check' }));
     expect(signal?.aborted).toBe(true);
     expect(screen.getByRole('status')).toHaveTextContent('Stopped waiting');
     await act(async () => resolve(Response.json(snapshot())));
     expect(screen.queryByText('Executable located')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Check this host' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Check PATH' })).toBeEnabled();
   });
   it('shows integrations and four media tools, filters and pins without checking, preloading packs or downloading tools', async () => {
     const fetch = vi.fn();
     vi.stubGlobal('fetch', fetch);
     show();
     await screen.findByRole('heading', { name: 'Extension library', level: 1 });
-    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4);
+    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4 + communityCount);
     expect(screen.getByRole('link', { name: 'Open live capture' })).toHaveAttribute(
       'href',
       '/network/packets?mode=live'
@@ -170,7 +266,7 @@ describe('optional extension library', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'nothing-matches' } });
     expect(screen.getByRole('heading', { name: 'No matching extensions.' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4);
+    expect(screen.getAllByRole('article')).toHaveLength(catalogIds.length + 4 + communityCount);
     const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('quota');
     });
@@ -186,9 +282,10 @@ describe('optional extension library', () => {
     const fetch = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
       Response.json(snapshot())
     );
-    vi.stubGlobal('fetch', fetch);
+    stubLegacyFetch(fetch);
     show('/extensions?extension=caddy');
-    await screen.findByRole('button', { name: 'Check this host' });
+    await screen.findByRole('button', { name: 'Check PATH' });
+    await screen.findByRole('button', { name: 'Install Caddy' });
     expect(mocks.loadPack).toHaveBeenCalledExactlyOnceWith('caddy');
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText('Setup instructions for'), {
@@ -201,7 +298,7 @@ describe('optional extension library', () => {
       })
     ).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     await screen.findByText('Executable located');
     expect(screen.queryByText('Ready')).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -223,29 +320,29 @@ describe('optional extension library', () => {
       .mockRejectedValueOnce(new Error('Host unavailable'))
       .mockResolvedValueOnce(Response.json(snapshot('docker')))
       .mockResolvedValueOnce(Response.json(snapshot()));
-    vi.stubGlobal('fetch', fetch);
+    stubLegacyFetch(fetch);
     show('/extensions?extension=caddy');
-    await screen.findByRole('button', { name: 'Check this host' });
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    await screen.findByRole('button', { name: 'Check PATH' });
+    await screen.findByRole('button', { name: 'Install Caddy' });
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Host unavailable');
     expect(screen.getByRole('link', { name: 'Official guide' })).toHaveAttribute(
       'href',
       pack.guide
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent('Could not read local tool status')
     );
     expect(screen.queryByText('Executable located')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     await screen.findByText('Executable located');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
   it('aborts and ignores a late host observation after leaving the selected setup', async () => {
     let resolve: (value: Response) => void = () => {};
     let signal: AbortSignal | undefined;
-    vi.stubGlobal(
-      'fetch',
+    stubLegacyFetch(
       vi.fn((_url: string, init: RequestInit) => {
         signal = init.signal as AbortSignal;
         return new Promise<Response>((done) => {
@@ -254,8 +351,9 @@ describe('optional extension library', () => {
       })
     );
     const { router } = show('/extensions?extension=caddy');
-    await screen.findByRole('button', { name: 'Check this host' });
-    fireEvent.click(screen.getByRole('button', { name: 'Check this host' }));
+    await screen.findByRole('button', { name: 'Check PATH' });
+    await screen.findByRole('button', { name: 'Install Caddy' });
+    fireEvent.click(screen.getByRole('button', { name: 'Check PATH' }));
     await act(async () => {
       await router.navigate({ to: '/extensions', search: {} });
     });

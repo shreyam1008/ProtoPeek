@@ -199,6 +199,7 @@ type Health struct {
 	Ready         bool   `json:"ready"`
 	Status        string `json:"status"`
 	Message       string `json:"message"`
+	Engine        string `json:"engine,omitempty"`
 	BinaryPath    string `json:"binaryPath,omitempty"`
 	EngineVersion string `json:"engineVersion,omitempty"`
 }
@@ -253,13 +254,22 @@ type Metrics struct {
 }
 
 type Snapshot struct {
-	PersistenceWarning string     `json:"persistenceWarning,omitempty"`
-	ObservedAt         time.Time  `json:"observedAt"`
-	Health             Health     `json:"health"`
-	Config             HostConfig `json:"config"`
-	ConfigRevision     string     `json:"configRevision"`
-	Metrics            Metrics    `json:"metrics"`
-	Jobs               []Job      `json:"jobs"`
+	PersistenceWarning string             `json:"persistenceWarning,omitempty"`
+	ObservedAt         time.Time          `json:"observedAt"`
+	Health             Health             `json:"health"`
+	Config             HostConfig         `json:"config"`
+	ConfigRevision     string             `json:"configRevision"`
+	Metrics            Metrics            `json:"metrics"`
+	Jobs               []Job              `json:"jobs"`
+	PreservedPartials  []PreservedPartial `json:"preservedPartials,omitempty"`
+}
+
+// PreservedPartial is a user-owned partial retained when an explicit Retry
+// could not safely resume it. ProtoPeek never deletes these files.
+type PreservedPartial struct {
+	JobID     string `json:"jobId"`
+	Path      string `json:"path"`
+	SizeBytes int64  `json:"sizeBytes"`
 }
 
 type AddRequest struct {
@@ -292,7 +302,8 @@ type MutationResult struct {
 }
 
 type EngineSnapshot struct {
-	Jobs []Job
+	Jobs              []Job
+	PreservedPartials []PreservedPartial
 	// PendingCount is the engine-wide queued-or-paused count. It is kept
 	// separately from the public metrics because Jobs may be intentionally
 	// truncated to MaxTrackedJobs, while admission limits must still account
@@ -318,6 +329,8 @@ type Runtime struct {
 	observeCompletions bool
 	observationWake    chan struct{}
 	Engine             Engine
+	EngineName         string
+	EngineNote         string
 	BinaryPath         string
 	EngineVersion      string
 	Done               <-chan struct{}

@@ -10,6 +10,13 @@ const publishedVersion = product.latestRelease.version;
 afterEach(() => vi.restoreAllMocks());
 
 describe('public site', () => {
+  it('explains how the Nightly preview is refreshed', () => {
+    render(<App />);
+    expect(
+      screen.getByText('Nightly is a manually refreshed preview from the default branch.')
+    ).toBeInTheDocument();
+  });
+
   it('keeps the mobile navigation small and keyboard dismissible', () => {
     render(<App />);
 

@@ -4,7 +4,8 @@
 ## Source changes since v0.7.0
 
 - Choose **Guide** on any of the 29 registered workbenches or the Files media view. Follow the highlighted control, or read the prerequisite for an unavailable step. **Search tools** opens the command palette directly.
-- Search 24 entries in Extensions. Six companions support managed installation on supported hosts through the app and CLI. The portable Windows x64 core can fetch its pinned aria2 companion or reuse a verified v0.7.0 cache offline. The Store packaging recipe carries the offline companion beside the core. Other entries open the relevant workbench or vendor setup. See [Extensions](extensions.md).
+- Search the Extensions library. Current source supports 20 managed companions on supported hosts, including 14 separately downloaded standalone tools. The portable Windows x64 core can fetch its pinned aria2 companion or reuse a verified v0.7.0 cache offline. The Store packaging recipe carries the offline companion beside the core. See [Extensions](extensions.md).
+- Current source includes a built-in HTTP(S) download engine for fresh profiles without aria2. It uses one connection per download and requires a strong ETag for safe resume; existing aria2 sessions and advanced settings remain separate. This is not yet a published release.
 - Agents can search tools offline, inspect a single schema, read managed-companion availability, and request bounded DNS, TLS or subnet checks. See [agent setup](ai-agents.md).
 
 ## Published checkpoint · 23 October 2026
@@ -116,7 +117,7 @@ Six permanent destinations keep related tools together. Existing deep links rema
 | 1 | Exact-commit native acceptance | Windows/Linux/macOS CI, actual macOS loopback/counters and real-router checks; installed dumpcap/Npcap capture and cancellation on each supported OS |
 | 1 | Installed accounts and publishing | Exercise actual Headscale/NetBird accounts, canonical cloudflared service/config ownership and private Serve/public Quick Tunnel/Funnel. Verify origin, endpoint and Stop/expiry/shutdown cleanup independently |
 | 1 | Release/package acceptance | Validate final archives/installers/checksums and the pushed commit. Source/build success does not publish a release or complete Store/Snap/WinGet owner approval |
-| 2 | Broader bundled aria2 | Reproducible small per-architecture builds, notices/source and native installed-engine/download acceptance; current fallback remains Windows amd64 |
+| 2 | Broader optional aria2 availability | Reproducible small per-architecture builds, notices/source and native installed-engine/download acceptance; the separately supplied pinned aria2 companion remains Windows amd64 |
 | 3 | Optional native service lifecycle | Separate explicit installation, recovery, privileges and removal design; foreground launch/reuse does not install a system service |
 | 3 | Persistent capability or advanced QUIC workflows | Current Cap’n Proto plans and HTTP/3 HEAD are bounded slices; durable capabilities and broader QUIC analysis need distinct lifetime/evidence contracts |
 

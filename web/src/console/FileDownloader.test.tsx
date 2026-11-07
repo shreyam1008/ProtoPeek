@@ -69,6 +69,94 @@ afterEach(() => {
 });
 
 describe('Downloader', () => {
+  it('identifies the built-in engine and does not claim aria2 is running', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...runningSnapshot,
+          health: { ...runningSnapshot.health, engine: 'native' },
+        })
+      )
+    );
+    render(<Downloader />);
+    expect(await screen.findByText('Built-in engine · one connection per transfer')).toBeVisible();
+    expect(screen.queryByText(/aria2 1\.37\.0/)).not.toBeInTheDocument();
+  });
+
+  it('explains native retry without implying that partial data is deleted', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...runningSnapshot,
+          health: { ...runningSnapshot.health, engine: 'native' },
+          jobs: [{ ...runningSnapshot.jobs[0], status: 'failed', retryAvailable: true }],
+        })
+      )
+    );
+    render(<Downloader />);
+    expect(
+      await screen.findByText(
+        'Retry resumes when safe; otherwise it preserves the partial in the download folder and starts over.'
+      )
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Retry archive.tar.gz' })).toHaveAttribute(
+      'title',
+      'Resumes when safe; otherwise preserves the partial and starts over.'
+    );
+  });
+
+  it('shows preserved partial paths and sizes even while the engine is stopped', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          ...stoppedSnapshot,
+          preservedPartials: [
+            {
+              path: '/downloads/.protopeek-deadbeef-kept.part',
+              sizeBytes: 1024,
+              jobId: 'deadbeef',
+            },
+          ],
+        })
+      )
+    );
+    render(<Downloader />);
+    const section = await screen.findByText('Preserved partial files (1)');
+    fireEvent.click(section);
+    expect(screen.getByText('/downloads/.protopeek-deadbeef-kept.part')).toBeVisible();
+    expect(screen.getByText(/1\.0 KiB/)).toBeVisible();
+    expect(screen.getByText(/ProtoPeek does not delete them/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Copy preserved file 1 path' })).toBeVisible();
+  });
+
+  it('confirms forgetting only a preserved record, then refreshes the list', async () => {
+    const path = '/downloads/.protopeek-deadbeef-kept.part';
+    let forgotten = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/preserved/forget')) {
+        expect(JSON.parse(String(init?.body))).toEqual({ path });
+        forgotten = true;
+        return new Response(null, { status: 204 });
+      }
+      return Response.json({
+        ...stoppedSnapshot,
+        preservedPartials: forgotten ? [] : [{ path, sizeBytes: 1024, jobId: 'deadbeef' }],
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(<Downloader />);
+    fireEvent.click(await screen.findByText('Preserved partial files (1)'));
+    fireEvent.click(screen.getByRole('button', { name: 'Forget preserved file 1 record' }));
+    expect(screen.getByText('The file stays on disk and may still occupy storage.')).toBeVisible();
+    expect(forgotten).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Forget record only' }));
+    expect(await screen.findByText('Record forgotten. The file remains on disk.')).toBeVisible();
+    expect(screen.queryByText('Preserved partial files (1)')).not.toBeInTheDocument();
+  });
+
   it('keeps the bounded empty results region reachable by keyboard', async () => {
     vi.stubGlobal(
       'fetch',
@@ -186,6 +274,34 @@ describe('Downloader', () => {
     expect(await screen.findAllByText('archive.tar.gz')).toHaveLength(2);
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/batch'))).toBe(false);
   });
+
+  it('refreshes actionable engine health when restoring the queue fails', async () => {
+    let attempted = false;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('/start')) {
+          attempted = true;
+          return new Response('Transfer operation failed', { status: 500 });
+        }
+        return Response.json({
+          ...stoppedSnapshot,
+          health: attempted
+            ? {
+                ready: false,
+                status: 'failed',
+                message: 'Finish the built-in queue before switching engines.',
+              }
+            : stoppedSnapshot.health,
+        });
+      })
+    );
+    render(<Downloader />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore saved queue' }));
+    expect(
+      await screen.findByText('Finish the built-in queue before switching engines.')
+    ).toBeVisible();
+  });
   it('renders the truthful stopped state without starting the engine on load', async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       Response.json(stoppedSnapshot)
@@ -293,6 +409,14 @@ describe('Downloader', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start Downloader' }));
 
     expect(await screen.findAllByText('archive.tar.gz')).toHaveLength(2);
+    expect(await screen.findByText('Queued 1 download.')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Downloader state' }));
+    await waitFor(() => expect(snapshotReads).toBeGreaterThanOrEqual(3));
+    expect(screen.getByText('Queued 1 download.')).toBeVisible();
+    fireEvent.change(screen.getByLabelText(/URLs/), {
+      target: { value: 'https://example.test/new' },
+    });
+    expect(screen.queryByText('Queued 1 download.')).not.toBeInTheDocument();
     expect(screen.getAllByText('https://example.test/archive.tar.gz').length).toBeGreaterThan(0);
     const mutationCalls = fetchMock.mock.calls.filter(
       (call) => (call[1] as RequestInit | undefined)?.method === 'POST'
@@ -579,8 +703,21 @@ describe('Downloader batch helpers', () => {
       ],
     });
     expect(message).toBe(
-      'Queued 1 of 2 independent downloads. 1 not queued: aria2c rejected the job (1).'
+      'Queued 1 of 2 independent downloads. 1 not queued: The downloader rejected the job (1).'
     );
     expect(message).not.toContain('example.test');
+  });
+
+  it('explains headers reserved by the built-in engine', () => {
+    const message = batchResultMessage({
+      requestedCount: 1,
+      queuedCount: 0,
+      failedCount: 1,
+      persistenceWarning: '',
+      results: [
+        { index: 0, queued: false, id: '', failureCode: 'managed_header', persistenceWarning: '' },
+      ],
+    });
+    expect(message).toContain('remove Range, If-Range and Accept-Encoding headers');
   });
 });

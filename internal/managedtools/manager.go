@@ -60,6 +60,8 @@ type Tool struct {
 	CanRemove    bool   `json:"canRemove"`
 	Message      string `json:"message"`
 	SourceURL    string `json:"sourceUrl,omitempty"`
+	Path         string `json:"path,omitempty"`
+	RecoveryPath string `json:"recoveryPath,omitempty"`
 }
 type Inventory struct {
 	SchemaVersion int    `json:"schemaVersion"`

@@ -114,6 +114,10 @@ describe('extension observations', () => {
     expect((await loadExtensionPack('lm-studio')).client).toBe('lm-studio');
     expect(caddy.endpoint?.url).toContain('/reverse_proxy/upstreams');
     expect(caddy.endpoint?.url).not.toContain('/config/');
+    expect(caddy.commands?.map((command) => command.text)).toEqual([
+      'pp extensions run caddy version',
+      'caddy version',
+    ]);
     const chatgpt = await loadExtensionPack('chatgpt');
     expect(chatgpt.client).toBeUndefined();
     expect(chatgpt.endpoint).toBeUndefined();

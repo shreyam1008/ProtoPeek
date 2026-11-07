@@ -47,23 +47,24 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'Complete optional extension library JavaScript',
     pattern: new RegExp(
-      `^(?:Extensions|ExtensionDetails|AgentClientSetup|extension-(?:catalog|${extensionManifest.map(({ id }) => id).join('|')}))-.+\\.js$`
+      `^(?:Extensions|ExtensionDetails|AgentClientSetup|(?:community|extension)-catalog|extension-(?:${extensionManifest.map(({ id }) => id).join('|')}))-.+\\.js$`
     ),
     mode: 'aggregate',
     requiredMembers: [
       /^Extensions-.+\.js$/,
       /^ExtensionDetails-.+\.js$/,
       /^AgentClientSetup-.+\.js$/,
-      /^extension-catalog-.+\.js$/,
+      /^(?:community|extension)-catalog-.+\.js$/,
       ...extensionManifest.map(({ id }) => new RegExp(`^extension-${id}-.+\\.js$`)),
     ],
-    // Measured 20 independently lazy packs, index, detail and client setup. No vendor runtime.
-    maxRawBytes: 46 * kibibyte,
-    maxGzipBytes: 22 * kibibyte,
+    // The expanded library adds 14 installable companions and their setup UI.
+    // The complete lazy library measures 57,322 raw / 23,456 gzip bytes.
+    maxRawBytes: 57 * kibibyte,
+    maxGzipBytes: 23.5 * kibibyte,
   },
   {
     label: 'Optional extension detail CSS',
-    pattern: /^ExtensionDetails-.+\.css$/,
+    pattern: /^(?:community|extension)-catalog-.+\.css$/,
     maxRawBytes: 2.5 * kibibyte,
     maxGzipBytes: 1 * kibibyte,
   },
@@ -169,7 +170,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'Extensions workspace CSS',
     pattern: /^Extensions-.+\.css$/,
-    maxRawBytes: 2.7 * kibibyte,
+    // Responsive filter controls bring the workspace to 3,020 raw bytes.
+    maxRawBytes: 3056,
     maxGzipBytes: 1.05 * kibibyte,
   },
   // Updates is loaded only when opened: measured 8,494 JS / 3,132 CSS raw,
@@ -394,14 +396,15 @@ export const consoleBundleBudgets: BundleBudget[] = [
   {
     label: 'File downloader workspace JavaScript',
     pattern: /^FileDownloader-.+\.js$/,
-    // Host history, restore/stop controls and foreground progress: 24,860 raw bytes.
-    maxRawBytes: 25 * kibibyte,
-    maxGzipBytes: 8 * kibibyte,
+    // Engine status, retry recovery and retained files: 27,156 raw / 8,355 gzip bytes.
+    maxRawBytes: 27 * kibibyte,
+    maxGzipBytes: 8.25 * kibibyte,
   },
   {
     label: 'File downloader workspace CSS',
     pattern: /^FileDownloader-.+\.css$/,
-    maxRawBytes: 16 * kibibyte,
+    // Retained file controls bring the workspace to 16,489 raw bytes.
+    maxRawBytes: 16.25 * kibibyte,
     maxGzipBytes: 4 * kibibyte,
   },
   {
@@ -569,8 +572,10 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Original startup, Home, HTTP/gRPC and shared/base CSS ceilings remain fixed.
     // The separately capped local-transfer route adds at most 12/5 KiB raw/gzip.
     // Media adds a separately capped 18 KiB view and 3 KiB mode switch.
-    maxRawBytes: 1388 * kibibyte,
-    maxGzipBytes: 483 * kibibyte,
+    // The expanded Extensions and Downloader views measure 1,434,888 raw /
+    // 495,127 gzip bytes across the suite. Startup caps stay fixed.
+    maxRawBytes: 1404 * kibibyte,
+    maxGzipBytes: 484 * kibibyte,
   },
   {
     label: 'all console CSS',
@@ -588,7 +593,8 @@ export const consoleBundleBudgets: BundleBudget[] = [
     // Twenty-entry library/detail and mobile access:384,591 raw (+5,092).
     // Local transfer adds at most 5/2 KiB CSS independently capped above.
     // Media and its mode switch add at most 5/2 KiB, independently capped.
-    maxRawBytes: 390 * kibibyte,
+    // Responsive extension filters and download recovery bring the suite to 400,238 raw bytes.
+    maxRawBytes: 392 * kibibyte,
     maxGzipBytes: 84 * kibibyte,
   },
 ];

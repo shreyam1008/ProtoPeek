@@ -186,8 +186,7 @@ export const toolHelp: Record<FeatureId, ToolHelp> = {
       'Enter a download URL and choose the destination and options.',
       'Start the job; inspect progress, pause or resume.',
     ],
-    boundary:
-      'Windows x64 can install aria2 in Extensions. Other platforms use an installed aria2c.',
+    boundary: 'The built-in downloader uses one connection per transfer; aria2 is optional.',
   },
   'local-transfer': {
     steps: [

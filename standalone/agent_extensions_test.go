@@ -16,10 +16,11 @@ import (
 	"time"
 
 	"github.com/shreyam1008/ProtoPeek/internal/agentlink"
+	"github.com/shreyam1008/ProtoPeek/internal/communitytools"
 	"github.com/shreyam1008/ProtoPeek/internal/extensions"
 )
 
-func TestAgentManagedToolsReturnsSixRealReadOnlyStatuses(t *testing.T) {
+func TestAgentManagedToolsReturnsRealReadOnlyStatuses(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("APPDATA", root)
 	t.Setenv("XDG_CONFIG_HOME", root)
@@ -38,7 +39,7 @@ func TestAgentManagedToolsReturnsSixRealReadOnlyStatuses(t *testing.T) {
 			ID string `json:"id"`
 		} `json:"tools"`
 	}
-	if err := json.Unmarshal(result.Data, &inventory); err != nil || inventory.SchemaVersion != 1 || len(inventory.Tools) != 6 {
+	if err := json.Unmarshal(result.Data, &inventory); err != nil || inventory.SchemaVersion != 1 || len(inventory.Tools) != 6+len(communitytools.IDs()) {
 		t.Fatalf("result=%s error=%v", result.Data, err)
 	}
 	seen := map[string]bool{}
